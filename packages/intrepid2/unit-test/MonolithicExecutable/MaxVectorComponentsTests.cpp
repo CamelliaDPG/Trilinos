@@ -220,11 +220,11 @@ namespace
     
     if (success)
     {
-      std::cout << "******************** TO REPRODUCE ISSUE ************************\n";
+      std::cout << "\n\n******************** TO REPRODUCE ISSUE ************************\n";
       std::cout << "If you get here, you haven't hit the issue.  Last confirmed using\n";
       std::cout << "Apple clang version 13.0.0 (clang-1300.0.29.3).  To reproduce, \n";
       std::cout << "set MaxVectorComponents to 66.\n";
-      std::cout << "****************************************************************\n";
+      std::cout << "****************************************************************\n\n";
     }
   }
 } // namespace
