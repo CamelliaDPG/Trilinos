@@ -65,10 +65,19 @@ namespace Intrepid2 {
   class VectorData
   {
   public:
-    using VectorArray = Kokkos::Array< TensorData<Scalar,DeviceType>, Parameters::MaxVectorComponents >; // for axis-aligned case, these correspond entry-wise to the axis with which the vector values align
-    using FamilyVectorArray = Kokkos::Array< VectorArray, Parameters::MaxTensorComponents>;
+    // for axis-aligned case, we have numComponents_ == numFamilies_, with the "diagonal" (d,d) entries nonzero.
+    using FamilyVectorArray = std::array< TensorData<Scalar,DeviceType>, Parameters::MaxTensorComponents * Parameters::MaxVectorComponents>; // flattened 2D array, family x vector component
 
-    FamilyVectorArray vectorComponents_; // outer: family ordinal; inner: component/spatial dimension ordinal
+    /**
+     \brief Compute the index of the TensorData component in the vectorComponents_ data structure.
+     */
+    KOKKOS_INLINE_FUNCTION
+    int componentIndex(const int &familyOrdinal, const int &componentOrdinal) const
+    {
+      return familyOrdinal * numComponents_ + componentOrdinal;
+    }
+    
+    FamilyVectorArray vectorComponents_; // flattened 2D array with outer: family ordinal; inner: component/spatial dimension ordinal
     bool axialComponents_; // if true, each entry in vectorComponents_ is an axial component vector; for 3D: (f1,0,0); (0,f2,0); (0,0,f3).  The 0s are represented by trivial/invalid TensorData objects.  In this case, numComponents_ == numFamilies_.
      
     int totalDimension_;
@@ -96,24 +105,24 @@ namespace Intrepid2 {
         int numFieldsInFamily = 0;
         for (unsigned j=0; j<numComponents_; j++)
         {
-          if (vectorComponents_[i][j].isValid())
+          if (vectorComponents_[componentIndex(i,j)].isValid())
           {
             if (!validEntryFoundForFamily)
             {
-              numFieldsInFamily = vectorComponents_[i][j].extent_int(0); // (F,P[,D])
+              numFieldsInFamily = vectorComponents_[componentIndex(i,j)].extent_int(0); // (F,P[,D])
               validEntryFoundForFamily = true;
             }
             else
             {
-              INTREPID2_TEST_FOR_EXCEPTION(numFieldsInFamily != vectorComponents_[i][j].extent_int(0), std::invalid_argument, "Each valid TensorData entry within a family must agree with the others on the number of fields in the family");
+              INTREPID2_TEST_FOR_EXCEPTION(numFieldsInFamily != vectorComponents_[componentIndex(i,j)].extent_int(0), std::invalid_argument, "Each valid TensorData entry within a family must agree with the others on the number of fields in the family");
             }
             if (numPoints == 0)
             {
-              numPoints = vectorComponents_[i][j].extent_int(1); // (F,P[,D])
+              numPoints = vectorComponents_[componentIndex(i,j)].extent_int(1); // (F,P[,D])
             }
             else
             {
-              INTREPID2_TEST_FOR_EXCEPTION(numPoints != vectorComponents_[i][j].extent_int(1), std::invalid_argument, "Each valid TensorData entry must agree with the others on the number of points");
+              INTREPID2_TEST_FOR_EXCEPTION(numPoints != vectorComponents_[componentIndex(i,j)].extent_int(1), std::invalid_argument, "Each valid TensorData entry must agree with the others on the number of points");
             }
             if (i != j)
             {
@@ -135,16 +144,16 @@ namespace Intrepid2 {
         int numDimsForComponent = 0;
         for (unsigned i=0; i<numFamilies_; i++)
         {
-          if (vectorComponents_[i][j].isValid())
+          if (vectorComponents_[componentIndex(i,j)].isValid())
           {
             if (!validEntryFoundForComponent)
             {
               validEntryFoundForComponent = true;
-              numDimsForComponent = vectorComponents_[i][j].extent_int(2); // (F,P,D) container or (F,P) container
+              numDimsForComponent = vectorComponents_[componentIndex(i,j)].extent_int(2); // (F,P,D) container or (F,P) container
             }
             else
             {
-              INTREPID2_TEST_FOR_EXCEPTION(numDimsForComponent != vectorComponents_[i][j].extent_int(2), std::invalid_argument, "Components in like positions must agree across families on the number of dimensions spanned by that component position");
+              INTREPID2_TEST_FOR_EXCEPTION(numDimsForComponent != vectorComponents_[componentIndex(i,j)].extent_int(2), std::invalid_argument, "Components in like positions must agree across families on the number of dimensions spanned by that component position");
             }
           }
         }
@@ -192,7 +201,7 @@ namespace Intrepid2 {
       {
         for (unsigned j=0; j<numComponents; j++)
         {
-          vectorComponents_[i][j] = vectorComponents[i][j];
+          vectorComponents_[componentIndex(i,j)] = vectorComponents[i][j];
         }
       }
       initialize();
@@ -220,7 +229,7 @@ namespace Intrepid2 {
       {
         for (unsigned j=0; j<numComponents_; j++)
         {
-          vectorComponents_[i][j] = vectorComponents[i][j];
+          vectorComponents_[componentIndex(i,j)] = vectorComponents[i][j];
         }
       }
       initialize();
@@ -242,7 +251,7 @@ namespace Intrepid2 {
         numComponents_ = numComponents;
         for (unsigned d=0; d<numComponents_; d++)
         {
-          vectorComponents_[d][d] = vectorComponents[d];
+          vectorComponents_[componentIndex(d,d)] = vectorComponents[d];
         }
       }
       else
@@ -251,7 +260,7 @@ namespace Intrepid2 {
         numComponents_ = numComponents;
         for (unsigned d=0; d<numComponents_; d++)
         {
-          vectorComponents_[0][d] = vectorComponents[d];
+          vectorComponents_[componentIndex(0,d)] = vectorComponents[d];
         }
       }
       initialize();
@@ -272,7 +281,7 @@ namespace Intrepid2 {
         numFamilies_   = numComponents_;
         for (unsigned d=0; d<numComponents_; d++)
         {
-          vectorComponents_[d][d] = vectorComponents[d];
+          vectorComponents_[componentIndex(d,d)] = vectorComponents[d];
         }
       }
       else
@@ -280,7 +289,7 @@ namespace Intrepid2 {
         numFamilies_   = 1;
         for (unsigned d=0; d<numComponents_; d++)
         {
-          vectorComponents_[0][d] = vectorComponents[d];
+          vectorComponents_[componentIndex(0,d)] = vectorComponents[d];
         }
       }
       initialize();
@@ -300,7 +309,7 @@ namespace Intrepid2 {
         {
           for (unsigned j=0; j<numComponents_; j++)
           {
-            vectorComponents_[i][j] = vectorData.getComponent(i, j);
+            vectorComponents_[componentIndex(i,j)] = vectorData.getComponent(i, j);
           }
         }
         initialize();
@@ -320,7 +329,7 @@ namespace Intrepid2 {
         {
           for (unsigned j=0; j<numComponents_; j++)
           {
-            vectorComponents_[i][j] = vectorData.getComponent(i, j);
+            vectorComponents_[componentIndex(i,j)] = vectorData.getComponent(i, j);
           }
         }
         initialize();
@@ -415,7 +424,7 @@ namespace Intrepid2 {
       
       const int componentOrdinal = dimToComponent_[dim];
       
-      const auto &component = vectorComponents_[familyForField][componentOrdinal];
+      const auto &component = vectorComponents_[componentIndex(familyForField,componentOrdinal)];
       if (component.isValid())
       {
         const int componentRank     = component.rank();
@@ -448,18 +457,18 @@ namespace Intrepid2 {
     {
       if (axialComponents_)
       {
-        return vectorComponents_[componentOrdinal][componentOrdinal];
+        return vectorComponents_[componentIndex(componentOrdinal,componentOrdinal)];
       }
       else if (numFamilies_ == 1)
       {
-        return vectorComponents_[0][componentOrdinal];
+        return vectorComponents_[componentIndex(0,componentOrdinal)];
       }
       else
       {
         INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(true, std::invalid_argument, "Ambiguous component request; use the two-argument getComponent()");
       }
       // nvcc warns here about a missing return.
-      return vectorComponents_[6][6]; // likely this is an empty container, but anyway it's an unreachable line...
+      return vectorComponents_[componentIndex(6,6)]; // likely this is an empty container, but anyway it's an unreachable line...
     }
     
     /**
@@ -475,7 +484,7 @@ namespace Intrepid2 {
       INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(componentOrdinal < 0, std::invalid_argument, "componentOrdinal must be non-negative");
       INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(static_cast<unsigned>(componentOrdinal) >= numComponents_, std::invalid_argument, "componentOrdinal out of bounds");
       
-      return vectorComponents_[familyOrdinal][componentOrdinal];
+      return vectorComponents_[componentIndex(familyOrdinal,componentOrdinal)];
     }
     
     //! Returns the extent in the specified dimension as an int.
@@ -536,7 +545,7 @@ namespace Intrepid2 {
       int numFields = -1;
       for (unsigned componentOrdinal=0; componentOrdinal<numComponents_; componentOrdinal++)
       {
-        numFields = vectorComponents_[familyOrdinal][componentOrdinal].isValid() ? vectorComponents_[familyOrdinal][componentOrdinal].extent_int(0) : numFields;
+        numFields = vectorComponents_[componentIndex(familyOrdinal,componentOrdinal)].isValid() ? vectorComponents_[componentIndex(familyOrdinal,componentOrdinal)].extent_int(0) : numFields;
       }
       INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(numFields < 0, std::logic_error, "numFields was not properly initialized");
       return numFields;
