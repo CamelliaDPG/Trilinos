@@ -18,6 +18,10 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 # add single-group tests; allows for easier targeted builds and debugging (especially useful under CUDA)
 # since each of these is redundant with Intrepid2_Tests above, we don't build this when all targets are built
 
+# MaxVectorComponentsTests -- here for debugging only
+TRIBITS_ADD_EXECUTABLE( MaxVectorComponentsTests NOEXESUFFIX SOURCES MaxVectorComponentsTests.cpp UnitTestMain.cpp )
+SET_TARGET_PROPERTIES( Intrepid2_MaxVectorComponentsTests PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
 # CellGeometry
 TRIBITS_ADD_EXECUTABLE( CellGeometryTests NOEXESUFFIX SOURCES CellGeometryTests.cpp UnitTestMain.cpp )
 SET_TARGET_PROPERTIES( Intrepid2_CellGeometryTests PROPERTIES EXCLUDE_FROM_ALL TRUE)

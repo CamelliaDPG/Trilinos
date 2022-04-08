@@ -140,7 +140,7 @@ namespace Intrepid2 {
     /// Maximum number of tensor/Cartesian products that can be taken: this allows hypercube basis in 7D to be formed by 7 line basis components.
     static constexpr ordinal_type MaxTensorComponents  = 7;
     /// Maximum number of components that a VectorData object will store -- 66 corresponds to OPERATOR_D10 on an H^1 hexahedral basis.  For now, we limit to 7, matching MaxTensorComponents.
-    static constexpr ordinal_type MaxVectorComponents  = 7;
+    static constexpr ordinal_type MaxVectorComponents  = 66;
 
     // we do not want to use hard-wired epsilon, threshold and tolerence. 
     // static constexpr double Epsilon   = 1.0e-16; 
