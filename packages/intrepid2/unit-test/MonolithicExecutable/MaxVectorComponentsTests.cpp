@@ -213,6 +213,9 @@ namespace
     using LineBasis = IntegratedLegendreBasis_HGRAD_LINE<DeviceType,double,double,true>;
     using Basis = Basis_SomeDirectSumBasis<LineBasis>;
     
+    std::cout << "\n\n";
+    std::cout << "sizeof(BasisValues<double,DeviceType>) = " << sizeof(BasisValues<double,DeviceType>) << std::endl;
+    
     const int polyOrder = 1;
     Basis basis(polyOrder);
     TensorPoints<double,DeviceType> tensorPoints;

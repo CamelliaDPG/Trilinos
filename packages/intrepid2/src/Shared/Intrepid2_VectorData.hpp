@@ -66,7 +66,7 @@ namespace Intrepid2 {
   {
   public:
     // for axis-aligned case, we have numComponents_ == numFamilies_, with the "diagonal" (d,d) entries nonzero.
-    using FamilyVectorArray = std::array< TensorData<Scalar,DeviceType>, Parameters::MaxTensorComponents * Parameters::MaxVectorComponents>; // flattened 2D array, family x vector component
+    using FamilyVectorArray = Kokkos::Array< TensorData<Scalar,DeviceType>, 50>; // flattened 2D array, family x vector component
 
     /**
      \brief Compute the index of the TensorData component in the vectorComponents_ data structure.
