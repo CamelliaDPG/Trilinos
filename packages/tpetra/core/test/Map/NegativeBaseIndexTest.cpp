@@ -116,7 +116,7 @@ namespace {
     out << "Process " << myRank << ":" << endl;
     {
       Teuchos::OSTab tab1 (out);
-      out << "My number of global indices: " << map->getLocalNumElements ()
+      out << "My number of global indices: " << map->getNodeNumElements ()
           << endl
           << "Global number of global indices: " << map->getGlobalNumElements ()
           << endl
@@ -125,7 +125,7 @@ namespace {
           << "Global min global index: " << map->getMinAllGlobalIndex () << endl;
     }
 
-    TEST_EQUALITY( map->getLocalNumElements(),
+    TEST_EQUALITY( map->getNodeNumElements(),
                    static_cast<size_t> (numElements) );
     TEST_EQUALITY( map->getGlobalNumElements(),
                    static_cast<global_size_t> (numElements*numProcs) );

@@ -37,6 +37,6 @@
 # ************************************************************************
 # @HEADER
 
-macro(set_notfound VARNAME)
-  set(${VARNAME} ${VARNAME}-NOTFOUND)
-endmacro()
+MACRO(SET_NOTFOUND VARNAME)
+  SET(${VARNAME} ${VARNAME}-NOTFOUND)
+ENDMACRO()

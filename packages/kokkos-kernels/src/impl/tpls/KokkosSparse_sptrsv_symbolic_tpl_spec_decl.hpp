@@ -46,7 +46,8 @@
 #define KOKKOSPARSE_SPTRSV_SYMBOLIC_TPL_SPEC_DECL_HPP_
 
 namespace KokkosSparse {
-namespace Impl {}
-}  // namespace KokkosSparse
+namespace Impl {
+}
+}
 
 #endif

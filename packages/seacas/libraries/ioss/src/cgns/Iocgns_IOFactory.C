@@ -1,28 +1,26 @@
-// Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#include "Ioss_DBUsage.h"           // for DatabaseUsage
-#include "Ioss_IOFactory.h"         // for IOFactory
 #include <cgns/Iocgns_DatabaseIO.h> // for DatabaseIO -- serial
 #include <cgns/Iocgns_IOFactory.h>
 #include <cgns/Iocgns_Utils.h>
 #include <cstddef> // for nullptr
-#include <string>  // for string
-#include <tokenize.h>
-
-#include <cgnsconfig.h>
-#if CG_BUILD_PARALLEL
+#if defined(SEACAS_HAVE_MPI)
 #include <cgns/Iocgns_ParallelDatabaseIO.h> // for DatabaseIO -- parallel
 #endif
+#include "Ioss_DBUsage.h"   // for DatabaseUsage
+#include "Ioss_IOFactory.h" // for IOFactory
+#include <string>           // for string
+#include <tokenize.h>
 
 namespace Ioss {
   class PropertyManager;
 } // namespace Ioss
 
-#if CG_BUILD_PARALLEL
+#if defined(SEACAS_HAVE_MPI)
 namespace {
   std::string check_decomposition_property(const Ioss::PropertyManager &properties,
                                            Ioss::DatabaseUsage          db_usage);
@@ -41,23 +39,25 @@ namespace Iocgns {
 
   IOFactory::IOFactory() : Ioss::IOFactory("cgns")
   {
-#if CG_BUILD_PARALLEL
+#if defined(SEACAS_HAVE_MPI)
     Ioss::IOFactory::alias("cgns", "dof_cgns");
     Ioss::IOFactory::alias("cgns", "par_cgns");
 #endif
   }
 
   Ioss::DatabaseIO *IOFactory::make_IO(const std::string &filename, Ioss::DatabaseUsage db_usage,
-                                       Ioss_MPI_Comm                communicator,
+                                       MPI_Comm                     communicator,
                                        const Ioss::PropertyManager &properties) const
   {
 // The "cgns" and "parallel_cgns" databases can both be accessed from
 // this factory.  The "parallel_cgns" is returned if being run on more
 // than 1 processor unless the decomposition property is set and the
 // value is "external" or the composition property is set with value "external"
-#if CG_BUILD_PARALLEL
-    Ioss::ParallelUtils pu(communicator);
-    int                 proc_count = pu.parallel_size();
+#if defined(SEACAS_HAVE_MPI)
+    int proc_count = 1;
+    if (communicator != MPI_COMM_NULL) {
+      MPI_Comm_size(communicator, &proc_count);
+    }
 
     bool decompose = false;
 
@@ -84,7 +84,7 @@ namespace Iocgns {
   std::string IOFactory::show_config() const { return Iocgns::Utils::show_config(); }
 } // namespace Iocgns
 
-#if CG_BUILD_PARALLEL
+#if defined(SEACAS_HAVE_MPI)
 namespace {
   std::string check_decomposition_property(const Ioss::PropertyManager &properties,
                                            Ioss::DatabaseUsage          db_usage)

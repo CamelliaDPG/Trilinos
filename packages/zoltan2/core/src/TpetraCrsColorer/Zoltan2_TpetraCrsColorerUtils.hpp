@@ -29,7 +29,7 @@ check_coloring(
   Teuchos::RCP<const Teuchos::Comm<int>> comm = graph.getRowMap()->getComm();
   const int rank = comm->getRank();
   auto local_graph = graph.getLocalGraphDevice();
-  const size_t num_rows = graph.getLocalNumRows();
+  const size_t num_rows = graph.getNodeNumRows();
   size_t num_conflict = 0;
 
   Kokkos::parallel_reduce(
@@ -46,10 +46,10 @@ check_coloring(
             if (col != col2 && list_of_colors[col] == list_of_colors[col2])
             {
               ++lcl_conflict;
-              printf(
-		     "proc = %i : Invalid coloring!  Local row %zu"
-		     " and columns %zu, %zu have the same color %i\n",
-		     rank, row, col, col2, list_of_colors[col]);
+              std::printf(
+                  "proc = %i : Invalid coloring!  Local row %zu"
+                  " and columns %zu, %zu have the same color %i\n",
+                  rank, row, col, col2, list_of_colors[col]);
             }
           }
         }
@@ -125,7 +125,7 @@ compute_transpose_graph(const Tpetra::CrsGraph<LO, GO, NO> &graph)
   local_graph_t local_graph = graph.getLocalGraphDevice();
   local_graph_t local_trans_graph = 
                    compute_local_transpose_graph(local_graph,
-                                                 graph.getLocalNumCols());
+                                                 graph.getNodeNumCols());
 
   // Build (possibly overlapped) transpose graph using original graph's
   // column map as the new row map, and vice versa

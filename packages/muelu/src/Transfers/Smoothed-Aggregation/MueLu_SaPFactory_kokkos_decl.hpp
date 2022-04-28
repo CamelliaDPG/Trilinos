@@ -150,8 +150,6 @@ namespace MueLu {
 
     void SatisfyPConstraints(RCP<Matrix> A, RCP<Matrix>& P) const;
 
-    void optimalSatisfyPConstraintsForScalarPDEs( RCP<Matrix>& P) const;
-
     //@}
 
   };

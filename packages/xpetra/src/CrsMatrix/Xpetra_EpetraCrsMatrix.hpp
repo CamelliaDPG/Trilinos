@@ -185,14 +185,14 @@ public:
   RCP< const CrsGraph<LocalOrdinal, GlobalOrdinal, Node> > getCrsGraph() const { return Teuchos::null; }
   global_size_t getGlobalNumRows() const { return 0; }
   global_size_t getGlobalNumCols() const { return 0; }
-  size_t getLocalNumRows() const { return 0; }
-  size_t getLocalNumCols() const { return 0; }
+  size_t getNodeNumRows() const { return 0; }
+  size_t getNodeNumCols() const { return 0; }
   global_size_t getGlobalNumEntries() const { return 0; }
-  size_t getLocalNumEntries() const { return 0; }
+  size_t getNodeNumEntries() const { return 0; }
   size_t getNumEntriesInLocalRow(LocalOrdinal localRow) const { return 0; }
   size_t getNumEntriesInGlobalRow(GlobalOrdinal globalRow) const { return 0; }
   size_t getGlobalMaxNumRowEntries() const { return 0; }
-  size_t getLocalMaxNumRowEntries() const { return 0; }
+  size_t getNodeMaxNumRowEntries() const { return 0; }
   bool isLocallyIndexed() const { return false; }
   bool isGloballyIndexed() const { return false; }
   bool isFillComplete() const { return false; }
@@ -486,9 +486,9 @@ public:
     ordinal_type lclNumCols = lclMatrix.numCols ();  // do we need this?
 
     // plausibility checks
-    TEUCHOS_TEST_FOR_EXCEPTION(lclNumRows != Teuchos::as<ordinal_type>(rowMap->getLocalNumElements()), Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(lclNumRows != Teuchos::as<ordinal_type>(rowMap->getNodeNumElements()), Xpetra::Exceptions::RuntimeError,
                                "Xpetra::EpetraCrsMatrixT: number of rows in local matrix and number of local entries in row map do not match!");
-    TEUCHOS_TEST_FOR_EXCEPTION(lclNumCols != Teuchos::as<ordinal_type>(colMap->getLocalNumElements()), Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(lclNumCols != Teuchos::as<ordinal_type>(colMap->getNodeNumElements()), Xpetra::Exceptions::RuntimeError,
                                "Xpetra::EpetraCrsMatrixT: number of columns in local matrix and number of local entries in column map do not match!");
 
     Teuchos::ArrayRCP< size_t > NumEntriesPerRowToAlloc(lclNumRows);
@@ -530,6 +530,9 @@ public:
       this->fillComplete(domainMap, rowMap, params);
     else
       this->fillComplete(rowMap, rowMap, params);
+
+    // AP (2015/10/22): Could probably be optimized using provided lclMatrix, but lets not worry about that
+    isInitializedLocalMatrix_ = false;
   }
 #endif
 #endif
@@ -610,7 +613,7 @@ public:
       // and values (see below).  The problem is that Tpetra insists on using
       // size_t, and Epetra uses int internally.  So we only resize here, and
       // will need to copy in setAllValues
-      rowptr.resize(getLocalNumRows()+1);
+      rowptr.resize(getNodeNumRows()+1);
 
       int  lowerOffset = 0;
       bool ownMemory   = false;
@@ -634,7 +637,7 @@ public:
     XPETRA_MONITOR("EpetraCrsMatrixT::setAllValues");
 
     // Check sizes
-    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(rowptr.size()) != getLocalNumRows()+1, Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(rowptr.size()) != getNodeNumRows()+1, Xpetra::Exceptions::RuntimeError,
                                "An exception is thrown to let you know that the size of your rowptr array is incorrect.");
     TEUCHOS_TEST_FOR_EXCEPTION(values.size() != colind.size(), Xpetra::Exceptions::RuntimeError,
                                "An exception is thrown to let you know that you mismatched your pointers.");
@@ -649,7 +652,7 @@ public:
 
     // We have to make a copy here, it is unavoidable
     // See comments in allocateAllValues
-    const size_t N = getLocalNumRows();
+    const size_t N = getNodeNumRows();
 
     Epetra_IntSerialDenseVector& myRowptr = mtx_->ExpertExtractIndexOffset();
     myRowptr.Resize(N+1);
@@ -665,8 +668,8 @@ public:
     int  lowerOffset = 0;
     bool ownMemory   = false;
 
-    const size_t n   = getLocalNumRows();
-    const size_t nnz = getLocalNumEntries();
+    const size_t n   = getNodeNumRows();
+    const size_t nnz = getNodeNumEntries();
 
     // Row offsets
     // We have to make a copy here, it is unavoidable (see comments in allocateAllValues)
@@ -689,7 +692,7 @@ public:
     int  lowerOffset = 0;
     bool ownMemory   = false;
 
-    const size_t nnz = getLocalNumEntries();
+    const size_t nnz = getNodeNumEntries();
     // Values
     values = Teuchos::arcp(mtx_->ExpertExtractValues(), lowerOffset, nnz, ownMemory);
   }
@@ -802,16 +805,16 @@ public:
   global_size_t getGlobalNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalNumCols"); return mtx_->NumGlobalCols64(); }
 
   //! Returns the number of matrix rows owned on the calling node.
-  size_t getLocalNumRows() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumRows"); return mtx_->NumMyRows(); }
+  size_t getNodeNumRows() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumRows"); return mtx_->NumMyRows(); }
 
   //! Returns the number of columns connected to the locally owned rows of this matrix.
-  size_t getLocalNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumCols"); return mtx_->NumMyCols(); }
+  size_t getNodeNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumCols"); return mtx_->NumMyCols(); }
 
   //! Returns the global number of entries in this matrix.
   global_size_t getGlobalNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalNumEntries"); return mtx_->NumGlobalNonzeros64(); }
 
   //! Returns the local number of entries in this matrix.
-  size_t getLocalNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumEntries"); return mtx_->NumMyNonzeros(); }
+  size_t getNodeNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumEntries"); return mtx_->NumMyNonzeros(); }
 
   //! Returns the current number of entries on this node in the specified local row.
   size_t getNumEntriesInLocalRow(LocalOrdinal localRow) const { XPETRA_MONITOR("EpetraCrsMatrixT::getNumEntriesInLocalRow"); return mtx_->NumMyEntries(localRow); }
@@ -823,7 +826,7 @@ public:
   size_t getGlobalMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalMaxNumRowEntries"); return mtx_->GlobalMaxNumEntries(); }
 
   //! Returns the maximum number of entries across all rows/columns on this node.
-  size_t getLocalMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalMaxNumRowEntries"); return mtx_->MaxNumEntries(); }
+  size_t getNodeMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeMaxNumRowEntries"); return mtx_->MaxNumEntries(); }
 
   //! If matrix indices are in the local range, this function returns true. Otherwise, this function returns false.
   bool isLocallyIndexed() const { XPETRA_MONITOR("EpetraCrsMatrixT::isLocallyIndexed"); return mtx_->IndicesAreLocal(); }
@@ -1077,15 +1080,15 @@ public:
             //                 out << "Node not allocated" << std::endl;
             //               }
             //               else {
-            //                 out << "Node number of allocated entries = " << staticGraph_->getLocalAllocationSize() << std::endl;
+            //                 out << "Node number of allocated entries = " << staticGraph_->getNodeAllocationSize() << std::endl;
             //               }
 
             // TMP:
             //            const Epetra_CrsGraph & staticGraph_ = mtx_->Graph();
             // End of TMP
 
-            out << "Node number of entries = " << getLocalNumEntries() << std::endl;
-            out << "Node max number of entries = " << getLocalMaxNumRowEntries() << std::endl;
+            out << "Node number of entries = " << getNodeNumEntries() << std::endl;
+            out << "Node max number of entries = " << getNodeMaxNumRowEntries() << std::endl;
           }
           comm->barrier();
           comm->barrier();
@@ -1103,7 +1106,7 @@ public:
               out << std::setw(width) << "(Index,Value)";
             }
             out << std::endl;
-            for (size_t r=0; r < getLocalNumRows(); ++r) {
+            for (size_t r=0; r < getNodeNumRows(); ++r) {
               const size_t nE = getNumEntriesInLocalRow(r);
               GlobalOrdinal gid = getRowMap()->getGlobalElement(r);
               out << std::setw(width) << myImageID
@@ -1259,6 +1262,9 @@ local_matrix_type getLocalMatrixDevice () const {
 
 
 typename local_matrix_type::HostMirror getLocalMatrixHost () const {
+    if (isInitializedLocalMatrix_)
+      return localMatrix_;
+
     RCP<Epetra_CrsMatrix> matrix = getEpetra_CrsMatrixNonConst();
 
     const int numRows = matrix->NumMyRows();
@@ -1272,7 +1278,7 @@ typename local_matrix_type::HostMirror getLocalMatrixHost () const {
     TEUCHOS_TEST_FOR_EXCEPTION(rv, std::runtime_error, "Xpetra::CrsMatrix<>::getLocalMatrix: failed in ExtractCrsDataPointers");
 
     // Transform int* rowptr array to size_type* array
-    typename local_matrix_type::row_map_type::non_const_type kokkosRowPtr(Kokkos::ViewAllocateWithoutInitializing("local row map"), numRows+1);
+    typename local_matrix_type::row_map_type::non_const_type kokkosRowPtr("local row map", numRows+1);
     for (size_t i = 0; i < kokkosRowPtr.size(); i++)
       kokkosRowPtr(i) = Teuchos::asSafe<typename local_matrix_type::row_map_type::value_type>(rowptr[i]);
 
@@ -1280,45 +1286,25 @@ typename local_matrix_type::HostMirror getLocalMatrixHost () const {
     typename local_matrix_type::index_type   kokkosColind(colind,              nnz);
     typename local_matrix_type::values_type  kokkosVals  (vals,                nnz);
 
-    local_matrix_type localMatrix = local_matrix_type("LocalMatrix", numRows, numCols, nnz, kokkosVals, kokkosRowPtr, kokkosColind);
+    localMatrix_ = local_matrix_type("LocalMatrix", numRows, numCols, nnz, kokkosVals, kokkosRowPtr, kokkosColind);
+    isInitializedLocalMatrix_ = true;
 
-    return localMatrix;
+    return localMatrix_;
   }
 
-  void setAllValues (const typename local_matrix_type::row_map_type& ptr,
-                     const typename local_matrix_type::StaticCrsGraphType::entries_type::non_const_type& ind,
-                     const typename local_matrix_type::values_type& val)
+  void setAllValues (const typename local_matrix_type::row_map_type& /* ptr */,
+                     const typename local_matrix_type::StaticCrsGraphType::entries_type::non_const_type& /* ind */,
+                     const typename local_matrix_type::values_type& /* val */)
   {
-
-    // Check sizes
-    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(ptr.size()) != getLocalNumRows()+1, Xpetra::Exceptions::RuntimeError,
-                               "An exception is thrown to let you know that the size of your rowptr array is incorrect.");
-    TEUCHOS_TEST_FOR_EXCEPTION(val.size() != ind.size(), Xpetra::Exceptions::RuntimeError,
-                               "An exception is thrown to let you know that you mismatched your pointers.");
-
-    // Check pointers
-    if (val.size() > 0) {
-      std::cout << ind.data() << " " << mtx_->ExpertExtractIndices().Values() << std::endl;
-      TEUCHOS_TEST_FOR_EXCEPTION(ind.data() != mtx_->ExpertExtractIndices().Values(), Xpetra::Exceptions::RuntimeError,
-                                 "An exception is thrown to let you know that you mismatched your pointers.");
-      TEUCHOS_TEST_FOR_EXCEPTION(val.data() != mtx_->ExpertExtractValues(), Xpetra::Exceptions::RuntimeError,
-                                 "An exception is thrown to let you know that you mismatched your pointers.");
-    }
-
-    // We have to make a copy here, it is unavoidable
-    // See comments in allocateAllValues
-    const size_t N = getLocalNumRows();
-
-    Epetra_IntSerialDenseVector& myRowptr = mtx_->ExpertExtractIndexOffset();
-    myRowptr.Resize(N+1);
-    for (size_t i = 0; i < N+1; i++)
-      myRowptr[i] = Teuchos::as<int>(ptr(i));
-
+    TEUCHOS_TEST_FOR_EXCEPTION(true, Xpetra::Exceptions::RuntimeError,
+                               "Xpetra::EpetraCrsMatrix::setAllValues is not implemented");
   }
 
 
 
 private:
+  mutable local_matrix_type localMatrix_;
+  mutable bool              isInitializedLocalMatrix_ = false; // It's OK to use C++11 when Tpetra is enabled
 #else
 #ifdef __GNUC__
 #warning "Xpetra Kokkos interface for CrsMatrix is enabled (HAVE_XPETRA_KOKKOS_REFACTOR) but Tpetra is disabled. The Kokkos interface needs Tpetra to be enabled, too."
@@ -1549,9 +1535,9 @@ public:
     ordinal_type lclNumCols = lclMatrix.numCols ();  // do we need this?
 
     // plausibility checks
-    TEUCHOS_TEST_FOR_EXCEPTION(lclNumRows != Teuchos::as<ordinal_type>(rowMap->getLocalNumElements()), Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(lclNumRows != Teuchos::as<ordinal_type>(rowMap->getNodeNumElements()), Xpetra::Exceptions::RuntimeError,
                                "Xpetra::EpetraCrsMatrixT: number of rows in local matrix and number of local entries in row map do not match!");
-    TEUCHOS_TEST_FOR_EXCEPTION(lclNumCols != Teuchos::as<ordinal_type>(colMap->getLocalNumElements()), Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(lclNumCols != Teuchos::as<ordinal_type>(colMap->getNodeNumElements()), Xpetra::Exceptions::RuntimeError,
                                "Xpetra::EpetraCrsMatrixT: number of columns in local matrix and number of local entries in column map do not match!");
 
     Teuchos::ArrayRCP< size_t > NumEntriesPerRowToAlloc(lclNumRows);
@@ -1592,6 +1578,9 @@ public:
       this->fillComplete(domainMap, rowMap, params);
     else
       this->fillComplete(rowMap, rowMap, params);
+
+    // AP (2015/10/22): Could probably be optimized using provided lclMatrix, but lets not worry about that
+    isInitializedLocalMatrix_ = false;
   }
 #endif
 #endif
@@ -1672,7 +1661,7 @@ public:
       // and values (see below).  The problem is that Tpetra insists on using
       // size_t, and Epetra uses int internally.  So we only resize here, and
       // will need to copy in setAllValues
-      rowptr.resize(getLocalNumRows()+1);
+      rowptr.resize(getNodeNumRows()+1);
 
       int  lowerOffset = 0;
       bool ownMemory   = false;
@@ -1696,7 +1685,7 @@ public:
     XPETRA_MONITOR("EpetraCrsMatrixT::setAllValues");
 
     // Check sizes
-    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(rowptr.size()) != getLocalNumRows()+1, Xpetra::Exceptions::RuntimeError,
+    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(rowptr.size()) != getNodeNumRows()+1, Xpetra::Exceptions::RuntimeError,
                                "An exception is thrown to let you know that the size of your rowptr array is incorrect.");
     TEUCHOS_TEST_FOR_EXCEPTION(values.size() != colind.size(), Xpetra::Exceptions::RuntimeError,
                                "An exception is thrown to let you know that you mismatched your pointers.");
@@ -1711,7 +1700,7 @@ public:
 
     // We have to make a copy here, it is unavoidable
     // See comments in allocateAllValues
-    const size_t N = getLocalNumRows();
+    const size_t N = getNodeNumRows();
 
     Epetra_IntSerialDenseVector& myRowptr = mtx_->ExpertExtractIndexOffset();
     myRowptr.Resize(N+1);
@@ -1727,8 +1716,8 @@ public:
     int  lowerOffset = 0;
     bool ownMemory   = false;
 
-    const size_t n   = getLocalNumRows();
-    const size_t nnz = getLocalNumEntries();
+    const size_t n   = getNodeNumRows();
+    const size_t nnz = getNodeNumEntries();
 
     // Row offsets
     // We have to make a copy here, it is unavoidable (see comments in allocateAllValues)
@@ -1752,7 +1741,7 @@ public:
     int  lowerOffset = 0;
     bool ownMemory   = false;
 
-    const size_t nnz = getLocalNumEntries();
+    const size_t nnz = getNodeNumEntries();
     // Values
     values = Teuchos::arcp(mtx_->ExpertExtractValues(), lowerOffset, nnz, ownMemory);
   }
@@ -1867,16 +1856,16 @@ public:
   global_size_t getGlobalNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalNumCols"); return mtx_->NumGlobalCols64(); }
 
   //! Returns the number of matrix rows owned on the calling node.
-  size_t getLocalNumRows() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumRows"); return mtx_->NumMyRows(); }
+  size_t getNodeNumRows() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumRows"); return mtx_->NumMyRows(); }
 
   //! Returns the number of columns connected to the locally owned rows of this matrix.
-  size_t getLocalNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumCols"); return mtx_->NumMyCols(); }
+  size_t getNodeNumCols() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumCols"); return mtx_->NumMyCols(); }
 
   //! Returns the global number of entries in this matrix.
   global_size_t getGlobalNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalNumEntries"); return mtx_->NumGlobalNonzeros64(); }
 
   //! Returns the local number of entries in this matrix.
-  size_t getLocalNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalNumEntries"); return mtx_->NumMyNonzeros(); }
+  size_t getNodeNumEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeNumEntries"); return mtx_->NumMyNonzeros(); }
 
   //! Returns the current number of entries on this node in the specified local row.
   size_t getNumEntriesInLocalRow(LocalOrdinal localRow) const { XPETRA_MONITOR("EpetraCrsMatrixT::getNumEntriesInLocalRow"); return mtx_->NumMyEntries(localRow); }
@@ -1888,7 +1877,7 @@ public:
   size_t getGlobalMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getGlobalMaxNumRowEntries"); return mtx_->GlobalMaxNumEntries(); }
 
   //! Returns the maximum number of entries across all rows/columns on this node.
-  size_t getLocalMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getLocalMaxNumRowEntries"); return mtx_->MaxNumEntries(); }
+  size_t getNodeMaxNumRowEntries() const { XPETRA_MONITOR("EpetraCrsMatrixT::getNodeMaxNumRowEntries"); return mtx_->MaxNumEntries(); }
 
   //! If matrix indices are in the local range, this function returns true. Otherwise, this function returns false.
   bool isLocallyIndexed() const { XPETRA_MONITOR("EpetraCrsMatrixT::isLocallyIndexed"); return mtx_->IndicesAreLocal(); }
@@ -2138,15 +2127,15 @@ public:
             //                 out << "Node not allocated" << std::endl;
             //               }
             //               else {
-            //                 out << "Node number of allocated entries = " << staticGraph_->getLocalAllocationSize() << std::endl;
+            //                 out << "Node number of allocated entries = " << staticGraph_->getNodeAllocationSize() << std::endl;
             //               }
 
             // TMP:
             //            const Epetra_CrsGraph & staticGraph_ = mtx_->Graph();
             // End of TMP
 
-            out << "Node number of entries = " << getLocalNumEntries() << std::endl;
-            out << "Node max number of entries = " << getLocalMaxNumRowEntries() << std::endl;
+            out << "Node number of entries = " << getNodeNumEntries() << std::endl;
+            out << "Node max number of entries = " << getNodeMaxNumRowEntries() << std::endl;
           }
           comm->barrier();
           comm->barrier();
@@ -2164,7 +2153,7 @@ public:
               out << std::setw(width) << "(Index,Value)";
             }
             out << std::endl;
-            for (size_t r=0; r < getLocalNumRows(); ++r) {
+            for (size_t r=0; r < getNodeNumRows(); ++r) {
               const size_t nE = getNumEntriesInLocalRow(r);
               GlobalOrdinal gid = getRowMap()->getGlobalElement(r);
               out << std::setw(width) << myImageID
@@ -2303,6 +2292,8 @@ public:
 #ifdef HAVE_XPETRA_TPETRA
   /// \brief Compatibility layer for accessing the matrix data through a Kokkos interface
   local_matrix_type getLocalMatrix () const {
+    if (isInitializedLocalMatrix_)
+      return localMatrix_;
 
     RCP<Epetra_CrsMatrix> matrix = getEpetra_CrsMatrixNonConst();
 
@@ -2317,7 +2308,7 @@ public:
     TEUCHOS_TEST_FOR_EXCEPTION(rv, std::runtime_error, "Xpetra::CrsMatrix<>::getLocalMatrix: failed in ExtractCrsDataPointers");
 
     // Transform int* rowptr array to size_type* array
-    typename local_matrix_type::row_map_type::non_const_type kokkosRowPtr(Kokkos::ViewAllocateWithoutInitializing("local row map"), numRows+1);
+    typename local_matrix_type::row_map_type::non_const_type kokkosRowPtr("local row map", numRows+1);
     for (size_t i = 0; i < kokkosRowPtr.size(); i++)
       kokkosRowPtr(i) = Teuchos::asSafe<typename local_matrix_type::row_map_type::value_type>(rowptr[i]);
 
@@ -2325,43 +2316,24 @@ public:
     typename local_matrix_type::index_type   kokkosColind(colind,              nnz);
     typename local_matrix_type::values_type  kokkosVals  (vals,                nnz);
 
-    local_matrix_type localMatrix = local_matrix_type("LocalMatrix", numRows, numCols, nnz, kokkosVals, kokkosRowPtr, kokkosColind);
+    localMatrix_ = local_matrix_type("LocalMatrix", numRows, numCols, nnz, kokkosVals, kokkosRowPtr, kokkosColind);
+    isInitializedLocalMatrix_ = true;
 
-    return localMatrix;
+    return localMatrix_;
   }
 
-  void setAllValues (const typename local_matrix_type::row_map_type& ptr,
-                     const typename local_matrix_type::StaticCrsGraphType::entries_type::non_const_type& ind,
-                     const typename local_matrix_type::values_type& val)
+  void setAllValues (const typename local_matrix_type::row_map_type& /* ptr */,
+                     const typename local_matrix_type::StaticCrsGraphType::entries_type::non_const_type& /* ind */,
+                     const typename local_matrix_type::values_type& /* val */)
   {
-
-    // Check sizes
-    TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::as<size_t>(ptr.size()) != getLocalNumRows()+1, Xpetra::Exceptions::RuntimeError,
-                               "An exception is thrown to let you know that the size of your rowptr array is incorrect.");
-    TEUCHOS_TEST_FOR_EXCEPTION(val.size() != ind.size(), Xpetra::Exceptions::RuntimeError,
-                               "An exception is thrown to let you know that you mismatched your pointers.");
-
-    // Check pointers
-    if (val.size() > 0) {
-      TEUCHOS_TEST_FOR_EXCEPTION(ind.data() != mtx_->ExpertExtractIndices().Values(), Xpetra::Exceptions::RuntimeError,
-                                 "An exception is thrown to let you know that you mismatched your pointers.");
-      TEUCHOS_TEST_FOR_EXCEPTION(val.data() != mtx_->ExpertExtractValues(), Xpetra::Exceptions::RuntimeError,
-                                 "An exception is thrown to let you know that you mismatched your pointers.");
-    }
-
-    // We have to make a copy here, it is unavoidable
-    // See comments in allocateAllValues
-    const size_t N = getLocalNumRows();
-
-    Epetra_IntSerialDenseVector& myRowptr = mtx_->ExpertExtractIndexOffset();
-    myRowptr.Resize(N+1);
-    for (size_t i = 0; i < N+1; i++)
-      myRowptr[i] = Teuchos::as<int>(ptr(i));
-
+    TEUCHOS_TEST_FOR_EXCEPTION(true, Xpetra::Exceptions::RuntimeError,
+                               "Xpetra::EpetraCrsMatrix::setAllValues is not implemented");
   }
 
  
 private:
+  mutable local_matrix_type localMatrix_;
+  mutable bool              isInitializedLocalMatrix_ = false;
 #else
 #ifdef __GNUC__
 #warning "Xpetra Kokkos interface for CrsMatrix is enabled (HAVE_XPETRA_KOKKOS_REFACTOR) but Tpetra is disabled. The Kokkos interface needs Tpetra to be enabled, too."

@@ -42,19 +42,19 @@
 # NOTE: You should determine the overall Fortran name mangling first before
 # you include this file.
 
-if (F77_FUNC)
-  set(F77_BLAS_MANGLE_DEFAULT ${F77_FUNC})
-else()
-  set(F77_BLAS_MANGLE_DEFAULT "UNDEFINED")
-endif()
-if(WIN32 AND NOT CYGWIN)
-  set(F77_BLAS_MANGLE_DEFAULT "${F77_FUNC}")
-endif()
+IF (F77_FUNC)
+  SET(F77_BLAS_MANGLE_DEFAULT ${F77_FUNC})
+ELSE()
+  SET(F77_BLAS_MANGLE_DEFAULT "UNDEFINED")
+ENDIF()
+IF(WIN32 AND NOT CYGWIN)
+  SET(F77_BLAS_MANGLE_DEFAULT "${F77_FUNC}")
+ENDIF()
 
 
 # Set options so that users can change these!
 
-set(F77_BLAS_MANGLE ${F77_BLAS_MANGLE_DEFAULT} CACHE STRING
+SET(F77_BLAS_MANGLE ${F77_BLAS_MANGLE_DEFAULT} CACHE STRING
   "Name mangling to call functions in the provided BLAS library")
 
-mark_as_advanced(F77_BLAS_MANGLE)
+MARK_AS_ADVANCED(F77_BLAS_MANGLE)

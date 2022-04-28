@@ -1,3 +1,3 @@
-tribits_repository_define_packages(
+TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   HelloWorld  hello_world  PT
   )

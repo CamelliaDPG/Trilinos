@@ -55,18 +55,6 @@ struct WithoutInitializing_t {};
 struct AllowPadding_t {};
 struct NullSpace_t {};
 
-template <typename>
-struct is_view_ctor_property : public std::false_type {};
-
-template <>
-struct is_view_ctor_property<WithoutInitializing_t> : public std::true_type {};
-
-template <>
-struct is_view_ctor_property<AllowPadding_t> : public std::true_type {};
-
-template <>
-struct is_view_ctor_property<NullSpace_t> : public std::true_type {};
-
 //----------------------------------------------------------------------------
 /**\brief Whether a type can be used for a view label */
 
@@ -156,10 +144,10 @@ struct ViewCtorProp<typename std::enable_if<is_view_label<Label>::value>::type,
 };
 
 template <typename Space>
-struct ViewCtorProp<
-    typename std::enable_if<Kokkos::is_memory_space<Space>::value ||
-                            Kokkos::is_execution_space<Space>::value>::type,
-    Space> {
+struct ViewCtorProp<typename std::enable_if<
+                        Kokkos::Impl::is_memory_space<Space>::value ||
+                        Kokkos::Impl::is_execution_space<Space>::value>::type,
+                    Space> {
   ViewCtorProp()                     = default;
   ViewCtorProp(const ViewCtorProp &) = default;
   ViewCtorProp &operator=(const ViewCtorProp &) = default;
@@ -219,10 +207,10 @@ template <typename... P>
 struct ViewCtorProp : public ViewCtorProp<void, P>... {
  private:
   using var_memory_space =
-      Kokkos::Impl::has_condition<void, Kokkos::is_memory_space, P...>;
+      Kokkos::Impl::has_condition<void, Kokkos::Impl::is_memory_space, P...>;
 
   using var_execution_space =
-      Kokkos::Impl::has_condition<void, Kokkos::is_execution_space, P...>;
+      Kokkos::Impl::has_condition<void, Kokkos::Impl::is_execution_space, P...>;
 
   struct VOIDDUMMY {};
 
@@ -282,6 +270,7 @@ struct ViewCtorProp : public ViewCtorProp<void, P>... {
 
 namespace Kokkos {
 
+/* For backward compatibility */
 namespace Impl {
 struct ViewAllocateWithoutInitializingBackwardCompat {};
 
@@ -302,6 +291,7 @@ struct ViewCtorProp<WithoutInitializing_t, std::string,
 };
 } /* namespace Impl */
 
+/*[[deprecated(Use Kokkos::alloc(Kokkos::WithoutInitializing, label) instead]]*/
 using ViewAllocateWithoutInitializing =
     Impl::ViewCtorProp<Impl::WithoutInitializing_t, std::string,
                        Impl::ViewAllocateWithoutInitializingBackwardCompat>;

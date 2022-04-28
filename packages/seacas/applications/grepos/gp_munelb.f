@@ -1,4 +1,4 @@
-C Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+C Copyright(C) 1999-2020 National Technology & Engineering Solutions
 C of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 C NTESS, the U.S. Government retains certain rights in this software.
 C
@@ -55,8 +55,7 @@ C   --   SCRSTR - SCRATCH - size = MXNAM
       INTEGER IXELB(*)
       INTEGER NELBX(*)
       INTEGER ISCR(*)
-      CHARACTER*(MXSTLN) BLKTYP(*)
-      CHARACTER*(maxnam) SCRSTR(*)
+      CHARACTER*(MXSTLN) BLKTYP(*), SCRSTR(*)
       CHARACTER*(maxnam) ATNAMES(*)
       CHARACTER*(maxnam) EBNAME(*)
 

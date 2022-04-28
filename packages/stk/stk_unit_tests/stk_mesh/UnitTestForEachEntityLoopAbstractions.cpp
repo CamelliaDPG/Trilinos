@@ -9,6 +9,7 @@
 #include <vector>
 #include "mpi.h"
 #include "stk_io/FillMesh.hpp"
+#include "stk_mesh/base/BulkDataInlinedMethods.hpp"
 #include "stk_mesh/base/Entity.hpp"
 #include "stk_mesh/base/ForEachEntity.hpp"
 #include "stk_topology/topology.hpp"

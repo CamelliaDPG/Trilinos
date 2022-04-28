@@ -32,11 +32,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#include "stk_topology/topology.hpp"
-#include "stk_util/stk_kokkos_macros.h"  // for STK_FUNCTION
-#include <iomanip>                       // for operator<<, setw
-#include <sstream>                       // for operator<<, ostream, basic_ostream, endl, basic_...
-#include <string>                        // for operator<<, string
+#include <stk_topology/topology.hpp>
+#include <ostream>
+#include <sstream>
+#include <iomanip>
 
 
 

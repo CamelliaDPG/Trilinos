@@ -46,7 +46,7 @@
 #include <cstdio>
 #include <typeinfo>
 #include <cmath>
-#include <Kokkos_Timer.hpp>
+#include <impl/Kokkos_Timer.hpp>
 
 struct FillDevice {
   double value;

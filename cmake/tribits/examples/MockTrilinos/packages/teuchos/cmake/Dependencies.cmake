@@ -1,4 +1,4 @@
-tribits_package_define_dependencies(
+TRIBITS_PACKAGE_DEFINE_DEPENDENCIES(
   LIB_REQUIRED_TPLS BLAS LAPACK
   LIB_OPTIONAL_TPLS Boost MPI
   )

@@ -74,13 +74,13 @@ ReorderFilter (const Teuchos::RCP<const row_matrix_type>& A,
     "Ifpack2::AdditiveSchwarz, and it is not meant to be used otherwise.");
 
   TEUCHOS_TEST_FOR_EXCEPTION(
-    A_->getLocalNumRows () != A_->getGlobalNumRows (),
+    A_->getNodeNumRows () != A_->getGlobalNumRows (),
     std::invalid_argument,
     "Ifpack2::ReorderFilter: The input matrix is not square.");
 
   // Temp arrays for apply
-  Kokkos::resize(Indices_,A_->getLocalMaxNumRowEntries ());
-  Kokkos::resize(Values_,A_->getLocalMaxNumRowEntries ());
+  Kokkos::resize(Indices_,A_->getNodeMaxNumRowEntries ());
+  Kokkos::resize(Values_,A_->getNodeMaxNumRowEntries ());
 }
 
 
@@ -170,16 +170,16 @@ global_size_t ReorderFilter<MatrixType>::getGlobalNumCols() const
 
 
 template<class MatrixType>
-size_t ReorderFilter<MatrixType>::getLocalNumRows() const
+size_t ReorderFilter<MatrixType>::getNodeNumRows() const
 {
-  return A_->getLocalNumRows();
+  return A_->getNodeNumRows();
 }
 
 
 template<class MatrixType>
-size_t ReorderFilter<MatrixType>::getLocalNumCols() const
+size_t ReorderFilter<MatrixType>::getNodeNumCols() const
 {
-  return A_->getLocalNumCols();
+  return A_->getNodeNumCols();
 }
 
 
@@ -198,9 +198,9 @@ global_size_t ReorderFilter<MatrixType>::getGlobalNumEntries() const
 
 
 template<class MatrixType>
-size_t ReorderFilter<MatrixType>::getLocalNumEntries() const
+size_t ReorderFilter<MatrixType>::getNodeNumEntries() const
 {
-  return A_->getLocalNumEntries();
+  return A_->getNodeNumEntries();
 }
 
 
@@ -250,9 +250,9 @@ size_t ReorderFilter<MatrixType>::getGlobalMaxNumRowEntries() const
 
 
 template<class MatrixType>
-size_t ReorderFilter<MatrixType>::getLocalMaxNumRowEntries() const
+size_t ReorderFilter<MatrixType>::getNodeMaxNumRowEntries() const
 {
-  return A_->getLocalMaxNumRowEntries();
+  return A_->getNodeMaxNumRowEntries();
 }
 
 
@@ -476,7 +476,7 @@ apply (const Tpetra::MultiVector<scalar_type,local_ordinal_type,global_ordinal_t
   Y.putScalar (zero);
   const size_t NumVectors = Y.getNumVectors ();
 
-  for (size_t i = 0; i < A_->getLocalNumRows (); ++i) {
+  for (size_t i = 0; i < A_->getNodeNumRows (); ++i) {
     size_t Nnz;
     // Use this class's getrow to make the below code simpler
     getLocalRowCopy (i, Indices_ , Values_ , Nnz);

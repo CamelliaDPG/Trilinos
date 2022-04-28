@@ -31,7 +31,7 @@ class IntegratorBasic : virtual public Tempus::Integrator<Scalar>
 {
 public:
 
-  /// Default constructor (requires calls to setModel and setSolutionHistory for initial conditions before calling initialize() to be fully constructed).
+  /// Default constructor that requires a subsequent, ??? , setStepper, and initialize calls.
   IntegratorBasic();
 
   /// Full constructor
@@ -42,9 +42,6 @@ public:
     Teuchos::RCP<IntegratorObserver<Scalar> > integratorObserver,
     std::vector<int>                          outputScreenIndices,
     int                                       outputScreenInterval);
-
-  /// Copy (a shallow copy)
-  virtual void copy(Teuchos::RCP<IntegratorBasic<Scalar> > iB);
 
   /// Destructor
   virtual ~IntegratorBasic() {}
@@ -63,20 +60,15 @@ public:
     virtual void checkTimeStep();
     /// Perform tasks after end of integrator.
     virtual void endIntegrator();
-#ifndef TEMPUS_HIDE_DEPRECATED_CODE
     /// Return a copy of the Tempus ParameterList DEPRECATED!
-    TEMPUS_DEPRECATED
     virtual Teuchos::RCP<Teuchos::ParameterList> getTempusParameterList()
       override { return Teuchos::rcp_const_cast<Teuchos::ParameterList> (this->getValidParameters()); }
-
-    TEMPUS_DEPRECATED
     virtual void setTempusParameterList(
       Teuchos::RCP<Teuchos::ParameterList> pl) override
     {
       TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error,
         "  IntegratorBasic::setTempusParameterList() --  Deprecated!\n");
     }
-#endif
   //@}
 
   /// \name Accessor methods
@@ -224,16 +216,14 @@ protected:
 /// Nonmember constructor
 template<class Scalar>
 Teuchos::RCP<IntegratorBasic<Scalar> > createIntegratorBasic(
-  Teuchos::RCP<Teuchos::ParameterList>                pList,
-  bool runInitialize=true);
+  Teuchos::RCP<Teuchos::ParameterList>                pList);
 
 
 /// Nonmember constructor
 template<class Scalar>
 Teuchos::RCP<IntegratorBasic<Scalar> > createIntegratorBasic(
   Teuchos::RCP<Teuchos::ParameterList>                pList,
-  const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >& model,
-  bool runInitialize=true);
+  const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >& model);
 
 
 /// Nonmember constructor
@@ -252,8 +242,7 @@ Teuchos::RCP<IntegratorBasic<Scalar> > createIntegratorBasic();
 template<class Scalar>
 Teuchos::RCP<IntegratorBasic<Scalar> > createIntegratorBasic(
   Teuchos::RCP<Teuchos::ParameterList>                pList,
-  std::vector<Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> > > models,
-  bool runInitialize=true);
+  std::vector<Teuchos::RCP<const Thyra::ModelEvaluator<Scalar> > > models);
 
 
 } // namespace Tempus

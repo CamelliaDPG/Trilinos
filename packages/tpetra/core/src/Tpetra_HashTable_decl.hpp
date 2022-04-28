@@ -88,10 +88,10 @@ class HashTable : public Teuchos::Describable {
   Node ** Container_; //!< The table; an array of linked lists.
   KeyType Size_;
   unsigned int Seed_; //!< Parameter for hash function; not used.
-#ifdef HAVE_TPETRA_DEBUG
+#ifdef HAVE_TEUCHOS_DEBUG
   int maxc_; // Max size of the list among all entries w/ collisions. debug only.
   int nc_;   // Number of entries with collisions; use only in debug mode.
-#endif // HAVE_TPETRA_DEBUG
+#endif // HAVE_TEUCHOS_DEBUG
 
   /// The hash function.
   /// It returns \c int no matter the value type.

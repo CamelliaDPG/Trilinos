@@ -11,6 +11,4 @@ export ATDM_CONFIG_ALL_SUPPORTED_BUILDS=(
   sems-rhel7-intel-18.0.5-openmp-complex-shared-release-debug
   sems-rhel7-intel-18.0.5-openmp-shared-debug
   sems-rhel7-intel-18.0.5-openmp-shared-release-debug
-  sems-rhel7-intel-19.0.5-openmp-shared-debug
-  sems-rhel7-intel-19.0.5-openmp-shared-release-debug
   )

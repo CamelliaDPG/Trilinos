@@ -91,14 +91,13 @@ static void
 getCmdLineArgs (const Teuchos::Comm<int>& comm, int argc, char* argv[])
 {
   using Teuchos::CommandLineProcessor;
-  typedef Tpetra::MultiVector<>::scalar_type ST;
 
   // Define a OrthoManagerFactory to use to get the names of valid
   // orthogonalization manager types.  We won't use this factory to
   // create them, so we should be able to pick the Scalar, MV, and
   // OP template parameters as we wish.
   typedef Belos::OrthoManagerFactory<double,
-    Tpetra::MultiVector<ST>, Tpetra::Operator<ST> > factory_type;
+    Tpetra::MultiVector<double>, Tpetra::Operator<double> > factory_type;
   factory_type factory;
 
   ////////////////////////////////////////////////////////////////////
@@ -244,7 +243,7 @@ public:
     // modify numRows to be the number of rows in the sparse matrix.
     // Otherwise, it will leave numRows alone.
     std::pair<Teuchos::RCP<map_type>, Teuchos::RCP<matrix_type> > results =
-      Belos::Test::loadSparseMatrix<typename matrix_type::scalar_type,LocalOrdinalType,
+      Belos::Test::loadSparseMatrix<LocalOrdinalType,
       GlobalOrdinalType,
       NodeType> (comm, filename, numRows, debugOut);
     map = results.first;
@@ -317,14 +316,14 @@ bool runTest (const Teuchos::RCP<const Teuchos::Comm<int> >& comm)
     // override the number of rows specified on the command line (if
     // specified), and will also override the default number of rows.
     const size_t maxNormalizeNumCols = std::max (sizeS, std::max (sizeX1, sizeX2));
-    // getLocalNumElements() returns a size_t, which is unsigned, and
+    // getNodeNumElements() returns a size_t, which is unsigned, and
     // you shouldn't compare signed and unsigned values.  This is why
     // we make maxNormalizeNumCols a size_t as well.
-    if (map->getLocalNumElements () < maxNormalizeNumCols) {
+    if (map->getNodeNumElements () < maxNormalizeNumCols) {
       std::ostringstream os;
       os << "The number of elements on this process " << comm->getRank()
          << " is too small for the number of columns that you want to test."
-         << "  There are " << map->getLocalNumElements() << " elements on "
+         << "  There are " << map->getNodeNumElements() << " elements on "
         "this process, but the normalize() method of the MatOrthoManager "
         "subclass will need to process a multivector with "
          << maxNormalizeNumCols << " columns.  Not all MatOrthoManager "
@@ -408,7 +407,7 @@ main (int argc, char *argv[])
     typedef Tpetra::Map<>::node_type node_type;
 
     {
-      typedef Tpetra::MultiVector<>::scalar_type scalar_type;
+      typedef double scalar_type;
       success = runTest<scalar_type, local_ordinal_type,
               global_ordinal_type, node_type> (comm);
       if (success) {
@@ -426,7 +425,7 @@ main (int argc, char *argv[])
     }
 #if defined(HAVE_TEUCHOS_COMPLEX) && defined(HAVE_TPETRA_COMPLEX)
     {
-      typedef std::complex<Tpetra::MultiVector<>::scalar_type> scalar_type;
+      typedef std::complex<double> scalar_type;
       success = runTest<scalar_type, local_ordinal_type,
               global_ordinal_type, node_type> (comm);
       if (success) {

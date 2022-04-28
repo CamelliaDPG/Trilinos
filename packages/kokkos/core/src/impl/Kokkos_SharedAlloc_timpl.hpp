@@ -104,9 +104,6 @@ void* SharedAllocationRecordCommon<MemorySpace>::reallocate_tracked(
 
   Kokkos::Impl::DeepCopy<MemorySpace, MemorySpace>(
       r_new->data(), r_old->data(), std::min(r_old->size(), r_new->size()));
-  Kokkos::fence(
-      "SharedAllocationRecord<Kokkos::Experimental::HBWSpace, "
-      "void>::reallocate_tracked(): fence after copying data");
 
   record_base_t::increment(r_new);
   record_base_t::decrement(r_old);
@@ -133,7 +130,7 @@ auto SharedAllocationRecordCommon<MemorySpace>::get_record(void* alloc_ptr)
 
 template <class MemorySpace>
 std::string SharedAllocationRecordCommon<MemorySpace>::get_label() const {
-  return record_base_t::m_label;
+  return std::string(record_base_t::head()->m_label);
 }
 
 template <class MemorySpace>
@@ -184,9 +181,6 @@ void HostInaccessibleSharedAllocationRecordCommon<MemorySpace>::print_records(
       if (r->m_alloc_ptr) {
         Kokkos::Impl::DeepCopy<HostSpace, MemorySpace>(
             &head, r->m_alloc_ptr, sizeof(SharedAllocationHeader));
-        Kokkos::fence(
-            "HostInaccessibleSharedAllocationRecordCommon::print_records(): "
-            "fence after copying header to HostSpace");
       } else {
         head.m_label[0] = 0;
       }
@@ -219,9 +213,6 @@ void HostInaccessibleSharedAllocationRecordCommon<MemorySpace>::print_records(
       if (r->m_alloc_ptr) {
         Kokkos::Impl::DeepCopy<HostSpace, MemorySpace>(
             &head, r->m_alloc_ptr, sizeof(SharedAllocationHeader));
-        Kokkos::fence(
-            "HostInaccessibleSharedAllocationRecordCommon::print_records(): "
-            "fence after copying header to HostSpace");
 
         // Formatting dependent on sizeof(uintptr_t)
         const char* format_string;
@@ -262,12 +253,8 @@ auto HostInaccessibleSharedAllocationRecordCommon<MemorySpace>::get_record(
       alloc_ptr ? SharedAllocationHeader::get_header(alloc_ptr) : nullptr;
 
   if (alloc_ptr) {
-    typename MemorySpace::execution_space exec_space;
-    Kokkos::Impl::DeepCopy<HostSpace, MemorySpace, decltype(exec_space)>(
-        exec_space, &head, head_cuda, sizeof(SharedAllocationHeader));
-    exec_space.fence(
-        "HostInaccessibleSharedAllocationRecordCommon::get_record(): fence "
-        "after copying header to HostSpace");
+    Kokkos::Impl::DeepCopy<HostSpace, MemorySpace>(
+        &head, head_cuda, sizeof(SharedAllocationHeader));
   }
 
   derived_t* const record =
@@ -286,7 +273,12 @@ auto HostInaccessibleSharedAllocationRecordCommon<MemorySpace>::get_record(
 template <class MemorySpace>
 std::string
 HostInaccessibleSharedAllocationRecordCommon<MemorySpace>::get_label() const {
-  return record_base_t::m_label;
+  SharedAllocationHeader header;
+
+  Kokkos::Impl::DeepCopy<Kokkos::HostSpace, MemorySpace>(
+      &header, this->record_base_t::head(), sizeof(SharedAllocationHeader));
+
+  return std::string(header.m_label);
 }
 
 }  // end namespace Impl

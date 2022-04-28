@@ -156,7 +156,7 @@ namespace { // (anonymous)
     }
     const int myRank = map.getComm ()->getRank ();
     out << "Proc " << myRank << ": [";
-    const LO lclNumInds = static_cast<LO> (map.getLocalNumElements ());
+    const LO lclNumInds = static_cast<LO> (map.getNodeNumElements ());
     if (lclNumInds != 0) {
       for (LO lclInd = 0; lclInd < lclNumInds; ++lclInd) {
         const GO gblInd = map.getGlobalElement (lclInd);
@@ -196,7 +196,7 @@ namespace { // (anonymous)
     const int myRank = rowMap.getComm ()->getRank ();
     out << "Proc " << myRank << ": {";
 
-    const LO lclNumRows = static_cast<LO> (rowMap.getLocalNumElements ());
+    const LO lclNumRows = static_cast<LO> (rowMap.getNodeNumElements ());
     if (lclNumRows != 0) {
       if (A.isLocallyIndexed ()) {
         Teuchos::Array<GO> gblColInds;
@@ -869,7 +869,7 @@ namespace { // (anonymous)
     }
     else {
       const LO lclNumRows =
-        static_cast<LO> (A_nonoverlapping.getLocalNumRows ());
+        static_cast<LO> (A_nonoverlapping.getNodeNumRows ());
       TEST_EQUALITY_CONST( lclNumRows, LO (0) );
     }
 
@@ -1003,14 +1003,15 @@ namespace { // (anonymous)
       out << "Target matrix is correct!" << endl;
     }
 
-    {
-      out << ">>> Target matrix is locally indexed" << endl;
+    const Tpetra::ProfileType pftypes[1] = {Tpetra::StaticProfile};
+    for (Tpetra::ProfileType profileType : pftypes) {
+      out << ">>> Target matrix is {StaticProfile, locally indexed}" << endl;
       Teuchos::OSTab tab2 (out);
 
       const size_t maxNumEntPerRow = 10; // needs to be an upper bound
       RCP<CrsMatrixType> A_nonoverlapping =
         rcp (new CrsMatrixType (rowMap_nonoverlapping, colMap_expected,
-                                maxNumEntPerRow));
+                                maxNumEntPerRow, profileType));
       export_type exp (A_overlapping.getRowMap (), rowMap_nonoverlapping);
       A_nonoverlapping->doExport (A_overlapping, exp, Tpetra::ADD);
       A_nonoverlapping->fillComplete (domMap, ranMap);

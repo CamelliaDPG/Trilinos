@@ -123,15 +123,8 @@ public:
     contiguous_ (contiguous)
   {}
 
-#ifdef TPETRA_ENABLE_DEPRECATED_CODE
-  TPETRA_DEPRECATED
-  KOKKOS_INLINE_FUNCTION LocalOrdinal getNodeNumElements () const {
-    return numLocalElements_;
-  }
-#endif
-
   //! The number of indices that live on the calling process.
-  KOKKOS_INLINE_FUNCTION LocalOrdinal getLocalNumElements () const {
+  KOKKOS_INLINE_FUNCTION LocalOrdinal getNodeNumElements () const {
     return numLocalElements_;
   }
 

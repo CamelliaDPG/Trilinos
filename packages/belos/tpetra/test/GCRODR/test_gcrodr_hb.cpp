@@ -67,7 +67,8 @@ using std::vector;
 using Teuchos::tuple;
 
 int main(int argc, char *argv[]) {
-  typedef Tpetra::MultiVector<>::scalar_type ST;
+
+  typedef double                           ST;
   typedef ScalarTraits<ST>                SCT;
   typedef SCT::magnitudeType               MT;
   typedef Tpetra::Operator<ST>             OP;

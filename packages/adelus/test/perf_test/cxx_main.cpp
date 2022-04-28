@@ -208,13 +208,9 @@ int main(int argc, char *argv[])
        << "    my_col  " << my_col << std::endl;
 
   // Adelus example using the Kokkos Views
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
-  int gpu_count;
 #ifdef KOKKOS_ENABLE_CUDA
+  int gpu_count;
   cudaGetDeviceCount ( &gpu_count );
-#else
-  hipGetDeviceCount ( &gpu_count );
-#endif
   Kokkos::InitArguments args;
   args.num_threads = 0;
   args.num_numa    = 0;
@@ -229,10 +225,8 @@ int main(int argc, char *argv[])
   //  Local size -- myrows  * (mycols + myrhs)
   
   typedef Kokkos::LayoutLeft Layout;
-#if defined(KOKKOS_ENABLE_CUDA)
+#ifdef KOKKOS_ENABLE_CUDA
   typedef Kokkos::CudaSpace TestSpace;
-#elif defined(KOKKOS_ENABLE_HIP)
-  typedef Kokkos::Experimental::HIPSpace TestSpace;
 #else
   typedef Kokkos::HostSpace TestSpace;
 #endif

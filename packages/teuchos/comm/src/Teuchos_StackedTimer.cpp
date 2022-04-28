@@ -627,14 +627,6 @@ static void printXMLEscapedString(std::ostream& os, const std::string& str)
       case '&':
         os << "&amp;";
         break;
-      //NOTE: unescaped curly braces {} are valid in XML,
-      //however Watchr has a bug with parsing them
-      case '{':
-        os << '(';
-        break;
-      case '}':
-        os << ')';
-        break;
       default:
         os << c;
     }

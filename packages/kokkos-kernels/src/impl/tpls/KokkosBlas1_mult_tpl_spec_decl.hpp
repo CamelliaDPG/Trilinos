@@ -46,7 +46,8 @@
 #define KOKKOSBLAS1_MULT_TPL_SPEC_DECL_HPP_
 
 namespace KokkosBlas {
-namespace Impl {}
-}  // namespace KokkosBlas
+namespace Impl {
+}
+}
 
 #endif

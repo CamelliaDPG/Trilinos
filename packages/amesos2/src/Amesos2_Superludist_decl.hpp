@@ -117,10 +117,6 @@ public:
 
   typedef FunctionMap<Amesos2::Superludist,slu_type>           function_map;
 
-  typedef Kokkos::DefaultHostExecutionSpace HostExecSpaceType;
-  typedef Kokkos::View<SLUD::int_t*, HostExecSpaceType>   host_size_type_array;
-  typedef Kokkos::View<SLUD::int_t*, HostExecSpaceType>   host_ordinal_type_array;
-  typedef Kokkos::View<slu_type*,    HostExecSpaceType>   host_value_type_array;
 
   /// \name Constructor/Destructor methods
   //@{
@@ -312,11 +308,11 @@ private:
 
   // The following Arrays are persisting storage arrays for A, X, and B
   /// Stores the values of the nonzero entries for SuperLU_DIST
-  host_value_type_array nzvals_view_;
+  Teuchos::Array<slu_type> nzvals_;
   /// Stores the row indices of the nonzero entries
-  host_ordinal_type_array colind_view_;
+  Teuchos::Array<SLUD::int_t> colind_;
   /// Stores the location in \c Ai_ and Aval_ that starts row j
-  host_size_type_array rowptr_view_;
+  Teuchos::Array<SLUD::int_t> rowptr_;
   /// 1D store for B values
   mutable Teuchos::Array<slu_type> bvals_;
   /// 1D store for X values

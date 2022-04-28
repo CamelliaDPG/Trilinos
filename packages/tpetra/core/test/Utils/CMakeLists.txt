@@ -2,16 +2,7 @@
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_WrappedDualView
   SOURCES
-    TpetraUtils_WrappedDualView.cpp
-  ARGS ${ARGS}
-  COMM serial mpi
-  STANDARD_PASS_OUTPUT
-  )
-
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-  TpetraUtils_WrappedDualViewMicrobench
-  SOURCES
-    TpetraUtils_WrappedDualViewMicrobench.cpp
+    TpetraUtils_WrappedDualView
   ARGS ${ARGS}
   COMM serial mpi
   STANDARD_PASS_OUTPUT
@@ -20,7 +11,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_WrappedDualViewNull
   SOURCES
-    TpetraUtils_WrappedDualViewNull.cpp
+    TpetraUtils_WrappedDualViewNull
   ARGS ${ARGS}
   COMM serial mpi
   STANDARD_PASS_OUTPUT
@@ -29,7 +20,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_UnitTests
   SOURCES
-    TpetraUtils_UnitTests.cpp
+    TpetraUtils_UnitTests
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial
@@ -39,7 +30,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_merge
   SOURCES
-    TpetraUtils_merge.cpp
+    TpetraUtils_merge
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial
@@ -49,7 +40,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_congruent
   SOURCES
-    TpetraUtils_congruent.cpp
+    TpetraUtils_congruent
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial mpi
@@ -59,7 +50,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_gathervPrint
   SOURCES
-    TpetraUtils_gathervPrint.cpp
+    TpetraUtils_gathervPrint
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial mpi
@@ -69,7 +60,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   Behavior
   SOURCES
-    behavior.cpp
+    behavior
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   NUM_MPI_PROCS 1
@@ -79,7 +70,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   CombineMode
   SOURCES
-    CombineMode.cpp
+    CombineMode
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   NUM_MPI_PROCS 1
@@ -88,7 +79,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   copyConvert
-  SOURCES copyConvert.cpp
+  SOURCES copyConvert
   ARGS ${ARGS}
   COMM serial mpi
   NUM_MPI_PROCS 1
@@ -97,7 +88,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   copyOffsets
-  SOURCES copyOffsets.cpp
+  SOURCES copyOffsets
   ARGS ${ARGS}
   COMM serial mpi
   NUM_MPI_PROCS 1
@@ -107,7 +98,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   createMirrorView
   SOURCES
-    createMirrorView.cpp
+    createMirrorView
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial mpi
@@ -118,7 +109,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   getEntryOnHost
   SOURCES
-    getEntryOnHost.cpp
+    getEntryOnHost
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   ARGS ${ARGS}
   COMM serial mpi
@@ -130,7 +121,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   StaticView
   SOURCES
-    StaticView.cpp
+    StaticView
   COMM serial mpi
   NUM_MPI_PROCS 1
   STANDARD_PASS_OUTPUT
@@ -139,7 +130,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   TpetraUtils_crsUtils
   SOURCES
-    TpetraUtils_crsUtils.cpp
+    TpetraUtils_crsUtils
   ARGS ""
   COMM serial mpi
   NUM_MPI_PROCS 1-4
@@ -149,7 +140,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   verbosePrintArray
   SOURCES
-    verbosePrintArray.cpp
+    verbosePrintArray
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   NUM_MPI_PROCS 1
@@ -159,7 +150,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE(
   createPrefix
   SOURCES
-    createPrefix.cpp
+    createPrefix
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   )
@@ -183,9 +174,10 @@ TRIBITS_ADD_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   insertCrsIndicesThreshold
   SOURCES
-    insertCrsIndicesThreshold.cpp
+    insertCrsIndicesThreshold
   COMM serial mpi
   NUM_MPI_PROCS 1
   PASS_REGULAR_EXPRESSION "PASS"
   FAIL_REGULAR_EXPRESSION "FAIL"
   )
+

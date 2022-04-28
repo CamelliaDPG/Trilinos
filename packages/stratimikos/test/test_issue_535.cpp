@@ -23,8 +23,8 @@ create_matrix (const Teuchos::RCP<const Teuchos::Comm<int> >& comm)
   const GO indexBase = 0;
   auto map = rcp (new map_type (numGlobalElements, indexBase, comm));
 
-  const LO numMyElements = map->getLocalNumElements ();
-  auto myGlobalElements = map->getLocalElementList ();
+  const LO numMyElements = map->getNodeNumElements ();
+  auto myGlobalElements = map->getNodeElementList ();
   auto A = rcp (new crs_matrix_type (map, 1));
 
   for (LO lclRow = 0; lclRow < numMyElements; ++lclRow) {

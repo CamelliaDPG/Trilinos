@@ -59,7 +59,9 @@
 #include <impl/Kokkos_TaskResult.hpp>
 #include <impl/Kokkos_TaskQueue.hpp>
 
-#include <Kokkos_Atomic.hpp>
+#include <impl/Kokkos_Memory_Fence.hpp>
+#include <impl/Kokkos_Atomic_Increment.hpp>
+#include <impl/Kokkos_Atomic_Decrement.hpp>
 
 #include <string>
 #include <typeinfo>
@@ -157,14 +159,8 @@ class TaskQueueMultiple : public TaskQueue<ExecSpace, MemorySpace> {
               // task stolen.
               // first increment our ready count, then decrement the ready count
               // on the other queue:
-              Kokkos::Impl::desul_atomic_inc(
-                  &this->m_ready_count, Kokkos::Impl::MemoryOrderSeqCst(),
-                  Kokkos::Impl::MemoryScopeDevice());  // TODO?
-                                                       // memory_order_relaxed
-              Kokkos::Impl::desul_atomic_dec(
-                  &steal_from.m_ready_count, Kokkos::Impl::MemoryOrderSeqCst(),
-                  Kokkos::Impl::MemoryScopeDevice());  // TODO?
-                                                       // memory_order_relaxed
+              Kokkos::atomic_increment(&this->m_ready_count);
+              Kokkos::atomic_decrement(&steal_from.m_ready_count);
               return rv;
             }
           }

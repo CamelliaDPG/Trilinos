@@ -61,8 +61,8 @@
 #include <Cuda/Kokkos_Cuda_BlockSize_Deduction.hpp>
 #include <Cuda/Kokkos_Cuda_Locks.hpp>
 #include <Cuda/Kokkos_Cuda_Team.hpp>
-#include <Kokkos_MinMaxClamp.hpp>
 #include <Kokkos_Vectorization.hpp>
+#include <Cuda/Kokkos_Cuda_Version_9_8_Compatibility.hpp>
 
 #include <impl/Kokkos_Tools.hpp>
 #include <typeinfo>
@@ -240,11 +240,9 @@ class TeamPolicyInternal<Kokkos::Cuda, Properties...>
 
   //----------------------------------------
 
-#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_3
   KOKKOS_DEPRECATED inline int vector_length() const {
     return impl_vector_length();
   }
-#endif
   inline int impl_vector_length() const { return m_vector_length; }
   inline int team_size() const { return m_team_size; }
   inline int league_size() const { return m_league_size; }
@@ -295,7 +293,7 @@ class TeamPolicyInternal<Kokkos::Cuda, Properties...>
         m_tune_team(bool(team_size_request <= 0)),
         m_tune_vector(bool(vector_length_request <= 0)) {
     // Make sure league size is permissible
-    if (league_size_ >= int(Impl::cuda_internal_maximum_grid_count()[0]))
+    if (league_size_ >= int(Impl::cuda_internal_maximum_grid_count()))
       Impl::throw_runtime_exception(
           "Requested too large league_size for TeamPolicy on Cuda execution "
           "space.");
@@ -506,7 +504,7 @@ class ParallelFor<FunctorType, Kokkos::RangePolicy<Traits...>, Kokkos::Cuda> {
     dim3 grid(
         std::min(
             typename Policy::index_type((nwork + block.y - 1) / block.y),
-            typename Policy::index_type(cuda_internal_maximum_grid_count()[0])),
+            typename Policy::index_type(cuda_internal_maximum_grid_count())),
         1, 1);
 #ifdef KOKKOS_IMPL_DEBUG_CUDA_SERIAL_EXECUTION
     if (Kokkos::Impl::CudaInternal::cuda_use_serial_execution()) {
@@ -567,18 +565,17 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
     using namespace std;
 
     if (m_rp.m_num_tiles == 0) return;
-    const auto maxblocks = cuda_internal_maximum_grid_count();
+    const array_index_type maxblocks = static_cast<array_index_type>(
+        m_rp.space().impl_internal_space_instance()->m_maxBlock);
     if (RP::rank == 2) {
       const dim3 block(m_rp.m_tile[0], m_rp.m_tile[1], 1);
       KOKKOS_ASSERT(block.x > 0);
       KOKKOS_ASSERT(block.y > 0);
       const dim3 grid(
-          std::min<array_index_type>(
-              (m_rp.m_upper[0] - m_rp.m_lower[0] + block.x - 1) / block.x,
-              maxblocks[0]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[1] - m_rp.m_lower[1] + block.y - 1) / block.y,
-              maxblocks[1]),
+          min((m_rp.m_upper[0] - m_rp.m_lower[0] + block.x - 1) / block.x,
+              maxblocks),
+          min((m_rp.m_upper[1] - m_rp.m_lower[1] + block.y - 1) / block.y,
+              maxblocks),
           1);
       CudaParallelLaunch<ParallelFor, LaunchBounds>(
           *this, grid, block, 0, m_rp.space().impl_internal_space_instance(),
@@ -589,15 +586,12 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
       KOKKOS_ASSERT(block.y > 0);
       KOKKOS_ASSERT(block.z > 0);
       const dim3 grid(
-          std::min<array_index_type>(
-              (m_rp.m_upper[0] - m_rp.m_lower[0] + block.x - 1) / block.x,
-              maxblocks[0]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[1] - m_rp.m_lower[1] + block.y - 1) / block.y,
-              maxblocks[1]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[2] - m_rp.m_lower[2] + block.z - 1) / block.z,
-              maxblocks[2]));
+          min((m_rp.m_upper[0] - m_rp.m_lower[0] + block.x - 1) / block.x,
+              maxblocks),
+          min((m_rp.m_upper[1] - m_rp.m_lower[1] + block.y - 1) / block.y,
+              maxblocks),
+          min((m_rp.m_upper[2] - m_rp.m_lower[2] + block.z - 1) / block.z,
+              maxblocks));
       CudaParallelLaunch<ParallelFor, LaunchBounds>(
           *this, grid, block, 0, m_rp.space().impl_internal_space_instance(),
           false);
@@ -609,14 +603,12 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
       KOKKOS_ASSERT(block.y > 0);
       KOKKOS_ASSERT(block.z > 0);
       const dim3 grid(
-          std::min<array_index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1],
-                                     maxblocks[0]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[2] - m_rp.m_lower[2] + block.y - 1) / block.y,
-              maxblocks[1]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[3] - m_rp.m_lower[3] + block.z - 1) / block.z,
-              maxblocks[2]));
+          min(static_cast<index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1]),
+              static_cast<index_type>(maxblocks)),
+          min((m_rp.m_upper[2] - m_rp.m_lower[2] + block.y - 1) / block.y,
+              maxblocks),
+          min((m_rp.m_upper[3] - m_rp.m_lower[3] + block.z - 1) / block.z,
+              maxblocks));
       CudaParallelLaunch<ParallelFor, LaunchBounds>(
           *this, grid, block, 0, m_rp.space().impl_internal_space_instance(),
           false);
@@ -627,13 +619,12 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
                        m_rp.m_tile[2] * m_rp.m_tile[3], m_rp.m_tile[4]);
       KOKKOS_ASSERT(block.z > 0);
       const dim3 grid(
-          std::min<array_index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1],
-                                     maxblocks[0]),
-          std::min<array_index_type>(m_rp.m_tile_end[2] * m_rp.m_tile_end[3],
-                                     maxblocks[1]),
-          std::min<array_index_type>(
-              (m_rp.m_upper[4] - m_rp.m_lower[4] + block.z - 1) / block.z,
-              maxblocks[2]));
+          min(static_cast<index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1]),
+              static_cast<index_type>(maxblocks)),
+          min(static_cast<index_type>(m_rp.m_tile_end[2] * m_rp.m_tile_end[3]),
+              static_cast<index_type>(maxblocks)),
+          min((m_rp.m_upper[4] - m_rp.m_lower[4] + block.z - 1) / block.z,
+              maxblocks));
       CudaParallelLaunch<ParallelFor, LaunchBounds>(
           *this, grid, block, 0, m_rp.space().impl_internal_space_instance(),
           false);
@@ -644,12 +635,12 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
                        m_rp.m_tile[2] * m_rp.m_tile[3],
                        m_rp.m_tile[4] * m_rp.m_tile[5]);
       const dim3 grid(
-          std::min<array_index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1],
-                                     maxblocks[0]),
-          std::min<array_index_type>(m_rp.m_tile_end[2] * m_rp.m_tile_end[3],
-                                     maxblocks[1]),
-          std::min<array_index_type>(m_rp.m_tile_end[4] * m_rp.m_tile_end[5],
-                                     maxblocks[2]));
+          min(static_cast<index_type>(m_rp.m_tile_end[0] * m_rp.m_tile_end[1]),
+              static_cast<index_type>(maxblocks)),
+          min(static_cast<index_type>(m_rp.m_tile_end[2] * m_rp.m_tile_end[3]),
+              static_cast<index_type>(maxblocks)),
+          min(static_cast<index_type>(m_rp.m_tile_end[4] * m_rp.m_tile_end[5]),
+              static_cast<index_type>(maxblocks)));
       CudaParallelLaunch<ParallelFor, LaunchBounds>(
           *this, grid, block, 0, m_rp.space().impl_internal_space_instance(),
           false);
@@ -663,42 +654,6 @@ class ParallelFor<FunctorType, Kokkos::MDRangePolicy<Traits...>, Kokkos::Cuda> {
   ParallelFor(const FunctorType& arg_functor, Policy arg_policy)
       : m_functor(arg_functor), m_rp(arg_policy) {}
 };
-
-__device__ inline int64_t cuda_get_scratch_index(Cuda::size_type league_size,
-                                                 int32_t* scratch_locks) {
-  int64_t threadid = 0;
-  __shared__ int64_t base_thread_id;
-  if (threadIdx.x == 0 && threadIdx.y == 0) {
-    int64_t const wraparound_len = Kokkos::Experimental::min(
-        int64_t(league_size),
-        (int64_t(Kokkos::Impl::g_device_cuda_lock_arrays.n)) /
-            (blockDim.x * blockDim.y));
-    threadid = (blockIdx.x * blockDim.z + threadIdx.z) % wraparound_len;
-    threadid *= blockDim.x * blockDim.y;
-    int done = 0;
-    while (!done) {
-      done = (0 == atomicCAS(&scratch_locks[threadid], 0, 1));
-      if (!done) {
-        threadid += blockDim.x * blockDim.y;
-        if (int64_t(threadid + blockDim.x * blockDim.y) >=
-            wraparound_len * blockDim.x * blockDim.y)
-          threadid = 0;
-      }
-    }
-    base_thread_id = threadid;
-  }
-  __syncthreads();
-  threadid = base_thread_id;
-  return threadid;
-}
-
-__device__ inline void cuda_release_scratch_index(int32_t* scratch_locks,
-                                                  int64_t threadid) {
-  __syncthreads();
-  if (threadIdx.x == 0 && threadIdx.y == 0) {
-    scratch_locks[threadid] = 0;
-  }
-}
 
 template <class FunctorType, class... Properties>
 class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
@@ -732,8 +687,6 @@ class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
   int m_shmem_size;
   void* m_scratch_ptr[2];
   int m_scratch_size[2];
-  int m_scratch_pool_id = -1;
-  int32_t* m_scratch_locks;
 
   template <class TagType>
   __device__ inline
@@ -756,7 +709,30 @@ class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
     // Iterate this block through the league
     int64_t threadid = 0;
     if (m_scratch_size[1] > 0) {
-      threadid = cuda_get_scratch_index(m_league_size, m_scratch_locks);
+      __shared__ int64_t base_thread_id;
+      if (threadIdx.x == 0 && threadIdx.y == 0) {
+        threadid = (blockIdx.x * blockDim.z + threadIdx.z) %
+                   (Kokkos::Impl::g_device_cuda_lock_arrays.n /
+                    (blockDim.x * blockDim.y));
+        threadid *= blockDim.x * blockDim.y;
+        int done = 0;
+        while (!done) {
+          done =
+              (0 ==
+               atomicCAS(
+                   &Kokkos::Impl::g_device_cuda_lock_arrays.scratch[threadid],
+                   0, 1));
+          if (!done) {
+            threadid += blockDim.x * blockDim.y;
+            if (int64_t(threadid + blockDim.x * blockDim.y) >=
+                int64_t(Kokkos::Impl::g_device_cuda_lock_arrays.n))
+              threadid = 0;
+          }
+        }
+        base_thread_id = threadid;
+      }
+      __syncthreads();
+      threadid = base_thread_id;
     }
 
     const int int_league_size = (int)m_league_size;
@@ -770,7 +746,9 @@ class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
           m_scratch_size[1], league_rank, m_league_size));
     }
     if (m_scratch_size[1] > 0) {
-      cuda_release_scratch_index(m_scratch_locks, threadid);
+      __syncthreads();
+      if (threadIdx.x == 0 && threadIdx.y == 0)
+        Kokkos::Impl::g_device_cuda_lock_arrays.scratch[threadid] = 0;
     }
   }
 
@@ -815,27 +793,19 @@ class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
          FunctorTeamShmemSize<FunctorType>::value(m_functor, m_team_size));
     m_scratch_size[0] = m_policy.scratch_size(0, m_team_size);
     m_scratch_size[1] = m_policy.scratch_size(1, m_team_size);
-    m_scratch_locks =
-        m_policy.space().impl_internal_space_instance()->m_scratch_locks;
 
     // Functor's reduce memory, team scan memory, and team shared memory depend
     // upon team size.
     m_scratch_ptr[0] = nullptr;
-    if (m_team_size <= 0) {
-      m_scratch_ptr[1] = nullptr;
-    } else {
-      auto scratch_ptr_id =
-          m_policy.space()
-              .impl_internal_space_instance()
-              ->resize_team_scratch_space(
-                  static_cast<std::int64_t>(m_scratch_size[1]) *
-                  (std::min(
-                      static_cast<std::int64_t>(Cuda::concurrency() /
-                                                (m_team_size * m_vector_size)),
-                      static_cast<std::int64_t>(m_league_size))));
-      m_scratch_ptr[1]  = scratch_ptr_id.first;
-      m_scratch_pool_id = scratch_ptr_id.second;
-    }
+    m_scratch_ptr[1] =
+        m_team_size <= 0
+            ? nullptr
+            : m_policy.space()
+                  .impl_internal_space_instance()
+                  ->resize_team_scratch_space(
+                      static_cast<ptrdiff_t>(m_scratch_size[1]) *
+                      static_cast<ptrdiff_t>(Cuda::concurrency() /
+                                             (m_team_size * m_vector_size)));
 
     const int shmem_size_total = m_shmem_begin + m_shmem_size;
     if (m_policy.space().impl_internal_space_instance()->m_maxShmemPerBlock <
@@ -857,14 +827,6 @@ class ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
             arg_policy.impl_vector_length())) {
       Kokkos::Impl::throw_runtime_exception(std::string(
           "Kokkos::Impl::ParallelFor< Cuda > requested too large team size."));
-    }
-  }
-
-  ~ParallelFor() {
-    if (m_scratch_pool_id >= 0) {
-      m_policy.space()
-          .impl_internal_space_instance()
-          ->m_team_scratch_pool[m_scratch_pool_id] = 0;
     }
   }
 };
@@ -908,24 +870,9 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
   using value_type     = typename ValueTraits::value_type;
   using reference_type = typename ValueTraits::reference_type;
   using functor_type   = FunctorType;
-  // Conditionally set word_size_type to int16_t or int8_t if value_type is
-  // smaller than int32_t (Kokkos::Cuda::size_type)
-  // word_size_type is used to determine the word count, shared memory buffer
-  // size, and global memory buffer size before the reduction is performed.
-  // Within the reduction, the word count is recomputed based on word_size_type
-  // and when calculating indexes into the shared/global memory buffers for
-  // performing the reduction, word_size_type is used again.
-  // For scalars > 4 bytes in size, indexing into shared/global memory relies
-  // on the block and grid dimensions to ensure that we index at the correct
-  // offset rather than at every 4 byte word; such that, when the join is
-  // performed, we have the correct data that was copied over in chunks of 4
-  // bytes.
-  using word_size_type = typename std::conditional<
-      sizeof(value_type) < sizeof(Kokkos::Cuda::size_type),
-      typename std::conditional<sizeof(value_type) == 2, int16_t, int8_t>::type,
-      Kokkos::Cuda::size_type>::type;
-  using index_type   = typename Policy::index_type;
-  using reducer_type = ReducerType;
+  using size_type      = Kokkos::Cuda::size_type;
+  using index_type     = typename Policy::index_type;
+  using reducer_type   = ReducerType;
 
   // Algorithmic constraints: blockSize is a power of two AND blockDim.y ==
   // blockDim.z == 1
@@ -936,11 +883,9 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
   const pointer_type m_result_ptr;
   const bool m_result_ptr_device_accessible;
   const bool m_result_ptr_host_accessible;
-  word_size_type* m_scratch_space;
-  // m_scratch_flags must be of type Cuda::size_type due to use of atomics
-  // for tracking metadata in Kokkos_Cuda_ReduceScan.hpp
-  Cuda::size_type* m_scratch_flags;
-  word_size_type* m_unified_space;
+  size_type* m_scratch_space;
+  size_type* m_scratch_flags;
+  size_type* m_unified_space;
 
   // Shall we use the shfl based reduction or not (only use it for static sized
   // types of more than 128bit)
@@ -979,16 +924,16 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
       __device__ inline
       void run(const DummySHMEMReductionType& ) const
       {*/
-    const integral_nonzero_constant<
-        word_size_type, ValueTraits::StaticValueSize / sizeof(word_size_type)>
+    const integral_nonzero_constant<size_type, ValueTraits::StaticValueSize /
+                                                   sizeof(size_type)>
         word_count(ValueTraits::value_size(
                        ReducerConditional::select(m_functor, m_reducer)) /
-                   sizeof(word_size_type));
+                   sizeof(size_type));
 
     {
       reference_type value =
           ValueInit::init(ReducerConditional::select(m_functor, m_reducer),
-                          kokkos_impl_cuda_shared_memory<word_size_type>() +
+                          kokkos_impl_cuda_shared_memory<size_type>() +
                               threadIdx.y * word_count.value);
 
       // Number of blocks is bounded so that the reduction can be limited to two
@@ -1013,12 +958,11 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
       // This is the final block with the final result at the final threads'
       // location
 
-      word_size_type* const shared =
-          kokkos_impl_cuda_shared_memory<word_size_type>() +
-          (blockDim.y - 1) * word_count.value;
-      word_size_type* const global =
+      size_type* const shared = kokkos_impl_cuda_shared_memory<size_type>() +
+                                (blockDim.y - 1) * word_count.value;
+      size_type* const global =
           m_result_ptr_device_accessible
-              ? reinterpret_cast<word_size_type*>(m_result_ptr)
+              ? reinterpret_cast<size_type*>(m_result_ptr)
               : (m_unified_space ? m_unified_space : m_scratch_space);
 
       if (threadIdx.y == 0) {
@@ -1041,17 +985,17 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
         if (cuda_single_inter_block_reduce_scan<false, ReducerTypeFwd,
                                                 WorkTagFwd>(
                 ReducerConditional::select(m_functor, m_reducer), blockIdx.x,
-                gridDim.x, kokkos_impl_cuda_shared_memory<word_size_type>(),
+                gridDim.x, kokkos_impl_cuda_shared_memory<size_type>(),
                 m_scratch_space, m_scratch_flags)) {
           // This is the final block with the final result at the final threads'
           // location
 
-          word_size_type* const shared =
-              kokkos_impl_cuda_shared_memory<word_size_type>() +
+          size_type* const shared =
+              kokkos_impl_cuda_shared_memory<size_type>() +
               (blockDim.y - 1) * word_count.value;
-          word_size_type* const global =
+          size_type* const global =
               m_result_ptr_device_accessible
-                  ? reinterpret_cast<word_size_type*>(m_result_ptr)
+                  ? reinterpret_cast<size_type*>(m_result_ptr)
                   : (m_unified_space ? m_unified_space : m_scratch_space);
 
           if (threadIdx.y == 0) {
@@ -1156,21 +1100,15 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
 
       KOKKOS_ASSERT(block_size > 0);
 
-      // TODO: down casting these uses more space than required?
-      m_scratch_space = (word_size_type*)cuda_internal_scratch_space(
+      m_scratch_space = cuda_internal_scratch_space(
           m_policy.space(), ValueTraits::value_size(ReducerConditional::select(
                                 m_functor, m_reducer)) *
                                 block_size /* block_size == max block_count */);
-
-      // Intentionally do not downcast to word_size_type since we use Cuda
-      // atomics in Kokkos_Cuda_ReduceScan.hpp
-      m_scratch_flags = cuda_internal_scratch_flags(m_policy.space(),
-                                                    sizeof(Cuda::size_type));
-      m_unified_space =
-          reinterpret_cast<word_size_type*>(cuda_internal_scratch_unified(
-              m_policy.space(),
-              ValueTraits::value_size(
-                  ReducerConditional::select(m_functor, m_reducer))));
+      m_scratch_flags =
+          cuda_internal_scratch_flags(m_policy.space(), sizeof(size_type));
+      m_unified_space = cuda_internal_scratch_unified(
+          m_policy.space(), ValueTraits::value_size(ReducerConditional::select(
+                                m_functor, m_reducer)));
 
       // REQUIRED ( 1 , N , 1 )
       dim3 block(1, block_size, 1);
@@ -1201,9 +1139,7 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
           false);  // copy to device and execute
 
       if (!m_result_ptr_device_accessible) {
-        m_policy.space().fence(
-            "Kokkos::Impl::ParallelReduce<Cuda, RangePolicy>::execute: Result "
-            "Not Device Accessible");
+        m_policy.space().fence();
 
         if (m_result_ptr) {
           if (m_unified_space) {
@@ -1245,9 +1181,7 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
                               typename ViewType::memory_space>::accessible),
         m_scratch_space(nullptr),
         m_scratch_flags(nullptr),
-        m_unified_space(nullptr) {
-    check_reduced_view_shmem_size<WorkTag>(m_policy, m_functor);
-  }
+        m_unified_space(nullptr) {}
 
   ParallelReduce(const FunctorType& arg_functor, const Policy& arg_policy,
                  const ReducerType& reducer)
@@ -1265,9 +1199,7 @@ class ParallelReduce<FunctorType, Kokkos::RangePolicy<Traits...>, ReducerType,
                                   memory_space>::accessible),
         m_scratch_space(nullptr),
         m_scratch_flags(nullptr),
-        m_unified_space(nullptr) {
-    check_reduced_view_shmem_size<WorkTag>(m_policy, m_functor);
-  }
+        m_unified_space(nullptr) {}
 };
 
 // MDRangePolicy impl
@@ -1484,7 +1416,7 @@ class ParallelReduce<FunctorType, Kokkos::MDRangePolicy<Traits...>, ReducerType,
   }
 
   inline void execute() {
-    const auto nwork = m_policy.m_num_tiles;
+    const int nwork = m_policy.m_num_tiles;
     if (nwork) {
       int block_size = m_policy.m_prod_tile_dims;
       // CONSTRAINT: Algorithm requires block_size >= product of tile dimensions
@@ -1527,9 +1459,7 @@ class ParallelReduce<FunctorType, Kokkos::MDRangePolicy<Traits...>, ReducerType,
           false);  // copy to device and execute
 
       if (!m_result_ptr_device_accessible) {
-        m_policy.space().fence(
-            "Kokkos::Impl::ParallelReduce<Cuda, MDRangePolicy>::execute: "
-            "Result Not Device Accessible");
+        m_policy.space().fence();
 
         if (m_result_ptr) {
           if (m_unified_space) {
@@ -1568,9 +1498,7 @@ class ParallelReduce<FunctorType, Kokkos::MDRangePolicy<Traits...>, ReducerType,
                               typename ViewType::memory_space>::accessible),
         m_scratch_space(nullptr),
         m_scratch_flags(nullptr),
-        m_unified_space(nullptr) {
-    check_reduced_view_shmem_size<WorkTag>(m_policy, m_functor);
-  }
+        m_unified_space(nullptr) {}
 
   ParallelReduce(const FunctorType& arg_functor, const Policy& arg_policy,
                  const ReducerType& reducer)
@@ -1584,9 +1512,7 @@ class ParallelReduce<FunctorType, Kokkos::MDRangePolicy<Traits...>, ReducerType,
                                   memory_space>::accessible),
         m_scratch_space(nullptr),
         m_scratch_flags(nullptr),
-        m_unified_space(nullptr) {
-    check_reduced_view_shmem_size<WorkTag>(m_policy, m_functor);
-  }
+        m_unified_space(nullptr) {}
 };
 
 //----------------------------------------------------------------------------
@@ -1654,8 +1580,6 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
   size_type m_shmem_size;
   void* m_scratch_ptr[2];
   int m_scratch_size[2];
-  int m_scratch_pool_id = -1;
-  int32_t* m_scratch_locks;
   const size_type m_league_size;
   int m_team_size;
   const size_type m_vector_size;
@@ -1680,14 +1604,39 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
   __device__ inline void operator()() const {
     int64_t threadid = 0;
     if (m_scratch_size[1] > 0) {
-      threadid = cuda_get_scratch_index(m_league_size, m_scratch_locks);
+      __shared__ int64_t base_thread_id;
+      if (threadIdx.x == 0 && threadIdx.y == 0) {
+        threadid = (blockIdx.x * blockDim.z + threadIdx.z) %
+                   (Kokkos::Impl::g_device_cuda_lock_arrays.n /
+                    (blockDim.x * blockDim.y));
+        threadid *= blockDim.x * blockDim.y;
+        int done = 0;
+        while (!done) {
+          done =
+              (0 ==
+               atomicCAS(
+                   &Kokkos::Impl::g_device_cuda_lock_arrays.scratch[threadid],
+                   0, 1));
+          if (!done) {
+            threadid += blockDim.x * blockDim.y;
+            if (int64_t(threadid + blockDim.x * blockDim.y) >=
+                int64_t(Kokkos::Impl::g_device_cuda_lock_arrays.n))
+              threadid = 0;
+          }
+        }
+        base_thread_id = threadid;
+      }
+      __syncthreads();
+      threadid = base_thread_id;
     }
 
     run(Kokkos::Impl::if_c<UseShflReduction, DummyShflReductionType,
                            DummySHMEMReductionType>::select(1, 1.0),
         threadid);
     if (m_scratch_size[1] > 0) {
-      cuda_release_scratch_index(m_scratch_locks, threadid);
+      __syncthreads();
+      if (threadIdx.x == 0 && threadIdx.y == 0)
+        Kokkos::Impl::g_device_cuda_lock_arrays.scratch[threadid] = 0;
     }
   }
 
@@ -1830,7 +1779,7 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
   }
 
   inline void execute() {
-    const bool is_empty_range  = m_league_size == 0 || m_team_size == 0;
+    const int nwork            = m_league_size * m_team_size;
     const bool need_device_set = ReduceFunctorHasInit<FunctorType>::value ||
                                  ReduceFunctorHasFinal<FunctorType>::value ||
                                  !m_result_ptr_host_accessible ||
@@ -1838,7 +1787,7 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
                                  Policy::is_graph_kernel::value ||
 #endif
                                  !std::is_same<ReducerType, InvalidType>::value;
-    if (!is_empty_range || need_device_set) {
+    if ((nwork > 0) || need_device_set) {
       const int block_count =
           UseShflReduction ? std::min(m_league_size, size_type(1024 * 32))
                            : std::min(int(m_league_size), m_team_size);
@@ -1857,7 +1806,7 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
       dim3 grid(block_count, 1, 1);
       const int shmem_size_total = m_team_begin + m_shmem_begin + m_shmem_size;
 
-      if (is_empty_range
+      if ((nwork == 0)
 #ifdef KOKKOS_IMPL_DEBUG_CUDA_SERIAL_EXECUTION
           || Kokkos::Impl::CudaInternal::cuda_use_serial_execution()
 #endif
@@ -1872,9 +1821,7 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
           true);  // copy to device and execute
 
       if (!m_result_ptr_device_accessible) {
-        m_policy.space().fence(
-            "Kokkos::Impl::ParallelReduce<Cuda, TeamPolicy>::execute: Result "
-            "Not Device Accessible");
+        m_policy.space().fence();
 
         if (m_result_ptr) {
           if (m_unified_space) {
@@ -1948,23 +1895,16 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
         FunctorTeamShmemSize<FunctorType>::value(arg_functor, m_team_size);
     m_scratch_size[0] = m_shmem_size;
     m_scratch_size[1] = m_policy.scratch_size(1, m_team_size);
-    m_scratch_locks =
-        m_policy.space().impl_internal_space_instance()->m_scratch_locks;
-    if (m_team_size <= 0) {
-      m_scratch_ptr[1] = nullptr;
-    } else {
-      auto scratch_ptr_id =
-          m_policy.space()
-              .impl_internal_space_instance()
-              ->resize_team_scratch_space(
-                  static_cast<std::int64_t>(m_scratch_size[1]) *
-                  (std::min(
-                      static_cast<std::int64_t>(Cuda::concurrency() /
-                                                (m_team_size * m_vector_size)),
-                      static_cast<std::int64_t>(m_league_size))));
-      m_scratch_ptr[1]  = scratch_ptr_id.first;
-      m_scratch_pool_id = scratch_ptr_id.second;
-    }
+    m_scratch_ptr[1] =
+        m_team_size <= 0
+            ? nullptr
+            : m_policy.space()
+                  .impl_internal_space_instance()
+                  ->resize_team_scratch_space(
+                      static_cast<std::int64_t>(m_scratch_size[1]) *
+                      (static_cast<std::int64_t>(
+                          Cuda::concurrency() /
+                          (m_team_size * m_vector_size))));
 
     // The global parallel_reduce does not support vector_length other than 1 at
     // the moment
@@ -2033,8 +1973,6 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
     cudaFuncAttributes attr =
         CudaParallelLaunch<ParallelReduce,
                            LaunchBounds>::get_cuda_func_attributes();
-
-    // Valid team size not provided, deduce team size
     m_team_size =
         m_team_size >= 0
             ? m_team_size
@@ -2056,23 +1994,15 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
         FunctorTeamShmemSize<FunctorType>::value(arg_functor, m_team_size);
     m_scratch_size[0] = m_shmem_size;
     m_scratch_size[1] = m_policy.scratch_size(1, m_team_size);
-    m_scratch_locks =
-        m_policy.space().impl_internal_space_instance()->m_scratch_locks;
-    if (m_team_size <= 0) {
-      m_scratch_ptr[1] = nullptr;
-    } else {
-      auto scratch_ptr_id =
-          m_policy.space()
-              .impl_internal_space_instance()
-              ->resize_team_scratch_space(
-                  static_cast<std::int64_t>(m_scratch_size[1]) *
-                  (std::min(
-                      static_cast<std::int64_t>(Cuda::concurrency() /
-                                                (m_team_size * m_vector_size)),
-                      static_cast<std::int64_t>(m_league_size))));
-      m_scratch_ptr[1]  = scratch_ptr_id.first;
-      m_scratch_pool_id = scratch_ptr_id.second;
-    }
+    m_scratch_ptr[1] =
+        m_team_size <= 0
+            ? nullptr
+            : m_policy.space()
+                  .impl_internal_space_instance()
+                  ->resize_team_scratch_space(
+                      static_cast<ptrdiff_t>(m_scratch_size[1]) *
+                      static_cast<ptrdiff_t>(Cuda::concurrency() /
+                                             (m_team_size * m_vector_size)));
 
     // The global parallel_reduce does not support vector_length other than 1 at
     // the moment
@@ -2100,26 +2030,11 @@ class ParallelReduce<FunctorType, Kokkos::TeamPolicy<Properties...>,
       Kokkos::Impl::throw_runtime_exception(
           std::string("Kokkos::Impl::ParallelReduce< Cuda > bad team size"));
     }
-
-    size_type team_size_max =
-        Kokkos::Impl::cuda_get_max_block_size<FunctorType, LaunchBounds>(
-            m_policy.space().impl_internal_space_instance(), attr, m_functor,
-            m_vector_size, m_policy.team_scratch_size(0),
-            m_policy.thread_scratch_size(0)) /
-        m_vector_size;
-
-    if ((int)m_team_size > (int)team_size_max) {
+    if (int(m_team_size) >
+        arg_policy.team_size_max(m_functor, m_reducer, ParallelReduceTag())) {
       Kokkos::Impl::throw_runtime_exception(
           std::string("Kokkos::Impl::ParallelReduce< Cuda > requested too "
                       "large team size."));
-    }
-  }
-
-  ~ParallelReduce() {
-    if (m_scratch_pool_id >= 0) {
-      m_policy.space()
-          .impl_internal_space_instance()
-          ->m_team_scratch_pool[m_scratch_pool_id] = 0;
     }
   }
 };
@@ -2252,7 +2167,9 @@ class ParallelScan<FunctorType, Kokkos::RangePolicy<Traits...>, Kokkos::Cuda> {
 
     for (typename Policy::member_type iwork_base = range.begin();
          iwork_base < range.end(); iwork_base += blockDim.y) {
-      unsigned MASK                            = __activemask();
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+      unsigned MASK = KOKKOS_IMPL_CUDA_ACTIVEMASK;
+#endif
       const typename Policy::member_type iwork = iwork_base + threadIdx.y;
 
       __syncthreads();  // Don't overwrite previous iteration values until they
@@ -2265,7 +2182,11 @@ class ParallelScan<FunctorType, Kokkos::RangePolicy<Traits...>, Kokkos::Cuda> {
       for (unsigned i = threadIdx.y; i < word_count.value; ++i) {
         shared_data[i + word_count.value] = shared_data[i] = shared_accum[i];
       }
-      __syncwarp(MASK);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+      KOKKOS_IMPL_CUDA_SYNCWARP_MASK(MASK);
+#else
+      KOKKOS_IMPL_CUDA_SYNCWARP;
+#endif
       if (CudaTraits::WarpSize < word_count.value) {
         __syncthreads();
       }  // Protect against large scan values.
@@ -2347,7 +2268,7 @@ class ParallelScan<FunctorType, Kokkos::RangePolicy<Traits...>, Kokkos::Cuda> {
   }
 
   inline void execute() {
-    const auto nwork = m_policy.end() - m_policy.begin();
+    const int nwork = m_policy.end() - m_policy.begin();
     if (nwork) {
       enum { GridMaxComputeCapability_2x = 0x0ffff };
 
@@ -2536,7 +2457,9 @@ class ParallelScanWithTotal<FunctorType, Kokkos::RangePolicy<Traits...>,
 
     for (typename Policy::member_type iwork_base = range.begin();
          iwork_base < range.end(); iwork_base += blockDim.y) {
-      unsigned MASK = __activemask();
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+      unsigned MASK = KOKKOS_IMPL_CUDA_ACTIVEMASK;
+#endif
 
       const typename Policy::member_type iwork = iwork_base + threadIdx.y;
 
@@ -2551,7 +2474,11 @@ class ParallelScanWithTotal<FunctorType, Kokkos::RangePolicy<Traits...>,
         shared_data[i + word_count.value] = shared_data[i] = shared_accum[i];
       }
 
-      __syncwarp(MASK);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+      KOKKOS_IMPL_CUDA_SYNCWARP_MASK(MASK);
+#else
+      KOKKOS_IMPL_CUDA_SYNCWARP;
+#endif
       if (CudaTraits::WarpSize < word_count.value) {
         __syncthreads();
       }  // Protect against large scan values.
@@ -2634,7 +2561,7 @@ class ParallelScanWithTotal<FunctorType, Kokkos::RangePolicy<Traits...>,
   }
 
   inline void execute() {
-    const auto nwork = m_policy.end() - m_policy.begin();
+    const int nwork = m_policy.end() - m_policy.begin();
     if (nwork) {
       enum { GridMaxComputeCapability_2x = 0x0ffff };
 
@@ -2711,6 +2638,234 @@ class ParallelScanWithTotal<FunctorType, Kokkos::RangePolicy<Traits...>,
         m_run_serial(Kokkos::Impl::CudaInternal::cuda_use_serial_execution())
 #endif
   {
+  }
+};
+
+}  // namespace Impl
+}  // namespace Kokkos
+
+//----------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+
+namespace Kokkos {
+
+namespace Impl {
+template <class FunctorType, class ExecPolicy, class ValueType,
+          class Tag = typename ExecPolicy::work_tag>
+struct CudaFunctorAdapter {
+  const FunctorType f;
+  using value_type = ValueType;
+  CudaFunctorAdapter(const FunctorType& f_) : f(f_) {}
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, j, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, j, k, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, j, k, l, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    const typename ExecPolicy::member_type& m,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, j, k, l, m, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::work_tag,
+                                    const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    const typename ExecPolicy::member_type& m,
+                                    const typename ExecPolicy::member_type& n,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals third argument
+    // type of FunctorType::operator()
+    f(typename ExecPolicy::work_tag(), i, j, k, l, m, n, val);
+  }
+};
+
+template <class FunctorType, class ExecPolicy, class ValueType>
+struct CudaFunctorAdapter<FunctorType, ExecPolicy, ValueType, void> {
+  const FunctorType f;
+  using value_type = ValueType;
+  CudaFunctorAdapter(const FunctorType& f_) : f(f_) {}
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, val);
+  }
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, val);
+  }
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, val);
+  }
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, val);
+  }
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    const typename ExecPolicy::member_type& m,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, m, val);
+  }
+
+  __device__ inline void operator()(const typename ExecPolicy::member_type& i,
+                                    const typename ExecPolicy::member_type& j,
+                                    const typename ExecPolicy::member_type& k,
+                                    const typename ExecPolicy::member_type& l,
+                                    const typename ExecPolicy::member_type& m,
+                                    const typename ExecPolicy::member_type& n,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, m, n, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    typename ExecPolicy::member_type& j,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    typename ExecPolicy::member_type& j,
+                                    typename ExecPolicy::member_type& k,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    typename ExecPolicy::member_type& j,
+                                    typename ExecPolicy::member_type& k,
+                                    typename ExecPolicy::member_type& l,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    typename ExecPolicy::member_type& j,
+                                    typename ExecPolicy::member_type& k,
+                                    typename ExecPolicy::member_type& l,
+                                    typename ExecPolicy::member_type& m,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, m, val);
+  }
+
+  __device__ inline void operator()(typename ExecPolicy::member_type& i,
+                                    typename ExecPolicy::member_type& j,
+                                    typename ExecPolicy::member_type& k,
+                                    typename ExecPolicy::member_type& l,
+                                    typename ExecPolicy::member_type& m,
+                                    typename ExecPolicy::member_type& n,
+                                    ValueType& val) const {
+    // Insert Static Assert with decltype on ValueType equals second argument
+    // type of FunctorType::operator()
+    f(i, j, k, l, m, n, val);
+  }
+};
+
+template <class FunctorType, class ResultType, class Tag,
+          bool Enable = IsNonTrivialReduceFunctor<FunctorType>::value>
+struct FunctorReferenceType {
+  using reference_type = ResultType&;
+};
+
+template <class FunctorType, class ResultType, class Tag>
+struct FunctorReferenceType<FunctorType, ResultType, Tag, true> {
+  using reference_type =
+      typename Kokkos::Impl::FunctorValueTraits<FunctorType,
+                                                Tag>::reference_type;
+};
+
+template <class FunctorTypeIn, class ExecPolicy, class ValueType>
+struct ParallelReduceFunctorType<FunctorTypeIn, ExecPolicy, ValueType, Cuda> {
+  enum {
+    FunctorHasValueType = IsNonTrivialReduceFunctor<FunctorTypeIn>::value
+  };
+  using functor_type = typename Kokkos::Impl::if_c<
+      FunctorHasValueType, FunctorTypeIn,
+      Impl::CudaFunctorAdapter<FunctorTypeIn, ExecPolicy, ValueType>>::type;
+  static functor_type functor(const FunctorTypeIn& functor_in) {
+    return Impl::if_c<FunctorHasValueType, FunctorTypeIn, functor_type>::select(
+        functor_in, functor_type(functor_in));
   }
 };
 

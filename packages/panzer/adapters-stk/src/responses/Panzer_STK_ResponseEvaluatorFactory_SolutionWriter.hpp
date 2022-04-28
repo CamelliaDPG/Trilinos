@@ -108,12 +108,11 @@ public:
    void removeField(const std::string & fieldName)
    { removedFields_.push_back(fieldName); }
 
-  // should be private but needs a lambda
+private:
    void computeReferenceCentroid(const std::map<std::string,Teuchos::RCP<const panzer::PureBasis> > & bases,
                                  int baseDimension,
                                  Kokkos::DynRankView<double,PHX::Device> & centroid) const;
 
-private:
    //! Delete from the argument all the fields that are in the removedFields array
    void deleteRemovedFields(const std::vector<std::string> & removedFields,
                             std::vector<std::pair<std::string,Teuchos::RCP<const panzer::PureBasis> > > & fields) const;

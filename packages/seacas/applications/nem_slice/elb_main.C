@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2021 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -31,6 +31,10 @@
 
 #ifdef USE_ZOLTAN
 #include <mpi.h> // for MPI_Finalize, etc
+#endif
+
+#ifdef SGI10K
+#include <sys/resource.h>
 #endif
 
 namespace {
@@ -606,7 +610,7 @@ namespace {
 
     case INFILE:
       fmt::print("\ttype: input from file\n");
-      fmt::print("\tfile name: {}\n", lb->file);
+      fmt::print("\tfile name: {}\n", lb->file.c_str());
       break;
     }
     fmt::print("\trefinement: ");
@@ -620,7 +624,7 @@ namespace {
     }
     if (lb->outfile) {
       fmt::print("\toutput assignment vector\n");
-      fmt::print("\tfile name: {}\n", lb->file);
+      fmt::print("\tfile name: {}\n", lb->file.c_str());
     }
 
     /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
@@ -646,7 +650,7 @@ namespace {
       fmt::print("\tweights from: ExodusII file\n");
       fmt::print("\ttime index: {}\n", weight->exo_tindx);
       fmt::print("\tvariable index: {}\n", weight->exo_vindx);
-      fmt::print("\tvariable name: {}\n", weight->exo_varname);
+      fmt::print("\tvariable name: {}\n", weight->exo_varname.c_str());
     }
     else if (weight->type & EL_BLK) {
       fmt::print("\tElement Block weights specified\n");

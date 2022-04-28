@@ -180,14 +180,15 @@ createTimeStepControlStrategyConstant(
   std::string name = "Constant")
 {
   auto tscs = Teuchos::rcp(new TimeStepControlStrategyConstant<Scalar>());
-  if (pList == Teuchos::null || pList->numParams() == 0) return tscs;
+  if (pList == Teuchos::null) return tscs;
 
   TEUCHOS_TEST_FOR_EXCEPTION(
-    pList->get<std::string>("Strategy Type") != "Constant", std::logic_error,
+    pList->get<std::string>("Strategy Type", "Constant") != "Constant",
+    std::logic_error,
     "Error - Strategy Type != 'Constant'.  (='"
     +pList->get<std::string>("Strategy Type")+"')\n");
 
-  pList->validateParametersAndSetDefaults(*tscs->getValidParameters());
+  pList->validateParametersAndSetDefaults(*tscs->getValidParameters(), 0);
 
   tscs->setConstantTimeStep(pList->get<double>("Time Step"));
 

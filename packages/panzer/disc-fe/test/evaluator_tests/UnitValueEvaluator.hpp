@@ -101,7 +101,9 @@ UnitValueEvaluator<EvalT, Traits>::
 evaluateFields(
   typename Traits::EvalData  /* workset */)
 { 
-  Kokkos::deep_copy(unitValue.get_static_view(), 1.0);
+  for(int cell=0;cell<unitValue.extent_int(0);++cell)
+    for(int ip=0;ip<unitValue.extent_int(1);++ip)
+      unitValue(cell,ip) = 1.0;
 }
 
 //**********************************************************************

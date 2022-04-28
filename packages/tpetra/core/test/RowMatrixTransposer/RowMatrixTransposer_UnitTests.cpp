@@ -74,6 +74,10 @@ namespace {
     typedef CrsMatrix<>::scalar_type Scalar;
     typedef CrsMatrix<Scalar,LO,GO,Node> MAT;
     auto comm = Tpetra::getDefaultComm();
+    int numProcs = comm->getSize();
+    Tpetra::global_size_t numGlobal = 4*numProcs;
+
+    auto rowMap = createUniformContigMapWithNode<LO,GO,Node>(numGlobal,comm);
 
     RCP<MAT> matrix = Reader<MAT>::readSparseFile("a.mtx", comm);
     RCP<MAT> matrixT = Reader<MAT>::readSparseFile("atrans.mtx", comm);
@@ -81,7 +85,7 @@ namespace {
     RowMatrixTransposer<Scalar, LO, GO, Node> at (matrix);
     RCP<MAT> calculated = at.createTranspose();
 
-    RCP<MAT> diffMatrix = rcp(new MAT(matrixT->getRowMap(), matrixT->getLocalMaxNumRowEntries()));
+    RCP<MAT> diffMatrix = rcp(new MAT(matrixT->getRowMap(), matrixT->getNodeMaxNumRowEntries()));
 
     Scalar sOne = ScalarTraits<Scalar>::one();
     Add(*calculated, false, -sOne, *matrixT, false, sOne, diffMatrix);

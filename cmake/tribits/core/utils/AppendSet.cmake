@@ -38,22 +38,22 @@
 # @HEADER
 
 #
-# @MACRO: append_set()
+# @MACRO: APPEND_SET()
 #
 # Utility function to append elements to a variable (reduces boiler-plate
 # code).
 #
 # Usage::
 #
-#   append_set(<varName> <arg0> <arg1> ...)
+#   APPEND_SET(<varName> <arg0> <arg1> ...)
 #
 # This just calls::
 #
-#   list(APPEND <varName> <arg0> <arg1> ...)
+#   LIST(APPEND <varName> <arg0> <arg1> ...)
 #
 # There is better error reporting if one misspells ``APPEND_SET`` than if one
 # misspells ``APPEND``.
 #
-macro(append_set VARNAME)
-  list(APPEND ${VARNAME} ${ARGN})
-endmacro()
+MACRO(APPEND_SET VARNAME)
+  LIST(APPEND ${VARNAME} ${ARGN})
+ENDMACRO()

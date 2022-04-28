@@ -24,38 +24,38 @@
 # for generating those libraries given the list of header and source files in
 # the external project.
 
-tribits_package(WrapExternal)
+TRIBITS_PACKAGE(WrapExternal)
 
 #
 # A) Determine if any downstream changes require a rebuild and deal with it
 #
 
-include(TribitsFindMostRecentFileTimestamp)
+INCLUDE(TribitsFindMostRecentFileTimestamp)
 
-advanced_set(${PACKAGE_NAME}_SHOW_MOST_RECENT_FILES   FALSE
+ADVANCED_SET(${PACKAGE_NAME}_SHOW_MOST_RECENT_FILES   FALSE
   CACHE  BOOL
   "Set to TRUE to see most recent modified files.")
-if (${PACKAGE_NAME}_SHOW_MOST_RECENT_FILES)
-  set(SHOW_MOST_RECENT_FILES_ARG SHOW_MOST_RECENT_FILES)
-else()
-  set(SHOW_MOST_RECENT_FILES_ARG)
-endif()
+IF (${PACKAGE_NAME}_SHOW_MOST_RECENT_FILES)
+  SET(SHOW_MOST_RECENT_FILES_ARG SHOW_MOST_RECENT_FILES)
+ELSE()
+  SET(SHOW_MOST_RECENT_FILES_ARG)
+ENDIF()
 
-tribits_determine_if_current_package_needs_rebuilt(
+TRIBITS_DETERMINE_IF_CURRENT_PACKAGE_NEEDS_REBUILT(
   ${SHOW_MOST_RECENT_FILES_ARG}
   SHOW_OVERALL_MOST_RECENT_FILES
   CURRENT_PACKAGE_OUT_OF_DATE_OUT ${PACKAGE_NAME}_BULID_IS_OUT_OF_DATE
   )
 
 # If there is anything out of date, then just blow away the external build
-if (${PACKAGE_NAME}_BULID_IS_OUT_OF_DATE)
-  message(
+IF (${PACKAGE_NAME}_BULID_IS_OUT_OF_DATE)
+  MESSAGE(
     "\nBlowing away ${PACKAGE_NAME} build dir external_func/ so it will build from scratch!"
     )
-  execute_process(
+  EXECUTE_PROCESS(
     COMMAND rm -rf "${PACKAGE_BINARY_DIR}/external_func/"
     )
-endif()
+ENDIF()
 # NOTE: There may be other ways to address the out of date build other than to
 # just blow the whole thing away but some external packages can be pretty
 # complex and the only safe way to ensure that the rebuild is correct is to
@@ -65,24 +65,24 @@ endif()
 # B) Write the export makefile that will be used by the external project
 #
 
-set(EXPORT_MAKKEFILE "${CMAKE_CURRENT_BINARY_DIR}/Makefile.export.TribExProj")
-tribits_write_flexible_package_client_export_files(
+SET(EXPORT_MAKKEFILE "${CMAKE_CURRENT_BINARY_DIR}/Makefile.export.TribExProj")
+TRIBITS_WRITE_FLEXIBLE_PACKAGE_CLIENT_EXPORT_FILES(
   PACKAGE_NAME ${PACKAGE_NAME}
   EXPORT_FILE_VAR_PREFIX TribitsExProj
   WRITE_EXPORT_MAKEFILE "${EXPORT_MAKKEFILE}"
   )
 
-set(EXTERNAL_FUNC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external_func)
-set(EXTERNAL_FUNC_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/external_func)
-set(EXTERNAL_FUNC_LIB_FILE ${EXTERNAL_FUNC_BINARY_DIR}/libexternal_func.a)
+SET(EXTERNAL_FUNC_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external_func)
+SET(EXTERNAL_FUNC_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/external_func)
+SET(EXTERNAL_FUNC_LIB_FILE ${EXTERNAL_FUNC_BINARY_DIR}/libexternal_func.a)
 
-file(MAKE_DIRECTORY ${EXTERNAL_FUNC_BINARY_DIR})
+FILE(MAKE_DIRECTORY ${EXTERNAL_FUNC_BINARY_DIR})
 
 #
 # C) Do configuration of the external project
 #
 
-execute_process(
+EXECUTE_PROCESS(
   COMMAND ${PYTHON_EXECUTABLE} ${EXTERNAL_FUNC_SOURCE_DIR}/configure.py
     --with-export-makefile=${EXPORT_MAKKEFILE}
     --src-dir=${EXTERNAL_FUNC_SOURCE_DIR}
@@ -93,14 +93,14 @@ execute_process(
 # D) Define a custom build rule and target to create external_func library
 #
 
-add_custom_command(
+ADD_CUSTOM_COMMAND(
   OUTPUT ${EXTERNAL_FUNC_LIB_FILE}
   DEPENDS ${EXTERNAL_FUNC_SOURCE_DIR}/external_func.hpp
     ${EXTERNAL_FUNC_SOURCE_DIR}/external_func.cpp
   COMMAND make ${CTEST_BUILD_FLAGS}
   WORKING_DIRECTORY ${EXTERNAL_FUNC_BINARY_DIR}
   )
-add_custom_target( build_external_func
+ADD_CUSTOM_TARGET( build_external_func
   DEPENDS ${EXTERNAL_FUNC_LIB_FILE} )
 # NOTE: You have to create a custom target associated with the generated
 # library.  You can't just use the custom command.
@@ -111,30 +111,30 @@ add_custom_target( build_external_func
 #
 # E) Define the imported external library
 #
-# Below, does what tribits_add_imported_library() would do automatically!
+# Below, does what TRIBITS_ADD_IMPORTED_LIBRARY() would do automatically!
 
 # E.1) Create an imported library target and set up the dependencies to it
 # custom target and command.
-add_library(external_func STATIC IMPORTED GLOBAL)
-set_property(TARGET external_func PROPERTY IMPORTED_LOCATION
+ADD_LIBRARY(external_func STATIC IMPORTED GLOBAL)
+SET_PROPERTY(TARGET external_func PROPERTY IMPORTED_LOCATION
   ${EXTERNAL_FUNC_LIB_FILE})
-add_dependencies(external_func build_external_func)
+ADD_DEPENDENCIES(external_func build_external_func)
 # NOTE: Above, you have to use the custom target associated with the
 # generation command and add it as a dependency of the imported library
 # target.
 
 # E.2) Make sure before we build the external library, we first build the
 # libraries.
-add_dependencies(build_external_func pws_a)
+ADD_DEPENDENCIES(build_external_func pws_a)
 # NOTE: You have to put the lib dependencies on build target, not the imported
 # library target!
 
 # E.3) Update the TriBITS variables
-append_set(${PACKAGE_NAME}_LIB_TARGETS external_func)
-global_set(${PACKAGE_NAME}_LIBRARIES external_func pws_a)
-global_set(${PACKAGE_NAME}_INCLUDE_DIRS ${EXTERNAL_FUNC_SOURCE_DIR})
-global_set(${PACKAGE_NAME}_HAS_NATIVE_LIBRARIES ON)
-include_directories(${EXTERNAL_FUNC_SOURCE_DIR})
+APPEND_SET(${PACKAGE_NAME}_LIB_TARGETS external_func)
+GLOBAL_SET(${PACKAGE_NAME}_LIBRARIES external_func pws_a)
+GLOBAL_SET(${PACKAGE_NAME}_INCLUDE_DIRS ${EXTERNAL_FUNC_SOURCE_DIR})
+GLOBAL_SET(${PACKAGE_NAME}_HAS_NATIVE_LIBRARIES ON)
+INCLUDE_DIRECTORIES(${EXTERNAL_FUNC_SOURCE_DIR})
 # NOTE: Above, you have to add the upstream dependent libraries to the current
 # package's list of libraries because you can't link to an importing lib with
 # link_target_libraries() :-(
@@ -143,30 +143,30 @@ include_directories(${EXTERNAL_FUNC_SOURCE_DIR})
 # F) Add an executable and test to show that it works!
 #
 
-if (${PACKAGE_NAME}_ENABLE_TESTS)
+IF (${PACKAGE_NAME}_ENABLE_TESTS)
 
-  tribits_add_executable_and_test(run_external_func
+  TRIBITS_ADD_EXECUTABLE_AND_TEST(run_external_func
     SOURCES run_external_func.cpp
     PASS_REGULAR_EXPRESSION "external_func A no_deps"
     NUM_MPI_PROCS 1
     )
 
-endif()
+ENDIF()
 
 # Run this if you need to ensure that the external library is build before you
 # build this object file!
-#set_source_files_properties(
+#SET_SOURCE_FILES_PROPERTIES(
 #  run_external_func.cpp
 #  PROPERTIES OBJECT_DEPENDS ${EXTERNAL_FUNC_LIB_FILE}
 #  )
 
 # Add a target to clean up the external function
-add_custom_target( clean_external_func
+ADD_CUSTOM_TARGET( clean_external_func
   COMMAND rm ${EXTERNAL_FUNC_LIB_FILE})
 # NOTE: that we really only need to remove the final library.  The external build
 # command will automatically know if the object file needs to be updated as
 # well.
 
-tribits_package_postprocess()
+TRIBITS_PACKAGE_POSTPROCESS()
 
 # LocalWords:  WrapExternal TriBITS CMake makefile TPLs

@@ -58,6 +58,12 @@
 #include "Intrepid2_HGRAD_QUAD_C2_FEM.hpp"
 #include "Intrepid2_HCURL_QUAD_I1_FEM.hpp"
 
+#ifdef HAVE_MPI
+   #include "Epetra_MpiComm.h"
+#else
+   #include "Epetra_SerialComm.h"
+#endif
+
 typedef Kokkos::DynRankView<double,PHX::Device> FieldContainer;
 
 using Teuchos::RCP;
@@ -77,7 +83,7 @@ Teuchos::RCP<panzer::ConnManager> buildQuadMesh(stk::ParallelMachine comm,int xe
 
    panzer_stk::SquareQuadMeshFactory meshFact;
    meshFact.setParameterList(Teuchos::rcpFromRef(pl));
-
+   
    Teuchos::RCP<panzer_stk::STK_Interface> mesh = meshFact.buildMesh(comm);
    return Teuchos::rcp(new panzer_stk::STKConnManager(mesh));
 }
@@ -106,7 +112,7 @@ TEUCHOS_UNIT_TEST(tSquareQuadMeshDOFManager_edgetests, buildTest_quad_edge_orien
    TEUCHOS_ASSERT(numProcs==1);
 
    // build a geometric pattern from a single basis
-   RCP<const panzer::FieldPattern> patternI1
+   RCP<const panzer::FieldPattern> patternI1 
          = buildFieldPattern<Intrepid2::Basis_HCURL_QUAD_I1_FEM<PHX::exec_space,double,double> >();
    out << *patternI1 << std::endl;
 
@@ -133,7 +139,7 @@ TEUCHOS_UNIT_TEST(tSquareQuadMeshDOFManager_edgetests, buildTest_quad_edge_orien
          out << indices[j+4] << " ";
       out << std::endl;
    }
-
+ 
 
    out << "GIDS" << std::endl;
    for(int i=0;i<4;i++) {

@@ -160,19 +160,6 @@ namespace Ifpack2 {
                                  typename ViewType::execution_space::scratch_memory_space,
                                  MemoryTraits<typename ViewType::memory_traits, Kokkos::Unmanaged> >;
 
-    /// 
-    /// tpetra little block index
-    ///
-    template<typename LayoutType> struct TpetraLittleBlock;
-    template<> struct TpetraLittleBlock<Kokkos::LayoutLeft> {
-      template<typename T> KOKKOS_INLINE_FUNCTION
-      static T getFlatIndex(const T i, const T j, const T blksize) { return i+j*blksize; }
-    };
-    template<> struct TpetraLittleBlock<Kokkos::LayoutRight> {
-      template<typename T> KOKKOS_INLINE_FUNCTION
-      static T getFlatIndex(const T i, const T j, const T blksize) { return i*blksize+j; }
-    };
-
     ///
     /// block tridiag scalar type
     ///
@@ -328,10 +315,10 @@ namespace Ifpack2 {
 
 #if defined(KOKKOS_ENABLE_CUDA) && defined(IFPACK2_BLOCKTRIDICONTAINER_ENABLE_PROFILE)
 #define IFPACK2_BLOCKTRIDICONTAINER_PROFILER_REGION_BEGIN \
-    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaProfilerStart());
+    CUDA_SAFE_CALL(cudaProfilerStart());
 
 #define IFPACK2_BLOCKTRIDICONTAINER_PROFILER_REGION_END \
-    { KOKKOS_IMPL_CUDA_SAFE_CALL( cudaProfilerStop() ); }
+    { CUDA_SAFE_CALL( cudaProfilerStop() ); }
 #else
     /// later put vtune profiler region
 #define IFPACK2_BLOCKTRIDICONTAINER_PROFILER_REGION_BEGIN
@@ -689,7 +676,7 @@ namespace Ifpack2 {
           exec_instances.clear();
           exec_instances.resize(num_streams);
           for (local_ordinal_type i=0;i<num_streams;++i) {
-            KOKKOS_IMPL_CUDA_SAFE_CALL(cudaStreamCreateWithFlags(&stream[i], cudaStreamNonBlocking));
+            CUDA_SAFE_CALL(cudaStreamCreateWithFlags(&stream[i], cudaStreamNonBlocking));
             ExecutionSpaceFactory<execution_space>::createInstance(stream[i], exec_instances[i]);
           }
         }
@@ -701,7 +688,7 @@ namespace Ifpack2 {
         {
           const local_ordinal_type num_streams = stream.size();
           for (local_ordinal_type i=0;i<num_streams;++i)
-            KOKKOS_IMPL_CUDA_SAFE_CALL(cudaStreamDestroy(stream[i]));
+            CUDA_SAFE_CALL(cudaStreamDestroy(stream[i]));
         }
         stream.clear();
         exec_instances.clear();
@@ -1074,7 +1061,7 @@ namespace Ifpack2 {
 
       std::vector<global_ordinal_type> gids;
       bool separate_remotes = true, found_first = false, need_owned_permutation = false;
-      for (size_t i=0;i<column_map->getLocalNumElements();++i) {
+      for (size_t i=0;i<column_map->getNodeNumElements();++i) {
         const global_ordinal_type gid = column_map->getGlobalElement(i);
         if (!domain_map->isNodeGlobalElement(gid)) {
           found_first = true;
@@ -1105,9 +1092,9 @@ namespace Ifpack2 {
           // make the importer only if needed.
           local_ordinal_type_1d_view dm2cm;
           if (need_owned_permutation) {
-            dm2cm = local_ordinal_type_1d_view(do_not_initialize_tag("dm2cm"), domain_map->getLocalNumElements());
+            dm2cm = local_ordinal_type_1d_view(do_not_initialize_tag("dm2cm"), domain_map->getNodeNumElements());
             const auto dm2cm_host = Kokkos::create_mirror_view(dm2cm);
-            for (size_t i=0;i<domain_map->getLocalNumElements();++i)
+            for (size_t i=0;i<domain_map->getNodeNumElements();++i)
               dm2cm_host(i) = domain_map->getLocalElement(column_map->getGlobalElement(i));
             Kokkos::deep_copy(dm2cm, dm2cm_host);
           }
@@ -1187,7 +1174,7 @@ namespace Ifpack2 {
       PartInterface<MatrixType> interf;
 
       const bool jacobi = partitions.size() == 0;
-      const local_ordinal_type A_n_lclrows = A->getLocalNumRows();
+      const local_ordinal_type A_n_lclrows = A->getNodeNumRows();
       const local_ordinal_type nparts = jacobi ? A_n_lclrows : partitions.size();
 
 #if defined(BLOCKTRIDICONTAINER_DEBUG)
@@ -1199,7 +1186,7 @@ namespace Ifpack2 {
 
       TEUCHOS_TEST_FOR_EXCEPT_MSG
         (nrows != A_n_lclrows, get_msg_prefix(comm) << "The #rows implied by the local partition is not "
-         << "the same as getLocalNumRows: " << nrows << " vs " << A_n_lclrows);
+         << "the same as getNodeNumRows: " << nrows << " vs " << A_n_lclrows);
 #endif
 
       // permutation vector
@@ -1244,66 +1231,35 @@ namespace Ifpack2 {
       part2rowidx0(0) = 0;
       part2packrowidx0(0) = 0;
       local_ordinal_type pack_nrows = 0;
-      if (jacobi) {
-	for (local_ordinal_type ip=0;ip<nparts;++ip) {
-	  const local_ordinal_type ipnrows = 1;
-	  TEUCHOS_TEST_FOR_EXCEPT_MSG(ipnrows == 0,
-				      get_msg_prefix(comm)
-				      << "partition " << p[ip]
-				      << " is empty, which is not allowed.");
-	  //assume No overlap.
-	  part2rowidx0(ip+1) = part2rowidx0(ip) + ipnrows;
-	  // Since parts are ordered in nonincreasing size, the size of the first
-	  // part in a pack is the size for all parts in the pack.
-	  if (ip % vector_length == 0) pack_nrows = ipnrows;
-	  part2packrowidx0(ip+1) = part2packrowidx0(ip) + ((ip+1) % vector_length == 0 || ip+1 == nparts ? pack_nrows : 0);
-	  const local_ordinal_type os = partptr(ip);
-	  for (local_ordinal_type i=0;i<ipnrows;++i) {
-	    const auto lcl_row = ip;
-	    TEUCHOS_TEST_FOR_EXCEPT_MSG(lcl_row < 0 || lcl_row >= A_n_lclrows,
-					get_msg_prefix(comm)
-					<< "partitions[" << p[ip] << "]["
-					<< i << "] = " << lcl_row
-					<< " but input matrix implies limits of [0, " << A_n_lclrows-1
-					<< "].");
-	    lclrow(os+i) = lcl_row;
-	    rowidx2part(os+i) = ip;
-	    if (interf.row_contiguous && os+i > 0 && lclrow((os+i)-1) + 1 != lcl_row)
-	      interf.row_contiguous = false;
-	  }
-	  partptr(ip+1) = os + ipnrows;
-	}
-      } else {
-	for (local_ordinal_type ip=0;ip<nparts;++ip) {
-	  const auto* part = &partitions[p[ip]];
-	  const local_ordinal_type ipnrows = part->size();
-	  TEUCHOS_ASSERT(ip == 0 || (ipnrows <= static_cast<local_ordinal_type>(partitions[p[ip-1]].size())));
-	  TEUCHOS_TEST_FOR_EXCEPT_MSG(ipnrows == 0,
-				      get_msg_prefix(comm)
-				      << "partition " << p[ip]
-				      << " is empty, which is not allowed.");
-	  //assume No overlap.
-	  part2rowidx0(ip+1) = part2rowidx0(ip) + ipnrows;
-	  // Since parts are ordered in nonincreasing size, the size of the first
-	  // part in a pack is the size for all parts in the pack.
-	  if (ip % vector_length == 0) pack_nrows = ipnrows;
-	  part2packrowidx0(ip+1) = part2packrowidx0(ip) + ((ip+1) % vector_length == 0 || ip+1 == nparts ? pack_nrows : 0);
-	  const local_ordinal_type os = partptr(ip);
-	  for (local_ordinal_type i=0;i<ipnrows;++i) {
-	    const auto lcl_row = (*part)[i];
-	    TEUCHOS_TEST_FOR_EXCEPT_MSG(lcl_row < 0 || lcl_row >= A_n_lclrows,
-					get_msg_prefix(comm)
-					<< "partitions[" << p[ip] << "]["
-					<< i << "] = " << lcl_row
-					<< " but input matrix implies limits of [0, " << A_n_lclrows-1
-					<< "].");
-	    lclrow(os+i) = lcl_row;
-	    rowidx2part(os+i) = ip;
-	    if (interf.row_contiguous && os+i > 0 && lclrow((os+i)-1) + 1 != lcl_row)
-	      interf.row_contiguous = false;
-	  }
-	  partptr(ip+1) = os + ipnrows;
-	}
+      for (local_ordinal_type ip=0;ip<nparts;++ip) {
+        const auto* part = jacobi ? NULL : &partitions[p[ip]];
+        const local_ordinal_type ipnrows = jacobi ? 1 : part->size();
+        TEUCHOS_ASSERT(ip == 0 || (jacobi || ipnrows <= static_cast<local_ordinal_type>(partitions[p[ip-1]].size())));
+        TEUCHOS_TEST_FOR_EXCEPT_MSG(ipnrows == 0,
+                                    get_msg_prefix(comm)
+                                    << "partition " << p[ip]
+                                    << " is empty, which is not allowed.");
+        //assume No overlap.
+        part2rowidx0(ip+1) = part2rowidx0(ip) + ipnrows;
+        // Since parts are ordered in nonincreasing size, the size of the first
+        // part in a pack is the size for all parts in the pack.
+        if (ip % vector_length == 0) pack_nrows = ipnrows;
+        part2packrowidx0(ip+1) = part2packrowidx0(ip) + ((ip+1) % vector_length == 0 || ip+1 == nparts ? pack_nrows : 0);
+        const local_ordinal_type os = partptr(ip);
+        for (local_ordinal_type i=0;i<ipnrows;++i) {
+          const auto lcl_row = jacobi ? ip : (*part)[i];
+          TEUCHOS_TEST_FOR_EXCEPT_MSG(lcl_row < 0 || lcl_row >= A_n_lclrows,
+                                      get_msg_prefix(comm)
+                                      << "partitions[" << p[ip] << "]["
+                                      << i << "] = " << lcl_row
+                                      << " but input matrix implies limits of [0, " << A_n_lclrows-1
+                                      << "].");
+          lclrow(os+i) = lcl_row;
+          rowidx2part(os+i) = ip;
+          if (interf.row_contiguous && os+i > 0 && lclrow((os+i)-1) + 1 != lcl_row)
+            interf.row_contiguous = false;
+        }
+        partptr(ip+1) = os + ipnrows;
       }
 #if defined(BLOCKTRIDICONTAINER_DEBUG)
       TEUCHOS_ASSERT(partptr(nparts) == nrows);
@@ -1607,7 +1563,7 @@ namespace Ifpack2 {
       const local_ordinal_type nrows = partptr(partptr.extent(0) - 1);
 
       // find column to row map on host
-      Kokkos::View<local_ordinal_type*,host_execution_space> col2row("col2row", A->getLocalNumCols());
+      Kokkos::View<local_ordinal_type*,host_execution_space> col2row("col2row", A->getNodeNumCols());
       Kokkos::deep_copy(col2row, Teuchos::OrdinalTraits<local_ordinal_type>::invalid());
       {
         const auto rowmap = g.getRowMap();
@@ -2053,7 +2009,6 @@ namespace Ifpack2 {
       void
       extract(local_ordinal_type partidx,
               local_ordinal_type npacks) const {
-        using tlb = TpetraLittleBlock<Tpetra::Impl::BlockCrsMatrixLittleBlockArrayLayout>;
         const size_type kps = pack_td_ptr(partidx);
         local_ordinal_type kfs[vector_length] = {};
         local_ordinal_type ri0[vector_length] = {};
@@ -2075,8 +2030,7 @@ namespace Ifpack2 {
             ++j;
             for (local_ordinal_type ii=0;ii<blocksize;++ii) {
               for (local_ordinal_type jj=0;jj<blocksize;++jj) {
-                //const auto idx = ii*blocksize + jj;
-                const auto idx = tlb::getFlatIndex(ii, jj, blocksize);
+                const auto idx = ii*blocksize + jj;
                 auto& v = internal_vector_values(pi, ii, jj, 0);
                 for (local_ordinal_type vi=0;vi<npacks;++vi)
                   v[vi] = static_cast<btdm_scalar_type>(block[vi][idx]);
@@ -2101,7 +2055,6 @@ namespace Ifpack2 {
               const local_ordinal_type &partidxbeg,
               const local_ordinal_type &npacks,
               const local_ordinal_type &vbeg) const {
-        using tlb = TpetraLittleBlock<Tpetra::Impl::BlockCrsMatrixLittleBlockArrayLayout>;
         local_ordinal_type kfs_vals[internal_vector_length] = {};
         local_ordinal_type ri0_vals[internal_vector_length] = {};
         local_ordinal_type nrows_vals[internal_vector_length] = {};
@@ -2130,8 +2083,8 @@ namespace Ifpack2 {
                 Kokkos::parallel_for
                   (Kokkos::TeamThreadRange(member,blocksize),
                    [&](const local_ordinal_type &ii) {
-                    for (local_ordinal_type jj=0;jj<blocksize;++jj) 
-                      scalar_values(pi, ii, jj, v) = static_cast<btdm_scalar_type>(block[tlb::getFlatIndex(ii,jj,blocksize)]);
+                    for (local_ordinal_type jj=0;jj<blocksize;++jj)
+                      scalar_values(pi, ii, jj, v) = static_cast<btdm_scalar_type>(block[ii*blocksize + jj]);
                   });
               }
             }
@@ -3152,9 +3105,9 @@ namespace Ifpack2 {
                  const impl_scalar_type * const KOKKOS_RESTRICT AA,
                  const impl_scalar_type * const KOKKOS_RESTRICT xx,
                  /* */ impl_scalar_type * KOKKOS_RESTRICT yy) const {
-        using tlb = TpetraLittleBlock<Tpetra::Impl::BlockCrsMatrixLittleBlockArrayLayout>;
         for (local_ordinal_type k0=0;k0<blocksize;++k0) {
           impl_scalar_type val = 0;
+          const local_ordinal_type offset = k0*blocksize;
 #if defined(KOKKOS_ENABLE_PRAGMA_IVDEP)
 #   pragma ivdep
 #endif
@@ -3162,7 +3115,7 @@ namespace Ifpack2 {
 #   pragma unroll
 #endif
           for (local_ordinal_type k1=0;k1<blocksize;++k1)
-            val += AA[tlb::getFlatIndex(k0,k1,blocksize)]*xx[k1];
+            val += AA[offset+k1]*xx[k1];
           yy[k0] -= val;
         }
       }

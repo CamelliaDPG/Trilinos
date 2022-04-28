@@ -46,8 +46,7 @@ protected:
       0,1,0, 1,1,0, 2,1,0, 3,1,0, 4,1,0
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_4_unit_quad_shell_single_gap_mesh(double gapSize)
@@ -86,8 +85,7 @@ protected:
       0,1,0, 1,1,0, 2,1,0, 2+gapSize,1,0, 3+gapSize,1,0, 4+gapSize,1,0
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_4_unit_quad_shell_all_gap_mesh(double gapSize)
@@ -126,8 +124,7 @@ protected:
       0,1,0, 1,1,0, 1+gapSize,1,0, 2+gapSize,1,0, 2+2*gapSize,1,0, 3+2*gapSize,1,0, 3+3*gapSize,1,0, 4+3*gapSize,1,0
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_6_unit_tri_shell_connected_mesh()
@@ -174,8 +171,7 @@ protected:
       0,1,0, 1,1,0, 2,1,0, 3,1,0
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_6_unit_tri_shell_single_gap_mesh(double gapSize)
@@ -223,8 +219,7 @@ protected:
       0,1,0, 1,1,0, 1+gapSize,1,0, 2+gapSize,1,0, 3+gapSize,1,0
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_4_unit_hex_single_gap_mesh(double gapSize)
@@ -267,8 +262,7 @@ protected:
       4+gapSize,0,0, 4+gapSize,1,0, 4+gapSize,1,1, 4+gapSize,0,1
     };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_two_particle_mesh()
@@ -287,8 +281,7 @@ protected:
     }
     std::vector<double> coordinates = { 0,0,0, 2,0,0 };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   void make_particle_unit_quad_shell_mesh()
@@ -307,8 +300,7 @@ protected:
     }
     std::vector<double> coordinates = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 2,0,0 };
 
-    stk::unit_test_util::setup_text_mesh(
-        get_bulk(), stk::unit_test_util::get_full_text_mesh_desc(meshDesc, coordinates));
+    stk::unit_test_util::setup_text_mesh(get_bulk(), meshDesc, coordinates);
   }
 
   bool check_edges(const std::vector<stk::balance::GraphEdge> & graphEdges,

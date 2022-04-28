@@ -45,7 +45,7 @@
 #include <Kokkos_Core.hpp>
 #include <TestHPX_Category.hpp>
 
-#include <hpx/local/future.hpp>
+#include <hpx/include/lcos.hpp>
 
 #ifdef KOKKOS_ENABLE_HPX_ASYNC_DISPATCH
 

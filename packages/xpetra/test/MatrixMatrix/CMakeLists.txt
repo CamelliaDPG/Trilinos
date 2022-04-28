@@ -3,7 +3,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
   MatrixMatrix_UnitTests
   SOURCES
     MatrixMatrix_UnitTests.cpp
-    ../Xpetra_UnitTests.cpp
+    ../Xpetra_UnitTests
   COMM serial mpi
   STANDARD_PASS_OUTPUT
   )

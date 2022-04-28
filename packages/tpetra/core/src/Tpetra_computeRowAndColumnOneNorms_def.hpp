@@ -67,7 +67,7 @@ std::size_t
 lclMaxNumEntriesRowMatrix (const Tpetra::RowMatrix<SC, LO, GO, NT>& A)
 {
   const auto& rowMap = * (A.getRowMap ());
-  const LO lclNumRows = static_cast<LO> (rowMap.getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (rowMap.getNodeNumElements ());
 
   std::size_t maxNumEnt {0};
   for (LO lclRow = 0; lclRow < lclNumRows; ++lclRow) {
@@ -114,7 +114,7 @@ forEachLocalRowMatrixRow (
        std::size_t /*numEnt*/ )> doForEachRow)
 {
   const auto& rowMap = * (A.getRowMap ());
-  const LO lclNumRows = static_cast<LO> (rowMap.getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (rowMap.getNodeNumElements ());
   const std::size_t maxNumEnt = lclMaxNumEntriesRowMatrix (A);
 
   forEachLocalRowMatrixRow<SC, LO, GO, NT> (A, lclNumRows, maxNumEnt, doForEachRow);
@@ -133,8 +133,6 @@ computeLocalRowScaledColumnNorms_RowMatrix (EquilibrationInfo<typename Kokkos::A
   using mag_type = typename KAT::mag_type;
 
   auto rowNorms_h = Kokkos::create_mirror_view (result.rowNorms);
-
-  // DEEP_COPY REVIEW - NOT TESTED
   Kokkos::deep_copy (rowNorms_h, result.rowNorms);
   auto rowScaledColNorms_h = Kokkos::create_mirror_view (result.rowScaledColNorms);
 
@@ -151,8 +149,6 @@ computeLocalRowScaledColumnNorms_RowMatrix (EquilibrationInfo<typename Kokkos::A
         rowScaledColNorms_h[lclCol] += matrixAbsVal / rowNorm;
       }
     });
-
-  // DEEP_COPY REVIEW - NOT TESTED
   Kokkos::deep_copy (result.rowScaledColNorms, rowScaledColNorms_h);
 }
 
@@ -171,7 +167,7 @@ computeLocalRowOneNorms_RowMatrix (const Tpetra::RowMatrix<SC, LO, GO, NT>& A)
 
   const auto& rowMap = * (A.getRowMap ());
   const auto& colMap = * (A.getColMap ());
-  const LO lclNumRows = static_cast<LO> (rowMap.getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (rowMap.getNodeNumElements ());
   const LO lclNumCols = 0; // don't allocate column-related Views
   constexpr bool assumeSymmetric = false; // doesn't matter here
   equib_info_type result (lclNumRows, lclNumCols, assumeSymmetric);
@@ -239,8 +235,8 @@ computeLocalRowAndColumnOneNorms_RowMatrix (const Tpetra::RowMatrix<SC, LO, GO, 
 
   const auto& rowMap = * (A.getRowMap ());
   const auto& colMap = * (A.getColMap ());
-  const LO lclNumRows = static_cast<LO> (rowMap.getLocalNumElements ());
-  const LO lclNumCols = static_cast<LO> (colMap.getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (rowMap.getNodeNumElements ());
+  const LO lclNumCols = static_cast<LO> (colMap.getNodeNumElements ());
 
   EquilibrationInfo<val_type, device_type> result
     (lclNumRows, lclNumCols, assumeSymmetric);
@@ -341,7 +337,7 @@ public:
 
     functor_type functor (rowScaledColNorms, rowNorms, A);
     const LO lclNumRows =
-      static_cast<LO> (A.getRowMap ()->getLocalNumElements ());
+      static_cast<LO> (A.getRowMap ()->getNodeNumElements ());
     Kokkos::parallel_for ("computeLocalRowScaledColumnNorms",
                           range_type (0, lclNumRows), functor);
   }
@@ -380,7 +376,7 @@ computeLocalRowScaledColumnNorms (EquilibrationInfo<typename Kokkos::ArithTraits
     (colMapPtr.get () == nullptr, std::invalid_argument,
      "computeLocalRowScaledColumnNorms: "
      "Input matrix A must have a nonnull column Map.");
-  const LO lclNumCols = static_cast<LO> (colMapPtr->getLocalNumElements ());
+  const LO lclNumCols = static_cast<LO> (colMapPtr->getNodeNumElements ());
   if (static_cast<std::size_t> (result.rowScaledColNorms.extent (0)) !=
       static_cast<std::size_t> (lclNumCols)) {
     result.rowScaledColNorms =
@@ -608,7 +604,7 @@ computeLocalRowOneNorms_CrsMatrix (const Tpetra::CrsMatrix<SC, LO, GO, NT>& A)
   using device_type = typename NT::device_type;
   using equib_info_type = EquilibrationInfo<val_type, device_type>;
 
-  const LO lclNumRows = static_cast<LO> (A.getRowMap ()->getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (A.getRowMap ()->getNodeNumElements ());
   const LO lclNumCols = 0; // don't allocate column-related Views
   constexpr bool assumeSymmetric = false; // doesn't matter here
   equib_info_type equib (lclNumRows, lclNumCols, assumeSymmetric);
@@ -641,8 +637,8 @@ computeLocalRowAndColumnOneNorms_CrsMatrix (const Tpetra::CrsMatrix<SC, LO, GO, 
   using device_type = typename NT::device_type;
   using equib_info_type = EquilibrationInfo<val_type, device_type>;
 
-  const LO lclNumRows = static_cast<LO> (A.getRowMap ()->getLocalNumElements ());
-  const LO lclNumCols = static_cast<LO> (A.getColMap ()->getLocalNumElements ());
+  const LO lclNumRows = static_cast<LO> (A.getRowMap ()->getNodeNumElements ());
+  const LO lclNumCols = static_cast<LO> (A.getColMap ()->getNodeNumElements ());
   equib_info_type equib (lclNumRows, lclNumCols, assumeSymmetric);
 
   functor_type functor (equib, A.getLocalMatrixDevice (),
@@ -936,7 +932,7 @@ globalizeColumnOneNorms (EquilibrationInfo<typename Kokkos::ArithTraits<SC>::val
 
     // Make sure the result has allocations of the right size.
     const LO lclNumCols =
-      static_cast<LO> (G->getColMap ()->getLocalNumElements ());
+      static_cast<LO> (G->getColMap ()->getNodeNumElements ());
     if (static_cast<LO> (equib.colNorms.extent (0)) != lclNumCols) {
       equib.colNorms =
         Kokkos::View<mag_type*, device_type> ("colNorms", lclNumCols);

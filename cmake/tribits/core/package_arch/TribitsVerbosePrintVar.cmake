@@ -38,35 +38,35 @@
 # @HEADER
 
 
-if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
 
 #
-# @FUNCTION: tribits_verbose_print_var()
+# @FUNCTION: TRIBITS_VERBOSE_PRINT_VAR()
 #
 # print a variable giving its name then value if
 # ``${PROJECT_NAME}_VERBOSE_CONFIGURE=TRUE``.
 #
 # Usage::
 #
-#   tribits_verbose_print_var(<varName>)
+#   TRIBITS_VERBOSE_PRINT_VAR(<varName>)
 #
 # This prints::
 #
-#   message("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
+#   MESSAGE("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
 #
 # The variable ``<varName>`` can be defined or undefined or empty.  This uses
 # an explicit "-- " line prefix so that it prints nice even on Windows CMake.
 #
-function(tribits_verbose_print_var VARIBLE_NAME)
-  message("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
-endfunction()
+FUNCTION(TRIBITS_VERBOSE_PRINT_VAR VARIBLE_NAME)
+  MESSAGE("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
+ENDFUNCTION()
 
 
-else() # ${PROJECT_NAME}_VERBOSE_CONFIGURE
+ELSE() # ${PROJECT_NAME}_VERBOSE_CONFIGURE
 
 
-function(tribits_verbose_print_var VARIBLE_NAME)
-endfunction()
+FUNCTION(TRIBITS_VERBOSE_PRINT_VAR VARIBLE_NAME)
+ENDFUNCTION()
 
 
-endif() # ${PROJECT_NAME}_VERBOSE_CONFIGURE
+ENDIF() # ${PROJECT_NAME}_VERBOSE_CONFIGURE

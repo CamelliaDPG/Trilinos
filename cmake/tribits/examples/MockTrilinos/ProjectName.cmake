@@ -37,4 +37,4 @@
 # ************************************************************************
 # @HEADER
 
-set(PROJECT_NAME Trilinos)
+SET(PROJECT_NAME Trilinos)

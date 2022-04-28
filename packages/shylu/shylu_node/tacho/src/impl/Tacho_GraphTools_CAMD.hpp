@@ -118,7 +118,7 @@ namespace Tacho {
       }
       
       void reorder(const ordinal_type verbose = 0) {
-        Kokkos::Timer timer;
+        Kokkos::Impl::Timer timer;
         double t_camd = 0;
 
         TACHO_SUITESPARSE(camd_defaults)(_control);

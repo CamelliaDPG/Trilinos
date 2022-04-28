@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -27,8 +27,8 @@
 void write_blob();
 bool read_blob();
 
-std::vector<double> generate_data(double time, size_t /* global_size */, double offset,
-                                  size_t local_size, size_t proc_offset)
+std::vector<double> generate_data(double time, size_t /* global_size */, double offset, size_t local_size,
+                                  size_t proc_offset)
 {
   // Determine this ranks portion of the data
   std::vector<double> data;
@@ -84,9 +84,8 @@ void write_blob()
   std::cout << "***** Writing Blob Example File...\n";
   Ioss::PropertyManager properties;
   properties.add(Ioss::Property("COMPOSE_RESTART", "YES"));
-  Ioss::DatabaseIO *dbo =
-      Ioss::IOFactory::create("exodus", "ioss_blob_example.e", Ioss::WRITE_RESTART,
-                              Ioss::ParallelUtils::comm_world(), properties);
+  Ioss::DatabaseIO *dbo = Ioss::IOFactory::create(
+      "exodus", "ioss_blob_example.e", Ioss::WRITE_RESTART, (MPI_Comm)MPI_COMM_WORLD, properties);
   if (dbo == NULL || !dbo->ok(true)) {
     std::exit(EXIT_FAILURE);
   }
@@ -186,7 +185,8 @@ void write_blob()
       size_t p_offset = blob->get_optional_property("_processor_offset", 0);
 
       // Get the fields that are defined on this blob...
-      Ioss::NameList fields = blob->field_describe(Ioss::Field::RoleType::TRANSIENT);
+      Ioss::NameList fields;
+      blob->field_describe(Ioss::Field::RoleType::TRANSIENT, &fields);
       Ioss::sort(fields.begin(), fields.end()); // Just done for testing; not needed
       for (const auto &field : fields) {
         std::vector<double> data = generate_data(time, gl_size, idx++, size, p_offset);
@@ -194,7 +194,8 @@ void write_blob()
       }
 
       // Reduction fields...
-      Ioss::NameList red_fields = blob->field_describe(Ioss::Field::RoleType::REDUCTION);
+      Ioss::NameList red_fields;
+      blob->field_describe(Ioss::Field::RoleType::REDUCTION, &red_fields);
       for (const auto &field : red_fields) {
         std::vector<double> data = generate_data(time, 3, idx++, 3, 0);
         blob->put_field_data(field, data);
@@ -211,9 +212,8 @@ bool read_blob()
   std::cout << "\n***** Reading Blob Example File...\n";
   Ioss::PropertyManager properties;
   properties.add(Ioss::Property("DECOMPOSITION_METHOD", "linear"));
-  Ioss::DatabaseIO *dbi =
-      Ioss::IOFactory::create("exodus", "ioss_blob_example.e", Ioss::READ_RESTART,
-                              Ioss::ParallelUtils::comm_world(), properties);
+  Ioss::DatabaseIO *dbi = Ioss::IOFactory::create(
+      "exodus", "ioss_blob_example.e", Ioss::READ_RESTART, (MPI_Comm)MPI_COMM_WORLD, properties);
   if (dbi == NULL || !dbi->ok(true)) {
     std::exit(EXIT_FAILURE);
   }
@@ -243,12 +243,14 @@ bool read_blob()
 
   for (const auto *blob : blobs) {
     // Get the names of the fields that are defined on this blob...
-    Ioss::NameList fields = blob->field_describe(Ioss::Field::RoleType::TRANSIENT);
+    Ioss::NameList fields;
+    blob->field_describe(Ioss::Field::RoleType::TRANSIENT, &fields);
     Ioss::sort(fields.begin(), fields.end()); // Just done for testing; not needed
     all_fields.push_back(fields);
 
     // Reduction fields...
-    Ioss::NameList red_fields = blob->field_describe(Ioss::Field::RoleType::REDUCTION);
+    Ioss::NameList red_fields;
+    blob->field_describe(Ioss::Field::RoleType::REDUCTION, &red_fields);
     all_red_fields.push_back(red_fields);
   }
 

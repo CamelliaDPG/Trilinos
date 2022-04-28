@@ -43,7 +43,6 @@
 /// \file Tpetra_DistObject_decl.hpp
 /// \brief Declaration of the Tpetra::DistObject class
 
-#include "Tpetra_Details_DistributorActor.hpp"
 #include "Tpetra_Map.hpp"
 #include "Tpetra_Import.hpp"
 #include "Tpetra_Export.hpp"
@@ -564,10 +563,6 @@ namespace Tpetra {
               const CombineMode CM,
               const bool restrictedMode = false);
 
-    /// \brief Whether the data from an import/export operation has
-    ///        arrived, and is ready for the unpack and combine step.
-    bool transferArrived() const;
-
     //@}
     //! @name Attribute accessor methods
     //@{
@@ -788,19 +783,25 @@ namespace Tpetra {
                      const CombineMode CM,
                      const bool restrictedMode);
 
-    void doPosts(const Details::DistributorPlan& distributorPlan,
+    void doPosts(Distributor& distor,
                  size_t constantNumPackets,
                  bool commOnHost,
+                 ReverseOption revOp,
                  std::shared_ptr<std::string> prefix,
                  const bool canTryAliasing,
                  const CombineMode CM);
 
+    void doWaits(Distributor& distor,
+                 ReverseOption revOp);
+
     void doPackAndPrepare(const SrcDistObject& src,
                           const Kokkos::DualView<const local_ordinal_type*, buffer_device_type>& exportLIDs,
-                          size_t& constantNumPackets);
+                          size_t& constantNumPackets,
+                          Distributor& distor);
 
     void doUnpackAndCombine(const Kokkos::DualView<const local_ordinal_type*, buffer_device_type>& remoteLIDs,
                             size_t constantNumPackets,
+                            Distributor& distor,
                             CombineMode CM);
 
     /// \name Methods implemented by subclasses and used by doTransfer().
@@ -896,6 +897,9 @@ namespace Tpetra {
     /// \param constantNumPackets [out] On exit, 0 if the number of
     ///   packets per LID could differ, else (if nonzero) the number
     ///   of packets per LID (which must be constant).
+    ///
+    /// \param distor [in] The Distributor object we are using.  Most
+    ///   implementations will not use this.
     virtual void
     packAndPrepare (const SrcDistObject& source,
                     const Kokkos::DualView<const local_ordinal_type*,
@@ -904,7 +908,8 @@ namespace Tpetra {
                       buffer_device_type>& exports,
                     Kokkos::DualView<size_t*,
                       buffer_device_type> numPacketsPerLID,
-                    size_t& constantNumPackets);
+                    size_t& constantNumPackets,
+                    Distributor& distor);
 
     /// \brief Perform any unpacking and combining after
     ///   communication.
@@ -943,6 +948,9 @@ namespace Tpetra {
     ///   <tt>numPacketsPerLID[i]</tt> is the number of packets to
     ///   unpack for LID <tt>importLIDs[i]</tt>.
     ///
+    /// \param distor [in] The Distributor object we are using.  Most
+    ///   implementations will not use this.
+    ///
     /// \param combineMode [in] The CombineMode to use when combining
     ///   the imported entries with existing entries.
     virtual void
@@ -953,6 +961,7 @@ namespace Tpetra {
                       Kokkos::DualView<size_t*,
                         buffer_device_type> numPacketsPerLID,
                       const size_t constantNumPackets,
+                      Distributor& distor,
                       const CombineMode combineMode);
 
 
@@ -1036,8 +1045,6 @@ namespace Tpetra {
 
   private:
     using this_type = DistObject<Packet, LocalOrdinal, GlobalOrdinal, Node>;
-
-    Details::DistributorActor distributorActor_;
 
 #ifdef HAVE_TPETRA_TRANSFER_TIMERS
     Teuchos::RCP<Teuchos::Time> doXferTimer_;

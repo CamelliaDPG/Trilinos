@@ -62,9 +62,7 @@ class GeneratedMeshToFile
 public:
     GeneratedMeshToFile(stk::ParallelMachine comm, stk::mesh::BulkData::AutomaticAuraOption auraOption);
 
-    void setup_mesh(const std::string &meshSizeSpec,
-                    const std::string &outputFileName,
-                    bool useBigIds = true);
+    void setup_mesh(const std::string &meshSizeSpec, const std::string &outputFileName);
     void write_mesh();
 
 protected:

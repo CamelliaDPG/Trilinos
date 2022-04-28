@@ -80,11 +80,7 @@ TensorBased(const Teuchos::RCP<NOX::Abstract::Group>& xGrp,
   tmpVecPtr(xGrp->getX().clone(ShapeCopy)), // create via clone
   residualVecPtr(xGrp->getX().clone(ShapeCopy)), // create via clone
   testPtr(t),
-  paramsPtr(p),
-  linearParamsPtr(0),
-  beta(0.),
-  sTinvJF(0.),
-  sTinvJa(0.)
+  paramsPtr(p)
 {
   reset(xGrp, t, p);
 }

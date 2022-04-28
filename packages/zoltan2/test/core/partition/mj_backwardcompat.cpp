@@ -63,8 +63,6 @@ class OldSchoolVectorAdapterContig : public Zoltan2::VectorAdapter<User>
 public:
   typedef typename Zoltan2::InputTraits<User>::gno_t gno_t;
   typedef typename Zoltan2::InputTraits<User>::scalar_t scalar_t;
-  typedef typename Zoltan2::InputTraits<User>::node_t node_t;
-  typedef typename node_t::device_type device_t;
 
   OldSchoolVectorAdapterContig(
     const size_t nids_,
@@ -81,7 +79,7 @@ public:
 
   int getNumWeightsPerID() const { return (weights != NULL); }
 
-  void getWeightsView(const scalar_t *&wgt, int &stride, int idx = 0) const
+  void getWeightsView(const scalar_t *&wgt, int &stride, int idx = 0) const 
   { wgt = weights; stride = 1; }
 
   int getNumEntriesPerID() const { return dim; }
@@ -124,7 +122,7 @@ public:
 
   int getNumWeightsPerID() const { return (weights != NULL); }
 
-  void getWeightsView(const scalar_t *&wgt, int &stride, int idx = 0) const
+  void getWeightsView(const scalar_t *&wgt, int &stride, int idx = 0) const 
   { wgt = weights; stride = 1; }
 
   int getNumEntriesPerID() const { return dim; }
@@ -154,7 +152,6 @@ public:
   typedef typename Zoltan2::InputTraits<User>::gno_t gno_t;
   typedef typename Zoltan2::InputTraits<User>::scalar_t scalar_t;
   typedef Tpetra::Map<>::node_type node_t;
-  typedef typename node_t::device_type device_t;
 
   KokkosVectorAdapter(
     const size_t nids_,
@@ -166,100 +163,77 @@ public:
   {
     // create kokkos_gids in default memory space
     {
-      typedef Kokkos::DualView<gno_t *, device_t> view_ids_t;
-      kokkos_gids = view_ids_t(
+      typedef Kokkos::View<gno_t *, typename node_t::device_type> view_ids_t;
+      view_ids_t gids = view_ids_t(
         Kokkos::ViewAllocateWithoutInitializing("gids"), nids);
-
-      auto host_gids = kokkos_gids.h_view;
+      typename view_ids_t::HostMirror host_gids =
+        Kokkos::create_mirror_view(gids);
       for(size_t n = 0; n < nids; ++n) {
         host_gids(n) = gids_[n];
       }
-
-      kokkos_gids.template modify<typename view_ids_t::host_mirror_space>();
-      kokkos_gids.sync_host();
-      kokkos_gids.template sync<device_t>();
+      Kokkos::deep_copy(gids, host_gids);
+      kokkos_gids = gids; // to const View
     }
 
     // create kokkos_weights in default memory space
     if(weights_ != NULL)
     {
-      typedef Kokkos::DualView<scalar_t **, device_t> view_weights_t;
+      typedef Kokkos::View<scalar_t **, typename node_t::device_type> view_weights_t;
       kokkos_weights = view_weights_t(
         Kokkos::ViewAllocateWithoutInitializing("weights"), nids, 0);
-      auto host_kokkos_weights = kokkos_weights.h_view;
+      typename view_weights_t::HostMirror host_kokkos_weights =
+        Kokkos::create_mirror_view(kokkos_weights);
       for(size_t n = 0; n < nids; ++n) {
         host_kokkos_weights(n,0) = weights_[n];
       }
-
-      kokkos_weights.template modify<typename view_weights_t::host_mirror_space>();
-      kokkos_weights.sync_host();
-      kokkos_weights.template sync<device_t>();
+      Kokkos::deep_copy(kokkos_weights, host_kokkos_weights);
     }
 
     // create kokkos_coords in default memory space
     {
-      typedef Kokkos::DualView<scalar_t **, Kokkos::LayoutLeft, device_t> kokkos_coords_t;
+      typedef Kokkos::View<scalar_t **, Kokkos::LayoutLeft,
+        typename node_t::device_type> kokkos_coords_t;
       kokkos_coords = kokkos_coords_t(
         Kokkos::ViewAllocateWithoutInitializing("coords"), nids, dim);
-      auto host_kokkos_coords = kokkos_coords.h_view;
-
+      typename kokkos_coords_t::HostMirror host_kokkos_coords =
+        Kokkos::create_mirror_view(kokkos_coords);
       for(size_t n = 0; n < nids; ++n) {
         for(int idx = 0; idx < dim; ++idx) {
           host_kokkos_coords(n,idx) = coords_[n+idx*nids];
         }
       }
-
-      kokkos_coords.template modify<typename kokkos_coords_t::host_mirror_space>();
-      kokkos_coords.sync_host();
-      kokkos_coords.template sync<device_t>();
+      Kokkos::deep_copy(kokkos_coords, host_kokkos_coords);
     }
   }
 
   size_t getLocalNumIDs() const { return nids; }
 
-  void getIDsView(const gno_t *&ids) const override {
-    auto kokkosIds = kokkos_gids.view_host();
-    ids = kokkosIds.data();
+  virtual void getIDsKokkosView(Kokkos::View<const gno_t *,
+    typename node_t::device_type> &ids) const {
+    ids = kokkos_gids;
   }
 
-  virtual void getIDsKokkosView(Kokkos::View<const gno_t *, device_t> &ids) const {
-    ids = kokkos_gids.template view<device_t>();
-  }
+  int getNumWeightsPerID() const { return (kokkos_weights.size() != 0); }
 
-  int getNumWeightsPerID() const { return (kokkos_weights.h_view.size() != 0); }
-
-  void getWeightsView(const scalar_t *&wgt, int &stride,
-                      int idx = 0) const override
-  {
-    auto h_wgts_2d = kokkos_weights.view_host();
-
-    wgt = Kokkos::subview(h_wgts_2d, Kokkos::ALL, idx).data();
-    stride = 1;
-  }
-
-  virtual void getWeightsKokkosView(Kokkos::View<scalar_t **, device_t> & wgt) const {
-    wgt = kokkos_weights.template view<device_t>();
+  virtual void getWeightsKokkosView(Kokkos::View<scalar_t **,
+    typename node_t::device_type> & wgt) const {
+    wgt = kokkos_weights;
   }
 
   int getNumEntriesPerID() const { return dim; }
 
-  void getEntriesView(const scalar_t *&elements,
-    int &stride, int idx = 0) const override {
-    elements = kokkos_coords.view_host().data();
-    stride = 1;
-  }
-
   virtual void getEntriesKokkosView(Kokkos::View<scalar_t **,
-    Kokkos::LayoutLeft, device_t> & coo) const {
-    coo = kokkos_coords.template view<device_t>();
+    Kokkos::LayoutLeft, typename node_t::device_type> & coo) const {
+    coo = kokkos_coords;
   }
 
 private:
   const size_t nids;
-  Kokkos::DualView<gno_t *, device_t> kokkos_gids;
+  Kokkos::View<const gno_t *, typename node_t::device_type> kokkos_gids;
   const int dim;
-  Kokkos::DualView<scalar_t **, Kokkos::LayoutLeft, device_t> kokkos_coords;
-  Kokkos::DualView<scalar_t **, device_t> kokkos_weights;
+  Kokkos::View<scalar_t **, Kokkos::LayoutLeft, typename node_t::device_type>
+    kokkos_coords;
+  Kokkos::View<scalar_t **, typename node_t::device_type> kokkos_weights;
 };
 
 //////////////////////////////////////////////
@@ -307,7 +281,7 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
   globalId_t *globalIds = new globalId_t [localCount];
   globalId_t offset = rank * localCount;
   for (size_t i=0; i < localCount; i++) globalIds[i] = offset++;
-
+   
   ///////////////////////////////////////////////////////////////////////
   // Create parameters for an MJ problem
 
@@ -322,12 +296,12 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
   // Test one:  No weights
 
   // Partition using strided coords
-  stridedAdapter_t *ia1 =
+  stridedAdapter_t *ia1 = 
                     new stridedAdapter_t(localCount,globalIds,dim,cStrided);
 
   Zoltan2::PartitioningProblem<stridedAdapter_t> *problem1 =
            new Zoltan2::PartitioningProblem<stridedAdapter_t>(ia1, &params);
-
+   
   problem1->solve();
 
   quality_t *metricObject1 = new quality_t(ia1, &params, comm,
@@ -351,7 +325,7 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
 
   Zoltan2::PartitioningProblem<contigAdapter_t> *problem2 =
            new Zoltan2::PartitioningProblem<contigAdapter_t>(ia2, &params);
-
+   
   problem2->solve();
 
   // Partition using contiguous coords to generate kokkos adapter
@@ -370,7 +344,7 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
        (problem2->getSolution().getPartListView()[i] !=
         problem3->getSolution().getPartListView()[i]))
     {
-      std::cout << rank << " Error: differing parts for index " << i
+      std::cout << rank << " Error: differing parts for index " << i 
                 << problem1->getSolution().getPartListView()[i] << " "
                 << problem2->getSolution().getPartListView()[i] << " "
                 << problem3->getSolution().getPartListView()[i] << std::endl;
@@ -388,11 +362,11 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
   delete ia1;
   delete ia2;
   delete ia3;
-
+   
   ///////////////////////////////////////////////////////////////////////
   // Test two:  weighted
   // Create a Zoltan2 input adapter that includes weights.
-
+  
   scalar_t *weights = new scalar_t [localCount];
   for (size_t i=0; i < localCount; i++) weights[i] = 1 + scalar_t(rank);
 
@@ -423,18 +397,18 @@ int run_test_strided_versus_contig(const std::string & algorithm) {
   ia2 = new contigAdapter_t(localCount, globalIds, dim, cContig, weights);
 
   problem2 = new Zoltan2::PartitioningProblem<contigAdapter_t>(ia2, &params);
-
+   
   problem2->solve();
 
   // compare strided vs contiguous
   ndiff = 0;
   for (size_t i = 0; i < localCount; i++) {
-    if (problem1->getSolution().getPartListView()[i] !=
+    if (problem1->getSolution().getPartListView()[i] != 
         problem2->getSolution().getPartListView()[i]) {
-      std::cout << rank << " Error: differing parts for index " << i
+      std::cout << rank << " Error: differing parts for index " << i 
                 << problem1->getSolution().getPartListView()[i] << " "
                 << problem2->getSolution().getPartListView()[i] << std::endl;
-
+            
       ndiff++;
     }
   }

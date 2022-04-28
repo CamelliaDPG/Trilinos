@@ -37,18 +37,18 @@
 # ************************************************************************
 # @HEADER
 
-include(CMakeParseArguments)
-include(GlobalSet)
+INCLUDE(CMakeParseArguments)
+INCLUDE(GlobalSet)
 
 
 #
-# @FUNCTION: unittest_compare_const()
+# @FUNCTION: UNITTEST_COMPARE_CONST()
 #
 # Perform a single unit test equality check and update overall test statistics
 #
 # Usage::
 #
-#   unittest_compare_const(<varName> <expectedValue>)
+#   UNITTEST_COMPARE_CONST(<varName> <expectedValue>)
 #
 # If ``${<varName>} == <expectedValue>``, then the check passes, otherwise it
 # fails.  This prints the variable name and values and shows the test result.
@@ -57,12 +57,12 @@ include(GlobalSet)
 # ``UNITTEST_OVERALL_NUMPASSED``, and ``UNITTEST_OVERALL_PASS`` which are used
 # by the unit test harness system to assess overall pass/fail.
 #
-function(unittest_compare_const VAR_NAME CONST_VAL)
+FUNCTION(UNITTEST_COMPARE_CONST VAR_NAME CONST_VAL)
 
-  math( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
-  global_set(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
+  MATH( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
+  GLOBAL_SET(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
 
-  message(
+  MESSAGE(
     "\nCheck:\n"
     "    ${VAR_NAME} =\n"
     "    [${${VAR_NAME}}]\n"
@@ -70,27 +70,27 @@ function(unittest_compare_const VAR_NAME CONST_VAL)
     "    [${CONST_VAL}]"
     )
 
-  if ("${${VAR_NAME}}" STREQUAL "${CONST_VAL}")
-    message("  [PASSED]\n")
-    math( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
-    global_set(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
-  else()
-    message("  [FAILED]\n")
-    global_set(UNITTEST_OVERALL_PASS FALSE)
-    message(WARNING "Stack trace for failed unit test")
-  endif()
+  IF ("${${VAR_NAME}}" STREQUAL "${CONST_VAL}")
+    MESSAGE("  [PASSED]\n")
+    MATH( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
+    GLOBAL_SET(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
+  ELSE()
+    MESSAGE("  [FAILED]\n")
+    GLOBAL_SET(UNITTEST_OVERALL_PASS FALSE)
+    MESSAGE(WARNING "Stack trace for failed unit test")
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: unittest_string_regex()
+# @FUNCTION: UNITTEST_STRING_REGEX()
 #
 # Perform a series regexes of given strings and update overall test statistics.
 #
 # Usage::
 #
-#   unittest_string_regex(
+#   UNITTEST_STRING_REGEX(
 #     <inputString>
 #     REGEX_STRINGS "<str0>" "<str1>" ...
 #     )
@@ -102,9 +102,9 @@ endfunction()
 # ``UNITTEST_OVERALL_NUMPASSED``, and ``UNITTEST_OVERALL_PASS`` which are used
 # by the unit test harness system to assess overall pass/fail.
 #
-function(unittest_string_regex INPUT_STRING)
+FUNCTION(UNITTEST_STRING_REGEX INPUT_STRING)
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -116,39 +116,39 @@ function(unittest_string_regex INPUT_STRING)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  foreach(REGEX ${PARSE_REGEX_STRINGS})
+  FOREACH(REGEX ${PARSE_REGEX_STRINGS})
 
-    math( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
-    global_set(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
+    MATH( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
+    GLOBAL_SET(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
 
-    string(REGEX MATCH "${REGEX}" REGEX_MATCH_RESULT "${INPUT_STRING}")
+    STRING(REGEX MATCH "${REGEX}" REGEX_MATCH_RESULT "${INPUT_STRING}")
 
-    if (REGEX_MATCH_RESULT)
-      message("  Searching for REGEX {${REGEX}}:  [PASSED]\n")
-      math( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
-      global_set(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
-    else()
-      message("  Searching for REGEX {${REGEX}}:  [FAILED]\n")
-      global_set(UNITTEST_OVERALL_PASS FALSE)
-      message(WARNING "Stack trace for failed unit test")
-    endif()
+    IF (REGEX_MATCH_RESULT)
+      MESSAGE("  Searching for REGEX {${REGEX}}:  [PASSED]\n")
+      MATH( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
+      GLOBAL_SET(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
+    ELSE()
+      MESSAGE("  Searching for REGEX {${REGEX}}:  [FAILED]\n")
+      GLOBAL_SET(UNITTEST_OVERALL_PASS FALSE)
+      MESSAGE(WARNING "Stack trace for failed unit test")
+    ENDIF()
 
-  endforeach()
+  ENDFOREACH()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: unittest_has_substr_const()
+# @FUNCTION: UNITTEST_HAS_SUBSTR_CONST()
 #
 # Check that a given string var contains the given substring and update
 # overall test statistics
 #
 # Usage::
 #
-#   unittest_has_substr_const(<varName> <substr>)
+#   UNITTEST_HAS_SUBSTR_CONST(<varName> <substr>)
 #
 # If ``${<varName>}`` contains the substring ``<substr>``, then the check
 # passes, otherwise it fails.  This prints the variable name and values and
@@ -158,12 +158,12 @@ endfunction()
 # ``UNITTEST_OVERALL_NUMPASSED``, and ``UNITTEST_OVERALL_PASS`` which are used
 # by the unit test harness system to assess overall pass/fail.
 #
-function(unittest_has_substr_const VAR_NAME SUBSTR_VAL)
+FUNCTION(UNITTEST_HAS_SUBSTR_CONST VAR_NAME SUBSTR_VAL)
 
-  math( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
-  global_set(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
+  MATH( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
+  GLOBAL_SET(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
 
-  message(
+  MESSAGE(
     "\nCheck:\n"
     "    ${VAR_NAME} =\n"
     "    [${${VAR_NAME}}]\n"
@@ -171,31 +171,31 @@ function(unittest_has_substr_const VAR_NAME SUBSTR_VAL)
     "    [${SUBSTR_VAL}]"
     )
 
-  string(FIND "${${VAR_NAME}}" "${SUBSTR_VAL}" SUBSTR_START_IDX)
-  #print_var(SUBSTR_START_IDX)
+  STRING(FIND "${${VAR_NAME}}" "${SUBSTR_VAL}" SUBSTR_START_IDX)
+  #PRINT_VAR(SUBSTR_START_IDX)
 
-  if (${SUBSTR_START_IDX} GREATER -1)
-    message("  [PASSED]\n")
-    math( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
-    global_set(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
-  else()
-    message("  [FAILED]\n")
-    global_set(UNITTEST_OVERALL_PASS FALSE)
-    message(WARNING "Stack trace for failed unit test")
-  endif()
+  IF (${SUBSTR_START_IDX} GREATER -1)
+    MESSAGE("  [PASSED]\n")
+    MATH( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
+    GLOBAL_SET(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
+  ELSE()
+    MESSAGE("  [FAILED]\n")
+    GLOBAL_SET(UNITTEST_OVERALL_PASS FALSE)
+    MESSAGE(WARNING "Stack trace for failed unit test")
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: unittest_not_has_substr_const()
+# @FUNCTION: UNITTEST_NOT_HAS_SUBSTR_CONST()
 #
 # Check that a given string var does **NOT** contains the given substring and
 # update overall test statistics
 #
 # Usage::
 #
-#   unittest_not_has_substr_const(<varName> <substr>)
+#   UNITTEST_NOT_HAS_SUBSTR_CONST(<varName> <substr>)
 #
 # If ``${<varName>}`` contains the substring ``<substr>``, then the check
 # failed, otherwise it passes.  This prints the variable name and values and
@@ -205,12 +205,12 @@ endfunction()
 # ``UNITTEST_OVERALL_NUMPASSED``, and ``UNITTEST_OVERALL_PASS`` which are used
 # by the unit test harness system to assess overall pass/fail.
 #
-function(unittest_not_has_substr_const VAR_NAME SUBSTR_VAL)
+FUNCTION(UNITTEST_NOT_HAS_SUBSTR_CONST VAR_NAME SUBSTR_VAL)
 
-  math( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
-  global_set(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
+  MATH( EXPR NUMRUN ${UNITTEST_OVERALL_NUMRUN}+1 )
+  GLOBAL_SET(UNITTEST_OVERALL_NUMRUN ${NUMRUN})
 
-  message(
+  MESSAGE(
     "\nCheck:\n"
     "    ${VAR_NAME} =\n"
     "    [${${VAR_NAME}}]\n"
@@ -218,52 +218,52 @@ function(unittest_not_has_substr_const VAR_NAME SUBSTR_VAL)
     "    [${SUBSTR_VAL}]"
     )
 
-  string(FIND "${${VAR_NAME}}" "${SUBSTR_VAL}" SUBSTR_START_IDX)
-  #print_var(SUBSTR_START_IDX)
+  STRING(FIND "${${VAR_NAME}}" "${SUBSTR_VAL}" SUBSTR_START_IDX)
+  #PRINT_VAR(SUBSTR_START_IDX)
 
-  if (${SUBSTR_START_IDX} GREATER -1)
-    message("  [FAILED]\n")
-    global_set(UNITTEST_OVERALL_PASS FALSE)
-    message(WARNING "Stack trace for failed unit test")
-  else()
-    message("  [PASSED]\n")
-    math( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
-    global_set(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
-  endif()
+  IF (${SUBSTR_START_IDX} GREATER -1)
+    MESSAGE("  [FAILED]\n")
+    GLOBAL_SET(UNITTEST_OVERALL_PASS FALSE)
+    MESSAGE(WARNING "Stack trace for failed unit test")
+  ELSE()
+    MESSAGE("  [PASSED]\n")
+    MATH( EXPR NUMPASSED ${UNITTEST_OVERALL_NUMPASSED}+1 )
+    GLOBAL_SET(UNITTEST_OVERALL_NUMPASSED ${NUMPASSED})
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: unittest_file_regex()
+# @FUNCTION: UNITTEST_FILE_REGEX()
 #
 # Perform a series regexes of given strings and update overall test statistics.
 #
 # Usage::
 #
-#   unittest_file_regex(
+#   UNITTEST_FILE_REGEX(
 #     <inputFileName>
 #     REGEX_STRINGS "<str1>" "<str2>" ...
 #     )
 #
 # The contents of ``<inputFileName>`` are read into a string and then passed
-# to `unittest_string_regex()`_ to assess pass/fail.
+# to `UNITTEST_STRING_REGEX()`_ to assess pass/fail.
 #
-function(unittest_file_regex  INPUT_FILE)
-  message("\nRegexing for strings in the file '${INPUT_FILE}':\n")
-  file(READ "${INPUT_FILE}" INPUT_FILE_STRING)
-  unittest_string_regex("${INPUT_FILE_STRING}" ${ARGN})
-endfunction()
+FUNCTION(UNITTEST_FILE_REGEX  INPUT_FILE)
+  MESSAGE("\nRegexing for strings in the file '${INPUT_FILE}':\n")
+  FILE(READ "${INPUT_FILE}" INPUT_FILE_STRING)
+  UNITTEST_STRING_REGEX("${INPUT_FILE_STRING}" ${ARGN})
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: unittest_final_result()
+# @FUNCTION: UNITTEST_FINAL_RESULT()
 #
 # Print final statistics from all tests and assert final pass/fail
 #
 # Usage::
 #
-#   unittest_final_result(<expectedNumPassed>)
+#   UNITTEST_FINAL_RESULT(<expectedNumPassed>)
 #
 # If ``${UNITTEST_OVERALL_PASS}==TRUE`` and ``${UNITTEST_OVERALL_NUMPASSED} ==
 # <expectedNumPassed>``, then the overall test program is determined to have
@@ -276,27 +276,27 @@ endfunction()
 #
 #  "Final UnitTests Result: FAILED"
 #
-# is printed, and ``message(SEND_ERROR "FAIL")`` is called.
+# is printed, and ``MESSAGE(SEND_ERROR "FAIL")`` is called.
 #
 # The reason that we require passing in the expected number of passed tests is
 # as an extra precaution to make sure that important unit tests are not left
 # out.  CMake is a very loosely typed language and it pays to be a little
 # paranoid.
 #
-function(unittest_final_result  EXPECTED_NUMPASSED)
-   message("\nFinal UnitTests Result: num_run = ${UNITTEST_OVERALL_NUMRUN}\n")
-  if (UNITTEST_OVERALL_PASS)
-    if (UNITTEST_OVERALL_NUMPASSED EQUAL ${EXPECTED_NUMPASSED})
-      message("Final UnitTests Result: PASSED"
+FUNCTION(UNITTEST_FINAL_RESULT  EXPECTED_NUMPASSED)
+   MESSAGE("\nFinal UnitTests Result: num_run = ${UNITTEST_OVERALL_NUMRUN}\n")
+  IF (UNITTEST_OVERALL_PASS)
+    IF (UNITTEST_OVERALL_NUMPASSED EQUAL ${EXPECTED_NUMPASSED})
+      MESSAGE("Final UnitTests Result: PASSED"
         " (num_passed = ${UNITTEST_OVERALL_NUMPASSED})")
-    else()
-      message("\nError: num_passed = ${UNITTEST_OVERALL_NUMPASSED}"
+    ELSE()
+      MESSAGE("\nError: num_passed = ${UNITTEST_OVERALL_NUMPASSED}"
         " != num_expected = ${EXPECTED_NUMPASSED}")
-      message("\nFinal UnitTests Result: FAILED\n")
-      message(SEND_ERROR "FAIL")
-    endif()
-  else()
-    message("\nFinal UnitTests Result: FAILED\n")
-  endif()
-endfunction()
+      MESSAGE("\nFinal UnitTests Result: FAILED\n")
+      MESSAGE(SEND_ERROR "FAIL")
+    ENDIF()
+  ELSE()
+    MESSAGE("\nFinal UnitTests Result: FAILED\n")
+  ENDIF()
+ENDFUNCTION()
 

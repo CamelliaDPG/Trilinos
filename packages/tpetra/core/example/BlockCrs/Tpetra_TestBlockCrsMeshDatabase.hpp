@@ -117,18 +117,16 @@ namespace BlockCrsTest {
   template<typename T1, typename T2>
   KOKKOS_INLINE_FUNCTION
   static void heapify(T1 *v, T2 n, T2 i) {
-    while (true) {
-      T2 largest = i;
-      T2 l = 2*i + 1;
-      T2 r = 2*i + 2;
+    T2 largest = i;
+    T2 l = 2*i + 1;
+    T2 r = 2*i + 2;
 
-      if (l < n && v[l] > v[largest]) largest = l;
-      if (r < n && v[r] > v[largest]) largest = r;
-      if (largest == i)
-        break;
+    if (l < n && v[l] > v[largest]) largest = l;
+    if (r < n && v[r] > v[largest]) largest = r;
+    if (largest != i) {
       // swap
       T1 tmp = v[i]; v[i] = v[largest]; v[largest] = tmp;
-      i = largest;
+      heapify(v, n, largest);
     }
   }
 

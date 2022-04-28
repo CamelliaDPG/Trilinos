@@ -151,7 +151,6 @@ APPEND_SET(HEADERS
   Tools/FROSch_Timers.h
   Tools/FROSch_Tools_decl.hpp
   Tools/FROSch_Tools_def.hpp
-  Tools/FROSch_Types.h
 )
 
 # Set sources

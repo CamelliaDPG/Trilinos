@@ -56,13 +56,13 @@
 #    env ${PROJECT_NAME}_PACKAGES="<PACKAGES>" \
 #      ctest -S ${PROJECT_NAME}_TRIBITS_DIR/ctest/experimental_build_test.cmake -VV
 #
-# where PACKAGES is the semi-colon-separated list of packages being tested
+# where PACAKGES is the semi-colon-separated list of packages being tested
 # (e.g. ${PROJECT_NAME}_PACKAGES="Teuchos;Epetra;NOX") and
 # ${PROJECT_NAME}_TRIBITS_DIR points back to your home project directory.  You
 # can take off the -VV argument if you don't want this to be too verbose.
 #
 # There are a number of other options that you can change as
-# environment variables.  See the macros set_default_and_from_env(...)
+# environment variables.  See the macros SET_DEFAULT_AND_FROM_ENV(...)
 # in the file TribitsCTestDriverCore.cmake.  One option that you
 # might want to overridde, for instance is CTEST_BUILD_NAME so that
 # you can insert a special name into the dashboard.
@@ -85,46 +85,46 @@
 # Include some CMake/CTest code files
 #
 
-set( CMAKE_MODULE_PATH
+SET( CMAKE_MODULE_PATH
   "${CTEST_SCRIPT_DIRECTORY}"
   "${CTEST_SCRIPT_DIRECTORY}/../utils"
   )
 
-include(TribitsCTestDriverCore)
-include(GetLastDirName)
-include(SetDefaultAndFromEnv)
+INCLUDE(TribitsCTestDriverCore)
+INCLUDE(GetLastDirName)
+INCLUDE(SetDefaultAndFromEnv)
 
 #
 # Override some configuration variables
 #
 
 # All these can be changed by env vars
-set(CTEST_TEST_TYPE Experimental)
-set(CTEST_DO_UPDATES FALSE)
-set(${PROJECT_NAME}_WARNINGS_AS_ERRORS_FLAGS "-Werror")
+SET(CTEST_TEST_TYPE Experimental)
+SET(CTEST_DO_UPDATES FALSE)
+SET(${PROJECT_NAME}_WARNINGS_AS_ERRORS_FLAGS "-Werror")
 
 # Don't change these in the env!
-set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
-set(CTEST_GENERATE_DEPS_XML_OUTPUT_FILE TRUE)
-set(CTEST_SUBMIT_CDASH_SUBPROJECTS_DEPS_FILE FALSE)
-set(CTEST_WIPE_CACHE FALSE)
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY FALSE)
+SET(CTEST_GENERATE_DEPS_XML_OUTPUT_FILE TRUE)
+SET(CTEST_SUBMIT_CDASH_SUBPROJECTS_DEPS_FILE FALSE)
+SET(CTEST_WIPE_CACHE FALSE)
 
 # This script should be in PROJECT_BASE/cmake/tribits/ctest
-set_default_and_from_env(PROJECT_SOURCE_DIR "${CTEST_SCRIPT_DIRECTORY}/../../..")
-set(CTEST_SOURCE_DIRECTORY "${PROJECT_SOURCE_DIR}")
+SET_DEFAULT_AND_FROM_ENV(PROJECT_SOURCE_DIR "${CTEST_SCRIPT_DIRECTORY}/../../..")
+SET(CTEST_SOURCE_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-get_filename_component(PWD . REALPATH)
-set(CTEST_BINARY_DIRECTORY "${PWD}")
-set(CTEST_NOTES_FILES "${CTEST_BINARY_DIRECTORY}/do-configure")
+GET_FILENAME_COMPONENT(PWD . REALPATH)
+SET(CTEST_BINARY_DIRECTORY "${PWD}")
+SET(CTEST_NOTES_FILES "${CTEST_BINARY_DIRECTORY}/do-configure")
 
-get_last_dir_name("${CTEST_BINARY_DIRECTORY}" BUILD_DIR_NAME)
+GET_LAST_DIR_NAME("${CTEST_BINARY_DIRECTORY}" BUILD_DIR_NAME)
 
 # Can be overridden by the environment
-set( CTEST_BUILD_NAME "${HOST_TYPE}-${BUILD_DIR_NAME}" )
-set( CTEST_EXPLICITLY_ENABLE_IMPLICITLY_ENABLED_PACKAGES OFF )
+SET( CTEST_BUILD_NAME "${HOST_TYPE}-${BUILD_DIR_NAME}" )
+SET( CTEST_EXPLICITLY_ENABLE_IMPLICITLY_ENABLED_PACKAGES OFF )
 
 #
 # Run the build/test/submit driver
 #
 
-tribits_ctest_driver()
+TRIBITS_CTEST_DRIVER()

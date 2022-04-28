@@ -285,9 +285,6 @@ def PhactoriFindSurfaceStatusForOneCellUsingFaceInfo(inInputCsData,
     #test cell flatness
     indexFaceListSize, sortedFaceSizeList = PhactoriCalculateCellFaceAreasAndSort(inInputCsData, oneCell)
     flatnessRatio = sortedFaceSizeList[-1] / sortedFaceSizeList[0]
-    if len(sortedFaceSizeList) <= 0:
-      retStatus = 11
-      return retStatus
     cellIsFlat = (flatnessRatio >= flatnessTestRatio)
     #see if any of the exterior faces are the biggest
     outsideFaceIsMaxAreaFace = False
@@ -378,9 +375,6 @@ def PhactoriFindSurfaceStatusForOneCell(inInputCsData, inCellIndex,
     #test cell flatness
     indexFaceListSize, sortedFaceSizeList = PhactoriCalculateCellFaceAreasAndSort(inInputCsData, oneCell)
     flatnessRatio = sortedFaceSizeList[-1] / sortedFaceSizeList[0]
-    if len(sortedFaceSizeList) <= 0:
-      retStatus = 11
-      return retStatus
     cellIsFlat = (flatnessRatio >= flatnessTestRatio)
     if minCtpc >= 4:
       #outside surface, not edge or corner
@@ -462,19 +456,6 @@ def PhactoriFindLargestCellFaceNormal(inInputCsData, oneCell):
   retNormalVec = PhactoriFindFaceNormal(inInputCsData, faceForNormal)
   return retNormalVec
 
-def PhactoriGetAverageOfCellPoints(inInputCsData, oneCell):
-  numPoints = oneCell.GetNumberOfPoints()
-  retAvgPt = [0.0, 0.0, 0.0]
-  if numPoints <= 0:
-    return retAvgPt
-  ptIds = oneCell.GetPointIds()
-  for ii in range(0, numPoints):
-    ptA = inInputCsData.GetPoint(ptIds.GetId(ii))
-    vecAddInPlace(retAvgPt, ptA)
-  avgFac = 1.0/float(numPoints)
-  vecScaleInPlace(avgFac, retAvgPt)
-  return retAvgPt
-  
 def PhactoriFindSelectedAngleBetweenEdgeAndCellNormal(inInputCsData, oneCell,
   compareNormal, paramUseSmallestAngle, paramOffsetIndex):
   edgeCompareDotProdList = []
@@ -751,9 +732,6 @@ def GetPhactoriVtkCellOperationsProgrammableFilterLines(pfLns):
   pfLns.append("  else:\n")
   pfLns.append("    indexFaceListSize, sortedFaceSizeList = PhactoriCalculateCellFaceAreasAndSort(inInputCsData, oneCell)\n")
   pfLns.append("    flatnessRatio = sortedFaceSizeList[-1] / sortedFaceSizeList[0]\n")
-  pfLns.append("    if len(sortedFaceSizeList) <= 0:\n")
-  pfLns.append("      retStatus = 11\n")
-  pfLns.append("      return retStatus\n")
   pfLns.append("    cellIsFlat = (flatnessRatio >= flatnessTestRatio)\n")
   pfLns.append("    outsideFaceIsMaxAreaFace = False\n")
   pfLns.append("    for outsideFaceIndex in exteriorFaceList:\n")
@@ -813,9 +791,6 @@ def GetPhactoriVtkCellOperationsProgrammableFilterLines(pfLns):
   pfLns.append("  else:\n")
   pfLns.append("    indexFaceListSize, sortedFaceSizeList = PhactoriCalculateCellFaceAreasAndSort(inInputCsData, oneCell)\n")
   pfLns.append("    flatnessRatio = sortedFaceSizeList[-1] / sortedFaceSizeList[0]\n")
-  pfLns.append("    if len(sortedFaceSizeList) <= 0:\n")
-  pfLns.append("      retStatus = 11\n")
-  pfLns.append("      return retStatus\n")
   pfLns.append("    cellIsFlat = (flatnessRatio >= flatnessTestRatio)\n")
   pfLns.append("    if minCtpc >= 4:\n")
   pfLns.append("      outsideFaceIsMaxAreaFace = PhactoriIsOutsideSurfaceHexCellFaceMaxAreaFace(\n")

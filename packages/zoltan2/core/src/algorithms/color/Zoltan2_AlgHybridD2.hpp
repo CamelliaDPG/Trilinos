@@ -51,12 +51,11 @@ class AlgDistance2 : public AlgTwoGhostLayer<Adapter> {
     using map_t = Tpetra::Map<lno_t,gno_t>;
     using femv_scalar_t = int;
     using femv_t = Tpetra::FEMultiVector<femv_scalar_t, lno_t, gno_t>; 
-    using device_type = typename femv_t::device_type;
-    using execution_space = typename device_type::execution_space;
-    using memory_space = typename device_type::memory_space;
-    using host_exec = typename femv_t::host_view_type::device_type::execution_space;
-    using host_mem = typename femv_t::host_view_type::device_type::memory_space;
-
+    using device_type = Tpetra::Map<>::device_type;
+    using execution_space = Tpetra::Map<>::execution_space;
+    using memory_space = Tpetra::Map<>::memory_space;
+    using host_exec = typename Kokkos::View<device_type>::HostMirror::execution_space;
+    using host_mem = typename Kokkos::View<device_type>::HostMirror::memory_space;
   private:
 
     //This is both the serial and parallel local coloring.
@@ -87,7 +86,7 @@ class AlgDistance2 : public AlgTwoGhostLayer<Adapter> {
       kh.set_verbose(this->verbose);
       
       //set initial colors to be the colors from femv
-      auto femvColors = femv->template getLocalView<Kokkos::Device<ExecutionSpace,MemorySpace> >(Tpetra::Access::ReadWrite);
+      auto femvColors = femv->template getLocalView<MemorySpace>(Tpetra::Access::ReadWrite);
       auto sv = subview(femvColors, Kokkos::ALL, 0);
       kh.get_distance2_graph_coloring_handle()->set_vertex_colors(sv);
 
@@ -162,7 +161,6 @@ class AlgDistance2 : public AlgTwoGhostLayer<Adapter> {
 			   Kokkos::View<gno_t*, Kokkos::Device<ExecutionSpace, MemorySpace>> ghost_degrees,
 			   bool recolor_degrees){
       Kokkos::RangePolicy<ExecutionSpace> policy(0, boundary_verts_view.extent(0));
-      size_t local_recoloring_size;
       Kokkos::parallel_reduce("D2 conflict detection",policy, KOKKOS_LAMBDA(const uint64_t& i,size_t& recoloring_size){
 	//we only detect conflicts for vertices in the boundary
         const size_t curr_lid = boundary_verts_view(i);
@@ -257,8 +255,7 @@ class AlgDistance2 : public AlgTwoGhostLayer<Adapter> {
           }      //              to completely move on to the next vertex.    |
           if(found) break;//<--------------------------------------------------
         }
-      },local_recoloring_size);
-      Kokkos::deep_copy(recoloringSize,local_recoloring_size);
+      },recoloringSize(0));
       Kokkos::fence();
 
       //update the verts_to_send and verts_to_recolor views.
@@ -411,9 +408,7 @@ class AlgDistance2 : public AlgTwoGhostLayer<Adapter> {
     Kokkos::deep_copy(boundary_verts, boundary_verts_host);
 
     //initialize the list of verts to send
-    Kokkos::parallel_for("init verts to send", 
-      Kokkos::RangePolicy<execution_space, int>(0,n_local),
-      KOKKOS_LAMBDA(const int& i){
+    Kokkos::parallel_for(n_local, KOKKOS_LAMBDA(const int& i){
       for(offset_t j = dist_offsets_dev(i); j < dist_offsets_dev(i+1); j++){
         if((size_t)dist_adjs_dev(j) >= n_local){
           verts_to_send_view(verts_to_send_size_atomic(0)++) = i;

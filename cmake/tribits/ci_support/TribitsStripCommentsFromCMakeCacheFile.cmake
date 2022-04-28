@@ -38,15 +38,15 @@
 # @HEADER
 
 
-include(AppendStringVar)
+INCLUDE(AppendStringVar)
 
 
-function(tribits_strip_comments_from_cmake_cache_file  INPUT_FILE  OUTPUT_FILE)
-  execute_process(
+FUNCTION(TRIBITS_STRIP_COMMENTS_FROM_CMAKE_CACHE_FILE  INPUT_FILE  OUTPUT_FILE)
+  EXECUTE_PROCESS(
     COMMAND cat "${INPUT_FILE}"
     COMMAND grep -v "^#"
     COMMAND grep -v "^//"
     COMMAND grep -v "^$"
     OUTPUT_FILE "${OUTPUT_FILE}"
     )
-endfunction()
+ENDFUNCTION()

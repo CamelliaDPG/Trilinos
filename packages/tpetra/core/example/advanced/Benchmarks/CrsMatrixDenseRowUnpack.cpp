@@ -60,13 +60,12 @@ using Teuchos::rcp;
 using Teuchos::Time;
 using Teuchos::TimeMonitor;
 
-using SC = Tpetra::CrsMatrix<>::scalar_type;
 using GST = Tpetra::global_size_t;
 using map_type = Tpetra::Map<>;
 using LO = map_type::local_ordinal_type;
 using GO = map_type::global_ordinal_type;
 using crs_graph_type = Tpetra::CrsGraph<>;
-using crs_matrix_type = Tpetra::CrsMatrix<SC>;
+using crs_matrix_type = Tpetra::CrsMatrix<double>;
 using export_type = Tpetra::Export<>;
 
 struct CmdLineArgs {
@@ -137,7 +136,7 @@ getLclRowsToTest(const export_type& exporter)
 {
   Teuchos::ArrayView<const LO> incomingRows = exporter.getRemoteLIDs();
   const map_type& tgtMap = *(exporter.getTargetMap());
-  const LO tgtLclNumRows = LO(tgtMap.getLocalNumElements());
+  const LO tgtLclNumRows = LO(tgtMap.getNodeNumElements());
 
   using device_type = crs_matrix_type::device_type;
   using Kokkos::view_alloc;
@@ -559,13 +558,13 @@ void benchmark(const RCP<const Teuchos::Comm<int>>& comm,
     std::unique_ptr<GO[]> colGids(new GO[numColsToFill]);
     std::iota(colGids.get(), colGids.get()+numColsToFill,
               domainMap->getIndexBase());
-    const LO tgtLclNumRows = LO(tgtRowMap->getLocalNumElements());
+    const LO tgtLclNumRows = LO(tgtRowMap->getNodeNumElements());
     for(LO lclRow = 0; lclRow < tgtLclNumRows; ++lclRow) {
       const GO gblRow = tgtRowMap->getGlobalElement(lclRow);
       tgtGraph->insertGlobalIndices(gblRow, numColsToFill,
                                     colGids.get());
     }
-    const LO srcLclNumRows = LO(srcRowMap->getLocalNumElements());
+    const LO srcLclNumRows = LO(srcRowMap->getNodeNumElements());
     for(LO lclRow = 0; lclRow < srcLclNumRows; ++lclRow) {
       const GO gblRow = srcRowMap->getGlobalElement(lclRow);
       srcGraph->insertGlobalIndices(gblRow, numColsToFill,

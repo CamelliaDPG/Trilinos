@@ -71,7 +71,8 @@ public:
     nMyRow(4), 
     nGlobalRow(nMyRow * comm_->getSize()),
     yInit(100*(comm_->getRank()+1)),
-    squareMatrix(square_)
+    squareMatrix(square_),
+    foo(Teuchos::rcp(&std::cout,false))
   { }
   
   // Return number of rows in generated matrix
@@ -313,11 +314,18 @@ private:
     scalar_t beta,
     const char *testName)
   {
+    int me = comm->getRank();
+
     Teuchos::RCP<vector_t> xvec = getInputVector(Amat->getDomainMap());
     Teuchos::RCP<vector_t> yvec = getOutputVector(Amat->getRangeMap());
     
     Amat->apply(*xvec, *yvec, Teuchos::NO_TRANS, alpha, beta);
 
+    std::cout << me << " " << testName 
+              << " YVEC alpha=" << alpha 
+              << " beta=" << beta << std::endl;
+    yvec->describe(foo, Teuchos::VERB_EXTREME);
+  
     return checkResult(yvec, alpha, beta);
   }
 
@@ -328,11 +336,18 @@ private:
     scalar_t beta,
     const char *testName)
   {
+    int me = comm->getRank();
+
     Teuchos::RCP<vector_t> xvec = getInputVector(Amat->getRangeMap());
     Teuchos::RCP<vector_t> yvec = getOutputVector(Amat->getDomainMap());
 
     Amat->apply(*xvec, *yvec, Teuchos::TRANS, alpha, beta);
 
+    std::cout << me << " " << testName 
+              << " YVEC Transpose alpha=" << alpha
+              << " beta=" << beta << std::endl;
+    yvec->describe(foo, Teuchos::VERB_EXTREME);
+  
     return checkResultTranspose(yvec, alpha, beta);
   }
 
@@ -342,6 +357,7 @@ private:
     scalar_t beta,
     const char *testName)
   {
+    int me = comm->getRank();
     Teuchos::RCP<matrix_t> A1 = Amat;
     Teuchos::RCP<matrix_t> A2 = rcp(new matrix_t(*A1));
     std::vector<matrix_t *> matrices = {A1.get(),A2.get()};
@@ -354,6 +370,15 @@ private:
 
     Tpetra::batchedApply(matrices, *xvec, yvec, alpha, beta);
 
+    std::cout << me << " " << testName 
+              << " Y1 Batched alpha=" << alpha
+              << " beta=" << beta << std::endl;
+    y1->describe(foo, Teuchos::VERB_EXTREME);
+    std::cout << me << " " << testName 
+              << " Y2 Batched alpha=" << alpha
+              << " beta=" << beta << std::endl;
+    y2->describe(foo, Teuchos::VERB_EXTREME);
+
     return checkResultBatched(yvec, alpha, beta);
   }
 
@@ -363,6 +388,7 @@ private:
   const size_t nGlobalRow;
   const scalar_t yInit;
   const bool squareMatrix;
+  Teuchos::FancyOStream foo;
 
 };
 

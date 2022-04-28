@@ -11,41 +11,34 @@
 #include "vtk_jsoncpp.h"
 #include <map>
 
-class CatalystTestFixture
-{
+class CatalystTestFixture {
 public:
-  CatalystTestFixture();
-  ~CatalystTestFixture();
+    CatalystTestFixture();
+    ~CatalystTestFixture();
 
-  void checkPhactoriStringValidParse(const std::string &phactoriSyntax,
-                                     const Json::Value &parsedJSONResult);
+    void checkPhactoriStringValidParse(const std::string& phactoriSyntax,
+        const Json::Value& parsedJSONResult);
 
-  void checkPhactoriStringInvalidParse(const std::string &phactoriSyntax);
+    void checkPhactoriStringInvalidParse(const std::string& phactoriSyntax);
+   
+    void runPhactoriJSONTest(const std::string& jsonFile,
+        const std::string& inputFile);
 
-  void runPhactoriJSONTest(const std::string &jsonFile, const std::string &inputFile);
+    void runPhactoriJSONTestTwoGrid(const std::string& jsonFile,
+        const std::string& inputFileA, const std::string& inputFileB);
 
-  void runPhactoriJSONTestTwoGrid(const std::string &jsonFile, const std::string &inputFileA,
-                                  const std::string &inputFileB);
+    void runParaViewGuiScriptTest(const std::string& pythonScript,
+        const std::string& inputFile);
 
-  void runParaViewGuiScriptTest(const std::string &pythonScript, const std::string &inputFile);
+    void checkTestOutputFileExists(const char *fileName);
 
-  void runCatalystLoggingTest(Ioss::PropertyManager *logging_properties,
-                              const std::string &jsonFile, const std::string &inputFile);
+    Json::Value getDefaultPhactoriJSON();
 
-  static bool isFileExists(const char *fileName);
-  static void checkTestOutputFileExists(const char *fileName);
-  static void checkTestOutputFileDoesNotExist(const char *fileName);
-
-  Json::Value getDefaultPhactoriJSON();
-
-  Json::Value getDefaultCameraJSON();
-  Json::Value getDefaultImageSetJSON();
-  Json::Value getDefaultImageSetWithCameraJSON();
-  Json::Value getDefaultCameraParallelProjectionJSON();
-  Json::Value getDefaultOperationsJSON();
+    Json::Value getDefaultCameraJSON();
+    Json::Value getDefaultCameraParallelProjectionJSON();
 
 private:
-  IossApplication ioapp;
+    IossApplication ioapp;
 };
 
 #endif

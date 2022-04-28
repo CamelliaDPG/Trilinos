@@ -90,6 +90,7 @@ void ConstructData(const std::string& matrixType, Teuchos::ParameterList& galeri
   using Teuchos::RCP;
   using Teuchos::rcp;
   using Teuchos::ArrayRCP;
+  using Teuchos::RCP;
   using Teuchos::TimeMonitor;
   typedef typename Teuchos::ScalarTraits<SC>::magnitudeType real_type;
   typedef typename Xpetra::MultiVector<real_type,LO,GO,NO> RealValuedMultiVector;
@@ -154,6 +155,7 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib &lib, int ar
   using Teuchos::RCP;
   using Teuchos::rcp;
   using Teuchos::ArrayRCP;
+  using Teuchos::RCP;
   using Teuchos::TimeMonitor;
 
   typedef typename Teuchos::ScalarTraits<SC>::magnitudeType real_type;

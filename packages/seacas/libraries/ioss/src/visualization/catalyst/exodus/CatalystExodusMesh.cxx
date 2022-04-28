@@ -73,7 +73,7 @@ bool CatalystExodusMesh::UnderscoreVectorsON() {
     return this->UnderscoreVectors;
 }
 
-void CatalystExodusMesh::SetUnderscoreVectors(bool status) {
+bool CatalystExodusMesh::SetUnderscoreVectors(bool status) {
     this->UnderscoreVectors = status;
 }
 
@@ -81,7 +81,7 @@ bool CatalystExodusMesh::ApplyDisplacementsON() {
     return this->ApplyDisplacements;
 }
 
-void CatalystExodusMesh::SetApplyDisplacements(bool status) {
+bool CatalystExodusMesh::SetApplyDisplacements(bool status) {
     this->ApplyDisplacements = status;
 }
 

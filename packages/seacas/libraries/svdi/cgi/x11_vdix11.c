@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2021 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -586,6 +586,7 @@ void viinit(aspect, justif) float *aspect;
 int *justif;
 {
   int                  i, j, xpos, ypos, depth;
+  int                  index[8];
   unsigned long        valuemask;
   unsigned int         d_width, d_height;
   char *               geometry = NULL, *bufferpic = NULL, *allcolors = NULL;
@@ -595,7 +596,7 @@ int *justif;
   XSizeHints           hints;
   XEvent               x_event;
   XColor               def_cmap[MAX_COLORS];
-  int                  backing_store = 0;
+  int                  nreserve, backing_store = 0;
 
   VisualID    visualid;
   XVisualInfo visual_template;
@@ -792,7 +793,7 @@ int *justif;
       else {
         /* number of colors is >= 16 -- preserve a few at each end
            of table */
-        int nreserve    = max(4, ncolors / 16);
+        nreserve        = max(4, ncolors / 16);
         svdicolors_base = nreserve;
         ncolors         = ncolors - 2 * nreserve;
       }
@@ -801,7 +802,6 @@ int *justif;
     def_bc_index = 0;       /* remember defaults */
     def_fc_index = 7;
     /* setup default SVDI colors */
-    int index[8];
     for (i = 0; i < 8; i++) {
       index[i] = i;
     }

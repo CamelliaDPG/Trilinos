@@ -144,15 +144,11 @@ void get_entities( const BulkData& bulk,
                    std::vector< Entity> & entities ,
                    bool sortByGlobalId )
 {
-  const BucketVector& buckets = bulk.get_buckets(rank, selector);
-
-  size_t count = 0;
-  for (const Bucket* bptr : buckets) {
-    count += bptr->size();
-  }
-
+  size_t count = count_entities(bulk, rank, selector);
   entities.clear();
   entities.reserve(count);
+
+  const BucketVector& buckets = bulk.get_buckets(rank, selector);
 
   for (const Bucket* bptr : buckets) {
     for(Entity entity : *bptr) {

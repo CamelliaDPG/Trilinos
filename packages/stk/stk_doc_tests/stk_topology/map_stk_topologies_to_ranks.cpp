@@ -32,11 +32,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#include "gtest/gtest.h"              // for AssertionResult, Message, TestPartResult, Test, EXP...
-#include "stk_topology/topology.hpp"  // for topology, create_superelement_topology, topology::Q...
-#include <cstddef>                    // for size_t
-#include <memory>                     // for allocator_traits<>::value_type
-#include <vector>                     // for vector
+#include <gtest/gtest.h>
+#include <stk_topology/topology.hpp>
+#include <vector>
 
 namespace {
 

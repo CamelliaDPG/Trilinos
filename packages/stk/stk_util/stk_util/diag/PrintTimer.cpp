@@ -353,7 +353,6 @@ merge_parallel_timer(
   }
 }
 
-#ifdef STK_HAS_MPI
 size_t round_up_to_next_word(size_t value)
 {
   const size_t SIZE_OF_WORD = 4;
@@ -363,7 +362,6 @@ size_t round_up_to_next_word(size_t value)
   }
   return value + SIZE_OF_WORD - remainder;
 }
-#endif
 
 void
 collect_timers(

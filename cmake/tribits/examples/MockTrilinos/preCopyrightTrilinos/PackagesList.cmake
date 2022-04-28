@@ -37,7 +37,7 @@
 # ************************************************************************
 # @HEADER
 
-tribits_repository_define_packages(
+TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   Teko         teko      ST
   Stalix       stalix    EX
   )
@@ -50,4 +50,4 @@ tribits_repository_define_packages(
 # get enabled implicitly.
 #
 
-tribits_disable_package_on_platforms(Teko Windows)
+TRIBITS_DISABLE_PACKAGE_ON_PLATFORMS(Teko Windows)

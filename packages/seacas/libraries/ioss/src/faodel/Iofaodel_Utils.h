@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef Iofaodel_Utils_h
+#define Iofaodel_Utils_h
 
 #include <Ioss_GroupingEntity.h>
 #include <Ioss_Property.h>
@@ -113,8 +114,9 @@ namespace Iofaodel {
   std::string to_string(const Ioss::Field::RoleType &t);
   std::string to_string(const Ioss::EntityType &t);
 
-  std::string           get_entity_name(const kelpie::Key &k, const std::string &target);
-  std::set<std::string> get_entity_names(const std::vector<kelpie::Key> &keys,
-                                         const std::string              &target);
+  std::string           get_entity_name(const kelpie::Key &k, std::string target);
+  std::set<std::string> get_entity_names(const std::vector<kelpie::Key> &keys, std::string target);
 
 } // namespace Iofaodel
+
+#endif

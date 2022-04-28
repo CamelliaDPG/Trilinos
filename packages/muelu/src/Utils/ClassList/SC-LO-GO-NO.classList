@@ -55,7 +55,6 @@ InitialBlockNumberFactory
 IntrepidPCoarsenFactory - #ifdef HAVE_MUELU_INTREPID2
 LineDetectionFactory
 LocalPermutationStrategy
-LowPrecisionFactory
 MapTransferFactory
 MatrixAnalysisFactory
 MergedBlockedMatrixFactory
@@ -81,7 +80,6 @@ RebalanceBlockInterpolationFactory
 RebalanceBlockRestrictionFactory
 RebalanceTransferFactory
 RegionRFactory - #if defined(HAVE_MUELU_KOKKOS_REFACTOR)
-ReitzingerPFactory
 ReorderBlockAFactory
 RepartitionFactory - #ifdef HAVE_MPI
 RepartitionBlockDiagonalFactory - #ifdef HAVE_MPI
@@ -116,7 +114,6 @@ TopRAPFactory
 TopSmootherFactory
 TpetraOperator
 TransPFactory
-RfromP_Or_TransP
 TrilinosSmoother
 UnsmooshFactory
 UserPFactory
@@ -125,7 +122,6 @@ UtilitiesBase
 Utilities_kokkos - #if defined(HAVE_MUELU_KOKKOS_REFACTOR)
 VariableDofLaplacianFactory
 SemiCoarsenPFactory
-SemiCoarsenPFactory_kokkos - #if defined(HAVE_MUELU_KOKKOS_REFACTOR)
 UzawaSmoother
 VisualizationHelpers
 ZeroSubBlockAFactory

@@ -3,7 +3,6 @@
 
 /*Basker Includes*/
 #include "shylubasker_types.hpp"
-#include "shylubasker_scalar_traits.hpp"
 
 /*System Includes*/
 #include <limits>
@@ -62,10 +61,10 @@ namespace BaskerNS
     //
     BASKER_INLINE
     int copy_values(Int _sr, Int _m, Int _sc, Int _n, Int _nnz,
-                    Int *_col_ptr, Int *_row_idx, Entry *_val);
+		    Int *_col_ptr, Int *_row_idx, Entry *_val);
     BASKER_INLINE
     int copy_values(Int _m, Int _n, Int _nnz,
-                    Int *_col_ptr, Int *_row_idx, Entry *_val);
+		    Int *_col_ptr, Int *_row_idx, Entry *_val);
 
     BASKER_INLINE
     void init_col();
@@ -73,14 +72,13 @@ namespace BaskerNS
     void clean_col();
     BASKER_INLINE
     void convert2D(BASKER_MATRIX &M, 
-                   BASKER_BOOL alloc, 
-                   Int kid,
-                   bool remove_zeros = false);
+		   BASKER_BOOL alloc, 
+		   Int kid);
 
     
     //just set shape, do not init
     void set_shape(Int _sr, Int _m, 
-                   Int _sc, Int _n);
+		  Int _sc, Int _n);
 
 
     BASKER_INLINE
@@ -124,6 +122,8 @@ namespace BaskerNS
     //Class size.
 
     string label;
+
+
     BASKER_BOOL v_fill;
 
     Int srow, scol; //start col (wrt global matrix, if a block)
@@ -132,7 +132,6 @@ namespace BaskerNS
     Int mnnz; //malloc nnz
     
     INT_1DARRAY   col_ptr;
-    INT_1DARRAY   col_idx; // NOTE: auxiliary for find_2D_convert
     INT_1DARRAY   row_idx;
     ENTRY_1DARRAY val;
 
@@ -159,10 +158,7 @@ namespace BaskerNS
     Int           p_size;
     #endif
     
-    using Mag = typename Basker_ScalarTraits<Entry>::magnitudeType;
     Entry tpivot;
-    Mag anorm; // norm of the block
-    Mag gnorm; // norm of "global" matrix
 
     //***Deprecated***
     //Remove..... will not be used in future ver

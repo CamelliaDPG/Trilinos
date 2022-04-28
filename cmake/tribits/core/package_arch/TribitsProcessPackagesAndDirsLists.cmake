@@ -38,14 +38,14 @@
 # @HEADER
 
 
-include(SetCacheOnOffEmpty)
-include(MultilineSet)
-include(AdvancedOption)
-include(AdvancedSet)
-include(AssertDefined)
-include(PrintVar)
-include(MessageWrapper)
-include(TribitsListHelpers)
+INCLUDE(SetCacheOnOffEmpty)
+INCLUDE(MultilineSet)
+INCLUDE(AdvancedOption)
+INCLUDE(AdvancedSet)
+INCLUDE(AssertDefined)
+INCLUDE(PrintVar)
+INCLUDE(MessageWrapper)
+INCLUDE(TribitsListHelpers)
 
 
 #
@@ -53,7 +53,8 @@ include(TribitsListHelpers)
 #
 
 
-# @MACRO: tribits_repository_define_packages()
+#
+# @MACRO: TRIBITS_REPOSITORY_DEFINE_PACKAGES()
 #
 # Define the set of packages for a given `TriBITS Repository`_.  This macro is
 # typically called from inside of a `<repoDir>/PackagesList.cmake`_ file for a
@@ -61,7 +62,7 @@ include(TribitsListHelpers)
 #
 # Usage::
 #
-#    tribits_repository_define_packages(
+#    TRIBITS_REPOSITORY_DEFINE_PACKAGES(
 #       <pkg0>  <pkg0_dir>  <pkg0_classif>
 #       <pkg1>  <pkg1_dir>  <pkg1_classif>
 #       ...
@@ -99,7 +100,7 @@ include(TribitsListHelpers)
 #    treats this a one field in the array.  The maturity level can be left off
 #    in which case it is assumed to be ``UM`` for "Unspecified Maturity".
 #    This classification for individual packages can be changed to ``EX`` for
-#    specific platforms by calling `tribits_disable_package_on_platforms()`_.
+#    specific platforms by calling `TRIBITS_DISABLE_PACKAGE_ON_PLATFORMS()`_.
 #
 # **IMPORTANT:** The packages must be listed in increasing order of package
 # dependencies.  That is `No circular dependencies of any kind are allowed`_
@@ -113,7 +114,7 @@ include(TribitsListHelpers)
 # NOTE: For some rare use cases, the package directory ``<pkgi_dir>`` is
 # allowed to be specified as an absolute directory but this absolute directory
 # must be a subdirectory of the project source base directory given by
-# `PROJECT_SOURCE_DIR`_.  If not, ``message(FATAL_ERROR ...)`` is called and
+# `PROJECT_SOURCE_DIR`_.  If not, ``MESSAGE(FATAL_ERROR ...)`` is called and
 # processing stops immediately.
 #
 # NOTE: This macro just sets the variable::
@@ -134,20 +135,21 @@ include(TribitsListHelpers)
 #   ``${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS``.  If one
 #   misspells the name of the macro, it is an immediate error in CMake.
 #
-macro(tribits_repository_define_packages)
-  assert_defined(REPOSITORY_NAME)
-  set(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS "${ARGN}")
-endmacro()
+MACRO(TRIBITS_REPOSITORY_DEFINE_PACKAGES)
+  ASSERT_DEFINED(REPOSITORY_NAME)
+  SET(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS "${ARGN}")
+ENDMACRO()
 
 
-# @FUNCTION: tribits_allow_missing_external_packages()
+#
+# @FUNCTION: TRIBITS_ALLOW_MISSING_EXTERNAL_PACKAGES()
 #
 # Allow listed packages to be missing and automatically excluded from the
 # package dependency data-structures.
 #
 # Usage::
 #
-#   tribits_allow_missing_external_packages(<pkg0> <plg1> ...)
+#   TRIBITS_ALLOW_MISSING_EXTERNAL_PACKAGES(<pkg0> <plg1> ...)
 #
 # If the missing upstream SE package ``<pkgi>`` is optional, then the effect
 # will be to simply ignore the missing package (i.e. it will never be added to
@@ -191,14 +193,14 @@ endmacro()
 # repositories, one might need to also call this function from the file
 # `<projectDir>/cmake/ProjectDependenciesSetup.cmake`_.
 #
-function(tribits_allow_missing_external_packages)
-  foreach(TRIBITS_PACKAGE ${ARGN})
-    advanced_set(${TRIBITS_PACKAGE}_ALLOW_MISSING_EXTERNAL_PACKAGE TRUE
+FUNCTION(TRIBITS_ALLOW_MISSING_EXTERNAL_PACKAGES)
+  FOREACH(TRIBITS_PACKAGE ${ARGN})
+    ADVANCED_SET(${TRIBITS_PACKAGE}_ALLOW_MISSING_EXTERNAL_PACKAGE TRUE
       CACHE BOOL
-      "Default set by tribits_allow_missing_external_packages()!"
+      "Default set by TRIBITS_ALLOW_MISSING_EXTERNAL_PACKAGES()!"
       )
-  endforeach()
-endfunction()
+  ENDFOREACH()
+ENDFUNCTION()
 
 
 #
@@ -224,156 +226,163 @@ endfunction()
 #
 
 
+#
 # Macro that sets up standard user options a package
 #
 # On completion, the following variables are set:
 #
 # * ${PACKAGE_NAME_IN}_TESTGROUP: Set to PT, ST, or EX
 #
-macro(tribits_insert_standard_package_options  PACKAGE_NAME_IN  PACKAGE_TESTGROUP_IN)
 
-  if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-    message("TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS: ${PACKAGE_NAME_IN} ${PACKAGE_TESTGROUP_IN}")
-    print_var(${PACKAGE_NAME_IN}_TESTGROUP)
-  endif()
+MACRO(TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS  PACKAGE_NAME_IN  PACKAGE_TESTGROUP_IN)
 
-  set(PACKAGE_TESTGROUP_LOCAL ${PACKAGE_TESTGROUP_IN})
+  IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+    MESSAGE("TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS: ${PACKAGE_NAME_IN} ${PACKAGE_TESTGROUP_IN}")
+    PRINT_VAR(${PACKAGE_NAME_IN}_TESTGROUP)
+  ENDIF()
+
+  SET(PACKAGE_TESTGROUP_LOCAL ${PACKAGE_TESTGROUP_IN})
 
   # ${PROJECT_NAME}_ELEVATE_ST_TO_PT is deprecated but allowed for backward compatibility
-  if (${PROJECT_NAME}_ELEVATE_SS_TO_PS)
-    set(${PROJECT_NAME}_ELEVATE_ST_TO_PT ON)
-  endif()
+  IF (${PROJECT_NAME}_ELEVATE_SS_TO_PS)
+    SET(${PROJECT_NAME}_ELEVATE_ST_TO_PT ON)
+  ENDIF()
 
-  if (${PACKAGE_TESTGROUP_IN} STREQUAL PT OR ${PACKAGE_TESTGROUP_IN} STREQUAL ST)
-    if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-      message("-- " "PT or ST")
-      print_var(${PROJECT_NAME}_ELEVATE_ST_TO_PT)
-    endif()
-    if (${PROJECT_NAME}_ELEVATE_ST_TO_PT)
-      set(PACKAGE_TESTGROUP_LOCAL PT)
-    endif()
-    if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-      print_var(PACKAGE_TESTGROUP_LOCAL)
-    endif()
-    set(PACKAGE_ENABLE "")
-  elseif (${PACKAGE_TESTGROUP_IN} STREQUAL EX)
-    if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-      message("-- " "EX")
-    endif()
-    set(PACKAGE_ENABLE OFF)
-  else()
-    message(FATAL_ERROR "Error the package classification '${PACKAGE_TESTGROUP_IN}'"
+  IF (${PACKAGE_TESTGROUP_IN} STREQUAL PT OR ${PACKAGE_TESTGROUP_IN} STREQUAL ST)
+    IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+      MESSAGE("-- " "PT or ST")
+      PRINT_VAR(${PROJECT_NAME}_ELEVATE_ST_TO_PT)
+    ENDIF()
+    IF (${PROJECT_NAME}_ELEVATE_ST_TO_PT)
+      SET(PACKAGE_TESTGROUP_LOCAL PT)
+    ENDIF()
+    IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+      PRINT_VAR(PACKAGE_TESTGROUP_LOCAL)
+    ENDIF()
+    SET(PACKAGE_ENABLE "")
+  ELSEIF (${PACKAGE_TESTGROUP_IN} STREQUAL EX)
+    IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+      MESSAGE("-- " "EX")
+    ENDIF()
+    SET(PACKAGE_ENABLE OFF)
+  ELSE()
+    MESSAGE(FATAL_ERROR "Error the package classification '${PACKAGE_TESTGROUP_IN}'"
       " for the package ${PACKAGE_NAME_IN} is not a valid classification." )
-  endif()
+  ENDIF()
 
-  if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-    print_var(PACKAGE_ENABLE)
-    print_var(${PACKAGE_NAME_IN}_TESTGROUP)
-  endif()
+  IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+    PRINT_VAR(PACKAGE_ENABLE)
+    PRINT_VAR(${PACKAGE_NAME_IN}_TESTGROUP)
+  ENDIF()
 
-  if ("${${PACKAGE_NAME_IN}_TESTGROUP}" STREQUAL "") # Allow testing override
-    if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-      message("-- " "Setting classification to ${PACKAGE_TESTGROUP_LOCAL}")
-      print_var(PACKAGE_TESTGROUP_LOCAL)
-    endif()
-    set(${PACKAGE_NAME_IN}_TESTGROUP "${PACKAGE_TESTGROUP_LOCAL}")
-  endif()
+  IF ("${${PACKAGE_NAME_IN}_TESTGROUP}" STREQUAL "") # Allow testing override
+    IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+      MESSAGE("-- " "Setting classification to ${PACKAGE_TESTGROUP_LOCAL}")
+      PRINT_VAR(PACKAGE_TESTGROUP_LOCAL)
+    ENDIF()
+    SET(${PACKAGE_NAME_IN}_TESTGROUP "${PACKAGE_TESTGROUP_LOCAL}")
+  ENDIF()
 
-  if (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
-    print_var(${PACKAGE_NAME_IN}_TESTGROUP)
-  endif()
+  IF (TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS_DEBUG)
+    PRINT_VAR(${PACKAGE_NAME_IN}_TESTGROUP)
+  ENDIF()
 
-  multiline_set(DOCSTR
+  MULTILINE_SET(DOCSTR
     "Enable the package ${PACKAGE_NAME_IN}.  Set to 'ON', 'OFF', or leave"
     " empty to allow for other logic to decide."
     )
-  set_cache_on_off_empty( ${PROJECT_NAME}_ENABLE_${PACKAGE_NAME_IN}
+  SET_CACHE_ON_OFF_EMPTY( ${PROJECT_NAME}_ENABLE_${PACKAGE_NAME_IN}
     "${PACKAGE_ENABLE}" ${DOCSTR} )
 
-endmacro()
+ENDMACRO()
 
 
+#
 # Function that determines if a package is a primary meta-project package
 #  according to the variables
 #  ${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES[_EXCEPT].
 #
-function(tribits_is_primary_meta_project_package  PACKAGE_NAME_IN
+
+FUNCTION(TRIBITS_IS_PRIMARY_META_PROJECT_PACKAGE  PACKAGE_NAME_IN
   IS_PRIMARY_META_PROJECT_PACKAGE_OUT
   )
 
-  set(IS_PRIMARY_META_PROJECT_PACKAGE TRUE)
+  SET(IS_PRIMARY_META_PROJECT_PACKAGE TRUE)
 
-  assert_defined(${PACKAGE_NAME_IN}_PARENT_REPOSITORY)
-  set(PARENT_REPO_NAME ${${PACKAGE_NAME_IN}_PARENT_REPOSITORY})
-  if (${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES)
-    find_list_element(
+  ASSERT_DEFINED(${PACKAGE_NAME_IN}_PARENT_REPOSITORY)
+  SET(PARENT_REPO_NAME ${${PACKAGE_NAME_IN}_PARENT_REPOSITORY})
+  IF (${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES)
+    FIND_LIST_ELEMENT(
       ${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES_EXCEPT
       ${PACKAGE_NAME_IN}  PACKAGE_EXCEPTED
       )
-    if (PACKAGE_EXCEPTED)
-      if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-        message("-- "
+    IF (PACKAGE_EXCEPTED)
+      IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+        MESSAGE("-- "
           "NOTE: ${PACKAGE_NAME_IN} is classified as a primary meta-project packages even"
           " though ${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES=ON "
           " because the package is included in the list ${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES_EXCEPT!")
-      endif()
-    else()
-      if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-        message("-- "
+      ENDIF()
+    ELSE()
+      IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+        MESSAGE("-- "
           "NOTE: ${PACKAGE_NAME_IN} is not as a primary meta-project packages"
           " because ${PARENT_REPO_NAME}_NO_PRIMARY_META_PROJECT_PACKAGES=ON "
           )
-      endif()
-      set(IS_PRIMARY_META_PROJECT_PACKAGE FALSE)
-    endif()
-  endif()
+      ENDIF()
+      SET(IS_PRIMARY_META_PROJECT_PACKAGE FALSE)
+    ENDIF()
+  ENDIF()
 
-  set(${IS_PRIMARY_META_PROJECT_PACKAGE_OUT} ${IS_PRIMARY_META_PROJECT_PACKAGE}
+  SET(${IS_PRIMARY_META_PROJECT_PACKAGE_OUT} ${IS_PRIMARY_META_PROJECT_PACKAGE}
     PARENT_SCOPE )
 
-endfunction()
+ENDFUNCTION()
 
 
+#
 # Function that determines if it is okay to allow an implicit package enable
 # based on its classification.
 #
-function(tribits_implicit_package_enable_is_allowed  UPSTREAM_PACKAGE_NAME_IN
+
+FUNCTION(TRIBITS_IMPLICIT_PACKAGE_ENABLE_IS_ALLOWED  UPSTREAM_PACKAGE_NAME_IN
   PACKAGE_NAME_IN  IMPLICIT_PACKAGE_ENABLE_ALLOWED_OUT
   )
 
-  if (${PACKAGE_NAME_IN}_TESTGROUP STREQUAL PT)
-    set(IMPLICIT_PACKAGE_ENABLE_ALLOWED TRUE)
-  elseif (${PACKAGE_NAME_IN}_TESTGROUP STREQUAL ST
+  IF (${PACKAGE_NAME_IN}_TESTGROUP STREQUAL PT)
+    SET(IMPLICIT_PACKAGE_ENABLE_ALLOWED TRUE)
+  ELSEIF (${PACKAGE_NAME_IN}_TESTGROUP STREQUAL ST
     AND ${PROJECT_NAME}_ENABLE_SECONDARY_TESTED_CODE
     )
-    set(IMPLICIT_PACKAGE_ENABLE_ALLOWED TRUE)
-  else()
-    if (UPSTREAM_PACKAGE_NAME_IN)
-      message("-- " "NOTE: Not Setting ${PROJECT_NAME}_ENABLE_${PACKAGE_NAME_IN}=ON"
+    SET(IMPLICIT_PACKAGE_ENABLE_ALLOWED TRUE)
+  ELSE()
+    IF (UPSTREAM_PACKAGE_NAME_IN)
+      MESSAGE("-- " "NOTE: Not Setting ${PROJECT_NAME}_ENABLE_${PACKAGE_NAME_IN}=ON"
         " even though ${UPSTREAM_PACKAGE_NAME_IN} has an optional dependence on"
         " ${PACKAGE_NAME_IN} because ${PROJECT_NAME}_ENABLE_SECONDARY_TESTED_CODE=OFF" )
-    endif()
-    set(IMPLICIT_PACKAGE_ENABLE_ALLOWED FALSE)
-  endif()
+    ENDIF()
+    SET(IMPLICIT_PACKAGE_ENABLE_ALLOWED FALSE)
+  ENDIF()
 
-  set(${IMPLICIT_PACKAGE_ENABLE_ALLOWED_OUT} ${IMPLICIT_PACKAGE_ENABLE_ALLOWED}
+  SET(${IMPLICIT_PACKAGE_ENABLE_ALLOWED_OUT} ${IMPLICIT_PACKAGE_ENABLE_ALLOWED}
     PARENT_SCOPE )
 
-endfunction()
+ENDFUNCTION()
 
 
-# @MACRO: tribits_process_packages_and_dirs_lists()
+#
+# @MACRO: TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS()
 #
 # Usage::
 #
-#   tribits_process_packages_and_dirs_lists()
+#   TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS()
 #
 # Macro that processes the list variable::
 #
 #    ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
 #
 # from a `<repoDir>/PackagesList.cmake`_ file that just got read in and
-# creates/updates the variables::
+# creates/updates the varaibles::
 #
 #   ${PROJECT_NAME}_PACKAGES
 #   ${PROJECT_NAME}_NUM_PACKAGES
@@ -381,28 +390,24 @@ endfunction()
 #   ${PROJECT_NAME}_REVERSE_PACKAGES
 #
 # For each of the listed top-level (parent) packages ${PACKAGE_NAME}, it also
-# sets up constant variables defined in `TriBITS Package Top-Level Local
-# Variables`_ like:
+# sets up constant variables like:
 #
 # * `${PACKAGE_NAME}_SOURCE_DIR`_
 # * `${PACKAGE_NAME}_REL_SOURCE_DIR`_
 # * `${PACKAGE_NAME}_TESTGROUP`_
 #
-# and sets up some standard enable/disable vars with default values as defined
-# in `TriBITS Package Cache Variables`_ like::
+# and sets up some standard enable/diable vars with default values like:
 #
 #   ${PROJECT_NAME}_ENABLE_${PACKAGE_NAME}
 #
-# NOTE: Set ``TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE=TRUE`` to see
-# really verbose debug output from this macro.
+# NOTE: Set TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE=TRUE to see really
+# verbose debug ouptut from this macro.
 #
-# See `Function call tree for constructing package dependency graph`_.
-#
-macro(tribits_process_packages_and_dirs_lists  REPOSITORY_NAME  REPOSITORY_DIR)
+MACRO(TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS  REPOSITORY_NAME  REPOSITORY_DIR)
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    message("TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS:  '${REPOSITORY_NAME}'  '${REPOSITORY_DIR}'")
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    MESSAGE("TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS:  '${REPOSITORY_NAME}'  '${REPOSITORY_DIR}'")
+  ENDIF()
 
   #
   # Separate out separate lists of package names and directories
@@ -410,210 +415,210 @@ macro(tribits_process_packages_and_dirs_lists  REPOSITORY_NAME  REPOSITORY_DIR)
 
   # Get the total number of packages defined
 
-  assert_defined(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS)
-  if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-    print_var(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS)
-  endif()
-  list(LENGTH ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
+  ASSERT_DEFINED(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS)
+  IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+    PRINT_VAR(${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS)
+  ENDIF()
+  LIST(LENGTH ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
     ${REPOSITORY_NAME}_NUM_PACKAGES_AND_FIELDS )
-  math(EXPR ${REPOSITORY_NAME}_NUM_PACKAGES
+  MATH(EXPR ${REPOSITORY_NAME}_NUM_PACKAGES
     "${${REPOSITORY_NAME}_NUM_PACKAGES_AND_FIELDS}/${PLH_NUM_FIELDS_PER_PACKAGE}")
-  if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-    print_var(${REPOSITORY_NAME}_NUM_PACKAGES)
-  endif()
-  math(EXPR ${REPOSITORY_NAME}_LAST_PACKAGE_IDX "${${REPOSITORY_NAME}_NUM_PACKAGES}-1")
+  IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+    PRINT_VAR(${REPOSITORY_NAME}_NUM_PACKAGES)
+  ENDIF()
+  MATH(EXPR ${REPOSITORY_NAME}_LAST_PACKAGE_IDX "${${REPOSITORY_NAME}_NUM_PACKAGES}-1")
 
   # Process each of the packages defined
 
-  if (${REPOSITORY_NAME}_NUM_PACKAGES GREATER 0)
+  IF (${REPOSITORY_NAME}_NUM_PACKAGES GREATER 0)
 
-    foreach(PACKAGE_IDX RANGE ${${REPOSITORY_NAME}_LAST_PACKAGE_IDX})
+    FOREACH(PACKAGE_IDX RANGE ${${REPOSITORY_NAME}_LAST_PACKAGE_IDX})
 
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        message("")
-        print_var(${PROJECT_NAME}_PACKAGES)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        MESSAGE("")
+        PRINT_VAR(${PROJECT_NAME}_PACKAGES)
+      ENDIF()
 
-      math(EXPR PACKAGE_NAME_IDX "${PACKAGE_IDX}*${PLH_NUM_FIELDS_PER_PACKAGE}+0")
-      list(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
+      MATH(EXPR PACKAGE_NAME_IDX "${PACKAGE_IDX}*${PLH_NUM_FIELDS_PER_PACKAGE}+0")
+      LIST(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
         ${PACKAGE_NAME_IDX} TRIBITS_PACKAGE )
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(TRIBITS_PACKAGE)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(TRIBITS_PACKAGE)
+      ENDIF()
 
-      math(EXPR PACKAGE_DIR_IDX
+      MATH(EXPR PACKAGE_DIR_IDX
         "${PACKAGE_IDX}*${PLH_NUM_FIELDS_PER_PACKAGE}+${PLH_NUM_PACKAGE_DIR_OFFSET}")
-      list(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
+      LIST(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
         ${PACKAGE_DIR_IDX} PACKAGE_DIR )
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(PACKAGE_DIR)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(PACKAGE_DIR)
+      ENDIF()
 
-      math(EXPR PACKAGE_CLASSIFICATION_IDX
+      MATH(EXPR PACKAGE_CLASSIFICATION_IDX
         "${PACKAGE_IDX}*${PLH_NUM_FIELDS_PER_PACKAGE}+${PLH_NUM_PACKAGE_CLASSIFICATION_OFFSET}")
-      list(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
+      LIST(GET ${REPOSITORY_NAME}_PACKAGES_AND_DIRS_AND_CLASSIFICATIONS
         ${PACKAGE_CLASSIFICATION_IDX} PACKAGE_CLASSIFICATION )
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(PACKAGE_CLASSIFICATION)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(PACKAGE_CLASSIFICATION)
+      ENDIF()
 
       # ToDo: Parse out TESTGROUP and MATURITYLEVEL (Trilinos #6042)
-      set(PACKAGE_TESTGROUP ${PACKAGE_CLASSIFICATION})
+      SET(PACKAGE_TESTGROUP ${PACKAGE_CLASSIFICATION})
 
-      tribits_update_ps_pt_ss_st(Package ${TRIBITS_PACKAGE} PACKAGE_TESTGROUP)
+      TRIBITS_UPDATE_PS_PT_SS_ST(Package ${TRIBITS_PACKAGE} PACKAGE_TESTGROUP)
 
-      if (${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE)
-        message("-- "
+      IF (${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE)
+        MESSAGE("-- "
           "NOTE: ${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE='${${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE}'"
           " is overriding default path '${PACKAGE_DIR}'") 
-        set(PACKAGE_DIR "${${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE}")
-      endif()
+        SET(PACKAGE_DIR "${${TRIBITS_PACKAGE}_SOURCE_DIR_OVERRIDE}")
+      ENDIF()
 
-      if (IS_ABSOLUTE "${PACKAGE_DIR}")
+      IF (IS_ABSOLUTE "${PACKAGE_DIR}")
 
-        set(PACKAGE_ABS_DIR "${PACKAGE_DIR}")
+        SET(PACKAGE_ABS_DIR "${PACKAGE_DIR}")
 
-        string(LENGTH "${PROJECT_SOURCE_DIR}" PROJECT_SOURCE_DIR_LEN)
-        string(LENGTH "${PACKAGE_ABS_DIR}" PACKAGE_ABS_DIR_LEN)
+        STRING(LENGTH "${PROJECT_SOURCE_DIR}" PROJECT_SOURCE_DIR_LEN)
+        STRING(LENGTH "${PACKAGE_ABS_DIR}" PACKAGE_ABS_DIR_LEN)
 
         # See if the package dir is under the project dir
 
-        set(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR TRUE)
+        SET(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR TRUE)
 
-        if (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
+        IF (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
           # Determine package abs dir is too short to be under project
-          if (PACKAGE_ABS_DIR_LEN LESS PROJECT_SOURCE_DIR_LEN)
-            set(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR FALSE)
-          endif()
-        endif()
+          IF (PACKAGE_ABS_DIR_LEN LESS PROJECT_SOURCE_DIR_LEN)
+            SET(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR FALSE)
+          ENDIF()
+        ENDIF()
 
-        if (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
+        IF (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
           # Determine if the package abs base dir base is the project dir
-          string(SUBSTRING "${PACKAGE_ABS_DIR}" 0 ${PROJECT_SOURCE_DIR_LEN}
+          STRING(SUBSTRING "${PACKAGE_ABS_DIR}" 0 ${PROJECT_SOURCE_DIR_LEN}
             PROJECT_SOURCE_DIR_BASE_MATCH)
-          print_var(PROJECT_SOURCE_DIR_BASE_MATCH)
-          if (NOT PROJECT_SOURCE_DIR_BASE_MATCH STREQUAL "${PROJECT_SOURCE_DIR}")
-            set(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR FALSE)
-          endif()
-        endif()
+          PRINT_VAR(PROJECT_SOURCE_DIR_BASE_MATCH)
+          IF (NOT PROJECT_SOURCE_DIR_BASE_MATCH STREQUAL "${PROJECT_SOURCE_DIR}")
+            SET(PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR FALSE)
+          ENDIF()
+        ENDIF()
 
-        if (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
+        IF (PACKAGE_ABS_DIR_UNDER_PROJECT_SOURCE_DIR)
           # Get the path of the package dir under the project dir
-          math(EXPR PACKAGE_REL_DIR_BEGIN "${PROJECT_SOURCE_DIR_LEN}+1")
-          string(SUBSTRING "${PACKAGE_ABS_DIR}" ${PACKAGE_REL_DIR_BEGIN} -1
+          MATH(EXPR PACKAGE_REL_DIR_BEGIN "${PROJECT_SOURCE_DIR_LEN}+1")
+          STRING(SUBSTRING "${PACKAGE_ABS_DIR}" ${PACKAGE_REL_DIR_BEGIN} -1
             REPOSITORY_AND_PACKAGE_DIR)
-        else()
-          message_wrapper(FATAL_ERROR
-            "Error: The package '${TRIBITS_PACKAGE}' was given an absolute directory '${PACKAGE_ABS_DIR}' which is *not* under the project's source directory '${PROJECT_SOURCE_DIR}/'!")
-          set(REPOSITORY_AND_PACKAGE_DIR "ERROR-BAD-PACKAGE-ABS-DIR")
-          # ToDo: We could just put in a relative path but that requires
+        ELSE()
+          MESSAGE_WRAPPER(FATAL_ERROR
+            "Error: The pacakge '${TRIBITS_PACKAGE}' was given an absolute directory '${PACKAGE_ABS_DIR}' which is *not* under the project's source directory '${PROJECT_SOURCE_DIR}/'!")
+          SET(REPOSITORY_AND_PACKAGE_DIR "ERROR-BAD-PACKAGE-ABS-DIR")
+          # ToDo: We could just put in a relative path but that requries
           # knowing the common path between the two directory paths but CMake
           # does not give an easy way to determine that.  I would have to
           # write that function myself.
-        endif()
+        ENDIF()
 
-      else()
+      ELSE()
 
          # PACKAGE_DIR is a relative path
 
-        if ("${REPOSITORY_DIR}" STREQUAL ".")
-          set(REPOSITORY_AND_PACKAGE_DIR "${PACKAGE_DIR}")
-        elseif("${PACKAGE_DIR}" STREQUAL ".")
-          set(REPOSITORY_AND_PACKAGE_DIR "${REPOSITORY_DIR}")
-        else()
-          set(REPOSITORY_AND_PACKAGE_DIR "${REPOSITORY_DIR}/${PACKAGE_DIR}")
-        endif()
-        set(PACKAGE_ABS_DIR "${PROJECT_SOURCE_DIR}/${REPOSITORY_AND_PACKAGE_DIR}")
+        IF ("${REPOSITORY_DIR}" STREQUAL ".")
+          SET(REPOSITORY_AND_PACKAGE_DIR "${PACKAGE_DIR}")
+        ELSEIF("${PACKAGE_DIR}" STREQUAL ".")
+          SET(REPOSITORY_AND_PACKAGE_DIR "${REPOSITORY_DIR}")
+        ELSE()
+          SET(REPOSITORY_AND_PACKAGE_DIR "${REPOSITORY_DIR}/${PACKAGE_DIR}")
+        ENDIF()
+        SET(PACKAGE_ABS_DIR "${PROJECT_SOURCE_DIR}/${REPOSITORY_AND_PACKAGE_DIR}")
 
-      endif()
+      ENDIF()
 
-      if (EXISTS ${PACKAGE_ABS_DIR})
-        set(PACKAGE_EXISTS TRUE)
-      else()
-        set(PACKAGE_EXISTS FALSE)
-      endif()
+      IF (EXISTS ${PACKAGE_ABS_DIR})
+        SET(PACKAGE_EXISTS TRUE)
+      ELSE()
+        SET(PACKAGE_EXISTS FALSE)
+      ENDIF()
 
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(PROJECT_SOURCE_DIR)
-        print_var(REPOSITORY_AND_PACKAGE_DIR)
-        print_var(PACKAGE_ABS_DIR)
-        print_var(PACKAGE_EXISTS)
-        print_var(${PROJECT_NAME}_ASSERT_MISSING_PACKAGES)
-        print_var(${TRIBITS_PACKAGE}_ALLOW_MISSING_EXTERNAL_PACKAGE)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(PROJECT_SOURCE_DIR)
+        PRINT_VAR(REPOSITORY_AND_PACKAGE_DIR)
+        PRINT_VAR(PACKAGE_ABS_DIR)
+        PRINT_VAR(PACKAGE_EXISTS)
+        PRINT_VAR(${PROJECT_NAME}_ASSERT_MISSING_PACKAGES)
+        PRINT_VAR(${TRIBITS_PACKAGE}_ALLOW_MISSING_EXTERNAL_PACKAGE)
+      ENDIF()
 
-      if (${PROJECT_NAME}_ASSERT_MISSING_PACKAGES
+      IF (${PROJECT_NAME}_ASSERT_MISSING_PACKAGES
         AND NOT PACKAGE_EXISTS
         AND NOT ${TRIBITS_PACKAGE}_ALLOW_MISSING_EXTERNAL_PACKAGE
         )
-        message(
+        MESSAGE(
           "\n***"
           "\n*** Error, the package ${TRIBITS_PACKAGE} directory ${PACKAGE_ABS_DIR} does not exist!"
           "\n***\n" )
-        message(FATAL_ERROR "Stopping due to above error!")
-      endif()
+        MESSAGE(FATAL_ERROR "Stopping due to above error!")
+      ENDIF()
 
-      if (PACKAGE_EXISTS OR ${PROJECT_NAME}_IGNORE_PACKAGE_EXISTS_CHECK)
-        list(APPEND ${PROJECT_NAME}_PACKAGES ${TRIBITS_PACKAGE})
-        tribits_insert_standard_package_options(${TRIBITS_PACKAGE}
+      IF (PACKAGE_EXISTS OR ${PROJECT_NAME}_IGNORE_PACKAGE_EXISTS_CHECK)
+        LIST(APPEND ${PROJECT_NAME}_PACKAGES ${TRIBITS_PACKAGE})
+        TRIBITS_INSERT_STANDARD_PACKAGE_OPTIONS(${TRIBITS_PACKAGE}
           ${PACKAGE_TESTGROUP})
-        set(${TRIBITS_PACKAGE}_SOURCE_DIR
+        SET(${TRIBITS_PACKAGE}_SOURCE_DIR
           "${PROJECT_SOURCE_DIR}/${REPOSITORY_AND_PACKAGE_DIR}")
-        set(${TRIBITS_PACKAGE}_REL_SOURCE_DIR
+        SET(${TRIBITS_PACKAGE}_REL_SOURCE_DIR
           "${REPOSITORY_AND_PACKAGE_DIR}")
-        set(${TRIBITS_PACKAGE}_PARENT_PACKAGE "")
-        set(${TRIBITS_PACKAGE}_PARENT_REPOSITORY ${REPOSITORY_NAME})
-      else()
-        if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-          message(
+        SET(${TRIBITS_PACKAGE}_PARENT_PACKAGE "")
+        SET(${TRIBITS_PACKAGE}_PARENT_REPOSITORY ${REPOSITORY_NAME})
+      ELSE()
+        IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+          MESSAGE(
             "\n***"
             "\n*** NOTE: Excluding package ${TRIBITS_PACKAGE} because ${PACKAGE_ABS_DIR}"
               " does not exist!"
             "\n***\n" )
-        endif()
-      endif()
+        ENDIF()
+      ENDIF()
       # NOTE: The variable ${PROJECT_NAME}_IGNORE_PACKAGE_EXISTS_CHECK only
       # gets set to TRUE for some unit tests.  Otherwise, in every legitimate
       # usage of this macro it is always FALSE.
 
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(${TRIBITS_PACKAGE}_SOURCE_DIR)
-        print_var(${TRIBITS_PACKAGE}_PARENT_PACKAGE)
-        print_var(${TRIBITS_PACKAGE}_PARENT_REPOSITORY)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(${TRIBITS_PACKAGE}_SOURCE_DIR)
+        PRINT_VAR(${TRIBITS_PACKAGE}_PARENT_PACKAGE)
+        PRINT_VAR(${TRIBITS_PACKAGE}_PARENT_REPOSITORY)
+      ENDIF()
 
-      if (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
-        print_var(${PROJECT_NAME}_PACKAGES)
-      endif()
+      IF (TRIBITS_PROCESS_PACKAGES_AND_DIRS_LISTS_VERBOSE)
+        PRINT_VAR(${PROJECT_NAME}_PACKAGES)
+      ENDIF()
 
-    endforeach()
+    ENDFOREACH()
 
     # Get the actual number of packages that actually exist
 
-    list(LENGTH ${PROJECT_NAME}_PACKAGES ${PROJECT_NAME}_NUM_PACKAGES )
-    math(EXPR ${PROJECT_NAME}_LAST_PACKAGE_IDX "${${PROJECT_NAME}_NUM_PACKAGES}-1")
+    LIST(LENGTH ${PROJECT_NAME}_PACKAGES ${PROJECT_NAME}_NUM_PACKAGES )
+    MATH(EXPR ${PROJECT_NAME}_LAST_PACKAGE_IDX "${${PROJECT_NAME}_NUM_PACKAGES}-1")
 
     # Create a reverse list for later use
 
-    set(${PROJECT_NAME}_REVERSE_PACKAGES ${${PROJECT_NAME}_PACKAGES})
-    list(REVERSE ${PROJECT_NAME}_REVERSE_PACKAGES)
+    SET(${PROJECT_NAME}_REVERSE_PACKAGES ${${PROJECT_NAME}_PACKAGES})
+    LIST(REVERSE ${PROJECT_NAME}_REVERSE_PACKAGES)
 
-  else()
+  ELSE()
 
-    set(${REPOSITORY_NAME}_NUM_PACKAGES 0)
+    SET(${REPOSITORY_NAME}_NUM_PACKAGES 0)
 
-  endif()
+  ENDIF()
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    print_var(${REPOSITORY_NAME}_NUM_PACKAGES)
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    PRINT_VAR(${REPOSITORY_NAME}_NUM_PACKAGES)
+  ENDIF()
 
-  print_var(${PROJECT_NAME}_NUM_PACKAGES)
+  PRINT_VAR(${PROJECT_NAME}_NUM_PACKAGES)
 
   # Print the final set of packages in debug mode
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    print_var(${PROJECT_NAME}_PACKAGES)
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    PRINT_VAR(${PROJECT_NAME}_PACKAGES)
+  ENDIF()
 
-endmacro()
+ENDMACRO()

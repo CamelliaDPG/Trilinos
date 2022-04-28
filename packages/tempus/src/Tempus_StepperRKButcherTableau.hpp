@@ -36,8 +36,6 @@ namespace Tempus {
  *  \begin{array}{c|c} 0 & 0 \\ \hline
  *                       & 1 \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_ForwardEuler :
@@ -161,8 +159,6 @@ createStepperERK_ForwardEuler(
  *                         1  &  0  &  0  &  1  &  0 \\ \hline
  *                            & 1/6 & 1/3 & 1/3 & 1/6 \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_4Stage4thOrder :
@@ -293,8 +289,6 @@ createStepperERK_4Stage4thOrder(
  *  Reference:  P. Bogacki and L.F. Shampine.
  *              A 3(2) pair of Runge–Kutta formulas.
  *              Applied Mathematics Letters, 2(4):321 – 325, 1989.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_BogackiShampine32 :
@@ -440,7 +434,6 @@ createStepperERK_BogackiShampine32(
  *              Nonstiff Problems", 2nd Revised Edition,
  *              Table 4.1, pg 167.
  *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_Merson45 :
@@ -591,8 +584,6 @@ createStepperERK_Merson45(
  *              "Solving Ordinary Differential Equations I:
  *              Nonstiff Problems", 2nd Revised Edition,
  *              Table 1.2, pg 138.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_3_8Rule :
@@ -722,8 +713,6 @@ createStepperERK_3_8Rule(
  *              "Solving Ordinary Differential Equations I:
  *              Nonstiff Problems", 2nd Revised Edition,
  *              Table 1.1, pg 135.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_4Stage3rdOrderRunge :
@@ -852,8 +841,6 @@ createStepperERK_4Stage3rdOrderRunge(
  *  \f]
  *  Reference:  Modified by P. Ullrich.  From the prim_advance_mod.F90
  *              routine in the HOMME atmosphere model code.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_5Stage3rdOrderKandG :
@@ -982,8 +969,6 @@ createStepperERK_5Stage3rdOrderKandG(
  *                        1  & -1  &  2  &  0  \\ \hline
  *                           & 1/6 & 4/6 & 1/6  \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_3Stage3rdOrder :
@@ -1115,8 +1100,6 @@ createStepperERK_3Stage3rdOrder(
       u2 = 3 u^n/4 + u1/4 + dt L(u1)/4
       u^(n+1) = u^n/3 + 2 u2/2 + 2 dt L(u2)/3
     \endverbatim
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_3Stage3rdOrderTVD :
@@ -1276,8 +1259,6 @@ createStepperERK_3Stage3rdOrderTVD(
  *              "Solving Ordinary Differential Equations I:
  *              Nonstiff Problems", 2nd Revised Edition,
  *              Table 1.1, pg 135.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_3Stage3rdOrderHeun :
@@ -1405,8 +1386,6 @@ createStepperERK_3Stage3rdOrderHeun(
  *              "Solving Ordinary Differential Equations I:
  *              Nonstiff Problems", 2nd Revised Edition,
  *              Table 1.1, pg 135.
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_Midpoint :
@@ -1525,8 +1504,6 @@ createStepperERK_Midpoint(
  *                       2/3  &  2/3  &  0  \\ \hline
  *                            &  1/4  & 3/4  \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_Ralston :
@@ -1663,8 +1640,6 @@ createStepperERK_Ralston(
  *                          & 1/2 & 1/2 \\
  *                          & 3/4 & 1/4 \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_Trapezoidal :
@@ -1809,7 +1784,7 @@ createStepperERK_Trapezoidal(
  *              Strong Stability Preserving Runge–Kutta and Multistep Time Discretizations.
  *              World Scientific Press, London (2011)
  *
- *  See StepperExplicitRK for additional details.
+ *
  */
 template<class Scalar>
 class StepperERK_SSPERK54 :
@@ -1964,8 +1939,6 @@ createStepperERK_SSPERK54(
  *                         1  &  0  &  0  &  1  &  0 \\ \hline
  *                            & 1/6 & 1/3 & 1/3 & 1/6 \end{array}
  *  \f]
- *
- *  See StepperExplicitRK for additional details.
  */
 template<class Scalar>
 class StepperERK_General :
@@ -2169,8 +2142,6 @@ createStepperERK_General(
  *  \begin{array}{c|c} 1 & 1 \\ \hline
  *                       & 1 \end{array}
  *  \f]
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperDIRK_BackwardEuler :
@@ -2292,8 +2263,6 @@ createStepperDIRK_BackwardEuler(
  *
  *  Reference: U. M. Ascher and L. R. Petzold,
  *             Computer Methods for ODEs and DAEs, p. 106.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_2Stage2ndOrder :
@@ -2465,9 +2434,8 @@ createStepperSDIRK_2Stage2ndOrder(
  *             L Pareschi, G Russo
  *             Journal of Scientific computing, 2005 - Springer
  *             Table 5
- *
- *  See StepperDIRK for additional details.
  */
+
 template<class Scalar>
 class StepperSDIRK_3Stage2ndOrder :
   virtual public StepperDIRK<Scalar>
@@ -2611,8 +2579,6 @@ createStepperSDIRK_3Stage2ndOrder(
  *             Solving Ordinary Differential Equations I:
  *             Nonstiff Problems, 2nd Revised Edition,
  *             Table 7.2, pg 207.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_2Stage3rdOrder :
@@ -2823,8 +2789,6 @@ createStepperSDIRK_2Stage3rdOrder(
  *             Solving Ordinary Differential Equations I:
  *             Nonstiff Problems, 2nd Revised Edition,
  *             Table 7.1, pg 205.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperEDIRK_2Stage3rdOrder :
@@ -2956,8 +2920,6 @@ createStepperEDIRK_2Stage3rdOrder(
  *  Reference: Non-standard finite-difference methods
  *             in dynamical systems, P. Kama,
  *             Dissertation, University of Pretoria, pg. 49.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperDIRK_1StageTheta :
@@ -3125,8 +3087,6 @@ createStepperDIRK_1StageTheta(
  *
  *  Reference: Computer Methods for ODEs and DAEs,
  *             U. M. Ascher and L. R. Petzold, p. 113.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperEDIRK_2StageTheta :
@@ -3302,8 +3262,6 @@ createStepperEDIRK_2StageTheta(
  *
  *  Reference: Computer Methods for ODEs and DAEs,
  *             U. M. Ascher and L. R. Petzold, p. 113.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperEDIRK_TrapezoidalRule :
@@ -3454,8 +3412,6 @@ createStepperEDIRK_TrapezoidalRule(
  *             Nonstiff Problems, 2nd Revised Edition,
  *             E. Hairer, S. P. Norsett, and G. Wanner,
  *             Table 7.1, pg 205,
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_ImplicitMidpoint :
@@ -3584,8 +3540,6 @@ createStepperSDIRK_ImplicitMidpoint(
  *  Reference:  Gottlieb, S., Ketcheson, D.I., Shu, C.-W.
  *              Strong Stability Preserving Runge–Kutta and Multistep Time Discretizations.
  *              World Scientific Press, London (2011)
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_SSPDIRK22 :
@@ -3709,8 +3663,6 @@ createStepperSDIRK_SSPDIRK22(
  *  Reference:  Gottlieb, S., Ketcheson, D.I., Shu, C.-W.
  *              Strong Stability Preserving Runge–Kutta and Multistep Time Discretizations.
  *              World Scientific Press, London (2011)
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_SSPDIRK32 :
@@ -3836,8 +3788,6 @@ createStepperSDIRK_SSPDIRK32(
  *  Reference:  Gottlieb, S., Ketcheson, D.I., Shu, C.-W.
  *              Strong Stability Preserving Runge–Kutta and Multistep Time Discretizations.
  *              World Scientific Press, London (2011)
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_SSPDIRK23 :
@@ -3963,8 +3913,6 @@ createStepperSDIRK_SSPDIRK23(
  *  Reference:  Gottlieb, S., Ketcheson, D.I., Shu, C.-W.
  *              Strong Stability Preserving Runge–Kutta and Multistep Time Discretizations.
  *              World Scientific Press, London (2011)
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_SSPDIRK33 :
@@ -4092,8 +4040,6 @@ createStepperSDIRK_SSPDIRK33(
  *             Stiff and Differential-Algebraic Problems,
  *             2nd Revised Edition, E. Hairer and G. Wanner,
  *             Table 5.3, pg 73.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperDIRK_1Stage1stOrderRadauIA :
@@ -4212,8 +4158,6 @@ createStepperDIRK_1Stage1stOrderRadauIA(
  *             Stiff and Differential-Algebraic Problems,
  *             2nd Revised Edition, E. Hairer and G. Wanner,
  *             Table 5.9, pg 76.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperDIRK_2Stage2ndOrderLobattoIIIB :
@@ -4352,8 +4296,6 @@ createStepperDIRK_2Stage2ndOrderLobattoIIIB(
  *  Reference: Solving Ordinary Differential Equations II:
  *             Stiff and Differential-Algebraic Problems,
  *             2nd Revised Edition, E. Hairer and G. Wanner, pg100.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_5Stage4thOrder :
@@ -4532,8 +4474,6 @@ createStepperSDIRK_5Stage4thOrder(
  *  Reference: Solving Ordinary Differential Equations II:
  *             Stiff and Differential-Algebraic Problems,
  *             2nd Revised Edition, E. Hairer and G. Wanner, p. 100.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_3Stage4thOrder :
@@ -4683,8 +4623,6 @@ createStepperSDIRK_3Stage4thOrder(
  *  Reference: Solving Ordinary Differential Equations II:
  *             Stiff and Differential-Algebraic Problems,
  *             2nd Revised Edition, E. Hairer and G. Wanner, pg101.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_5Stage5thOrder :
@@ -4876,8 +4814,6 @@ createStepperSDIRK_5Stage5thOrder(
  *                           & 1/2 & 1/2 \\
  *                           & 1   & 0 \end{array}
  *  \f]
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperSDIRK_21Pair :
@@ -5017,8 +4953,6 @@ createStepperSDIRK_21Pair(
  *
  *  Reference: U. M. Ascher and L. R. Petzold,
  *             Computer Methods for ODEs and DAEs, p. 106.
- *
- *  See StepperDIRK for additional details.
  */
 template<class Scalar>
 class StepperDIRK_General :

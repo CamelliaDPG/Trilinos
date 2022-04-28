@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Ioss_PropertyManager_h
+#define IOSS_Ioss_PropertyManager_h
 
 #include <Ioss_CodeTypes.h>
 #include <Ioss_Property.h> // for Property
@@ -37,26 +38,23 @@ namespace Ioss {
     bool exists(const std::string &property_name) const;
 
     Property    get(const std::string &property_name) const;
-    double      get_optional(const std::string &property_name, double optional_value) const;
     int64_t     get_optional(const std::string &property_name, int64_t optional_value) const;
-    int         get_optional(const std::string &property_name, int optional_value) const;
     std::string get_optional(const std::string &property_name,
                              const std::string &optional_value) const;
 
     // Returns the names of all properties
-    int      describe(NameList *names) const;
-    NameList describe() const;
+    int describe(NameList *names) const;
 
     // Returns the names of all properties or origin `origin`
-    int      describe(Ioss::Property::Origin origin, NameList *names) const;
-    NameList describe(Ioss::Property::Origin origin) const;
+    int describe(Ioss::Property::Origin origin, NameList *names) const;
 
     size_t count() const;
 
   private:
-    PropMapType m_properties{};
+    PropMapType m_properties;
 #if defined(IOSS_THREADSAFE)
     mutable std::mutex m_;
 #endif
   };
 } // namespace Ioss
+#endif

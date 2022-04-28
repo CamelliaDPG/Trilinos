@@ -6,10 +6,15 @@
 // ****************************************************************************
 // @HEADER
 
-#include "Tempus_UnitTest_Utils.hpp"
-
+#include "Teuchos_UnitTestHarness.hpp"
 #include "Teuchos_XMLParameterListHelpers.hpp"
+#include "Teuchos_TimeMonitor.hpp"
+#include "Teuchos_DefaultComm.hpp"
 
+#include "Thyra_VectorStdOps.hpp"
+
+#include "Tempus_StepperFactory.hpp"
+#include "Tempus_UnitTest_Utils.hpp"
 #include "Tempus_StepperRKButcherTableau.hpp"
 
 #include "Tempus_StepperForwardEuler.hpp"
@@ -25,6 +30,10 @@
 
 #include "../TestModels/VanDerPol_IMEX_ExplicitModel.hpp"
 #include "../TestModels/VanDerPol_IMEX_ImplicitModel.hpp"
+#include "../TestUtils/Tempus_ConvergenceTestUtils.hpp"
+
+#include <fstream>
+#include <vector>
 
 namespace Tempus_Unit_Test {
 
@@ -34,6 +43,7 @@ using Teuchos::rcp_const_cast;
 using Teuchos::rcp_dynamic_cast;
 using Teuchos::ParameterList;
 using Teuchos::sublist;
+using Teuchos::getParametersFromXmlFile;
 
 using Tempus::StepperExplicitRK;
 
@@ -101,7 +111,7 @@ TEUCHOS_UNIT_TEST(OperatorSplit, Default_Construction)
 TEUCHOS_UNIT_TEST(OperatorSplit, StepperFactory_Construction)
 {
   // Read params from .xml file
-  auto pList = Teuchos::getParametersFromXmlFile(
+  auto pList = getParametersFromXmlFile(
                  "../test/OperatorSplit/Tempus_OperatorSplit_VanDerPol.xml");
   auto tempusPL  = sublist(pList, "Tempus", true);
   auto stepperPL = sublist(tempusPL, "Demo Stepper", true);

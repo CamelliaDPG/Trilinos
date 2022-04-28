@@ -343,8 +343,7 @@ namespace Belos {
       }
 
       // Ensure A and C have constant stride
-      RCP<const MV> Atmp;
-      RCP<MV> Ctmp;
+      RCP<const MV> Atmp, Ctmp;
       if (A.isConstantStride() == false) Atmp = rcp (new MV (A, Teuchos::Copy));
       else Atmp = rcp(&A,false);
 
@@ -353,12 +352,10 @@ namespace Belos {
 
       // Create flattened view's
       typedef Tpetra::MultiVector<dot_type,LO,GO,Node> FMV;
-      typedef Tpetra::MultiVector<const dot_type,LO,GO,Node> CFMV;
       typedef typename FMV::dual_view_type::t_dev flat_view_type;
-      typedef typename CFMV::dual_view_type::t_dev const_flat_view_type;
       typedef typename flat_view_type::execution_space execution_space;
-      const_flat_view_type flat_A_view = Atmp->template getLocalView<execution_space>(Tpetra::Access::ReadOnly);
-      flat_view_type flat_C_view = Ctmp->template getLocalView<execution_space>(Tpetra::Access::ReadWrite);
+      flat_view_type flat_A_view = Atmp->template getLocalView<execution_space>();
+      flat_view_type flat_C_view = Ctmp->template getLocalView<execution_space>();
 
       // Create a view for B on the host
       typedef Kokkos::View<dot_type**, Kokkos::LayoutLeft, Kokkos::HostSpace> b_host_view_type;
@@ -467,11 +464,11 @@ namespace Belos {
       else Btmp = rcp(&B,false);
 
       // Create flattened Kokkos::MultiVector's
-      typedef Tpetra::MultiVector<const dot_type,LO,GO,Node> FMV;
+      typedef Tpetra::MultiVector<dot_type,LO,GO,Node> FMV;
       typedef typename FMV::dual_view_type::t_dev flat_view_type;
       typedef typename flat_view_type::execution_space execution_space;
-      flat_view_type flat_A_view = Atmp->template getLocalView<execution_space>(Tpetra::Access::ReadOnly);
-      flat_view_type flat_B_view = Btmp->template getLocalView<execution_space>(Tpetra::Access::ReadOnly);
+      flat_view_type flat_A_view = Atmp->template getLocalView<execution_space>();
+      flat_view_type flat_B_view = Btmp->template getLocalView<execution_space>();
 
       // Create a view for C on the host
       typedef Kokkos::View<dot_type**, Kokkos::LayoutLeft, Kokkos::HostSpace> c_host_view_type;

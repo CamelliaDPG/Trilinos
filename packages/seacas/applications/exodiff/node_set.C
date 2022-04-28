@@ -36,8 +36,7 @@ template <typename INT> const INT *Node_Set<INT>::Nodes() const
 {
   // See if already loaded...
   if (!nodes) {
-    std::vector<INT> tmp;
-    load_nodes(tmp);
+    load_nodes();
   }
   return nodes;
 }
@@ -50,8 +49,7 @@ template <typename INT> size_t Node_Set<INT>::Node_Id(size_t position) const
 
   // See if already loaded...
   if (!nodes) {
-    std::vector<INT> tmp;
-    load_nodes(tmp);
+    load_nodes();
   }
   SMART_ASSERT(position < numEntity);
   return nodes[nodeIndex[position]];
@@ -65,17 +63,16 @@ template <typename INT> size_t Node_Set<INT>::Node_Index(size_t position) const
 
   // See if already loaded...
   if (!nodes) {
-    std::vector<INT> tmp;
-    load_nodes(tmp);
+    load_nodes();
   }
   SMART_ASSERT(position < numEntity);
   SMART_ASSERT(nodeIndex != nullptr);
   return nodeIndex[position];
 }
 
-template <typename INT> void Node_Set<INT>::apply_map(const std::vector<INT> &node_map)
+template <typename INT> void Node_Set<INT>::apply_map(const INT *node_map)
 {
-  SMART_ASSERT(!node_map.empty());
+  SMART_ASSERT(node_map != nullptr);
   if (nodes != nullptr) {
     delete[] nodes;
     nodes = nullptr;
@@ -85,7 +82,7 @@ template <typename INT> void Node_Set<INT>::apply_map(const std::vector<INT> &no
   load_nodes(node_map);
 }
 
-template <typename INT> void Node_Set<INT>::load_nodes(const std::vector<INT> &node_map) const
+template <typename INT> void Node_Set<INT>::load_nodes(const INT *node_map) const
 {
   if (numEntity > 0) {
     nodes = new INT[numEntity];
@@ -94,7 +91,7 @@ template <typename INT> void Node_Set<INT>::load_nodes(const std::vector<INT> &n
     SMART_ASSERT(nodeIndex != nullptr);
     ex_get_set(fileId, EX_NODE_SET, id_, nodes, nullptr);
 
-    if (!node_map.empty()) {
+    if (node_map != nullptr) {
       for (size_t i = 0; i < numEntity; i++) {
         nodes[i] = 1 + node_map[nodes[i] - 1];
       }
@@ -151,6 +148,7 @@ template <typename INT> void Node_Set<INT>::entity_load_params()
 
   if (err < 0) {
     Error(fmt::format("Failed to get nodeset parameters for nodeset {}. !  Aborting...\n", id_));
+    exit(1);
   }
 
   numEntity        = sets[0].num_entry;

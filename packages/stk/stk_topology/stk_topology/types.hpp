@@ -34,7 +34,9 @@
 #ifndef STKTOPOLOGY_TYPES_TCC
 #define STKTOPOLOGY_TYPES_TCC
 
-#include "stk_topology/topology_type.hpp"
+// IWYU pragma: private, include "stk_topology/topology.hpp"
+
+#include <stk_topology/topology_type.hpp>
 
 namespace stk {
 

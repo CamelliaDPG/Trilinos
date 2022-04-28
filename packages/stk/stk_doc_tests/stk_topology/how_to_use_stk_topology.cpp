@@ -32,9 +32,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#include "gtest/gtest.h"              // for AssertionResult, Message, TestPartResult, EXPECT_EQ
-#include "stk_topology/topology.hpp"  // for topology, create_superelement_topology, topology::I...
-#include <iostream>                   // for cout
+#include <gtest/gtest.h>
+#include <stk_topology/topology.hpp>
+#include <vector>
 
 #ifndef __IBMCPP__
 

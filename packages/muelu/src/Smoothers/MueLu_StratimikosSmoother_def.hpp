@@ -80,14 +80,13 @@ namespace MueLu {
   StratimikosSmoother<double, LocalOrdinal, GlobalOrdinal, Node>::StratimikosSmoother(const std::string type, const Teuchos::ParameterList& paramList)
   : type_(type)
   {
-    std::transform(type_.begin(), type_.end(), type_.begin(), ::toupper);
     ParameterList& pList = const_cast<ParameterList&>(paramList);
 
     if (pList.isParameter("smoother: recurMgOnFilteredA")) {
       recurMgOnFilteredA_ = true;
       pList.remove("smoother: recurMgOnFilteredA");
     }
-    bool isSupported = type_ == "STRATIMIKOS";
+    bool isSupported = type == "STRATIMIKOS";
     this->declareConstructionOutcome(!isSupported, "Stratimikos does not provide the smoother '" + type_ + "'.");
     if (isSupported)
       SetParameterList(paramList);
@@ -213,7 +212,7 @@ system(mystring);
     TEUCHOS_TEST_FOR_EXCEPTION( (LayerId == NULL) || (VertLineId == NULL), Exceptions::RuntimeError, "MueLu::StratimikosSmoother:: no line information found on this level. Cannot use recurMgOnFilteredA on this level.");
 
     Scalar ZERO = Teuchos::ScalarTraits<Scalar>::zero();
-    for (size_t i = 0; i < A_->getRowMap()->getLocalNumElements(); i++) {
+    for (size_t i = 0; i < A_->getRowMap()->getNodeNumElements(); i++) {
       A_->getLocalRowView(i, inds, valsA);
       size_t nnz = inds.size();
       ArrayView<const Scalar> vals1;

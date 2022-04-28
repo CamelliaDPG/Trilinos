@@ -2,7 +2,7 @@
 #define FIELDSYNCDEBUGGING_HPP
 
 #include "Kokkos_Core.hpp"
-#include "stk_util/ngp/NgpSpaces.hpp"
+#include "stk_mesh/base/NgpSpaces.hpp"
 
 #ifndef __has_builtin
   #define __has_builtin(x) 0  // Compatibility with non-clang compilers.
@@ -29,7 +29,7 @@
   #define HOST_DEBUG_LINE_NUMBER -1
 #endif
 
-#if defined(HAS_LOCATION_BUILTINS) && !defined(KOKKOS_ENABLE_CUDA) && !defined(KOKKOS_ENABLE_HIP)
+#if defined(HAS_LOCATION_BUILTINS) && !defined(KOKKOS_ENABLE_CUDA)
   #define DEVICE_USE_LOCATION_BUILTINS
   #define DEVICE_DEBUG_FILE_NAME __builtin_FILE()
   #define DEVICE_DEBUG_LINE_NUMBER __builtin_LINE()
@@ -48,10 +48,10 @@ enum LastModLocation : uint8_t {
   HOST_OR_DEVICE = HOST | DEVICE
 };
 
-using LastFieldModLocationType = Kokkos::View<LastModLocation***, Kokkos::LayoutRight, stk::ngp::UVMMemSpace>;
+using LastFieldModLocationType = Kokkos::View<LastModLocation***, Kokkos::LayoutRight, UVMMemSpace>;
 
 template <typename T>
-using ScalarUvmType = Kokkos::View<T, stk::ngp::UVMMemSpace>;
+using ScalarUvmType = Kokkos::View<T, UVMMemSpace>;
 
 struct DummyOverload
 {

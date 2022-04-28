@@ -123,8 +123,8 @@ namespace Thyra {
       else if (paramList.isType<RCP<TpCrsMat> >(parameterName)) {
         RCP<TpCrsMat> tM = paramList.get<RCP<TpCrsMat> >(parameterName);
         paramList.remove(parameterName);
-        RCP<XpMat> xM = MueLu::TpetraCrs_To_XpetraMatrix<Scalar,LocalOrdinal,GlobalOrdinal,Node>(tM);
-        paramList.set<RCP<XpMat> >(parameterName, xM);
+        RCP<XpCrsMat> xM = rcp_dynamic_cast<XpCrsMat>(tM, true);
+        paramList.set<RCP<XpCrsMat> >(parameterName, xM);
         return true;
       } else if (paramList.isType<RCP<tMV> >(parameterName)) {
         RCP<tMV> tpetra_X = paramList.get<RCP<tMV> >(parameterName);
@@ -178,7 +178,13 @@ namespace Thyra {
       else if (paramList.isType<RCP<const ThyLinOpBase> >(parameterName)) {
         RCP<const ThyLinOpBase> thyM = paramList.get<RCP<const ThyLinOpBase> >(parameterName);
         paramList.remove(parameterName);
-        RCP<XpMat> M = XpThyUtils::toXpetra(Teuchos::rcp_const_cast<ThyLinOpBase>(thyM));
+        RCP<const XpCrsMat> crsM = XpThyUtils::toXpetra(thyM);
+        TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(crsM));
+        // MueLu needs a non-const object as input
+        RCP<XpCrsMat> crsMNonConst = rcp_const_cast<XpCrsMat>(crsM);
+        TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(crsMNonConst));
+        // wrap as an Xpetra::Matrix that MueLu can work with
+        RCP<XpMat> M = rcp(new Xpetra::CrsMatrixWrap<Scalar,LocalOrdinal,GlobalOrdinal,Node>(crsMNonConst));
         paramList.set<RCP<XpMat> >(parameterName, M);
         return true;
       } else if (paramList.isType<RCP<const ThyDiagLinOpBase> >(parameterName)) {
@@ -255,8 +261,6 @@ namespace Thyra {
   template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
   void MueLuPreconditionerFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node>::
   initializePrec(const RCP<const LinearOpSourceBase<Scalar> >& fwdOpSrc, PreconditionerBase<Scalar>* prec, const ESupportSolveUse supportSolveUse) const {
-    Teuchos::TimeMonitor tM(*Teuchos::TimeMonitor::getNewTimer(std::string("ThyraMueLu::initializePrec")));
-
     using Teuchos::rcp_dynamic_cast;
 
     // we are using typedefs here, since we are using objects from different packages (Xpetra, Thyra,...)
@@ -317,9 +321,15 @@ namespace Thyra {
       Teuchos::RCP<const LinearOpBase<Scalar> > b00 = ThyBlockedOp->getBlock(0,0);
       TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(b00));
 
-      // wrap the forward operator as an Xpetra::Matrix that MueLu can work with
+      RCP<const XpCrsMat > xpetraFwdCrsMat00 = XpThyUtils::toXpetra(b00);
+      TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(xpetraFwdCrsMat00));
+
       // MueLu needs a non-const object as input
-      RCP<XpMat> A00 = XpThyUtils::toXpetra(Teuchos::rcp_const_cast<LinearOpBase<Scalar> >(b00));
+      RCP<XpCrsMat> xpetraFwdCrsMatNonConst00 = Teuchos::rcp_const_cast<XpCrsMat>(xpetraFwdCrsMat00);
+      TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(xpetraFwdCrsMatNonConst00));
+
+      // wrap the forward operator as an Xpetra::Matrix that MueLu can work with
+      RCP<XpMat> A00 = rcp(new Xpetra::CrsMatrixWrap<Scalar,LocalOrdinal,GlobalOrdinal,Node>(xpetraFwdCrsMatNonConst00));
       TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(A00));
 
       RCP<const XpMap> rowmap00 = A00->getRowMap();
@@ -332,9 +342,15 @@ namespace Thyra {
       // save blocked matrix
       A = bMat;
     } else {
-      // wrap the forward operator as an Xpetra::Matrix that MueLu can work with
+      RCP<const XpCrsMat > xpetraFwdCrsMat = XpThyUtils::toXpetra(fwdOp);
+      TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(xpetraFwdCrsMat));
+
       // MueLu needs a non-const object as input
-      A = XpThyUtils::toXpetra(Teuchos::rcp_const_cast<ThyLinOpBase>(fwdOp));
+      RCP<XpCrsMat> xpetraFwdCrsMatNonConst = Teuchos::rcp_const_cast<XpCrsMat>(xpetraFwdCrsMat);
+      TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(xpetraFwdCrsMatNonConst));
+
+      // wrap the forward operator as an Xpetra::Matrix that MueLu can work with
+      A = rcp(new Xpetra::CrsMatrixWrap<Scalar,LocalOrdinal,GlobalOrdinal,Node>(xpetraFwdCrsMatNonConst));
     }
     TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(A));
 
@@ -367,10 +383,6 @@ namespace Thyra {
 
       if (useHalfPrecision) {
 #if defined(HAVE_MUELU_TPETRA) && defined(HAVE_TPETRA_INST_DOUBLE) && defined(HAVE_TPETRA_INST_FLOAT)
-
-        // CAG: There is nothing special about the combination double-float,
-        //      except that I feel somewhat confident that Trilinos builds
-        //      with both scalar types.
 
         // convert to half precision
         RCP<XphMat> halfA = Xpetra::convertToHalfPrecision(A);

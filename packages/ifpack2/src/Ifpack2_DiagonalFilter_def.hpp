@@ -62,16 +62,16 @@ DiagonalFilter (const Teuchos::RCP<const Tpetra::RowMatrix<Scalar,LocalOrdinal,G
   AbsoluteThreshold_(AbsoluteThreshold),
   RelativeThreshold_(RelativeThreshold)
 {
-  pos_.resize(getLocalNumRows());
+  pos_.resize(getNodeNumRows());
   val_=Teuchos::rcp(new Tpetra::Vector<Scalar,LocalOrdinal,GlobalOrdinal,Node>(A_->getRowMap()));
 
-  nonconst_local_inds_host_view_type Indices("Indices",getLocalMaxNumRowEntries());
-  nonconst_values_host_view_type Values("Values",getLocalMaxNumRowEntries());
+  nonconst_local_inds_host_view_type Indices("Indices",getNodeMaxNumRowEntries());
+  nonconst_values_host_view_type Values("Values",getNodeMaxNumRowEntries());
   size_t NumEntries;
   magnitudeType mysign;
 
 
-  for (size_t MyRow = 0 ; MyRow < getLocalNumRows() ; ++MyRow) {
+  for (size_t MyRow = 0 ; MyRow < getNodeNumRows() ; ++MyRow) {
     pos_[MyRow] = -1;
     A_->getLocalRowCopy(MyRow,Indices,Values,NumEntries);
 
@@ -160,15 +160,15 @@ global_size_t DiagonalFilter<MatrixType>::getGlobalNumCols() const
 }
 
 template<class MatrixType>
-size_t DiagonalFilter<MatrixType>::getLocalNumRows() const
+size_t DiagonalFilter<MatrixType>::getNodeNumRows() const
 {
-  return A_->getLocalNumRows();
+  return A_->getNodeNumRows();
 }
 
 template<class MatrixType>
-size_t DiagonalFilter<MatrixType>::getLocalNumCols() const
+size_t DiagonalFilter<MatrixType>::getNodeNumCols() const
 {
-  return A_->getLocalNumCols();
+  return A_->getNodeNumCols();
 }
 
 template<class MatrixType>
@@ -184,9 +184,9 @@ global_size_t DiagonalFilter<MatrixType>::getGlobalNumEntries() const
 }
 
 template<class MatrixType>
-size_t DiagonalFilter<MatrixType>::getLocalNumEntries() const
+size_t DiagonalFilter<MatrixType>::getNodeNumEntries() const
 {
-  return A_->getLocalNumEntries();
+  return A_->getNodeNumEntries();
 }
 
 template<class MatrixType>
@@ -208,9 +208,9 @@ size_t DiagonalFilter<MatrixType>::getGlobalMaxNumRowEntries() const
 }
 
 template<class MatrixType>
-size_t DiagonalFilter<MatrixType>::getLocalMaxNumRowEntries() const
+size_t DiagonalFilter<MatrixType>::getNodeMaxNumRowEntries() const
 {
-  return A_->getLocalMaxNumRowEntries();
+  return A_->getNodeMaxNumRowEntries();
 }
 
 template<class MatrixType>

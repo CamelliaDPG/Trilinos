@@ -38,15 +38,15 @@
 # @HEADER
 
 
-include(TribitsAddAdvancedTestHelpers)
-include(TribitsConstants)
+INCLUDE(TribitsAddAdvancedTestHelpers)
+INCLUDE(TribitsConstants)
 
-include(AppendStringVar)
-include(PrintVar)
+INCLUDE(AppendStringVar)
+INCLUDE(PrintVar)
 
 
 #
-# @FUNCTION: tribits_add_advanced_test()
+# @FUNCTION: TRIBITS_ADD_ADVANCED_TEST()
 #
 # Function that creates an advanced test defined by stringing together one or
 # more executable and/or command invocations that is run as a ``cmake -P``
@@ -54,7 +54,7 @@ include(PrintVar)
 #
 # Usage::
 #
-#   tribits_add_advanced_test(
+#   TRIBITS_ADD_ADVANCED_TEST(
 #     <testNameBase>
 #     TEST_0 (EXEC <execTarget0> | CMND <cmndExec0>) ...
 #     [TEST_1 (EXEC <execTarget1> | CMND <cmndExec1>) ...]
@@ -85,13 +85,13 @@ include(PrintVar)
 # This function allows one to add a single CTest test that is actually a
 # sequence of one or more separate commands strung together in some way to
 # define the final pass/fail. One will want to use this function to add a test
-# instead of `tribits_add_test()`_ when one needs to run more than one
+# instead of `TRIBITS_ADD_TEST()`_ when one needs to run more than one
 # command, or one needs more sophisticated checking of the test result other
 # than just grepping STDOUT (e.g. by running separate post-processing programs
 # to examine output files).
 #
 # For more details on these arguments, see `TEST_<idx> EXEC/CMND Test Blocks
-# and Arguments (tribits_add_advanced_test())`_.
+# and Arguments (TRIBITS_ADD_ADVANCED_TEST())`_.
 #
 # The most common type of an atomic test block ``TEST_<idx>`` runs a command
 # as either a package-built executable or just any command.  An atomic test
@@ -119,7 +119,7 @@ include(PrintVar)
 #      [WILL_FAIL]
 #
 # For more information on these arguments, see `TEST_<idx> EXEC/CMND Test
-# Blocks and Arguments (tribits_add_advanced_test())`_.
+# Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST())`_.
 #
 # The other type of ``TEST_<idx>`` block supported is for copying files and
 # takes the form::
@@ -137,8 +137,8 @@ include(PrintVar)
 #
 # * One can modify the input files and then just run the test with ``ctest``
 #   in an iterative manner (and not have to configure again when using
-#   ``configure_file( ... COPYONLY)`` or build again when using
-#   ``tribits_copy_files_to_binary_dir()`` in order to copy files).
+#   ``CONFIGURE_FILE( ... COPYONLY)`` or build again when using
+#   ``TRIBITS_COPY_FILES_TO_BINARY_DIR()`` in order to copy files).
 #
 # * When using ``OVERALL_WORKING_DIR TEST_NAME``, the test directory gets blow
 #   away every time before it runs and therefore any old files are deleted
@@ -148,56 +148,56 @@ include(PrintVar)
 #
 # For more information on these arguments, see `TEST_<idx>
 # COPY_FILES_TO_TEST_DIR Test Blocks and Arguments
-# (tribits_add_advanced_test())`_.
+# (TRIBITS_ADD_ADVANCED_TEST())`_.
 # 
 # By default, each and every atomic ``TEST_<idx>`` block needs to pass (as
-# defined in `Test case Pass/Fail (tribits_add_advanced_test())`_) in order
+# defined in `Test case Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())`_) in order
 # for the overall test to pass.
 #
 # Finally, the test is only added if tests are enabled for the SE package
 # (i.e. `${PACKAGE_NAME}_ENABLE_TESTS`_ ``= ON``) or the parent package (if
 # this is a subpackage) (i.e. ``${PARENT_PACKAGE_NAME}_ENABLE_TESTS=ON``) or
 # if other criteria are met (see some of the arguments in `Overall Arguments
-# (tribits_add_advanced_test())`_ that can trigger a test to not be added).
+# (TRIBITS_ADD_ADVANCED_TEST())`_ that can trigger a test to not be added).
 # (NOTE: A more efficient way to optionally enable tests is to put them in a
 # ``test/`` subdir and then include that subdir with
-# `tribits_add_test_directories()`_.)
+# `TRIBITS_ADD_TEST_DIRECTORIES()`_.)
 #
 # *Sections:*
 #
-# * `Overall Arguments (tribits_add_advanced_test())`_
-# * `TEST_<idx> EXEC/CMND Test Blocks and Arguments (tribits_add_advanced_test())`_
-# * `TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (tribits_add_advanced_test())`_
-# * `Test case Pass/Fail (tribits_add_advanced_test())`_
-# * `Overall Pass/Fail (tribits_add_advanced_test())`_
-# * `Argument Parsing and Ordering (tribits_add_advanced_test())`_
-# * `Implementation Details (tribits_add_advanced_test())`_
-# * `Setting Additional Test Properties (tribits_add_advanced_test())`_
-# * `Running multiple tests at the same time (tribits_add_advanced_test())`_
-# * `Disabling Tests Externally (tribits_add_advanced_test())`_
-# * `Debugging and Examining Test Generation (tribits_add_advanced_test())`_
-# * `Using tribits_add_advanced_test() in non-TriBITS CMake projects`_
+# * `Overall Arguments (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `TEST_<idx> EXEC/CMND Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Test case Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Overall Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Argument Parsing and Ordering (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Implementation Details (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Setting Additional Test Properties (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Running multiple tests at the same time (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Disabling Tests Externally (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Debugging and Examining Test Generation (TRIBITS_ADD_ADVANCED_TEST())`_
+# * `Using TRIBITS_ADD_ADVANCED_TEST() in non-TriBITS CMake projects`_
 #
-# .. _Overall Arguments (tribits_add_advanced_test()):
+# .. _Overall Arguments (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Overall Arguments (tribits_add_advanced_test())**
+# **Overall Arguments (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # Below, some of the overall arguments are described.  The rest of the overall
 # arguments that control overall pass/fail are described in `Overall Pass/Fail
-# (tribits_add_advanced_test())`_.  (NOTE: All of these arguments must be
+# (TRIBITS_ADD_ADVANCED_TEST())`_.  (NOTE: All of these arguments must be
 # listed outside of the ``TEST_<idx>`` blocks, see `Argument Parsing and
-# Ordering (tribits_add_advanced_test())`_).
+# Ordering (TRIBITS_ADD_ADVANCED_TEST())`_).
 #
 #   ``<testNameBase>``
 #
 #     The base name of the test (which will have ``${PACKAGE_NAME}_``
 #     prepended to the name, see <testName> below) that will be used to name
 #     the output CMake script file as well as the CTest test name passed into
-#     ``add_test()``.  This must be the first argument to this function.  The
+#     ``ADD_TEST()``.  This must be the first argument to this function.  The
 #     name is allowed to contain '/' chars but these will be replaced with
 #     '__' in the overall working directory name and the ctest -P script
 #     (`Debugging and Examining Test Generation
-#     (tribits_add_advanced_test())`_).
+#     (TRIBITS_ADD_ADVANCED_TEST())`_).
 #
 #   ``OVERALL_WORKING_DIRECTORY <overallWorkingDir>``
 #
@@ -229,13 +229,13 @@ include(PrintVar)
 #   ``RUN_SERIAL``
 #
 #     If specified, then no other tests will be allowed to run while this test
-#     is running. See the ``RUN_SERIAL`` argument in the function
-#     `tribits_add_test()`_ for more details.
+#     is running. See the ``RUN_SERIAL`` argument in the fucntion
+#     `TRIBITS_ADD_TEST()`_ for more details.
 #
 #   ``COMM [serial] [mpi]``
 #
 #     If specified, selects if the test will be added in serial and/or MPI
-#     mode.  See the ``COMM`` argument in the function `tribits_add_test()`_
+#     mode.  See the ``COMM`` argument in the function `TRIBITS_ADD_TEST()`_
 #     for more details.
 #
 #   ``OVERALL_NUM_MPI_PROCS <overallNumProcs>``
@@ -248,7 +248,7 @@ include(PrintVar)
 #     ignored.  For MPI builds with all ``TEST_<idx> CMND`` blocks,
 #     ``<overallNumProcs>`` is used to set the property ``PROCESSORS``. (see
 #     `Running multiple tests at the same time
-#     (tribits_add_advanced_test())`_).  **WARNING!** If just running a serial
+#     (TRIBITS_ADD_ADVANCED_TEST())`_).  **WARNING!** If just running a serial
 #     script or other command, then the property ``PROCESSORS`` will still get
 #     set to ``${OVERALL_NUM_MPI_PROCS}`` so in order to avoid CTest
 #     unnecessarily reserving ``${OVERALL_NUM_MPI_PROCS}`` processes for a
@@ -262,38 +262,38 @@ include(PrintVar)
 #   ``CATEGORIES <category0> <category1> ...``
 #
 #     Gives the `Test Test Categories`_ for which this test will be added.
-#     See `tribits_add_test()`_ for more details.
+#     See `TRIBITS_ADD_TEST()`_ for more details.
 #
 #   ``HOST <host0> <host1> ...``
 #
 #     The list of hosts for which to enable the test (see
-#     `tribits_add_test()`_).
+#     `TRIBITS_ADD_TEST()`_).
 #
 #   ``XHOST <host0> <host1> ...``
 #
 #     The list of hosts for which **not** to enable the test (see
-#     `tribits_add_test()`_).
+#     `TRIBITS_ADD_TEST()`_).
 #
 #   ``HOSTTYPE <hosttype0> <hosttype1> ...``
 #
 #     The list of host types for which to enable the test (see
-#     `tribits_add_test()`_).
+#     `TRIBITS_ADD_TEST()`_).
 #
 #   ``XHOSTTYPE <hosttype0> <hosttype1> ...``
 #
 #     The list of host types for which **not** to enable the test (see
-#     `tribits_add_test()`_).
+#     `TRIBITS_ADD_TEST()`_).
 #
 #   ``EXCLUDE_IF_NOT_TRUE <varname0> <varname1> ...``
 #
 #     If specified, gives the names of CMake variables that must evaluate to
-#     true, or the test will not be added (see `tribits_add_test()`_).
+#     true, or the test will not be added (see `TRIBITS_ADD_TEST()`_).
 #
 #   ``DISABLED <messageWhyDisabled>``
 #
 #     If ``<messageWhyDisabled>`` is non-empty and does not evaluate to FALSE
 #     by CMake, then the test will be added by ctest but the ``DISABLED`` test
-#     property will be set (see `tribits_add_test()`_).
+#     property will be set (see `TRIBITS_ADD_TEST()`_).
 #
 #   ``ENVIRONMENT <var1>=<value1> <var2>=<value2> ..``.
 #
@@ -305,21 +305,21 @@ include(PrintVar)
 #
 #     If passed in, gives maximum number of seconds the test will be allowed
 #     to run before being timed-out and killed (see `Setting timeouts for
-#     tests (tribits_add_test())`_).  This is for the full CTest test, not
+#     tests (TRIBITS_ADD_TEST())`_).  This is for the full CTest test, not
 #     individual ``TEST_<idx>`` commands!
 #
 #   ``ADDED_TEST_NAME_OUT <testName>``
 #
 #     If specified, then on output the variable ``<testName>`` will be set
-#     with the name of the test passed to ``add_test()``.  Having this name
+#     with the name of the test passed to ``ADD_TEST()``.  Having this name
 #     allows the calling ``CMakeLists.txt`` file access and set additional
 #     test properties (see `Setting additional test properties
-#     (tribits_add_advanced_test())`_).
+#     (TRIBITS_ADD_ADVANCED_TEST())`_).
 #
-# .. _TEST_<idx> EXEC/CMND Test Blocks and Arguments (tribits_add_advanced_test()):
+# .. _TEST_<idx> EXEC/CMND Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST()):
 #
 #
-# **TEST_<idx> EXEC/CMND Test Blocks and Arguments (tribits_add_advanced_test())**
+# **TEST_<idx> EXEC/CMND Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # Each test general command block ``TEST_<idx>`` runs either a package-built
 # test executable or some general command executable and is defined as either
@@ -332,8 +332,8 @@ include(PrintVar)
 #     If ``EXEC`` is specified, then ``<exeRootName>`` gives the root name of
 #     an executable target that will be run as the command.  The full
 #     executable name and path is determined in exactly the same way it is in
-#     the `tribits_add_test()`_ function (see `Determining the Executable or
-#     Command to Run (tribits_add_test())`_).  If this is an MPI build, then
+#     the `TRIBITS_ADD_TEST()`_ function (see `Determining the Executable or
+#     Command to Run (TRIBITS_ADD_TEST())`_).  If this is an MPI build, then
 #     the executable will be run with MPI using ``NUM_MPI_PROCS <numProcs>``
 #     (or ``OVERALL_NUM_MPI_PROCS <overallNumProcs>`` if ``NUM_MPI_PROCS`` is
 #     not set for this test case).  If the maximum number of MPI processes
@@ -375,7 +375,7 @@ include(PrintVar)
 #   ``DIRECTORY <dir>``
 #
 #     If specified, then the executable is assumed to be in the directory
-#     given by relative ``<dir>``.  See `tribits_add_test()`_.
+#     given by relative ``<dir>``.  See `TRIBITS_ADD_TEST()`_.
 #
 #   ``MESSAGE "<message>"``
 #
@@ -435,7 +435,7 @@ include(PrintVar)
 #     ``<outputFile>``.  By default, the contents of this file will **also**
 #     be printed to STDOUT unless ``NO_ECHO_OUT`` is passed as well.
 #
-#     NOTE: Contrary to CMake documentation for execute_process(), STDOUT and
+#     NOTE: Contrary to CMake documentation for EXECUTE_PROCESS(), STDOUT and
 #     STDERR may not get output in the correct order interleaved correctly,
 #     even in serial without MPI.  Therefore, you can't write any tests that
 #     depend on the order of STDOUT and STDERR output in relation to each
@@ -454,7 +454,7 @@ include(PrintVar)
 # By default, an individual test case ``TEST_<IDX>`` is assumed to pass if the
 # executable or commands returns a non-zero value to the shell.  However, a
 # test case can also be defined to pass or fail based on the arguments/options
-# (see `Test case Pass/Fail (tribits_add_advanced_test())`_):
+# (see `Test case Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())`_):
 #
 #   ``PASS_ANY``
 #
@@ -467,7 +467,7 @@ include(PrintVar)
 #
 #     If specified, the test command will be assumed to pass if it matches the
 #     given regular expression.  Otherwise, it is assumed to fail.  TIPS:
-#     Replace ';' with '[;]' or CMake will interpret this as an array element
+#     Replace ';' with '[;]' or CMake will interpret this as an array elemnt
 #     boundary.  To match '.', use '[.]'.
 #
 #   ``PASS_REGULAR_EXPRESSION_ALL "<regex1>" "<regex2>" ... "<regexn>"``
@@ -476,7 +476,7 @@ include(PrintVar)
 #     matches all of the provided regular expressions.  Note that this is not
 #     a capability of raw ctest and represents an extension provided by
 #     TriBITS.  NOTE: It is critical that you replace ';' with '[;]' or CMake
-#     will interpret this as an array element boundary.
+#     will interpret this as an array elemnt boundary.
 #
 #   ``STANDARD_PASS_OUTPUT``
 #
@@ -523,7 +523,7 @@ include(PrintVar)
 # 
 # All of the arguments for a test block ``TEST_<idx>`` must appear directly
 # below their ``TEST_<idx>`` argument and before the next test block (see
-# `Argument Parsing and Ordering (tribits_add_advanced_test())`_).
+# `Argument Parsing and Ordering (TRIBITS_ADD_ADVANCED_TEST())`_).
 #
 # **NOTE:** The current implementation limits the number of ``TEST_<idx>``
 # blocks to just 20 (i.e. for ``<idx>=0...19``).  If more test blocks are
@@ -534,11 +534,11 @@ include(PrintVar)
 #
 # where ``<larger-num> > 20``.  This can be set in any scope in any
 # ``CMakeLists.txt`` file or inside of a function and it will impact all of
-# the future calls to ``tribits_add_advanced_test()`` in that scope.
+# the future calls to ``TRIBITS_ADD_ADVANCED_TEST()`` in that scope.
 #
-# .. _TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (tribits_add_advanced_test()):
+# .. _TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (tribits_add_advanced_test())**
+# **TEST_<idx> COPY_FILES_TO_TEST_DIR Test Blocks and Arguments (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # The arguments for the ``TEST_<idx>`` ``COPY_FILES_TO_TEST_DIR`` block are:
 #
@@ -568,9 +568,9 @@ include(PrintVar)
 #     without modification.  If ``<destDir>`` does not exist, then it will be
 #     created (including several directory levels deep if needed).
 #
-# .. _Test case Pass/Fail (tribits_add_advanced_test()):
+# .. _Test case Pass/Fail (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Test case Pass/Fail (tribits_add_advanced_test())**
+# **Test case Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # The logic for how pass/fail for a ``TEST_<IDX>`` ``EXEC`` or ``CMND`` case
 # is applied is given by::
@@ -613,9 +613,9 @@ include(PrintVar)
 #     Endif
 #   Endif
 #
-# .. _Overall Pass/Fail (tribits_add_advanced_test()):
+# .. _Overall Pass/Fail (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Overall Pass/Fail (tribits_add_advanced_test())**
+# **Overall Pass/Fail (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # By default, the overall test will be assumed to pass if it prints::
 #
@@ -633,19 +633,19 @@ include(PrintVar)
 #     If specified, the test will be assumed to fail if the output matches
 #     ``<regex>``.  Otherwise, it will be assumed to fail.
 #
-# .. _Argument Parsing and Ordering (tribits_add_advanced_test()):
+# .. _Argument Parsing and Ordering (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Argument Parsing and Ordering (tribits_add_advanced_test())**
+# **Argument Parsing and Ordering (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # The basic tool used for parsing the arguments to this function is the macro
-# ``cmake_parse_arguments()`` which has a certain set of behaviors.  The
-# parsing using ``cmake_parse_arguments()`` is actually done in two phases.
+# ``CMAKE_PARSE_ARGUMENTS()`` which has a certain set of behaviors.  The
+# parsing using ``CMAKE_PARSE_ARGUMENTS()`` is actually done in two phases.
 # There is a top-level parsing of the "overall" arguments listed in `Overall
-# Arguments (tribits_add_advanced_test())`_ that also pulls out the test
+# Arguments (TRIBITS_ADD_ADVANCED_TEST())`_ that also pulls out the test
 # blocks.  Then there is a second level of parsing using
-# ``cmake_parse_arguments()`` for each of the ``TEST_<idx>`` blocks.  Because
+# ``CMAKE_PARSE_ARGUMENTS()`` for each of the ``TEST_<idx>`` blocks.  Because
 # of this usage, there are a few restrictions that one needs to be aware of
-# when using ``tribits_add_advanced_test()``.  This short sections tries to
+# when using ``TRIBITS_ADD_ADVANCED_TEST()``.  This short sections tries to
 # explain the behaviors and what is allowed and what is not allowed.
 #
 # For the most part, the "overall" arguments and the arguments inside of any
@@ -675,41 +675,41 @@ include(PrintVar)
 #
 # .. ToDo: Add some examples of bad argument ordering and what will happen.
 #
-# .. _Implementation Details (tribits_add_advanced_test()):
+# .. _Implementation Details (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Implementation Details (tribits_add_advanced_test())**
+# **Implementation Details (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # Since raw CTest does not support the features provided by this function, the
 # way an advanced test is implemented is that a ``cmake -P`` script with the
 # name ``<testName>.cmake`` (with any '/' replaced with '__') gets created in
 # the current binary directory that then gets added to CTest using::
 #
-#   add_test(<testName> cmake [other options] -P <testName>.cmake)
+#   ADD_TEST(<testName> cmake [other options] -P <testName>.cmake)
 #
 # This ``cmake -P`` script then runs the various test cases and checks the
 # pass/fail for each case to determine overall pass/fail and implement other
 # functionality described above.
 #
-# .. _Setting Additional Test Properties (tribits_add_advanced_test()):
+# .. _Setting Additional Test Properties (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Setting Additional Test Properties (tribits_add_advanced_test())**
+# **Setting Additional Test Properties (TRIBITS_ADD_ADVANCED_TEST())**
 #
-# After this function returns, if the test gets added using ``add_test()``,
+# After this function returns, if the test gets added using ``ADD_TEST()``,
 # then additional properties can be set and changed using
-# ``set_tests_properties(<testName> ...)``, where ``<testName>`` is returned
+# ``SET_TESTS_PROPERTIES(<testName> ...)``, where ``<testName>`` is returned
 # using the ``ADDED_TEST_NAME_OUT <testName>`` argument.  Therefore, any tests
 # properties that are not directly supported by this function and passed
 # through the argument list to this wrapper function can be set in the outer
-# ``CMakeLists.txt`` file after the call to ``tribits_add_advanced_test()``.
+# ``CMakeLists.txt`` file after the call to ``TRIBITS_ADD_ADVANCED_TEST()``.
 # For example::
 #
-#   tribits_add_advanced_test_test( someTest ...
+#   TRIBITS_ADD_ADVANCED_TEST_TEST( someTest ...
 #     ADDED_TEST_NAME_OUT  someTest_TEST_NAME )
 #
-#   if (someTest_TEST_NAME)
-#     set_tests_properties( ${someTest_TEST_NAME}
+#   IF (someTest_TEST_NAME)
+#     SET_TESTS_PROPERTIES( ${someTest_TEST_NAME}
 #       PROPERTIES ATTACHED_FILES someTest.log )
-#   endif()
+#   ENDIF()
 #
 # where the test writes a log file ``someTest.log`` that we want to submit to
 # CDash also.
@@ -719,58 +719,58 @@ include(PrintVar)
 # ``COMM``, ``XHOST``, etc.).
 #
 # The following built-in CTest test properties are set through `Overall
-# Arguments (tribits_add_advanced_test())`_ or are otherwise automatically set
+# Arguments (TRIBITS_ADD_ADVANCED_TEST())`_ or are otherwise automatically set
 # by this function and should **NOT** be overridden by direct calls to
-# ``set_tests_properties()``: ``ENVIRONMENT``, ``FAIL_REGULAR_EXPRESSION``,
+# ``SET_TESTS_PROPERTIES()``: ``ENVIRONMENT``, ``FAIL_REGULAR_EXPRESSION``,
 # ``LABELS``, ``PASS_REGULAR_EXPRESSION``, ``RUN_SERIAL``, ``TIMEOUT``,
 # ``WILL_FAIL``, and ``WORKING_DIRECTORY``.
 #
 # However, generally, other built-in CTest test properties can be set after
 # the test is added like show above.  Examples of test properties that can be
-# set using direct calls to ``set_tests_properties()`` include
+# set using direct calls to ``SET_TESTS_PROPERTIES()`` include
 # ``ATTACHED_FILES``, ``ATTACHED_FILES_ON_FAIL``, ``COST``, ``DEPENDS``,
 # ``MEASUREMENT``, and ``RESOURCE_LOCK``.
 #
 # For example, one can set a dependency between two tests using::
 #
-#   tribits_add_advanced_test_test( test_a [...]
+#   TRIBITS_ADD_ADVANCED_TEST_TEST( test_a [...]
 #      ADDED_TEST_NAME_OUT  test_a_TEST_NAME )
 #   
-#   tribits_add_advanced_test_test( test_b [...]
+#   TRIBITS_ADD_ADVANCED_TEST_TEST( test_b [...]
 #      ADDED_TEST_NAME_OUT  test_z_TEST_NAME )
 #   
-#   if (test_a_TEST_NAME AND test_b_TEST_NAME)
-#     set_tests_properties(${test_b_TEST_NAME}
+#   IF (test_a_TEST_NAME AND test_b_TEST_NAME)
+#     SET_TESTS_PROPERTIES(${test_b_TEST_NAME}
 #       PROPERTIES DEPENDS ${test_a_TEST_NAME})
-#   endif()
+#   ENDIF()
 #
 # This ensures that test ``test_b`` will always be run after ``test_a`` if
 # both tests are run by CTest.
 #
-# .. _Running multiple tests at the same time (tribits_add_advanced_test()):
+# .. _Running multiple tests at the same time (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Running multiple tests at the same time (tribits_add_advanced_test())**
+# **Running multiple tests at the same time (TRIBITS_ADD_ADVANCED_TEST())**
 #
-# Just as with `tribits_add_test()`_, setting ``NUM_MPI_PROCS <numProcs>`` or
+# Just as with `TRIBITS_ADD_TEST()`_, setting ``NUM_MPI_PROCS <numProcs>`` or
 # ``OVERALL_NUM_MPI_PROCS <numOverallProcs>`` or ``NUM_TOTAL_CORES_USED
 # <numTotalCoresUsed>`` or ``OVERALL_NUM_TOTAL_CORES_USED
 # <overallNumTotalCoresUsed>`` will set the ``PROCESSORS`` CTest property to
 # allow CTest to schedule and run multiple tests at the same time when ``'ctest
 # -j<N>'`` is used (see `Running multiple tests at the same time
-# (tribits_add_test())`_).
+# (TRIBITS_ADD_TEST())`_).
 #
-# .. _Disabling Tests Externally (tribits_add_advanced_test()):
+# .. _Disabling Tests Externally (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Disabling Tests Externally (tribits_add_advanced_test())**
+# **Disabling Tests Externally (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # The test can be disabled externally by setting the CMake cache variable
 # ``<testName>_DISABLE=TRUE``.  This allows tests to be disabled on a
 # case-by-case basis.  The name ``<testName>`` must be the *exact* name
 # that shows up in ``ctest -N`` when running the test.
 #
-# .. _Debugging and Examining Test Generation (tribits_add_advanced_test()):
+# .. _Debugging and Examining Test Generation (TRIBITS_ADD_ADVANCED_TEST()):
 #
-# **Debugging and Examining Test Generation (tribits_add_advanced_test())**
+# **Debugging and Examining Test Generation (TRIBITS_ADD_ADVANCED_TEST())**
 #
 # In order to see what tests get added and if not then why, configure with
 # ``${PROJECT_NAME}_TRACE_ADD_TEST=ON``.  That will print one line per test
@@ -781,60 +781,60 @@ include(PrintVar)
 #
 # Likely the best way to debug test generation using this function is to
 # examine the generated file ``<testName>.cmake`` in the current binary
-# directory (see `Implementation Details (tribits_add_advanced_test())`_) and
+# directory (see `Implementation Details (TRIBITS_ADD_ADVANCED_TEST())`_) and
 # the generated ``CTestTestfile.cmake`` file that should list this test case.
 #
-# .. _Using tribits_add_advanced_test() in non-TriBITS CMake projects:
+# .. _Using TRIBITS_ADD_ADVANCED_TEST() in non-TriBITS CMake projects:
 #
-# **Using tribits_add_advanced_test() in non-TriBITS CMake projects**
+# **Using TRIBITS_ADD_ADVANCED_TEST() in non-TriBITS CMake projects**
 #
-# The function ``tribits_add_advanced_test()`` can be used to add tests in
+# The function ``TRIBITS_ADD_ADVANCED_TEST()`` can be used to add tests in
 # non-TriBITS projects.  To do so, one just needs to set the variables
 # ``PROJECT_NAME``, ``PACKAGE_NAME`` (which could be the same as
 # ``PROJECT_NAME``), ``${PACKAGE_NAME}_ENABLE_TESTS=TRUE``, and
 # ``${PROJECT_NAME}_TRIBITS_DIR`` (pointing to the TriBITS location).  For example,
 # a valid project can be a simple as::
 #
-#   cmake_minimum_required(VERSION 3.17.0)
-#   set(PROJECT_NAME TAATDriver)
-#   project(${PROJECT_NAME} NONE)
-#   set(${PROJECT_NAME}_TRACE_ADD_TEST TRUE)
-#   set(${PROJECT_NAME}_TRIBITS_DIR ""  CACHE FILEPATH
+#   CMAKE_MINIMUM_REQUIRED(VERSION 3.17.0)
+#   SET(PROJECT_NAME TAATDriver)
+#   PROJECT(${PROJECT_NAME} NONE)
+#   SET(${PROJECT_NAME}_TRACE_ADD_TEST TRUE)
+#   SET(${PROJECT_NAME}_TRIBITS_DIR ""  CACHE FILEPATH
 #     "Location of TriBITS to use." ) 
-#   set(PACKAGE_NAME ${PROJECT_NAME})
-#   set(${PACKAGE_NAME}_ENABLE_TESTS TRUE)
-#   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+#   SET(PACKAGE_NAME ${PROJECT_NAME})
+#   SET(${PACKAGE_NAME}_ENABLE_TESTS TRUE)
+#   SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 #     ${TRIBITS_DIR}/core/utils
 #     ${TRIBITS_DIR}/core/package_arch )
-#   include(TribitsAddAdvancedTest)
-#   include(CTest)
-#   enable_testing()
+#   INCLUDE(TribitsAddAdvancedTest)
+#   INCLUDE(CTest)
+#   ENABLE_TESTING()
 #   
-#   tribits_add_advanced_test(
+#   TRIBITS_ADD_ADVANCED_TEST(
 #     TAAT_COPY_FILES_TO_TEST_DIR_bad_file_name
 #     OVERALL_WORKING_DIRECTORY TEST_NAME
 #     TEST_0 CMND echo ARGS "Hello World!"
 #       PASS_REGULAR_EXPRESIOIN "Hello World"
 #     )
 #
-function(tribits_add_advanced_test TEST_NAME_IN)
+FUNCTION(TRIBITS_ADD_ADVANCED_TEST TEST_NAME_IN)
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    message("\nPACKAGE_ADD_ADVANCED_TEST: ${TEST_NAME_IN}\n")
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    MESSAGE("\nPACKAGE_ADD_ADVANCED_TEST: ${TEST_NAME_IN}\n")
+  ENDIF()
 
-  global_set(TRIBITS_SET_TEST_PROPERTIES_INPUT)
-  global_set(MESSAGE_WRAPPER_INPUT)
+  GLOBAL_SET(TRIBITS_SET_TEST_PROPERTIES_INPUT)
+  GLOBAL_SET(MESSAGE_WRAPPER_INPUT)
 
   # Set the full TEST_NAME
-  if (PACKAGE_NAME)
-    set(TEST_NAME ${PACKAGE_NAME}_${TEST_NAME_IN})
-  else()
-    set(TEST_NAME ${TEST_NAME_IN})
-  endif()
+  IF (PACKAGE_NAME)
+    SET(TEST_NAME ${PACKAGE_NAME}_${TEST_NAME_IN})
+  ELSE()
+    SET(TEST_NAME ${TEST_NAME_IN})
+  ENDIF()
 
   # Avoid quoted strings lookup variables
-  cmake_policy(SET CMP0054 NEW)
+  CMAKE_POLICY(SET CMP0054 NEW)
   # NOTE: For some reason, setting this policy at the top level with TriBITS
   # in TribitsCMakePolices.cmake does not affect this function.  Therefore, I
   # have to set it again here.
@@ -845,16 +845,16 @@ function(tribits_add_advanced_test TEST_NAME_IN)
   #
 
   # Set maximum number of TEST_<idx> blocks
-  tribits_add_advanced_test_max_num_test_cmnd_idx_compute()
-  set(MAX_NUM_TEST_CMND_IDX ${TRIBITS_ADD_ADVANCED_TEST_MAX_NUM_TEST_CMND_IDX})
+  TRIBITS_ADD_ADVANCED_TEST_MAX_NUM_TEST_CMND_IDX_COMPUTE()
+  SET(MAX_NUM_TEST_CMND_IDX ${TRIBITS_ADD_ADVANCED_TEST_MAX_NUM_TEST_CMND_IDX})
 
-  set(TEST_IDX_LIST "")
-  foreach( TEST_CMND_IDX RANGE ${MAX_NUM_TEST_CMND_IDX})
-    list( APPEND TEST_IDX_LIST TEST_${TEST_CMND_IDX} )
-  endforeach()
-  #print_var(TEST_IDX_LIST)
+  SET(TEST_IDX_LIST "")
+  FOREACH( TEST_CMND_IDX RANGE ${MAX_NUM_TEST_CMND_IDX})
+    LIST( APPEND TEST_IDX_LIST TEST_${TEST_CMND_IDX} )
+  ENDFOREACH()
+  #PRINT_VAR(TEST_IDX_LIST)
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -866,65 +866,65 @@ function(tribits_add_advanced_test TEST_NAME_IN)
      ${ARGN}
      )
 
-  tribits_add_advanced_test_check_exceed_max_num_test_blocks()
+  TRIBITS_ADD_ADVANCED_TEST_CHECK_EXCEED_MAX_NUM_TEST_BLOCKS()
 
-  if(PARSE_ADDED_TEST_NAME_OUT)
-    set(${PARSE_ADDED_TEST_NAME_OUT} "" PARENT_SCOPE )
-  endif()
+  IF(PARSE_ADDED_TEST_NAME_OUT)
+    SET(${PARSE_ADDED_TEST_NAME_OUT} "" PARENT_SCOPE )
+  ENDIF()
 
   # Set the name of the cmake -P script.
-  string(REPLACE "/" "__" NORMALIZED_TEST_NAME "${TEST_NAME}")
-  set(TEST_SCRIPT_FILE_NAME "${NORMALIZED_TEST_NAME}.cmake")
+  STRING(REPLACE "/" "__" NORMALIZED_TEST_NAME "${TEST_NAME}")
+  SET(TEST_SCRIPT_FILE_NAME "${NORMALIZED_TEST_NAME}.cmake")
 
   # Set the relative overall working directory and abs working directory
-  if (PARSE_OVERALL_WORKING_DIRECTORY)
-    if ("${PARSE_OVERALL_WORKING_DIRECTORY}" STREQUAL "TEST_NAME")
-      set(PARSE_OVERALL_WORKING_DIRECTORY ${NORMALIZED_TEST_NAME})
-    endif()
+  IF (PARSE_OVERALL_WORKING_DIRECTORY)
+    IF ("${PARSE_OVERALL_WORKING_DIRECTORY}" STREQUAL "TEST_NAME")
+      SET(PARSE_OVERALL_WORKING_DIRECTORY ${NORMALIZED_TEST_NAME})
+    ENDIF()
    # Test will run in created working subdir
-   set(ABS_OVERALL_WORKING_DIRECTORY
+   SET(ABS_OVERALL_WORKING_DIRECTORY
      ${CMAKE_CURRENT_BINARY_DIR}/${PARSE_OVERALL_WORKING_DIRECTORY})
-  else()
+  ELSE()
     # Test runs in current binary directory (not a good idea!) 
-    set(ABS_OVERALL_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-  endif()
+    SET(ABS_OVERALL_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  ENDIF()
 
   #
   # B) Add or don't add tests based on a number of criteria
   #
 
-  set(ADD_THE_TEST FALSE)
-  tribits_add_test_process_enable_tests(ADD_THE_TEST)
-  if (NOT ADD_THE_TEST)
-    return()
-  endif()
+  SET(ADD_THE_TEST FALSE)
+  TRIBITS_ADD_TEST_PROCESS_ENABLE_TESTS(ADD_THE_TEST)
+  IF (NOT ADD_THE_TEST)
+    RETURN()
+  ENDIF()
 
-  tribits_add_test_process_skip_ctest_add_test(ADD_THE_TEST)
-  if (NOT ADD_THE_TEST)
-    return()
-  endif()
+  TRIBITS_ADD_TEST_PROCESS_SKIP_CTEST_ADD_TEST(ADD_THE_TEST)
+  IF (NOT ADD_THE_TEST)
+    RETURN()
+  ENDIF()
 
-  set(ADD_THE_TEST FALSE)
-  tribits_add_test_process_categories(ADD_THE_TEST)
-  if (NOT ADD_THE_TEST)
-    return()
-  endif()
+  SET(ADD_THE_TEST FALSE)
+  TRIBITS_ADD_TEST_PROCESS_CATEGORIES(ADD_THE_TEST)
+  IF (NOT ADD_THE_TEST)
+    RETURN()
+  ENDIF()
 
-  set(ADD_THE_TEST FALSE)
-  tribits_add_test_process_host_hosttype(ADD_THE_TEST)
-  if (NOT ADD_THE_TEST)
-    return()
-  endif()
+  SET(ADD_THE_TEST FALSE)
+  TRIBITS_ADD_TEST_PROCESS_HOST_HOSTTYPE(ADD_THE_TEST)
+  IF (NOT ADD_THE_TEST)
+    RETURN()
+  ENDIF()
 
-  tribits_add_test_query_disable(DISABLE_THIS_TEST ${TEST_NAME})
-  if (DISABLE_THIS_TEST)
-    return()
-  endif()
+  TRIBITS_ADD_TEST_QUERY_DISABLE(DISABLE_THIS_TEST ${TEST_NAME})
+  IF (DISABLE_THIS_TEST)
+    RETURN()
+  ENDIF()
 
-  tribits_set_run_serial(${TEST_NAME} "${PARSE_RUN_SERIAL}"
+  TRIBITS_SET_RUN_SERIAL(${TEST_NAME} "${PARSE_RUN_SERIAL}"
     SET_RUN_SERIAL)
 
-  tribits_set_disabled_and_msg(${TEST_NAME} "${PARSE_DISABLED}"
+  TRIBITS_SET_DISABLED_AND_MSG(${TEST_NAME} "${PARSE_DISABLED}"
     SET_DISABLED_AND_MSG)  # Adds the test but sets DISABLED test prop!
 
   #
@@ -932,20 +932,20 @@ function(tribits_add_advanced_test TEST_NAME_IN)
   # and TPL_ENABLE_MPI
   #
 
-  tribits_process_comm_args(ADD_SERIAL_TEST  ADD_MPI_TEST  ${PARSE_COMM})
-  if (NOT ADD_SERIAL_TEST AND NOT ADD_MPI_TEST)
-    return()
-  endif()
+  TRIBITS_PROCESS_COMM_ARGS(ADD_SERIAL_TEST  ADD_MPI_TEST  ${PARSE_COMM})
+  IF (NOT ADD_SERIAL_TEST AND NOT ADD_MPI_TEST)
+    RETURN()
+  ENDIF()
 
   #
   # D) Build the test script
   #
 
-  set(ADD_THE_TEST TRUE)
+  SET(ADD_THE_TEST TRUE)
 
-  set(TEST_SCRIPT_STR "")
+  SET(TEST_SCRIPT_STR "")
 
-  append_string_var( TEST_SCRIPT_STR
+  APPEND_STRING_VAR( TEST_SCRIPT_STR
     "\n"
     "#\n"
     "# This is a CMake script and must be run as \"cmake -P <SCRIPT_NAME>\"\n"
@@ -959,66 +959,66 @@ function(tribits_add_advanced_test TEST_NAME_IN)
     "# Variables\n"
     "#\n"
     "\n"
-    "set( TEST_NAME ${TEST_NAME} )\n"
+    "SET( TEST_NAME ${TEST_NAME} )\n"
     )
 
   # Loop through each test case
 
-  set(NUM_CMNDS 0)
-  set(TEST_EXE_LIST "")
+  SET(NUM_CMNDS 0)
+  SET(TEST_EXE_LIST "")
 
-  if (PARSE_OVERALL_NUM_MPI_PROCS  AND  PARSE_OVERALL_NUM_TOTAL_CORES_USED)
-    if (PARSE_OVERALL_NUM_MPI_PROCS  GREATER  PARSE_OVERALL_NUM_TOTAL_CORES_USED)
-      message_wrapper(FATAL_ERROR
+  IF (PARSE_OVERALL_NUM_MPI_PROCS  AND  PARSE_OVERALL_NUM_TOTAL_CORES_USED)
+    IF (PARSE_OVERALL_NUM_MPI_PROCS  GREATER  PARSE_OVERALL_NUM_TOTAL_CORES_USED)
+      MESSAGE_WRAPPER(FATAL_ERROR
         "ERROR: ${TEST_NAME}: OVERALL_NUM_MPI_PROCS='${PARSE_OVERALL_NUM_MPI_PROCS}' > OVERALL_NUM_TOTAL_CORES_USED='${PARSE_OVERALL_NUM_TOTAL_CORES_USED}' not allowed!")
-      return()
-    endif()
-  endif()
+      RETURN()
+    ENDIF()
+  ENDIF()
 
   # ToDo: Assert that OVERALL_NUM_TOTAL_CORES_USED >= OVERALL_NUM_MPI_PROCS
 
-  if (PARSE_OVERALL_NUM_MPI_PROCS)
-    set(MAX_NUM_MPI_PROCS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
-    set(MAX_NUM_PROCESSORS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
-  else()
-    set(MAX_NUM_MPI_PROCS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
-    set(MAX_NUM_PROCESSORS_USED 1)
-  endif()
+  IF (PARSE_OVERALL_NUM_MPI_PROCS)
+    SET(MAX_NUM_MPI_PROCS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
+    SET(MAX_NUM_PROCESSORS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
+  ELSE()
+    SET(MAX_NUM_MPI_PROCS_USED ${PARSE_OVERALL_NUM_MPI_PROCS})
+    SET(MAX_NUM_PROCESSORS_USED 1)
+  ENDIF()
 
-  set(HAS_AT_LEAST_ONE_EXEC FALSE)
+  SET(HAS_AT_LEAST_ONE_EXEC FALSE)
 
-  foreach( TEST_CMND_IDX RANGE ${MAX_NUM_TEST_CMND_IDX} )
+  FOREACH( TEST_CMND_IDX RANGE ${MAX_NUM_TEST_CMND_IDX} )
 
-    if (NOT PARSE_TEST_${TEST_CMND_IDX} )
-      break()
-    endif()
+    IF (NOT PARSE_TEST_${TEST_CMND_IDX} )
+      BREAK()
+    ENDIF()
 
-    if (NOT  ADD_THE_TEST)
-      break()
-    endif()
+    IF (NOT  ADD_THE_TEST)
+      BREAK()
+    ENDIF()
 
-    math( EXPR NUM_CMNDS ${NUM_CMNDS}+1 )
+    MATH( EXPR NUM_CMNDS ${NUM_CMNDS}+1 )
 
     # Parse the test command case
 
-    #print_var(PARSE_TEST_${TEST_CMND_IDX})
+    #PRINT_VAR(PARSE_TEST_${TEST_CMND_IDX})
 
     # Search to see if we are copying files or not for this TEST_<IDX> block ...
 
-    set(PARSE_COPY_FILES_TO_TEST_DIR)
-    set(COPY_FILES_TO_TEST_DIR_IDX FALSE)
-    foreach(PARSE_TEST_IDX_ARGS ${PARSE_TEST_${TEST_CMND_IDX}})
-      if (PARSE_TEST_IDX_ARGS STREQUAL "COPY_FILES_TO_TEST_DIR")
-        set(COPY_FILES_TO_TEST_DIR_IDX TRUE)
-      endif()
-    endforeach()
+    SET(PARSE_COPY_FILES_TO_TEST_DIR)
+    SET(COPY_FILES_TO_TEST_DIR_IDX FALSE)
+    FOREACH(PARSE_TEST_IDX_ARGS ${PARSE_TEST_${TEST_CMND_IDX}})
+      IF (PARSE_TEST_IDX_ARGS STREQUAL "COPY_FILES_TO_TEST_DIR")
+        SET(COPY_FILES_TO_TEST_DIR_IDX TRUE)
+      ENDIF()
+    ENDFOREACH()
 
-    if (COPY_FILES_TO_TEST_DIR_IDX)
+    IF (COPY_FILES_TO_TEST_DIR_IDX)
 
       # Do a special parse just for TEST_<IDX> blocks of type
       # COPY_FILES_TO_TEST_DIR
 
-      cmake_parse_arguments(
+      CMAKE_PARSE_ARGUMENTS(
          #prefix
          PARSE
          #options
@@ -1030,19 +1030,19 @@ function(tribits_add_advanced_test TEST_NAME_IN)
 	 # Arguments to parse
          ${PARSE_TEST_${TEST_CMND_IDX}}
          )
-      tribits_check_for_unparsed_arguments()
-      tribits_assert_parse_arg_one_or_more_values(PARSE COPY_FILES_TO_TEST_DIR)
-      tribits_assert_parse_arg_zero_or_one_value(PARSE SOURCE_DIR)
-      tribits_assert_parse_arg_zero_or_one_value(PARSE DEST_DIR)
+      TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
+      TRIBITS_ASSERT_PARSE_ARG_ONE_OR_MORE_VALUES(PARSE COPY_FILES_TO_TEST_DIR)
+      TRIBITS_ASSERT_PARSE_ARG_ZERO_OR_ONE_VALUE(PARSE SOURCE_DIR)
+      TRIBITS_ASSERT_PARSE_ARG_ZERO_OR_ONE_VALUE(PARSE DEST_DIR)
 
-      set(PARSE_EXEC)
-      set(PARSE_CMND)
+      SET(PARSE_EXEC)
+      SET(PARSE_CMND)
 
-    else()
+    ELSE()
 
       # Parse TEST_<IDX> block args for types EXEC and CMND
 
-      cmake_parse_arguments(
+      CMAKE_PARSE_ARGUMENTS(
          #prefix
          PARSE
          #options
@@ -1054,322 +1054,322 @@ function(tribits_add_advanced_test TEST_NAME_IN)
          ${PARSE_TEST_${TEST_CMND_IDX}}
          )
   
-      tribits_check_for_unparsed_arguments()
+      TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-    endif()
+    ENDIF()
 
     #
     # Set up the command that will be written into the cmake -P *.cmake file
     #
 
-    set(ARGS_STR ${PARSE_ARGS})
-    #print_var(ARGS_STR)
-    #if (PARSE_ARGS)
-    #  tribits_join_exec_process_set_args( ARGS_STR ${PARSE_ARGS} )
-    #endif()
+    SET(ARGS_STR ${PARSE_ARGS})
+    #PRINT_VAR(ARGS_STR)
+    #IF (PARSE_ARGS)
+    #  TRIBITS_JOIN_EXEC_PROCESS_SET_ARGS( ARGS_STR ${PARSE_ARGS} )
+    #ENDIF()
 
-    if (PARSE_EXEC)
+    IF (PARSE_EXEC)
 
       #
       # This is an EXEC test block
       #
 
-      set(HAS_AT_LEAST_ONE_EXEC TRUE)
+      SET(HAS_AT_LEAST_ONE_EXEC TRUE)
 
-      list( LENGTH PARSE_EXEC PARSE_EXEC_LEN )
-      if (NOT PARSE_EXEC_LEN EQUAL 1)
-        message(SEND_ERROR "Error, TEST_${TEST_CMND_IDX} EXEC = '${PARSE_EXEC}'"
+      LIST( LENGTH PARSE_EXEC PARSE_EXEC_LEN )
+      IF (NOT PARSE_EXEC_LEN EQUAL 1)
+        MESSAGE(SEND_ERROR "Error, TEST_${TEST_CMND_IDX} EXEC = '${PARSE_EXEC}'"
           " must be a single name.  To add arguments use ARGS <arg1> <arg2> ...." )
-      endif()
+      ENDIF()
 
-      tribits_add_test_get_exe_binary_name( "${PARSE_EXEC}"
+      TRIBITS_ADD_TEST_GET_EXE_BINARY_NAME( "${PARSE_EXEC}"
         ${PARSE_NOEXEPREFIX} ${PARSE_NOEXESUFFIX}
         ${PARSE_ADD_DIR_TO_NAME} EXE_BINARY_NAME )
 
-      tribits_add_test_adjust_directory( ${EXE_BINARY_NAME} "${PARSE_DIRECTORY}"
+      TRIBITS_ADD_TEST_ADJUST_DIRECTORY( ${EXE_BINARY_NAME} "${PARSE_DIRECTORY}"
         EXECUTABLE_PATH)
 
-      if (PARSE_NUM_MPI_PROCS)
-        set(NUM_MPI_PROC_VAR_NAME "NUM_MPI_PROCS")
-      else()
-        set(PARSE_NUM_MPI_PROCS ${PARSE_OVERALL_NUM_MPI_PROCS})
-        set(NUM_MPI_PROC_VAR_NAME "OVERALL_NUM_MPI_PROCS")
-      endif()
+      IF (PARSE_NUM_MPI_PROCS)
+        SET(NUM_MPI_PROC_VAR_NAME "NUM_MPI_PROCS")
+      ELSE()
+        SET(PARSE_NUM_MPI_PROCS ${PARSE_OVERALL_NUM_MPI_PROCS})
+        SET(NUM_MPI_PROC_VAR_NAME "OVERALL_NUM_MPI_PROCS")
+      ENDIF()
 
-      tribits_add_test_get_num_procs_used("${PARSE_NUM_MPI_PROCS}"
+      TRIBITS_ADD_TEST_GET_NUM_PROCS_USED("${PARSE_NUM_MPI_PROCS}"
         "${NUM_MPI_PROC_VAR_NAME}"  NUM_PROCS_USED  NUM_PROCS_USED_NAME)
 
-      if (NUM_PROCS_USED LESS 0)
-        set(ADD_THE_TEST FALSE)
-      elseif (NUM_PROCS_USED  GREATER  MAX_NUM_MPI_PROCS_USED)
-        set(MAX_NUM_MPI_PROCS_USED  ${NUM_PROCS_USED})
-      endif()
+      IF (NUM_PROCS_USED LESS 0)
+        SET(ADD_THE_TEST FALSE)
+      ELSEIF (NUM_PROCS_USED  GREATER  MAX_NUM_MPI_PROCS_USED)
+        SET(MAX_NUM_MPI_PROCS_USED  ${NUM_PROCS_USED})
+      ENDIF()
 
-      if (PARSE_NUM_TOTAL_CORES_USED)
-        set(NUM_TOTAL_CORES_USED  ${PARSE_NUM_TOTAL_CORES_USED})
-        set(NUM_TOTAL_CORES_USED_NAME  "NUM_TOTAL_CORES_USED")
-      else()
-        set(NUM_TOTAL_CORES_USED  ${PARSE_OVERALL_NUM_TOTAL_CORES_USED})
-        set(NUM_TOTAL_CORES_USED_NAME  "OVERALL_NUM_TOTAL_CORES_USED")
-      endif()
+      IF (PARSE_NUM_TOTAL_CORES_USED)
+        SET(NUM_TOTAL_CORES_USED  ${PARSE_NUM_TOTAL_CORES_USED})
+        SET(NUM_TOTAL_CORES_USED_NAME  "NUM_TOTAL_CORES_USED")
+      ELSE()
+        SET(NUM_TOTAL_CORES_USED  ${PARSE_OVERALL_NUM_TOTAL_CORES_USED})
+        SET(NUM_TOTAL_CORES_USED_NAME  "OVERALL_NUM_TOTAL_CORES_USED")
+      ENDIF()
 
-      tribits_add_test_get_num_total_cores_used("${TEST_NAME}${MPI_NAME_POSTFIX}"
+      TRIBITS_ADD_TEST_GET_NUM_TOTAL_CORES_USED("${TEST_NAME}${MPI_NAME_POSTFIX}"
         "${NUM_TOTAL_CORES_USED}"  "${NUM_TOTAL_CORES_USED_NAME}"
         "${NUM_PROCS_USED}"  "${NUM_PROCS_USED_NAME}"
         NUM_TOTAL_CORES_USED  SKIP_TEST)
-      if (SKIP_TEST)
-        set(ADD_THE_TEST FALSE)
-      endif()
+      IF (SKIP_TEST)
+        SET(ADD_THE_TEST FALSE)
+      ENDIF()
 
-      if (NUM_TOTAL_CORES_USED  GREATER  MAX_NUM_PROCESSORS_USED)
-        set(MAX_NUM_PROCESSORS_USED  ${NUM_TOTAL_CORES_USED})
-      endif()
+      IF (NUM_TOTAL_CORES_USED  GREATER  MAX_NUM_PROCESSORS_USED)
+        SET(MAX_NUM_PROCESSORS_USED  ${NUM_TOTAL_CORES_USED})
+      ENDIF()
 
-      if(ADD_THE_TEST)
-        list(APPEND TEST_EXE_LIST ${EXECUTABLE_PATH})
-      endif()
+      IF(ADD_THE_TEST)
+        LIST(APPEND TEST_EXE_LIST ${EXECUTABLE_PATH})
+      ENDIF()
 
-      tribits_add_test_get_test_cmnd_array( TEST_CMND_ARRAY
+      TRIBITS_ADD_TEST_GET_TEST_CMND_ARRAY( TEST_CMND_ARRAY
         "${EXECUTABLE_PATH}" "${NUM_PROCS_USED}" ${ARGS_STR} )
-      #print_var(TEST_CMND_ARRAY)
+      #PRINT_VAR(TEST_CMND_ARRAY)
 
-    elseif (PARSE_CMND)
+    ELSEIF (PARSE_CMND)
 
       #
       # This is a COMMAND test block
       #
 
-      list( LENGTH PARSE_CMND PARSE_CMND_LEN )
-      if (NOT PARSE_CMND_LEN EQUAL 1)
-        message_wrapper(SEND_ERROR "Error, TEST_${TEST_CMND_IDX} CMND = '${PARSE_CMND}'"
+      LIST( LENGTH PARSE_CMND PARSE_CMND_LEN )
+      IF (NOT PARSE_CMND_LEN EQUAL 1)
+        MESSAGE_WRAPPER(SEND_ERROR "Error, TEST_${TEST_CMND_IDX} CMND = '${PARSE_CMND}'"
           " must be a single command.  To add arguments use ARGS <arg1> <arg2> ...." )
-      endif()
+      ENDIF()
 
-      if (PARSE_NUM_TOTAL_CORES_USED)
-        set(NUM_TOTAL_CORES_USED  ${PARSE_NUM_TOTAL_CORES_USED})
-        set(NUM_TOTAL_CORES_USED_NAME  "NUM_TOTAL_CORES_USED")
-      else()
-        set(NUM_TOTAL_CORES_USED  ${PARSE_OVERALL_NUM_TOTAL_CORES_USED})
-        set(NUM_TOTAL_CORES_USED_NAME  "OVERALL_NUM_TOTAL_CORES_USED")
-      endif()
+      IF (PARSE_NUM_TOTAL_CORES_USED)
+        SET(NUM_TOTAL_CORES_USED  ${PARSE_NUM_TOTAL_CORES_USED})
+        SET(NUM_TOTAL_CORES_USED_NAME  "NUM_TOTAL_CORES_USED")
+      ELSE()
+        SET(NUM_TOTAL_CORES_USED  ${PARSE_OVERALL_NUM_TOTAL_CORES_USED})
+        SET(NUM_TOTAL_CORES_USED_NAME  "OVERALL_NUM_TOTAL_CORES_USED")
+      ENDIF()
 
-      tribits_add_test_get_num_total_cores_used("${TEST_NAME}${MPI_NAME_POSTFIX}"
+      TRIBITS_ADD_TEST_GET_NUM_TOTAL_CORES_USED("${TEST_NAME}${MPI_NAME_POSTFIX}"
         "${NUM_TOTAL_CORES_USED}"  "${NUM_TOTAL_CORES_USED_NAME}"
         "1"  "DUMMY_NUM_MPI_PROCS"  # Never be printed
         NUM_TOTAL_CORES_USED  SKIP_TEST)
-      if (SKIP_TEST)
-        set(ADD_THE_TEST FALSE)
-      endif()
+      IF (SKIP_TEST)
+        SET(ADD_THE_TEST FALSE)
+      ENDIF()
 
-      if (NUM_TOTAL_CORES_USED  GREATER  MAX_NUM_PROCESSORS_USED)
-        set(MAX_NUM_PROCESSORS_USED  ${NUM_TOTAL_CORES_USED})
-      endif()
+      IF (NUM_TOTAL_CORES_USED  GREATER  MAX_NUM_PROCESSORS_USED)
+        SET(MAX_NUM_PROCESSORS_USED  ${NUM_TOTAL_CORES_USED})
+      ENDIF()
 
-      if(ADD_THE_TEST)
-        if (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
-          find_program(CMND_PATH ${PARSE_CMND})
-        else()
-          set(CMND_PATH ${PARSE_CMND})
-        endif()
-        list(APPEND TEST_EXE_LIST ${CMND_PATH})
-      endif()
+      IF(ADD_THE_TEST)
+        IF (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
+          FIND_PROGRAM(CMND_PATH ${PARSE_CMND})
+        ELSE()
+          SET(CMND_PATH ${PARSE_CMND})
+        ENDIF()
+        LIST(APPEND TEST_EXE_LIST ${CMND_PATH})
+      ENDIF()
 
-      set( TEST_CMND_ARRAY ${PARSE_CMND} ${ARGS_STR} )
+      SET( TEST_CMND_ARRAY ${PARSE_CMND} ${ARGS_STR} )
 
-    elseif (PARSE_COPY_FILES_TO_TEST_DIR)
+    ELSEIF (PARSE_COPY_FILES_TO_TEST_DIR)
 
       #
       # This is a COPY_FLES_TO_TEST_DIR block
       #
 
       # FILES_TO_COPY_COMMA_SEP
-      set(FILES_TO_COPY_COMMA_SEP "${PARSE_COPY_FILES_TO_TEST_DIR}")
+      SET(FILES_TO_COPY_COMMA_SEP "${PARSE_COPY_FILES_TO_TEST_DIR}")
       string(REPLACE ";" "," FILES_TO_COPY_COMMA_SEP
         "${FILES_TO_COPY_COMMA_SEP}" )
       # NOTE: Above, we have to replace ';' with ',' or the lower commands
-      # append_string_var() will replace ';' with ''.  This is *not* what we
+      # APPEND_STRING_VAR() will replace ';' with ''.  This is *not* what we
       # want.  In DriveAdvancedTest.cmake, we will replace the ',' with ';'
       # again :-)  
 
       # SOURCE_DIR
-      if (PARSE_SOURCE_DIR)
-        if (IS_ABSOLUTE "${PARSE_SOURCE_DIR}")
-          set(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
+      IF (PARSE_SOURCE_DIR)
+        IF (IS_ABSOLUTE "${PARSE_SOURCE_DIR}")
+          SET(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
             "${PARSE_SOURCE_DIR}")
-        else()
-          set(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
+        ELSE()
+          SET(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
             "${CMAKE_CURRENT_SOURCE_DIR}/${PARSE_SOURCE_DIR}")
-        endif()
-      else()
-        set(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
+        ENDIF()
+      ELSE()
+        SET(COPY_FILES_TO_TEST_DIR_SOURCE_DIR
           "${CMAKE_CURRENT_SOURCE_DIR}")
-      endif()
+      ENDIF()
 
       # DEST_DIR
-      if (PARSE_DEST_DIR)
-        if (IS_ABSOLUTE "${PARSE_DEST_DIR}")
-          set(COPY_FILES_TO_TEST_DIR_DEST_DIR
+      IF (PARSE_DEST_DIR)
+        IF (IS_ABSOLUTE "${PARSE_DEST_DIR}")
+          SET(COPY_FILES_TO_TEST_DIR_DEST_DIR
             "${PARSE_DEST_DIR}")
-        else()
-          set(COPY_FILES_TO_TEST_DIR_DEST_DIR
+        ELSE()
+          SET(COPY_FILES_TO_TEST_DIR_DEST_DIR
             "${ABS_OVERALL_WORKING_DIRECTORY}/${PARSE_DEST_DIR}")
-        endif()
-      else()
-        set(COPY_FILES_TO_TEST_DIR_DEST_DIR
+        ENDIF()
+      ELSE()
+        SET(COPY_FILES_TO_TEST_DIR_DEST_DIR
           "${ABS_OVERALL_WORKING_DIRECTORY}")
-      endif()
+      ENDIF()
 
-    else()
+    ELSE()
 
-      message( FATAL_ERROR
+      MESSAGE( FATAL_ERROR
         "Must have EXEC, CMND, or COPY_FILES_TO_TEST_DIR for TEST_${TEST_CMND_IDX}" )
 
-    endif()
+    ENDIF()
 
     #
     # Write parts for this TEST_<IDX> block to TEST_SCRIPT_STR
     #
 
-    if (PARSE_COPY_FILES_TO_TEST_DIR)
+    IF (PARSE_COPY_FILES_TO_TEST_DIR)
 
       # Write the vars for COPY_FILES_TO_TEST_DIR 
   
-      append_string_var( TEST_SCRIPT_STR
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_COPY_FILES_TO_TEST_DIR"
+        "SET( TEST_${TEST_CMND_IDX}_COPY_FILES_TO_TEST_DIR"
         " \"${FILES_TO_COPY_COMMA_SEP}\")\n"
         )
-      if (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
-        global_set(TRIBITS_ADD_ADVANCED_TEST_CMND_ARRAY_${TEST_CMND_IDX}
+      IF (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
+        GLOBAL_SET(TRIBITS_ADD_ADVANCED_TEST_CMND_ARRAY_${TEST_CMND_IDX}
           "${TEST_CMND_STR}" )
-      endif()
+      ENDIF()
   
-      append_string_var( TEST_SCRIPT_STR
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_SOURCE_DIR"
+        "SET( TEST_${TEST_CMND_IDX}_SOURCE_DIR"
         " \"${COPY_FILES_TO_TEST_DIR_SOURCE_DIR}\")\n"
         )
   
-      append_string_var( TEST_SCRIPT_STR
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_DEST_DIR"
+        "SET( TEST_${TEST_CMND_IDX}_DEST_DIR"
         " \"${COPY_FILES_TO_TEST_DIR_DEST_DIR}\")\n"
         )
 
-    else()
+    ELSE()
 
       # Write the command to be run for EXEC and CMND blocks ...
 
-      tribits_join_exec_process_set_args( TEST_CMND_STR "${TEST_CMND_ARRAY}" )
-      #print_var(TEST_CMND_STR)
+      TRIBITS_JOIN_EXEC_PROCESS_SET_ARGS( TEST_CMND_STR "${TEST_CMND_ARRAY}" )
+      #PRINT_VAR(TEST_CMND_STR)
   
-      append_string_var( TEST_SCRIPT_STR
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_CMND ${TEST_CMND_STR} )\n"
+        "SET( TEST_${TEST_CMND_IDX}_CMND ${TEST_CMND_STR} )\n"
         )
-      if (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
-        global_set(TRIBITS_ADD_ADVANCED_TEST_CMND_ARRAY_${TEST_CMND_IDX}
+      IF (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
+        GLOBAL_SET(TRIBITS_ADD_ADVANCED_TEST_CMND_ARRAY_${TEST_CMND_IDX}
           "${TEST_CMND_STR}" )
-      endif()
+      ENDIF()
 
-    endif()
+    ENDIF()
 
-    if (PARSE_MESSAGE)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_MESSAGE)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_MESSAGE \"${PARSE_MESSAGE}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_MESSAGE \"${PARSE_MESSAGE}\" )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_WORKING_DIRECTORY)
-      if ("${PARSE_WORKING_DIRECTORY}" STREQUAL "TEST_NAME")
-        set(PARSE_WORKING_DIRECTORY ${TEST_NAME})
-      endif()
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_WORKING_DIRECTORY)
+      IF ("${PARSE_WORKING_DIRECTORY}" STREQUAL "TEST_NAME")
+        SET(PARSE_WORKING_DIRECTORY ${TEST_NAME})
+      ENDIF()
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_WORKING_DIRECTORY \"${PARSE_WORKING_DIRECTORY}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_WORKING_DIRECTORY \"${PARSE_WORKING_DIRECTORY}\" )\n"
          )
-      append_string_var( TEST_SCRIPT_STR
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_SKIP_CLEAN_WORKING_DIRECTORY ${PARSE_SKIP_CLEAN_WORKING_DIRECTORY} )\n"
+        "SET( TEST_${TEST_CMND_IDX}_SKIP_CLEAN_WORKING_DIRECTORY ${PARSE_SKIP_CLEAN_WORKING_DIRECTORY} )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_OUTPUT_FILE)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_OUTPUT_FILE)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_OUTPUT_FILE \"${PARSE_OUTPUT_FILE}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_OUTPUT_FILE \"${PARSE_OUTPUT_FILE}\" )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_NO_ECHO_OUTPUT)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_NO_ECHO_OUTPUT)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_NO_ECHO_OUTPUT \"${PARSE_NO_ECHO_OUTPUT}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_NO_ECHO_OUTPUT \"${PARSE_NO_ECHO_OUTPUT}\" )\n"
         )
-    endif()
+    ENDIF()
 
     # Set up pass/fail
 
-    if (PARSE_PASS_ANY)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_PASS_ANY)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_PASS_ANY TRUE )\n"
+        "SET( TEST_${TEST_CMND_IDX}_PASS_ANY TRUE )\n"
         )
-    elseif (PARSE_STANDARD_PASS_OUTPUT)
-      append_string_var( TEST_SCRIPT_STR
+    ELSEIF (PARSE_STANDARD_PASS_OUTPUT)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION \"End Result: TEST PASSED\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION \"End Result: TEST PASSED\" )\n"
         )
-    elseif (PARSE_PASS_REGULAR_EXPRESSION)
-      append_string_var( TEST_SCRIPT_STR
+    ELSEIF (PARSE_PASS_REGULAR_EXPRESSION)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION \"${PARSE_PASS_REGULAR_EXPRESSION}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION \"${PARSE_PASS_REGULAR_EXPRESSION}\" )\n"
         )
-    elseif (PARSE_PASS_REGULAR_EXPRESSION_ALL)
-      append_string_var( TEST_SCRIPT_STR
+    ELSEIF (PARSE_PASS_REGULAR_EXPRESSION_ALL)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION_ALL "
+        "SET( TEST_${TEST_CMND_IDX}_PASS_REGULAR_EXPRESSION_ALL "
         )
-      foreach(REGEX_STR ${PARSE_PASS_REGULAR_EXPRESSION_ALL})
-        append_string_var( TEST_SCRIPT_STR
+      FOREACH(REGEX_STR ${PARSE_PASS_REGULAR_EXPRESSION_ALL})
+        APPEND_STRING_VAR( TEST_SCRIPT_STR
           "\"${REGEX_STR}\" "
           )
-      endforeach()
-      append_string_var( TEST_SCRIPT_STR
+      ENDFOREACH()
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         ")\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_FAIL_REGULAR_EXPRESSION)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_FAIL_REGULAR_EXPRESSION)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_FAIL_REGULAR_EXPRESSION \"${PARSE_FAIL_REGULAR_EXPRESSION}\" )\n"
+        "SET( TEST_${TEST_CMND_IDX}_FAIL_REGULAR_EXPRESSION \"${PARSE_FAIL_REGULAR_EXPRESSION}\" )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_ALWAYS_FAIL_ON_NONZERO_RETURN)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_ALWAYS_FAIL_ON_NONZERO_RETURN)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_ALWAYS_FAIL_ON_NONZERO_RETURN TRUE )\n"
+        "SET( TEST_${TEST_CMND_IDX}_ALWAYS_FAIL_ON_NONZERO_RETURN TRUE )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_ALWAYS_FAIL_ON_ZERO_RETURN)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_ALWAYS_FAIL_ON_ZERO_RETURN)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_ALWAYS_FAIL_ON_ZERO_RETURN TRUE )\n"
+        "SET( TEST_${TEST_CMND_IDX}_ALWAYS_FAIL_ON_ZERO_RETURN TRUE )\n"
         )
-    endif()
+    ENDIF()
 
-    if (PARSE_WILL_FAIL)
-      append_string_var( TEST_SCRIPT_STR
+    IF (PARSE_WILL_FAIL)
+      APPEND_STRING_VAR( TEST_SCRIPT_STR
         "\n"
-        "set( TEST_${TEST_CMND_IDX}_WILL_FAIL TRUE )\n"
+        "SET( TEST_${TEST_CMND_IDX}_WILL_FAIL TRUE )\n"
         )
-    endif()
+    ENDIF()
 
-  endforeach()
+  ENDFOREACH()
 
   # ToDo: Verify that TEST_${MAX_NUM_TEST_CMND_IDX}+1 does *not* exist!
 
@@ -1377,72 +1377,72 @@ function(tribits_add_advanced_test TEST_NAME_IN)
   # F) Set the CTest test to run the new script
   #
 
-  if (ADD_THE_TEST)
+  IF (ADD_THE_TEST)
 
     #
-    # F.1) Call add_test() and set the test properties
+    # F.1) Call ADD_TEST() and set the test properties
     #
   
-    set(TEST_SCRIPT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TEST_SCRIPT_FILE_NAME}")
+    SET(TEST_SCRIPT_FILE "${CMAKE_CURRENT_BINARY_DIR}/${TEST_SCRIPT_FILE_NAME}")
 
-    if(NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
+    IF(NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
       # Tell CTest to run our script for this test.  Pass the test-type
       # configuration name to the script in the TEST_CONFIG variable.
-      add_test( NAME ${TEST_NAME}
+      ADD_TEST( NAME ${TEST_NAME}
         COMMAND ${CMAKE_COMMAND} "-DTEST_CONFIG=\${CTEST_CONFIGURATION_TYPE}"
         -P "${TEST_SCRIPT_FILE}")
-    endif()
+    ENDIF()
 
-    if(PARSE_ADDED_TEST_NAME_OUT)
-      set(${PARSE_ADDED_TEST_NAME_OUT} ${TEST_NAME} PARENT_SCOPE )
-    endif()
+    IF(PARSE_ADDED_TEST_NAME_OUT)
+      SET(${PARSE_ADDED_TEST_NAME_OUT} ${TEST_NAME} PARENT_SCOPE )
+    ENDIF()
 
-    list(REMOVE_DUPLICATES TEST_EXE_LIST)
-    tribits_set_test_property(${TEST_NAME} PROPERTY REQUIRED_FILES ${TEST_EXE_LIST})
+    LIST(REMOVE_DUPLICATES TEST_EXE_LIST)
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME} PROPERTY REQUIRED_FILES ${TEST_EXE_LIST})
 
-    if(SET_RUN_SERIAL)
-      tribits_set_tests_properties(${TEST_NAME} PROPERTIES RUN_SERIAL ON)
-    endif()
+    IF(SET_RUN_SERIAL)
+      TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES RUN_SERIAL ON)
+    ENDIF()
 
-    tribits_private_add_test_add_label_and_keywords(${TEST_NAME})
+    TRIBITS_PRIVATE_ADD_TEST_ADD_LABEL_AND_KEYWORDS(${TEST_NAME})
 
     #This if clause will set the number of PROCESSORS to reserve during testing
     #to the number requested for the test.
-    if(MAX_NUM_PROCESSORS_USED)
-      tribits_set_tests_properties(${TEST_NAME} PROPERTIES
+    IF(MAX_NUM_PROCESSORS_USED)
+      TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES
         PROCESSORS "${MAX_NUM_PROCESSORS_USED}")
-    endif()
+    ENDIF()
 
-    tribits_private_add_test_add_environment_and_resource(${TEST_NAME}
+    TRIBITS_PRIVATE_ADD_TEST_ADD_ENVIRONMENT_AND_RESOURCE(${TEST_NAME}
       ${MAX_NUM_PROCESSORS_USED})
 
-    if (SET_DISABLED_AND_MSG)
-      tribits_set_tests_properties(${TEST_NAME} PROPERTIES DISABLED ON)
-    endif()
+    IF (SET_DISABLED_AND_MSG)
+      TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES DISABLED ON)
+    ENDIF()
 
-    if (PARSE_FINAL_PASS_REGULAR_EXPRESSION)
-      tribits_set_tests_properties( ${TEST_NAME} PROPERTIES
+    IF (PARSE_FINAL_PASS_REGULAR_EXPRESSION)
+      TRIBITS_SET_TESTS_PROPERTIES( ${TEST_NAME} PROPERTIES
         PASS_REGULAR_EXPRESSION "${PARSE_FINAL_PASS_REGULAR_EXPRESSION}" )
-    elseif (PARSE_FINAL_FAIL_REGULAR_EXPRESSION)
-      tribits_set_tests_properties( ${TEST_NAME} PROPERTIES
+    ELSEIF (PARSE_FINAL_FAIL_REGULAR_EXPRESSION)
+      TRIBITS_SET_TESTS_PROPERTIES( ${TEST_NAME} PROPERTIES
         FAIL_REGULAR_EXPRESSION "${PARSE_FINAL_FAIL_REGULAR_EXPRESSION}" )
-    else()
-      tribits_set_tests_properties( ${TEST_NAME} PROPERTIES
+    ELSE()
+      TRIBITS_SET_TESTS_PROPERTIES( ${TEST_NAME} PROPERTIES
         PASS_REGULAR_EXPRESSION
         "OVERALL FINAL RESULT: TEST PASSED .${TEST_NAME}." )
-    endif()
+    ENDIF()
 
-    tribits_private_add_test_set_timeout(${TEST_NAME}  TIMEOUT_USED)
+    TRIBITS_PRIVATE_ADD_TEST_SET_TIMEOUT(${TEST_NAME}  TIMEOUT_USED)
 
-    tribits_private_add_test_set_environment(${TEST_NAME})
+    TRIBITS_PRIVATE_ADD_TEST_SET_ENVIRONMENT(${TEST_NAME})
 
-    if (TPL_ENABLE_MPI AND HAS_AT_LEAST_ONE_EXEC)
-      set(MAX_NUM_MPI_PROCS_USED_TO_PRINT  ${MAX_NUM_MPI_PROCS_USED})
-    else()
-      set(MAX_NUM_MPI_PROCS_USED_TO_PRINT "")
-    endif()
+    IF (TPL_ENABLE_MPI AND HAS_AT_LEAST_ONE_EXEC)
+      SET(MAX_NUM_MPI_PROCS_USED_TO_PRINT  ${MAX_NUM_MPI_PROCS_USED})
+    ELSE()
+      SET(MAX_NUM_MPI_PROCS_USED_TO_PRINT "")
+    ENDIF()
 
-    tribits_private_add_test_print_added(${TEST_NAME}
+    TRIBITS_PRIVATE_ADD_TEST_PRINT_ADDED(${TEST_NAME}
       "${PARSE_CATEGORIES}"  "${MAX_NUM_MPI_PROCS_USED_TO_PRINT}"
       "${MAX_NUM_PROCESSORS_USED}"  "${TIMEOUT_USED}"
       "${SET_RUN_SERIAL}" "${SET_DISABLED_AND_MSG}")
@@ -1451,73 +1451,73 @@ function(tribits_add_advanced_test TEST_NAME_IN)
     # F.2) Write the cmake -P script
     #
   
-    append_string_var( TEST_SCRIPT_STR
+    APPEND_STRING_VAR( TEST_SCRIPT_STR
       "\n"
-      "set(PROJECT_NAME ${PROJECT_NAME})\n"
+      "SET(PROJECT_NAME ${PROJECT_NAME})\n"
       "\n"
-      "set(${PROJECT_NAME}_TRIBITS_DIR ${${PROJECT_NAME}_TRIBITS_DIR})\n"
+      "SET(${PROJECT_NAME}_TRIBITS_DIR ${${PROJECT_NAME}_TRIBITS_DIR})\n"
       "\n"
-      "set(TEST_NAME ${TEST_NAME})\n"
+      "SET(TEST_NAME ${TEST_NAME})\n"
       "\n"
-      "set(NUM_CMNDS ${NUM_CMNDS})\n"
+      "SET(NUM_CMNDS ${NUM_CMNDS})\n"
       "\n"
-      "set(OVERALL_WORKING_DIRECTORY \"${PARSE_OVERALL_WORKING_DIRECTORY}\")\n"
+      "SET(OVERALL_WORKING_DIRECTORY \"${PARSE_OVERALL_WORKING_DIRECTORY}\")\n"
       "\n"
-      "set(SKIP_CLEAN_OVERALL_WORKING_DIRECTORY \"${PARSE_SKIP_CLEAN_OVERALL_WORKING_DIRECTORY}\")\n"
+      "SET(SKIP_CLEAN_OVERALL_WORKING_DIRECTORY \"${PARSE_SKIP_CLEAN_OVERALL_WORKING_DIRECTORY}\")\n"
       "\n"
-      "set(FAIL_FAST ${PARSE_FAIL_FAST})\n"
+      "SET(FAIL_FAST ${PARSE_FAIL_FAST})\n"
       "\n"
-      "set(SHOW_START_END_DATE_TIME ${${PROJECT_NAME}_SHOW_TEST_START_END_DATE_TIME})\n"
+      "SET(SHOW_START_END_DATE_TIME ${${PROJECT_NAME}_SHOW_TEST_START_END_DATE_TIME})\n"
       "\n"
-      "set(SHOW_MACHINE_LOAD ${${PROJECT_NAME}_SHOW_MACHINE_LOAD_IN_TEST})\n"
+      "SET(SHOW_MACHINE_LOAD ${${PROJECT_NAME}_SHOW_MACHINE_LOAD_IN_TEST})\n"
       "\n"
-      "set(CATEGORIES ${PARSE_CATEGORIES})\n"
+      "SET(CATEGORIES ${PARSE_CATEGORIES})\n"
       "\n"
-      "set(PROCESSORS ${MAX_NUM_PROCESSORS_USED})\n"
+      "SET(PROCESSORS ${MAX_NUM_PROCESSORS_USED})\n"
       "\n"
-      "set(TIMEOUT ${TIMEOUT_USED})\n"
+      "SET(TIMEOUT ${TIMEOUT_USED})\n"
       "\n"
       "#\n"
       "# Test invocation\n"
       "#\n"
       "\n"
-      "set(CMAKE_MODULE_PATH ${${PROJECT_NAME}_TRIBITS_DIR}/${TRIBITS_CMAKE_UTILS_DIR})\n"
+      "SET(CMAKE_MODULE_PATH ${${PROJECT_NAME}_TRIBITS_DIR}/${TRIBITS_CMAKE_UTILS_DIR})\n"
       "\n"
-      "include(DriveAdvancedTest)\n"
+      "INCLUDE(DriveAdvancedTest)\n"
       "\n"
-      "drive_advanced_test()\n"
+      "DRIVE_ADVANCED_TEST()\n"
       )
   
-    if (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
-      global_set(TRIBITS_ADD_ADVANCED_TEST_NUM_CMNDS ${NUM_CMNDS})
+    IF (TRIBITS_ADD_ADVANCED_TEST_UNITTEST)
+      GLOBAL_SET(TRIBITS_ADD_ADVANCED_TEST_NUM_CMNDS ${NUM_CMNDS})
       # NOTE: This var only gets set if the advanced test gets added after
       # applying all of the various logic.  Therefore, unit tests should only
       # check this variable for being empty to determine that the test was not
       # added.
-    endif()
+    ENDIF()
   
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      print_var(TEST_SCRIPT_STR)
-    endif()
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      PRINT_VAR(TEST_SCRIPT_STR)
+    ENDIF()
   
     # Write the script file
   
-    if (NOT TRIBITS_ADD_ADVANCED_TEST_SKIP_SCRIPT)
+    IF (NOT TRIBITS_ADD_ADVANCED_TEST_SKIP_SCRIPT)
   
-      if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-        message("\nWriting file \"${TEST_SCRIPT_FILE}\" ...")
-      endif()
+      IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+        MESSAGE("\nWriting file \"${TEST_SCRIPT_FILE}\" ...")
+      ENDIF()
   
-      file( WRITE "${TEST_SCRIPT_FILE}"
+      FILE( WRITE "${TEST_SCRIPT_FILE}"
         "${TEST_SCRIPT_STR}" )
   
-    endif()
+    ENDIF()
 
 
-  else()
+  ELSE()
 
-    global_set(TRIBITS_ADD_ADVANCED_TEST_NUM_CMNDS "")
+    GLOBAL_SET(TRIBITS_ADD_ADVANCED_TEST_NUM_CMNDS "")
 
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()

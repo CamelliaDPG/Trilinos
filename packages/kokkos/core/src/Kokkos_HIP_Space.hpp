@@ -58,7 +58,6 @@
 #include <Kokkos_HostSpace.hpp>
 #include <Kokkos_Layout.hpp>
 #include <Kokkos_ScratchSpace.hpp>
-#include <HIP/Kokkos_HIP_Error.hpp>  // HIP_SAFE_CALL
 
 #include <impl/Kokkos_Profiling_Interface.hpp>
 #include <impl/Kokkos_ExecSpaceInitializer.hpp>
@@ -68,13 +67,6 @@
 /*--------------------------------------------------------------------------*/
 
 namespace Kokkos {
-namespace Impl {
-
-template <typename T>
-struct is_hip_type_space : public std::false_type {};
-
-}  // namespace Impl
-
 namespace Experimental {
 /** \brief  HIP on-device memory management */
 
@@ -124,12 +116,10 @@ class HIPSpace {
   /**\brief Return Name of the MemorySpace */
   static constexpr const char* name() { return "HIP"; }
 
-#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_3
   /*--------------------------------*/
   /** \brief  Error reporting for HostSpace attempt to access HIPSpace */
   KOKKOS_DEPRECATED static void access_error();
   KOKKOS_DEPRECATED static void access_error(const void* const);
-#endif
 
  private:
   int m_device;  ///< Which HIP device
@@ -139,11 +129,6 @@ class HIPSpace {
 };
 
 }  // namespace Experimental
-
-template <>
-struct Impl::is_hip_type_space<Experimental::HIPSpace> : public std::true_type {
-};
-
 }  // namespace Kokkos
 
 /*--------------------------------------------------------------------------*/
@@ -203,11 +188,6 @@ class HIPHostPinnedSpace {
   /*--------------------------------*/
 };
 }  // namespace Experimental
-
-template <>
-struct Impl::is_hip_type_space<Experimental::HIPHostPinnedSpace>
-    : public std::true_type {};
-
 }  // namespace Kokkos
 
 /*--------------------------------------------------------------------------*/
@@ -288,116 +268,174 @@ struct MemorySpaceAccess<Kokkos::Experimental::HIPHostPinnedSpace,
 namespace Kokkos {
 namespace Impl {
 
-void DeepCopyHIP(void* dst, const void* src, size_t n);
-void DeepCopyAsyncHIP(const Kokkos::Experimental::HIP& instance, void* dst,
-                      const void* src, size_t n);
 void DeepCopyAsyncHIP(void* dst, const void* src, size_t n);
 
-template <class MemSpace>
-struct DeepCopy<MemSpace, HostSpace, Kokkos::Experimental::HIP,
-                std::enable_if_t<is_hip_type_space<MemSpace>::value>> {
-  DeepCopy(void* dst, const void* src, size_t n) { DeepCopyHIP(dst, src, n); }
-  DeepCopy(const Kokkos::Experimental::HIP& instance, void* dst,
-           const void* src, size_t n) {
-    DeepCopyAsyncHIP(instance, dst, src, n);
-  }
+template <>
+struct DeepCopy<Kokkos::Experimental::HIPSpace, Kokkos::Experimental::HIPSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
 };
 
-template <class MemSpace>
-struct DeepCopy<HostSpace, MemSpace, Kokkos::Experimental::HIP,
-                std::enable_if_t<is_hip_type_space<MemSpace>::value>> {
-  DeepCopy(void* dst, const void* src, size_t n) { DeepCopyHIP(dst, src, n); }
-  DeepCopy(const Kokkos::Experimental::HIP& instance, void* dst,
-           const void* src, size_t n) {
-    DeepCopyAsyncHIP(instance, dst, src, n);
-  }
+template <>
+struct DeepCopy<Kokkos::Experimental::HIPSpace, HostSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
 };
 
-template <class MemSpace1, class MemSpace2>
-struct DeepCopy<MemSpace1, MemSpace2, Kokkos::Experimental::HIP,
-                std::enable_if_t<is_hip_type_space<MemSpace1>::value &&
-                                 is_hip_type_space<MemSpace2>::value>> {
-  DeepCopy(void* dst, const void* src, size_t n) { DeepCopyHIP(dst, src, n); }
-  DeepCopy(const Kokkos::Experimental::HIP& instance, void* dst,
-           const void* src, size_t n) {
-    DeepCopyAsyncHIP(instance, dst, src, n);
-  }
+template <>
+struct DeepCopy<HostSpace, Kokkos::Experimental::HIPSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
 };
 
-template <class MemSpace1, class MemSpace2, class ExecutionSpace>
-struct DeepCopy<
-    MemSpace1, MemSpace2, ExecutionSpace,
-    std::enable_if_t<
-        is_hip_type_space<MemSpace1>::value &&
-        is_hip_type_space<MemSpace2>::value &&
-        !std::is_same<ExecutionSpace, Kokkos::Experimental::HIP>::value>> {
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPSpace, Kokkos::Experimental::HIPSpace,
+                ExecutionSpace> {
   inline DeepCopy(void* dst, const void* src, size_t n) {
-    DeepCopyHIP(dst, src, n);
+    (void)DeepCopy<Kokkos::Experimental::HIPSpace,
+                   Kokkos::Experimental::HIPSpace, Kokkos::Experimental::HIP>(
+        dst, src, n);
   }
 
   inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
                   size_t n) {
-    exec.fence(fence_string());
+    exec.fence();
     DeepCopyAsyncHIP(dst, src, n);
-  }
-
- private:
-  static const std::string& fence_string() {
-    static const std::string string =
-        std::string("Kokkos::Impl::DeepCopy<") + MemSpace1::name() + "Space, " +
-        MemSpace2::name() +
-        "Space, ExecutionSpace>::DeepCopy: fence before copy";
-    return string;
   }
 };
 
-template <class MemSpace, class ExecutionSpace>
-struct DeepCopy<
-    MemSpace, HostSpace, ExecutionSpace,
-    std::enable_if_t<
-        is_hip_type_space<MemSpace>::value &&
-        !std::is_same<ExecutionSpace, Kokkos::Experimental::HIP>::value>> {
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPSpace, HostSpace, ExecutionSpace> {
   inline DeepCopy(void* dst, const void* src, size_t n) {
-    DeepCopyHIP(dst, src, n);
+    (void)DeepCopy<Kokkos::Experimental::HIPSpace, HostSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
   }
 
   inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
                   size_t n) {
-    exec.fence(fence_string());
+    exec.fence();
     DeepCopyAsyncHIP(dst, src, n);
-  }
-
- private:
-  static const std::string& fence_string() {
-    static const std::string string =
-        std::string("Kokkos::Impl::DeepCopy<") + MemSpace::name() +
-        "Space, HostSpace, ExecutionSpace>::DeepCopy: fence before copy";
-    return string;
   }
 };
 
-template <class MemSpace, class ExecutionSpace>
-struct DeepCopy<
-    HostSpace, MemSpace, ExecutionSpace,
-    std::enable_if_t<
-        is_hip_type_space<MemSpace>::value &&
-        !std::is_same<ExecutionSpace, Kokkos::Experimental::HIP>::value>> {
+template <class ExecutionSpace>
+struct DeepCopy<HostSpace, Kokkos::Experimental::HIPSpace, ExecutionSpace> {
   inline DeepCopy(void* dst, const void* src, size_t n) {
-    DeepCopyHIP(dst, src, n);
+    (void)DeepCopy<HostSpace, Kokkos::Experimental::HIPSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
   }
 
   inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
                   size_t n) {
-    exec.fence(fence_string());
+    exec.fence();
     DeepCopyAsyncHIP(dst, src, n);
   }
+};
 
- private:
-  static const std::string& fence_string() {
-    static const std::string string =
-        std::string("Kokkos::Impl::DeepCopy<HostSpace, ") + MemSpace::name() +
-        "Space, ExecutionSpace>::DeepCopy: fence before copy";
-    return string;
+template <>
+struct DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace,
+                Kokkos::Experimental::HIPHostPinnedSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
+};
+
+template <>
+struct DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace, HostSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
+};
+
+template <>
+struct DeepCopy<HostSpace, Kokkos::Experimental::HIPHostPinnedSpace,
+                Kokkos::Experimental::HIP> {
+  DeepCopy(void* dst, const void* src, size_t);
+  DeepCopy(const Kokkos::Experimental::HIP&, void* dst, const void* src,
+           size_t);
+};
+
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPSpace,
+                Kokkos::Experimental::HIPHostPinnedSpace, ExecutionSpace> {
+  inline DeepCopy(void* dst, const void* src, size_t n) {
+    (void)DeepCopy<Kokkos::Experimental::HIPSpace, HostSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
+  }
+
+  inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
+                  size_t n) {
+    exec.fence();
+    DeepCopyAsyncHIP(dst, src, n);
+  }
+};
+
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace,
+                Kokkos::Experimental::HIPSpace, ExecutionSpace> {
+  inline DeepCopy(void* dst, const void* src, size_t n) {
+    (void)DeepCopy<HostSpace, Kokkos::Experimental::HIPSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
+  }
+
+  inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
+                  size_t n) {
+    exec.fence();
+    DeepCopyAsyncHIP(dst, src, n);
+  }
+};
+
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace,
+                Kokkos::Experimental::HIPHostPinnedSpace, ExecutionSpace> {
+  inline DeepCopy(void* dst, const void* src, size_t n) {
+    (void)DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace,
+                   Kokkos::Experimental::HIPHostPinnedSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
+  }
+
+  inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
+                  size_t n) {
+    exec.fence();
+    DeepCopyAsyncHIP(dst, src, n);
+  }
+};
+
+template <class ExecutionSpace>
+struct DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace, HostSpace,
+                ExecutionSpace> {
+  inline DeepCopy(void* dst, const void* src, size_t n) {
+    (void)DeepCopy<Kokkos::Experimental::HIPHostPinnedSpace, HostSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
+  }
+
+  inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
+                  size_t n) {
+    exec.fence();
+    DeepCopyAsyncHIP(dst, src, n);
+  }
+};
+
+template <class ExecutionSpace>
+struct DeepCopy<HostSpace, Kokkos::Experimental::HIPHostPinnedSpace,
+                ExecutionSpace> {
+  inline DeepCopy(void* dst, const void* src, size_t n) {
+    (void)DeepCopy<HostSpace, Kokkos::Experimental::HIPHostPinnedSpace,
+                   Kokkos::Experimental::HIP>(dst, src, n);
+  }
+
+  inline DeepCopy(const ExecutionSpace& exec, void* dst, const void* src,
+                  size_t n) {
+    exec.fence();
+    DeepCopyAsyncHIP(dst, src, n);
   }
 };
 }  // namespace Impl
@@ -498,7 +536,7 @@ class HIP {
   using scratch_memory_space = ScratchMemorySpace<HIP>;
 
   HIP();
-  HIP(hipStream_t stream, bool manage_stream = false);
+  HIP(hipStream_t stream);
 
   //@}
   //------------------------------------
@@ -506,7 +544,7 @@ class HIP {
   //@{
 
   KOKKOS_INLINE_FUNCTION static int in_parallel() {
-#if defined(__HIP_DEVICE_COMPILE__)
+#if defined(__HIP_ARCH__)
     return true;
 #else
     return false;
@@ -520,10 +558,8 @@ class HIP {
    * until all dispatched functors on this device have completed.
    */
   static void impl_static_fence();
-  static void impl_static_fence(const std::string&);
 
   void fence() const;
-  void fence(const std::string&) const;
 
   hipStream_t hip_stream() const;
 
@@ -560,7 +596,7 @@ class HIP {
     return m_space_instance.get();
   }
 
-  uint32_t impl_instance_id() const noexcept;
+  uint32_t impl_instance_id() const noexcept { return 0; }
 
  private:
   Kokkos::Impl::HostSharedPtr<Impl::HIPInternal> m_space_instance;
@@ -584,28 +620,9 @@ class HIPSpaceInitializer : public Kokkos::Impl::ExecSpaceInitializerBase {
   void initialize(const InitArguments& args) final;
   void finalize(const bool) final;
   void fence() final;
-  void fence(const std::string&) final;
   void print_configuration(std::ostream& msg, const bool detail) final;
 };
 
-template <class DT, class... DP>
-struct ZeroMemset<Kokkos::Experimental::HIP, DT, DP...> {
-  ZeroMemset(const Kokkos::Experimental::HIP& exec_space,
-             const View<DT, DP...>& dst,
-             typename View<DT, DP...>::const_value_type&) {
-    KOKKOS_IMPL_HIP_SAFE_CALL(hipMemsetAsync(
-        dst.data(), 0,
-        dst.size() * sizeof(typename View<DT, DP...>::value_type),
-        exec_space.hip_stream()));
-  }
-
-  ZeroMemset(const View<DT, DP...>& dst,
-             typename View<DT, DP...>::const_value_type&) {
-    KOKKOS_IMPL_HIP_SAFE_CALL(
-        hipMemset(dst.data(), 0,
-                  dst.size() * sizeof(typename View<DT, DP...>::value_type)));
-  }
-};
 }  // namespace Impl
 }  // namespace Kokkos
 

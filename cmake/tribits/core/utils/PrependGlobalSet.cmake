@@ -37,23 +37,23 @@
 # ************************************************************************
 # @HEADER
 
-include(GlobalSet)
-include(AssertDefined)
+INCLUDE(GlobalSet)
+INCLUDE(AssertDefined)
 
 #
-# @MACRO: prepend_global_set()
+# @MACRO: PREPEND_GLOBAL_SET()
 #
 # Utility macro that prepends arguments to a global variable (reduces
 # boiler-plate code and mistakes).
 #
 # Usage::
 #
-#   prepend_global_set(<varName> <arg0> <arg1> ...)
+#   PREPEND_GLOBAL_SET(<varName> <arg0> <arg1> ...)
 #
 # The variable ``<varName>`` must exist before calling this function.  To set
-# it empty initially use `global_null_set()`_.
+# it empty initially use `GLOBAL_NULL_SET()`_.
 #
-macro(prepend_global_set VARNAME)
-  assert_defined(${VARNAME})
-  global_set(${VARNAME} ${ARGN} ${${VARNAME}})
-endmacro()
+MACRO(PREPEND_GLOBAL_SET VARNAME)
+  ASSERT_DEFINED(${VARNAME})
+  GLOBAL_SET(${VARNAME} ${ARGN} ${${VARNAME}})
+ENDMACRO()

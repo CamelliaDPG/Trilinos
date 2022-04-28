@@ -13,7 +13,8 @@ int main(int argc, char *argv[]) {
   using Teuchos::ParameterList;
   using Teuchos::RCP;
   using Teuchos::rcp;
-  using SC = Tpetra::MultiVector<>::scalar_type;
+
+  using SC = double;
   using crs_matrix_type = Tpetra::CrsMatrix<SC>;
   using map_type = Tpetra::Map<>;
   using OP = Tpetra::Operator<SC>;
@@ -41,7 +42,7 @@ int main(int argc, char *argv[]) {
 
     RCP<crs_matrix_type> K = rcp (new crs_matrix_type (UniqueMap, 10));
 
-    for (LO i = 0; i < static_cast<LO>(UniqueMap->getLocalNumElements()); ++i) {
+    for (LO i = 0; i < static_cast<LO>(UniqueMap->getNodeNumElements()); ++i) {
       LO numEntries = 10-i;
       Array<GO> indicesArray(numEntries);
       Array<SC> valuesArray(numEntries);

@@ -48,7 +48,7 @@
 #include <string>
 #include <memory>
 
-#include <stk_util/ngp/NgpSpaces.hpp>
+#include <stk_mesh/base/NgpSpaces.hpp>
 #include <stk_mesh/base/NgpUtils.hpp>
 #include <stk_util/util/StkNgpVector.hpp>
 
@@ -67,8 +67,6 @@ struct DeviceBucket {
   DeviceBucket()
     : bucketId(0), entityRank(stk::topology::NODE_RANK), entities(),
       nodeConnectivity(), hostNodeConnectivity(),
-      nodeOffsets(), hostNodeOffsets(),
-      nodeOrdinals(), hostNodeOrdinals(),
       owningMesh(nullptr), bucketCapacity(0)
   {}
 
@@ -89,10 +87,13 @@ struct DeviceBucket {
   KOKKOS_FUNCTION
   stk::topology topology() const { return bucketTopology; }
 
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FUNCTION
+  unsigned get_num_nodes_per_entity() const { return bucketTopology.num_nodes(); }
+
+  STK_INLINE_FUNCTION
   ConnectedEntities get_connected_entities(unsigned offsetIntoBucket, stk::mesh::EntityRank connectedRank) const;
 
-  KOKKOS_INLINE_FUNCTION
+  STK_INLINE_FUNCTION
   ConnectedOrdinals get_connected_ordinals(unsigned offsetIntoBucket, stk::mesh::EntityRank connectedRank) const;
 
   KOKKOS_FUNCTION
@@ -145,9 +146,6 @@ struct DeviceBucket {
   BucketConnectivityType nodeConnectivity;
   BucketConnectivityType::HostMirror hostNodeConnectivity;
 
-  OrdinalViewType nodeOffsets;
-  OrdinalViewType::HostMirror hostNodeOffsets;
-
   OrdinalViewType nodeOrdinals;
   OrdinalViewType::HostMirror hostNodeOrdinals;
 
@@ -168,7 +166,7 @@ struct DeviceMeshIndex
 class DeviceMesh : public NgpMeshBase
 {
 public:
-  using MeshExecSpace     = stk::ngp::ExecSpace;
+  using MeshExecSpace     = stk::mesh::ExecSpace;
   using ConnectedNodes    = DeviceBucket::ConnectedNodes;
   using ConnectedEntities = DeviceBucket::ConnectedEntities;
   using ConnectedOrdinals = DeviceBucket::ConnectedOrdinals;
@@ -492,7 +490,7 @@ private:
   void copy_volatile_fast_shared_comm_map_to_device();
 
 
-  using BucketView = Kokkos::View<DeviceBucket*, stk::ngp::UVMMemSpace>;
+  using BucketView = Kokkos::View<DeviceBucket*, UVMMemSpace>;
   const stk::mesh::BulkData *bulk;
   unsigned spatial_dimension;
   unsigned synchronizedCount;
@@ -506,8 +504,8 @@ private:
   HostMeshIndexType hostMeshIndices;
   MeshIndexType deviceMeshIndices;
 
-  Kokkos::View<int*,stk::ngp::MemSpace> bucketEntityOffsets[stk::topology::NUM_RANKS];
-  Kokkos::View<int*,stk::ngp::MemSpace>::HostMirror hostBucketEntityOffsets[stk::topology::NUM_RANKS];
+  Kokkos::View<int*,MemSpace> bucketEntityOffsets[stk::topology::NUM_RANKS];
+  Kokkos::View<int*,MemSpace>::HostMirror hostBucketEntityOffsets[stk::topology::NUM_RANKS];
 
   UnsignedViewType entityConnectivityOffset[stk::topology::NUM_RANKS][stk::topology::NUM_RANKS];
   UnsignedViewType::HostMirror hostEntityConnectivityOffset[stk::topology::NUM_RANKS][stk::topology::NUM_RANKS];
@@ -528,27 +526,24 @@ private:
   FastSharedCommMapViewType::HostMirror hostVolatileFastSharedCommMap[stk::topology::NUM_RANKS];
 };
 
-KOKKOS_INLINE_FUNCTION
+STK_INLINE_FUNCTION
 DeviceBucket::ConnectedEntities
 DeviceBucket::get_connected_entities(unsigned offsetIntoBucket, stk::mesh::EntityRank connectedRank) const {
   NGP_ThrowAssert(connectedRank < stk::topology::NUM_RANKS);
   if (connectedRank == stk::topology::NODE_RANK) {
-    const unsigned numNodes = nodeOffsets(offsetIntoBucket+1)-nodeOffsets(offsetIntoBucket);
-    const size_t nodeOffset = nodeOffsets(offsetIntoBucket);
-    return ConnectedEntities(&nodeConnectivity(nodeOffset), numNodes, 1);
+    return ConnectedEntities(&nodeConnectivity(offsetIntoBucket,0), bucketTopology.num_nodes(), bucketCapacity);
   }
   NGP_ThrowAssert(owningMesh != nullptr);
   stk::mesh::FastMeshIndex meshIndex{bucket_id(), offsetIntoBucket};
   return owningMesh->get_connected_entities(entity_rank(), meshIndex, connectedRank);
 }
 
-KOKKOS_INLINE_FUNCTION
+STK_INLINE_FUNCTION
 DeviceBucket::ConnectedOrdinals
 DeviceBucket::get_connected_ordinals(unsigned offsetIntoBucket, stk::mesh::EntityRank connectedRank) const {
   NGP_ThrowAssert(connectedRank < stk::topology::NUM_RANKS);
   if (connectedRank == stk::topology::NODE_RANK) {
-    const unsigned numNodes = nodeOffsets(offsetIntoBucket+1)-nodeOffsets(offsetIntoBucket);
-    return ConnectedOrdinals(nodeOrdinals.data(), numNodes, 1);
+    return ConnectedOrdinals(nodeOrdinals.data(), nodeOrdinals.size(), bucketCapacity);
   }
   NGP_ThrowAssert(owningMesh != nullptr);
   stk::mesh::FastMeshIndex meshIndex{bucket_id(), offsetIntoBucket};

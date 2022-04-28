@@ -265,12 +265,13 @@ namespace Tpetra {
 
         // Construct the CrsMatrix, using the row map, with the
         // constructor specifying the number of nonzeros for each row.
+        Tpetra::ProfileType pftype = TPETRA_DEFAULT_PROFILE_TYPE;
         RCP<sparse_matrix_type> A =
-          rcp (new sparse_matrix_type (pRowMap, myNumEntriesPerRow ()));
+          rcp (new sparse_matrix_type (pRowMap, myNumEntriesPerRow (), pftype));
 
         // List of the global indices of my rows.
         // They may or may not be contiguous.
-        ArrayView<const GO> myRows = pRowMap->getLocalElementList ();
+        ArrayView<const GO> myRows = pRowMap->getNodeElementList ();
         const size_type myNumRows = myRows.size ();
 
         // Add this processor's matrix entries to the CrsMatrix.
@@ -356,11 +357,11 @@ namespace Tpetra {
         // constructor specifying the number of nonzeros for each row.
         RCP<sparse_matrix_type> A =
           rcp (new sparse_matrix_type (pRowMap, myNumEntriesPerRow,
-                                       constructorParams));
+                                       StaticProfile, constructorParams));
 
         // List of the global indices of my rows.
         // They may or may not be contiguous.
-        ArrayView<const GO> myRows = pRowMap->getLocalElementList();
+        ArrayView<const GO> myRows = pRowMap->getNodeElementList();
         const size_type myNumRows = myRows.size();
 
         // Add this processor's matrix entries to the CrsMatrix.
@@ -418,14 +419,14 @@ namespace Tpetra {
         //
         RCP<sparse_matrix_type> A; // the matrix to return.
         if (colMap.is_null ()) { // the user didn't provide a column Map
-          A = rcp (new sparse_matrix_type (rowMap, myNumEntriesPerRow));
+          A = rcp (new sparse_matrix_type (rowMap, myNumEntriesPerRow, StaticProfile));
         } else { // the user provided a column Map
-          A = rcp (new sparse_matrix_type (rowMap, colMap, myNumEntriesPerRow));
+          A = rcp (new sparse_matrix_type (rowMap, colMap, myNumEntriesPerRow, StaticProfile));
         }
 
         // List of the global indices of my rows.
         // They may or may not be contiguous.
-        ArrayView<const GO> myRows = rowMap->getLocalElementList ();
+        ArrayView<const GO> myRows = rowMap->getNodeElementList ();
         const size_type myNumRows = myRows.size ();
 
         // Add this process' matrix entries to the CrsMatrix.
@@ -671,8 +672,8 @@ namespace Tpetra {
             for (int p = 0; p < numProcs; ++p) {
               if (myRank == p) {
                 std::cerr << "-- Proc " << p << " owns "
-                          << pMatrix->getLocalNumCols() << " columns, and "
-                          << pMatrix->getLocalNumEntries() << " entries." << std::endl;
+                          << pMatrix->getNodeNumCols() << " columns, and "
+                          << pMatrix->getNodeNumEntries() << " entries." << std::endl;
               }
               pComm->barrier ();
             }

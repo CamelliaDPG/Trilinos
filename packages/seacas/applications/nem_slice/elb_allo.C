@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -58,6 +58,11 @@ void *array_alloc(int numdim, ...)
     size_t size;  /* Size of a single element in bytes  */
     size_t off;   /* offset from beginning of array     */
   } dim[3];       /* Info about each dimension          */
+  size_t  total;  /* Total size of the array            */
+  void *  dfield; /* ptr to avoid lint complaints               */
+  char *  field;  /* The multi-dimensional array                */
+  char ** ptr;    /* Pointer offset                     */
+  char *  data;   /* Data offset                                */
   va_list va;     /* Current pointer in the argument list       */
 
   va_start(va, numdim);
@@ -101,14 +106,14 @@ void *array_alloc(int numdim, ...)
   dim[numdim - 1].off = dim[numdim - 1].size *
                         ((dim[numdim - 1].off + dim[numdim - 1].size - 1) / dim[numdim - 1].size);
 
-  size_t total = dim[numdim - 1].off + dim[numdim - 1].total * dim[numdim - 1].size;
+  total = dim[numdim - 1].off + dim[numdim - 1].total * dim[numdim - 1].size;
 
-  void *dfield = smalloc(total);
-  char *field  = reinterpret_cast<char *>(dfield);
+  dfield = smalloc(total);
+  field  = reinterpret_cast<char *>(dfield);
 
   for (int i = 0; i < numdim - 1; i++) {
-    char **ptr  = reinterpret_cast<char **>(field + dim[i].off);
-    char  *data = (field + dim[i + 1].off);
+    ptr  = reinterpret_cast<char **>(field + dim[i].off);
+    data = (field + dim[i + 1].off);
     for (size_t j = 0; j < dim[i].total; j++) {
       ptr[j] = data + j * dim[i + 1].size * dim[i + 1].index;
     }
@@ -135,8 +140,8 @@ static void *smalloc(size_t n)
   if (pntr == nullptr && n != 0) {
     fmt::print(stderr,
                "smalloc: Out of space - number of bytes "
-               "requested = {}\n",
-               fmt::group_digits(n));
+               "requested = {:L}\n",
+               n);
     exit(0);
   }
   return (pntr);

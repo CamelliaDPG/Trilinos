@@ -77,9 +77,7 @@ set (TPL_DLlib_LIBRARIES "-ldl" CACHE FILEPATH "Set by default for CUDA PR testi
 # The compile times for two Panzer files went up to over 6 hours. This
 # turns off one feature that allows these in about 24 minutes. Please remove
 # when issue #7532 is resolved.
-# Compile time issues addressed by #8377. Commenting out the override of 
-# Sacado_NEW_FAD_DESIGN_IS_DEFAULT to return to default settings.
-#set (Sacado_NEW_FAD_DESIGN_IS_DEFAULT OFF CACHE BOOL "Temporary fix for issue #7532" )
+set (Sacado_NEW_FAD_DESIGN_IS_DEFAULT OFF CACHE BOOL "Temporary fix for issue #7532" )
 
 # Disable some packages that can't be tested with this PR build
 set (Trilinos_ENABLE_ShyLU_NodeTacho OFF CACHE BOOL
@@ -101,20 +99,20 @@ set (ROL_example_PDE-OPT_nonlinear-elliptic_example_02_MPI_4_DISABLE ON CACHE BO
 set (ROL_example_PDE-OPT_obstacle_example_01_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
 set (ROL_example_PDE-OPT_topo-opt_poisson_example_01_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
 set (ROL_test_elementwise_TpetraMultiVector_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerAdaptersSTK_CurlLaplacianExample-ConvTest-Quad-Order-4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerAdaptersSTK_MixedPoissonExample-ConvTest-Hex-Order-3_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-# set (TrilinosCouplings_Example_Maxwell_MueLu_MPI_1_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-# set (TrilinosCouplings_Example_Maxwell_MueLu_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerAdaptersSTK_CurlLaplacianExample-ConvTest-Quad-Order-4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerAdaptersSTK_MixedPoissonExample-ConvTest-Hex-Order-3_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (TrilinosCouplings_Example_Maxwell_MueLu_MPI_1_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (TrilinosCouplings_Example_Maxwell_MueLu_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
 
 # Disable some tests that should not need to be disabled but do because the
 # Trilinos PR tester is using too high a parallel level for ctest. (If the
 # ctest parallel test level is dropped from 29 to 8, all of these will pass.)
 set (MueLu_UnitTestsIntrepid2Tpetra_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerAdaptersSTK_main_driver_energy-ss-blocked-tp_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerAdaptersSTK_MixedCurlLaplacianExample-ConvTest-Tri-Order-1_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerAdaptersSTK_PoissonInterfaceExample_3d_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerMiniEM_MiniEM-BlockPrec_Augmentation_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
-#set (PanzerMiniEM_MiniEM-BlockPrec_RefMaxwell_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerAdaptersSTK_main_driver_energy-ss-blocked-tp_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerAdaptersSTK_MixedCurlLaplacianExample-ConvTest-Tri-Order-1_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerAdaptersSTK_PoissonInterfaceExample_3d_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerMiniEM_MiniEM-BlockPrec_Augmentation_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
+set (PanzerMiniEM_MiniEM-BlockPrec_RefMaxwell_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
 set (ROL_example_PDE-OPT_poisson-boltzmann_example_01_MPI_4_DISABLE ON CACHE BOOL "Temporary disable for CUDA PR testing")
 
 # Disable a couple of unit tests in test KokkosCore_UnitTest_Cuda_MPI_1 that
@@ -139,7 +137,9 @@ set (Kokkos_ENABLE_CUDA_UVM OFF CACHE BOOL "Set by default for CUDA PR testing")
 set (Tpetra_ENABLE_CUDA_UVM OFF CACHE BOOL "Set by default for CUDA PR testing")
 
 # Turn off packages currently failing with UVM = OFF
+set (Trilinos_ENABLE_Panzer OFF CACHE BOOL "Turn off packages for non-UVM build")
 set (Trilinos_ENABLE_Stokhos OFF CACHE BOOL "Turn off packages for non-UVM build")
+set (Trilinos_ENABLE_TrilinosCouplings OFF CACHE BOOL "Turn off packages for non-UVM build")
 
 # Turn off tests currently failing with UVM = OFF
 # Packages with >5 failing tests
@@ -147,10 +147,14 @@ set (Anasazi_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (Domi_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (Kokkos_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (KokkosKernels_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
+set (MueLu_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
+set (NOX_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (ROL_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
+set (Sacado_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (SEACAS_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (ShyLU_DD_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 set (STK_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
+set (Zoltan2_ENABLE_TESTS OFF CACHE BOOL "Turn off tests for non-UVM build")
 
 
 # ShyLU_DD UVM = OFF tests
@@ -246,8 +250,5 @@ set (SEACASIoss_exodus_fpp_serialize_DISABLE ON CACHE BOOL "Turn off tests for n
 # Stratimikos UVM = OFF tests
 set (Stratimikos_test_single_amesos2_tpetra_solver_driver_KLU2_MPI_1_DISABLE ON CACHE BOOL "Turn off tests for non-UVM build")
 
-# MueLu UVM = OFF tests
-set (MueLu_ReitzingerPFactory_MPI_4_DISABLE ON CACHE BOOL "Turn off tests for non-UVM build")
-set (MueLu_Maxwell3D-Tpetra_2_MPI_4_DISABLE ON CACHE BOOL "Turn off tests for non-UVM build")
 
 include("${CMAKE_CURRENT_LIST_DIR}/PullRequestLinuxCommonTestingSettings.cmake")

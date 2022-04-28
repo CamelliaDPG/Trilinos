@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022,  National Technology & Engineering Solutions
+// Copyright(C) 1999-, 20212021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -13,15 +13,18 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <memory>
 #include <ostream>
 #include <sstream>
 #include <stack>
 #include <string>
 #include <vector>
 
-#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32) || defined(_MSC_VER) ||                \
-    defined(__MINGW32__) || defined(_WIN64) || defined(__MINGW64__)
+#include <cmath>
+#ifndef math_errhandling
+#define math_errhandling MATH_ERRNO
+#endif
+
+#if defined(_MSC_VER)
 #include <io.h>
 #define isatty _isatty
 #endif
@@ -30,9 +33,80 @@
  * SEAMS::Parser, SEAMS::Scanner and SEAMS::Aprepro */
 namespace SEAMS {
 
-  struct Symtable;
-  struct symrec;
-  struct array;
+  struct array
+  {
+    std::vector<double> data{};
+    int                 rows{0};
+    int                 cols{0};
+
+    array(int r, int c) : rows(r), cols(c) { data.resize(r * c); }
+
+    array(const array &) = default;
+    array()              = default;
+    ~array()             = default;
+  };
+
+  struct symrec
+  {
+    std::string name{};
+    std::string syntax{};
+    std::string info{};
+    int         type;
+    bool        isInternal;
+    struct value
+    {
+      double var{0};
+      double (*fnctptr)(){nullptr};
+      double (*fnctptr_d)(double){nullptr};
+      double (*fnctptr_c)(char *){nullptr};
+      double (*fnctptr_dc)(double, char *){nullptr};
+      double (*fnctptr_cd)(char *, double){nullptr};
+      double (*fnctptr_cc)(char *, char *){nullptr};
+      double (*fnctptr_dd)(double, double){nullptr};
+      double (*fnctptr_ddd)(double, double, double){nullptr};
+      double (*fnctptr_ccc)(char *, char *, char *){nullptr};
+      double (*fnctptr_ccd)(char *, char *, double){nullptr};
+      double (*fnctptr_dddd)(double, double, double, double){nullptr};
+      double (*fnctptr_ddddc)(double, double, double, double, char *){nullptr};
+      double (*fnctptr_dddddd)(double, double, double, double, double, double){nullptr};
+      double (*fnctptr_a)(const array *){nullptr};
+      std::string svar{};
+      const char *(*strfnct)(){nullptr};
+      const char *(*strfnct_c)(char *){nullptr};
+      const char *(*strfnct_d)(double){nullptr};
+      const char *(*strfnct_a)(const array *){nullptr};
+      const char *(*strfnct_dd)(double, double){nullptr};
+      const char *(*strfnct_cc)(char *, char *){nullptr};
+      const char *(*strfnct_ccc)(char *, char *, char *){nullptr};
+      const char *(*strfnct_dcc)(double, char *, char *){nullptr};
+      const char *(*strfnct_dcccc)(double, char *, char *, char *, char *){nullptr};
+      array *avar{nullptr}; /* Array Variable */
+      array *(*arrfnct_c)(const char *){nullptr};
+      array *(*arrfnct_cc)(const char *, const char *){nullptr};
+      array *(*arrfnct_cd)(const char *, double){nullptr};
+      array *(*arrfnct_ddd)(double, double, double){nullptr};
+      array *(*arrfnct_dd)(double, double){nullptr};
+      array *(*arrfnct_d)(double){nullptr};
+      array *(*arrfnct_a)(const array *){nullptr};
+
+      value() = default;
+    } value;
+    symrec *next;
+
+    symrec(const char *my_name, int my_type, bool is_internal = false)
+        : name(my_name), syntax(my_name), info("UNDEFINED"), type(my_type), isInternal(is_internal),
+          next(nullptr)
+    {
+      value.var = 0;
+    }
+
+    symrec(const std::string &my_name, int my_type, bool is_internal = false)
+        : name(my_name), syntax(my_name), info("UNDEFINED"), type(my_type), isInternal(is_internal),
+          next(nullptr)
+    {
+      value.var = 0;
+    }
+  };
 
   /* Global options */
   struct aprepro_options
@@ -47,7 +121,6 @@ namespace SEAMS {
     bool        info_msg{false};
     bool        debugging{false};
     bool        dumpvars{false};
-    bool        dumpvars_json{false};
     bool        interactive{false};
     bool        immutable{false};
     bool        trace_parsing{false}; // enable debug output in the bison parser
@@ -60,7 +133,7 @@ namespace SEAMS {
   struct file_rec
   {
     std::string name{"STDIN"};
-    int         lineno{1};
+    int         lineno{0};
     int         loop_count{0};
     bool        tmp_file{false};
 
@@ -91,8 +164,6 @@ namespace SEAMS {
     /// construct a new parser aprepro context
     Aprepro();
     ~Aprepro();
-    Aprepro(const Aprepro &) = delete;
-    Aprepro &operator=(const Aprepro &) = delete;
 
     enum class SYMBOL_TYPE {
       VARIABLE                  = 1,
@@ -116,9 +187,6 @@ namespace SEAMS {
 
     /** Return string representation of current version of aprepro.  */
     static std::string version();
-
-    /** Return long version: `# Algebraic Preprocessor (Aprepro) version X.X.X` */
-    std::string long_version() const;
 
     /** Invoke the scanner and parser for a stream.
      * @param in        input stream
@@ -210,19 +278,16 @@ namespace SEAMS {
 
     void dumpsym(const char *type, bool doInternal) const;
     void dumpsym(int type, bool doInternal) const;
-    void dumpsym_json() const;
     void dumpsym(int type, const char *pre, bool doInternal) const;
 
     array *make_array(int r, int c);
     array *make_array(const array &from);
-    void   redefine_array(array *data);
 
   private:
-    std::unique_ptr<Symtable> sym_table;
-
-    void                 init_table(const char *comment);
-    std::vector<array *> array_allocations{};
-    std::ostringstream   parsingResults{};
+    void                  init_table(const char *comment);
+    std::vector<symrec *> sym_table{};
+    std::vector<array *>  array_allocations{};
+    std::ostringstream    parsingResults{};
 
     // Input stream used with parse_string_interactive
     std::istringstream stringInput{};

@@ -74,8 +74,8 @@ void HostThreadTeamData::organize_pool(HostThreadTeamData *members[],
     }
 
     {
-      HostThreadTeamData **const pool = reinterpret_cast<HostThreadTeamData **>(
-          root_scratch + m_pool_members);
+      HostThreadTeamData **const pool =
+          (HostThreadTeamData **)(root_scratch + m_pool_members);
 
       // team size == 1, league size == pool_size
 
@@ -136,8 +136,7 @@ int HostThreadTeamData::organize_team(const int team_size) {
     if (team_size == 1) return 1;  // Already organized in teams of one
 
     HostThreadTeamData *const *const pool =
-        reinterpret_cast<HostThreadTeamData **>(m_pool_scratch +
-                                                m_pool_members);
+        (HostThreadTeamData **)(m_pool_scratch + m_pool_members);
 
     // "league_size" in this context is the number of concurrent teams
     // that the pool can accommodate.  Excess threads are idle.
@@ -240,8 +239,7 @@ int HostThreadTeamData::get_work_stealing() noexcept {
 
     if (w.first == -1 && m_steal_rank != m_pool_rank) {
       HostThreadTeamData *const *const pool =
-          reinterpret_cast<HostThreadTeamData **>(m_pool_scratch +
-                                                  m_pool_members);
+          (HostThreadTeamData **)(m_pool_scratch + m_pool_members);
 
       // Attempt from beginning failed, try to steal from end of neighbor
 
@@ -289,16 +287,22 @@ int HostThreadTeamData::get_work_stealing() noexcept {
 
     if (1 < m_team_size) {
       // Must share the work index
-      *reinterpret_cast<int volatile *>(team_reduce()) = w.first;
+      *((int volatile *)team_reduce()) = w.first;
 
       team_rendezvous_release();
     }
   } else if (1 < m_team_size) {
-    w.first = *reinterpret_cast<int volatile *>(team_reduce());
+    w.first = *((int volatile *)team_reduce());
   }
 
   // May exit because successfully stole work and w is good.
   // May exit because no work left to steal and w = (-1,-1).
+
+#if 0
+fprintf(stdout,"HostThreadTeamData::get_work_stealing() pool(%d of %d) %d\n"
+       , m_pool_rank , m_pool_size , w.first );
+fflush(stdout);
+#endif
 
   return w.first;
 }

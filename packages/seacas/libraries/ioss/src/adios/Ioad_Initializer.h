@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Ioad_Initializer_h
+#define IOSS_Ioad_Initializer_h
 
 namespace Ioad {
   /** \brief Initialization of the adios database parts of the Ioss library.
@@ -24,3 +25,4 @@ namespace Ioad {
     static int useCount;
   };
 } // namespace Ioad
+#endif

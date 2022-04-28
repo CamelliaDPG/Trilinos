@@ -110,7 +110,6 @@ struct TestParallel_For {
     // Copy the data back to Host memory space
     Kokkos::Impl::DeepCopy<h_memspace_type, d_memspace_type>(
         hostData, deviceData, num_elements * sizeof(value_type));
-    Kokkos::fence("Fence after copying data to host memory space");
 
     // Check if all data has been update correctly
     correctness_check(hostData);

@@ -8,8 +8,8 @@
 namespace Tpetra {
 
 template<class OutputType, class InputType>
-TPETRA_DEPRECATED
 OutputType 
+TPETRA_DEPRECATED
 createDeepCopy (const InputType& in);
 
 } // namespace Tpetra

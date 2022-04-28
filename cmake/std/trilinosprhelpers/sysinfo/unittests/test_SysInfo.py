@@ -16,14 +16,13 @@ from unittest import TestCase
 
 try:                                    # pragma: no cover
     import unittest.mock as mock        # pragma: no cover
-    from unittest.mock import patch
 except:                                 # pragma: no cover
     import mock                         # pragma: no cover
-    from mock import patch
 
 #from mock import Mock
 #from mock import mock_open
 #from mock import MagicMock
+from mock import patch
 
 from textwrap import dedent
 

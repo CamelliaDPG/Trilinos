@@ -45,7 +45,6 @@ class M2NBalanceSettings;
 struct M2NOptionNames
 {
   const std::string infile = "infile";
-  const std::string logfile = "logfile";
   const std::string nprocs = "nprocs";
   const std::string useNestedDecomp = "use-nested-decomp";
 };
@@ -78,7 +77,6 @@ private:
   void setup_messages(const char** argv);
 
   void set_filename(M2NBalanceSettings& settings) const;
-  void set_logfile(M2NBalanceSettings& settings) const;
   void set_num_procs(M2NBalanceSettings& settings) const;
   void set_use_nested_decomp(M2NBalanceSettings& settings) const;
 

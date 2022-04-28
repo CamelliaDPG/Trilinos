@@ -6,13 +6,23 @@
 // ****************************************************************************
 // @HEADER
 
-#include "Tempus_UnitTest_Utils.hpp"
+#include "Teuchos_UnitTestHarness.hpp"
+#include "Teuchos_XMLParameterListHelpers.hpp"
+#include "Teuchos_TimeMonitor.hpp"
+#include "Teuchos_DefaultComm.hpp"
 
+#include "Thyra_VectorStdOps.hpp"
+
+#include "Tempus_StepperFactory.hpp"
 #include "Tempus_TimeStepControl.hpp"
 #include "Tempus_TimeStepControlStrategyIntegralController.hpp"
 
+#include "../TestModels/SinCosModel.hpp"
 #include "../TestModels/DahlquistTestModel.hpp"
+#include "../TestUtils/Tempus_ConvergenceTestUtils.hpp"
 
+#include <fstream>
+#include <vector>
 
 namespace Tempus_Unit_Test {
 
@@ -22,6 +32,7 @@ using Teuchos::rcp_const_cast;
 using Teuchos::rcp_dynamic_cast;
 using Teuchos::ParameterList;
 using Teuchos::sublist;
+using Teuchos::getParametersFromXmlFile;
 
 
 // ************************************************************
@@ -157,17 +168,12 @@ TEUCHOS_UNIT_TEST(TimeStepControlStrategyIntegralController, setNextTimeStep)
   solutionHistory->getCurrentState()->setIndex(0);
   solutionHistory->getCurrentState()->setOrder(order);
 
-
   // Mock Integrator
 
   // -- First Time Step
   solutionHistory->initWorkingState();
   auto currentState = solutionHistory->getCurrentState();
   auto workingState = solutionHistory->getWorkingState();
-
-  TEST_FLOATING_EQUALITY(workingState->getErrorRel()   , 0.0, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm1(), 0.0, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm2(), 0.0, 1.0e-14);
 
   tsc->setNextTimeStep(solutionHistory, status);
 
@@ -187,10 +193,6 @@ TEUCHOS_UNIT_TEST(TimeStepControlStrategyIntegralController, setNextTimeStep)
   currentState = solutionHistory->getCurrentState();
   workingState = solutionHistory->getWorkingState();
   double dt = workingState->getTimeStep();
-
-  TEST_FLOATING_EQUALITY(workingState->getErrorRel()   , 0.1, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm1(), 0.0, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm2(), 0.0, 1.0e-14);
 
   tsc->setNextTimeStep(solutionHistory, status);
 
@@ -212,10 +214,6 @@ TEUCHOS_UNIT_TEST(TimeStepControlStrategyIntegralController, setNextTimeStep)
   workingState = solutionHistory->getWorkingState();
   dt = workingState->getTimeStep();
 
-  TEST_FLOATING_EQUALITY(workingState->getErrorRel()   , 0.2, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm1(), 0.1, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm2(), 0.0, 1.0e-14);
-
   tsc->setNextTimeStep(solutionHistory, status);
 
   dtNew = dt*safetyFactor*std::pow(errN,   -KI/p)
@@ -236,10 +234,6 @@ TEUCHOS_UNIT_TEST(TimeStepControlStrategyIntegralController, setNextTimeStep)
   currentState = solutionHistory->getCurrentState();
   workingState = solutionHistory->getWorkingState();
   dt = workingState->getTimeStep();
-
-  TEST_FLOATING_EQUALITY(workingState->getErrorRel()   , 0.3, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm1(), 0.2, 1.0e-14);
-  TEST_FLOATING_EQUALITY(workingState->getErrorRelNm2(), 0.1, 1.0e-14);
 
   tsc->setNextTimeStep(solutionHistory, status);
 

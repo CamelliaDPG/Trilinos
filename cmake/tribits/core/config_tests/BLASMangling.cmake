@@ -58,82 +58,82 @@
 #  The Fortran 2003 name binding facilities and ISO_C_BINDING module
 #  should be preferred over cpp macro trickery whenever possible.
 #
-function(blas_mangling)
+FUNCTION(BLAS_MANGLING)
 
-  if(NOT DEFINED BLAS_FN_CASE)
+  IF(NOT DEFINED BLAS_FN_CASE)
 
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      message("BLAS_MANGLING: Testing name Mangling Schemes!\n")
-    endif()
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      MESSAGE("BLAS_MANGLING: Testing name Mangling Schemes!\n")
+    ENDIF()
 
-    find_file(_blascmakelists blasmangle/ ${CMAKE_MODULE_PATH})
-    if (NOT _blascmakelists)
-      message(STATUS "Error, the file blasmangle could not be found so we can not determine Fortran name mangling!")
-      return()
-    endif()
+    FIND_FILE(_blascmakelists blasmangle/ ${CMAKE_MODULE_PATH})
+    IF (NOT _blascmakelists)
+      MESSAGE(STATUS "Error, the file blasmangle could not be found so we can not determine Fortran name mangling!")
+      RETURN()
+    ENDIF()
 
-    set(_fcmangledir ${PROJECT_BINARY_DIR}/CMakeFiles/CMakeTmp/blasmangle)
-    file(MAKE_DIRECTORY ${_fcmangledir})
+    SET(_fcmangledir ${PROJECT_BINARY_DIR}/CMakeFiles/CMakeTmp/blasmangle)
+    FILE(MAKE_DIRECTORY ${_fcmangledir})
 
-    foreach(cdef LOWER UPPER)
+    FOREACH(cdef LOWER UPPER)
 
-      foreach(udef UNDER NO_UNDER)
+      FOREACH(udef UNDER NO_UNDER)
 
-        if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-          message("BLAS_MANGLING: Testing ${cdef} ${udef}\n\n")
-        endif()
+        IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+          MESSAGE("BLAS_MANGLING: Testing ${cdef} ${udef}\n\n")
+        ENDIF()
 
-        set(_fcmangledir_case "${_fcmangledir}/${cdef}/${udef}")
-        file(MAKE_DIRECTORY "${_fcmangledir}/${cdef}")
-        file(MAKE_DIRECTORY ${_fcmangledir_case})
+        SET(_fcmangledir_case "${_fcmangledir}/${cdef}/${udef}")
+        FILE(MAKE_DIRECTORY "${_fcmangledir}/${cdef}")
+        FILE(MAKE_DIRECTORY ${_fcmangledir_case})
 
-        try_compile(_blasmngl ${_fcmangledir_case} ${_blascmakelists} blasmangle
+        TRY_COMPILE(_blasmngl ${_fcmangledir_case} ${_blascmakelists} blasmangle
           CMAKE_FLAGS "-DMANGLE_FLAGS:STRING=-DFC_FN_${cdef};-DFC_FN_${udef}"
           OUTPUT_VARIABLE _blasmngl_output
           )
-        if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-          message("${_blasmngl_output}\n\n")
-        endif()
+        IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+          MESSAGE("${_blasmngl_output}\n\n")
+        ENDIF()
 
-        if(_blasmngl)
-          if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-            message("BLAS_MANGLING: Bingo!  ${cdef} ${udef} is the correct BLAS name mangling!\n")
-          endif()
-          set(BLAS_FN_CASE ${cdef} CACHE INTERNAL
+        IF(_blasmngl)
+          IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+            MESSAGE("BLAS_MANGLING: Bingo!  ${cdef} ${udef} is the correct BLAS name mangling!\n")
+          ENDIF()
+          SET(BLAS_FN_CASE ${cdef} CACHE INTERNAL
             "Case used by Fortran functions" FORCE)
-          set(BLAS_FN_UNDERSCORE ${udef} CACHE INTERNAL
+          SET(BLAS_FN_UNDERSCORE ${udef} CACHE INTERNAL
             "Underscore convention used by Fortran functions" FORCE)
-          break()
-        endif()
+          BREAK()
+        ENDIF()
 
-      endforeach()
+      ENDFOREACH()
 
-      if(_blasmngl)
-        break()
-      endif()
+      IF(_blasmngl)
+        BREAK()
+      ENDIF()
 
-    endforeach()
+    ENDFOREACH()
 
-    if(_blasmngl)
-      message(STATUS "BLAS name mangling: ${BLAS_FN_CASE} ${BLAS_FN_UNDERSCORE}")
-    else()
-      message(STATUS "Warning, cannot automatically determine BLAS mangling.")
-    endif()
+    IF(_blasmngl)
+      MESSAGE(STATUS "BLAS name mangling: ${BLAS_FN_CASE} ${BLAS_FN_UNDERSCORE}")
+    ELSE()
+      MESSAGE(STATUS "Warning, cannot automatically determine BLAS mangling.")
+    ENDIF()
 
-  endif()
+  ENDIF()
 
-  if (BLAS_FN_CASE STREQUAL LOWER)
-    set(BLAS_NAME_NAME name)
-  elseif (BLAS_FN_CASE STREQUAL UPPER)
-    set(BLAS_NAME_NAME NAME)
-  endif()
+  IF (BLAS_FN_CASE STREQUAL LOWER)
+    SET(BLAS_NAME_NAME name)
+  ELSEIF (BLAS_FN_CASE STREQUAL UPPER)
+    SET(BLAS_NAME_NAME NAME)
+  ENDIF()
 
-  if (BLAS_FN_UNDERSCORE)
-    if(BLAS_FN_UNDERSCORE STREQUAL "UNDER")
-      set(BLAS_FUNC_DEFAULT "(name,NAME) ${BLAS_NAME_NAME} ## _" CACHE INTERNAL "")
-    else()
-      set(BLAS_FUNC_DEFAULT "(name,NAME) ${BLAS_NAME_NAME}" CACHE INTERNAL "")
-    endif()
-  endif()
+  IF (BLAS_FN_UNDERSCORE)
+    IF(BLAS_FN_UNDERSCORE STREQUAL "UNDER")
+      SET(BLAS_FUNC_DEFAULT "(name,NAME) ${BLAS_NAME_NAME} ## _" CACHE INTERNAL "")
+    ELSE()
+      SET(BLAS_FUNC_DEFAULT "(name,NAME) ${BLAS_NAME_NAME}" CACHE INTERNAL "")
+    ENDIF()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()

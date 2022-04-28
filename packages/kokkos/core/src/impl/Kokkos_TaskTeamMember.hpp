@@ -55,6 +55,7 @@
 //----------------------------------------------------------------------------
 
 #include <Kokkos_MemoryPool.hpp>
+#include <impl/Kokkos_Tags.hpp>
 
 #include <Kokkos_Future.hpp>
 #include <impl/Kokkos_TaskQueue.hpp>

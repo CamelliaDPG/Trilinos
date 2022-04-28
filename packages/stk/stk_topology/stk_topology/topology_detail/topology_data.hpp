@@ -35,10 +35,8 @@
 #ifndef STKTOPOLOGY_DETAIL_TOPOLOGY_DATA_HPP
 #define STKTOPOLOGY_DETAIL_TOPOLOGY_DATA_HPP
 
-// IWYU pragma: private, include "stk_topology/topology.hpp"
-#include "stk_topology/topology_decl.hpp"
+#include <stk_topology/topology.hpp>
 #include <type_traits>
-#include <cstdint>
 
 //TODO implement permutations for tets, pyramids, wedges and hexes
 //TODO implement permutations polarity
@@ -60,34 +58,35 @@ struct topology_data<topology::INVALID_TOPOLOGY>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::INVALID_TOPOLOGY;
   static constexpr topology::topology_t base = topology::INVALID_TOPOLOGY;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 0;
 
+  static constexpr bool is_valid = false;
   static constexpr topology::rank_t rank = topology::INVALID_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = false;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 0;
-  static constexpr uint8_t num_vertices = 0;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 0;
-  static constexpr uint8_t num_positive_permutations = 0;
+  static constexpr unsigned dimension = 0;
+  static constexpr unsigned num_nodes = 0;
+  static constexpr unsigned num_vertices = 0;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 0;
+  static constexpr unsigned num_positive_permutations = 0;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        false}; // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0};
 };
 
 //***************************************************************************
@@ -101,35 +100,35 @@ struct topology_data<topology::NODE>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::NODE;
   static constexpr topology::topology_t base = topology::NODE;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 0;
 
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::NODE_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 0;
-  static constexpr uint8_t num_vertices = 0;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 0;
-  static constexpr uint8_t num_positive_permutations = 0;
+  static constexpr unsigned dimension = 0;
+  static constexpr unsigned num_nodes = 0;
+  static constexpr unsigned num_vertices = 0;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 0;
+  static constexpr unsigned num_positive_permutations = 0;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        true,   // 1d
                                                        true,   // 2d
                                                        true};  // 3d
 
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0};
 };
 
 
@@ -145,34 +144,35 @@ struct topology_data<topology::PARTICLE>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::PARTICLE;
   static constexpr topology::topology_t base = topology::PARTICLE;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 1;
 
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 1;
-  static constexpr uint8_t num_vertices = 1;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 1;
-  static constexpr uint8_t num_positive_permutations = 1;
+  static constexpr unsigned dimension = 1;
+  static constexpr unsigned num_nodes = 1;
+  static constexpr unsigned num_vertices = 1;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 1;
+  static constexpr unsigned num_positive_permutations = 1;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        true,   // 1d
                                                        true,   // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0};
 };
 
 
@@ -192,35 +192,36 @@ struct topology_data<topology::LINE_2>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::LINE_2;
   static constexpr topology::topology_t base = topology::LINE_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 2;
 
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::EDGE_RANK;
   static constexpr topology::rank_t side_rank = topology::NODE_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 1;
-  static constexpr uint8_t num_vertices = 2;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 2;
-  static constexpr uint8_t num_positive_permutations = 1;
+  static constexpr unsigned dimension = 1;
+  static constexpr unsigned num_nodes = 2;
+  static constexpr unsigned num_vertices = 2;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 2;
+  static constexpr unsigned num_positive_permutations = 1;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        true,   // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1,
-                                                                 1, 0};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1,
+                                                                  1, 0};
 };
 
 
@@ -231,8 +232,8 @@ struct topology_data<topology::LINE_3>
   static constexpr topology::topology_t value = topology::LINE_3;
   static constexpr unsigned num_nodes = 3;
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1,  2,
-                                                                 1, 0,  2};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1,  2,
+                                                                  1, 0,  2};
 };
 
 //***************************************************************************
@@ -289,16 +290,17 @@ struct topology_data<topology::BEAM_2>
 {
   static constexpr topology::topology_t value = topology::BEAM_2;
   static constexpr topology::topology_t base = topology::BEAM_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
-  static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_edges = 1;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1};
+  static constexpr bool is_shell = false;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_edges = 1;
+
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1};
 };
 
 template <>
@@ -307,16 +309,17 @@ struct topology_data<topology::BEAM_3>
 {
   static constexpr topology::topology_t value = topology::BEAM_3;
   static constexpr topology::topology_t base = topology::BEAM_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
-  static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_edges = 1;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  2};
+  static constexpr bool is_shell = false;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_edges = 1;
+
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  2};
 };
 
 //***************************************************************************
@@ -338,23 +341,24 @@ struct topology_data<topology::SHELL_LINE_2>
 {
   static constexpr topology::topology_t value = topology::SHELL_LINE_2;
   static constexpr topology::topology_t base = topology::SHELL_LINE_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
-                                                                  topology::LINE_2};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
+                                                                  topology::LINE_2};
+
   static constexpr bool is_shell = true;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_edges = 2;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_edges = 2;
 
   static constexpr bool spatial_dimension_vector[4] = {false,   // 0d
                                                        false,   // 1d
                                                        true,    // 2d
                                                        false};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 0};
 };
 
 template <>
@@ -363,23 +367,24 @@ struct topology_data<topology::SHELL_LINE_3>
 {
   static constexpr topology::topology_t value = topology::SHELL_LINE_3;
   static constexpr topology::topology_t base = topology::SHELL_LINE_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
-                                                                  topology::LINE_3};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
+                                                                  topology::LINE_3};
+
   static constexpr bool is_shell = true;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_edges = 2;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_edges = 2;
 
   static constexpr bool spatial_dimension_vector[4] = {false,   // 0d
                                                        false,   // 1d
                                                        true,    // 2d
                                                        false};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  2,
-                                                          1, 0,  2};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  2,
+                                                           1, 0,  2};
 };
 
 //***************************************************************************
@@ -398,20 +403,20 @@ struct topology_data<topology::SPRING_2>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::SPRING_2;
   static constexpr topology::topology_t base = topology::SPRING_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 2;
 
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::NODE_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_vertices = 2;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 2;
-  static constexpr uint8_t num_positive_permutations = 2;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_nodes = 2;
+  static constexpr unsigned num_vertices = 2;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 2;
+  static constexpr unsigned num_positive_permutations = 2;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        true,   // 1d
@@ -427,20 +432,20 @@ struct topology_data<topology::SPRING_3>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::SPRING_3;
   static constexpr topology::topology_t base = topology::SPRING_2;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 3;
 
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::NODE_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::INVALID_TOPOLOGY};
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_vertices = 2;
-  static constexpr uint8_t num_edges = 0;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 2;
-  static constexpr uint8_t num_positive_permutations = 2;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_nodes = 3;
+  static constexpr unsigned num_vertices = 2;
+  static constexpr unsigned num_edges = 0;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 2;
+  static constexpr unsigned num_positive_permutations = 2;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        true,   // 1d
@@ -493,44 +498,44 @@ struct topology_data<topology::TRI_3>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::TRI_3;
   static constexpr topology::topology_t base = topology::TRI_3;
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::FACE_RANK;
+  static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-
-  static constexpr unsigned num_nodes = 3;
-
-  static constexpr topology::rank_t rank = topology::FACE_RANK;
-  static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_vertices = 3;
-  static constexpr uint8_t num_edges = 3;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 6;
-  static constexpr uint8_t num_positive_permutations = 3;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_nodes = 3;
+  static constexpr unsigned num_vertices = 3;
+  static constexpr unsigned num_edges = 3;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 6;
+  static constexpr unsigned num_positive_permutations = 3;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 0};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2,
-                                                                 2, 0, 1,
-                                                                 1, 2, 0,
-                                                                 0, 2, 1,
-                                                                 2, 1, 0,
-                                                                 1, 0, 2};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2,
+                                                                  2, 0, 1,
+                                                                  1, 2, 0,
+                                                                  0, 2, 1,
+                                                                  2, 1, 0,
+                                                                  1, 0, 2};
 };
 
 template <>
@@ -540,12 +545,12 @@ struct topology_data<topology::TRI_4>
   static constexpr topology::topology_t value = topology::TRI_4;
   static constexpr unsigned num_nodes = 4;
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2,  3,
-                                                                 2, 0, 1,  3,
-                                                                 1, 2, 0,  3,
-                                                                 0, 2, 1,  3,
-                                                                 2, 1, 0,  3,
-                                                                 1, 0, 2,  3};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2,  3,
+                                                                  2, 0, 1,  3,
+                                                                  1, 2, 0,  3,
+                                                                  0, 2, 1,  3,
+                                                                  2, 1, 0,  3,
+                                                                  1, 0, 2,  3};
 };
 
 template <>
@@ -553,23 +558,23 @@ struct topology_data<topology::TRI_6>
   : public topology_data<topology::TRI_3>
 {
   static constexpr topology::topology_t value = topology::TRI_6;
+  static constexpr unsigned num_nodes = 6;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
-  static constexpr unsigned num_nodes = 6;
 
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  3,
+                                                           1, 2,  4,
+                                                           2, 0,  5};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  3,
-                                                          1, 2,  4,
-                                                          2, 0,  5};
-
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2,  3, 4, 5,
-                                                                 2, 0, 1,  5, 3, 4,
-                                                                 1, 2, 0,  4, 5, 3,
-                                                                 0, 2, 1,  5, 4, 3,
-                                                                 2, 1, 0,  4, 3, 5,
-                                                                 1, 0, 2,  3, 5, 4};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2,  3, 4, 5,
+                                                                  2, 0, 1,  5, 3, 4,
+                                                                  1, 2, 0,  4, 5, 3,
+                                                                  0, 2, 1,  5, 4, 3,
+                                                                  2, 1, 0,  4, 3, 5,
+                                                                  1, 0, 2,  3, 5, 4};
 };
 
 //***************************************************************************
@@ -706,19 +711,21 @@ struct topology_data<topology::SHELL_TRI_3>
 {
   static constexpr topology::topology_t value = topology::SHELL_TRI_3;
   static constexpr topology::topology_t base = topology::SHELL_TRI_3;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
-                                                                  topology::TRI_3};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 3, 6};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2,
-                                                          0, 2, 1};
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
+
+  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
+                                                                  topology::TRI_3};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 3, 6};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2,
+                                                           0, 2, 1};
 };
 
 template <>
@@ -727,19 +734,21 @@ struct topology_data<topology::SHELL_TRI_4>
 {
   static constexpr topology::topology_t value = topology::SHELL_TRI_4;
   static constexpr topology::topology_t base = topology::SHELL_TRI_3;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_4,
-                                                                  topology::TRI_4};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 4, 8};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2,  3,
-                                                          0, 2, 1,  3};
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
+
+  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_4,
+                                                                  topology::TRI_4};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 4, 8};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2,  3,
+                                                           0, 2, 1,  3};
 };
 
 template <>
@@ -748,20 +757,21 @@ struct topology_data<topology::SHELL_TRI_6>
 {
   static constexpr topology::topology_t value = topology::SHELL_TRI_6;
   static constexpr topology::topology_t base = topology::SHELL_TRI_3;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_6,
-                                                                  topology::TRI_6};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 6, 12};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2,  3, 4, 5,
-                                                          0, 2, 1,  5, 4, 3};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_6,
+                                                                  topology::TRI_6};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 6, 12};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2,  3, 4, 5,
+                                                           0, 2, 1,  5, 4, 3};
 };
 
 //***************************************************************************
@@ -796,47 +806,48 @@ struct topology_data<topology::QUAD_4>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::QUAD_4;
   static constexpr topology::topology_t base = topology::QUAD_4;
-  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::FACE_RANK;
+  static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
+  static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2, 
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
-  static constexpr unsigned num_nodes = 4;
-
-  static constexpr topology::rank_t rank = topology::FACE_RANK;
-  static constexpr topology::rank_t side_rank = topology::EDGE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 2;
-  static constexpr uint8_t num_vertices = 4;
-  static constexpr uint8_t num_edges = 4;
-  static constexpr uint8_t num_faces = 0;
-  static constexpr uint8_t num_permutations = 8;
-  static constexpr uint8_t num_positive_permutations = 4;
+  static constexpr unsigned dimension = 2;
+  static constexpr unsigned num_nodes = 4;
+  static constexpr unsigned num_vertices = 4;
+  static constexpr unsigned num_edges = 4;
+  static constexpr unsigned num_faces = 0;
+  static constexpr unsigned num_permutations = 8;
+  static constexpr unsigned num_positive_permutations = 4;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 3,
-                                                          3, 0};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::INVALID_TOPOLOGY};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 3,
+                                                           3, 0};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3,
-                                                                 3, 0, 1, 2,
-                                                                 2, 3, 0, 1,
-                                                                 1, 2, 3, 0,
-                                                                 0, 3, 2, 1,
-                                                                 3, 2, 1, 0,
-                                                                 2, 1, 0, 3,
-                                                                 1, 0, 3, 2};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0};
+  static constexpr unsigned face_node_ordinals_vector[] = {0};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3,
+                                                                  3, 0, 1, 2,
+                                                                  2, 3, 0, 1,
+                                                                  1, 2, 3, 0,
+                                                                  0, 3, 2, 1,
+                                                                  3, 2, 1, 0,
+                                                                  2, 1, 0, 3,
+                                                                  1, 0, 3, 2};
 };
 
 template <>
@@ -844,21 +855,21 @@ struct topology_data<topology::QUAD_6>
   : public topology_data<topology::QUAD_4>
 {
   static constexpr topology::topology_t value = topology::QUAD_6;
+  static constexpr topology::rank_t rank = topology::FACE_RANK;
+  static constexpr unsigned num_nodes = 6;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_2,
                                                                   topology::LINE_3,
                                                                   topology::LINE_2};
-  static constexpr unsigned num_nodes = 6;
 
-  static constexpr topology::rank_t rank = topology::FACE_RANK;
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 5, 8, 10};
+  static constexpr unsigned edge_node_ordinals_vector[] = { 0, 1, 4,
+                                                            1, 2,
+                                                            2, 3, 5,
+                                                            3, 0 };
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 5, 8, 10};
-  static constexpr uint8_t edge_node_ordinals_vector[] = { 0, 1, 4,
-                                                           1, 2,
-                                                           2, 3, 5,
-                                                           3, 0 };
-
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3,  4, 5,
     3, 0, 1, 2,  4, 5,
     2, 3, 0, 1,  5, 4,
@@ -875,19 +886,20 @@ struct topology_data<topology::QUAD_8>
   : public topology_data<topology::QUAD_4>
 {
   static constexpr topology::topology_t value = topology::QUAD_8;
+  static constexpr unsigned num_nodes = 8;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
-  static constexpr unsigned num_nodes = 8;
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  4,
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  4,
                                                            1, 2,  5,
                                                            2, 3,  6,
                                                            3, 0,  7};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3,  4, 5, 6, 7,
     3, 0, 1, 2,  7, 4, 5, 6,
     2, 3, 0, 1,  6, 7, 4, 5,
@@ -906,7 +918,7 @@ struct topology_data<topology::QUAD_9>
   static constexpr topology::topology_t value = topology::QUAD_9;
   static constexpr unsigned num_nodes = 9;
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3,  4, 5, 6, 7,  8,
     3, 0, 1, 2,  7, 4, 5, 6,  8,
     2, 3, 0, 1,  6, 7, 4, 5,  8,
@@ -1018,19 +1030,21 @@ struct topology_data<topology::SHELL_QUAD_4>
 {
   static constexpr topology::topology_t value = topology::SHELL_QUAD_4;
   static constexpr topology::topology_t base = topology::SHELL_QUAD_4;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
-                                                                  topology::QUAD_4};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 4, 8};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2, 3,
-                                                          0, 3, 2, 1};
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
+
+  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
+                                                                  topology::QUAD_4};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 4, 8};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2, 3,
+                                                           0, 3, 2, 1};
 };
 
 template <>
@@ -1039,19 +1053,21 @@ struct topology_data<topology::SHELL_QUAD_8>
 {
   static constexpr topology::topology_t value = topology::SHELL_QUAD_8;
   static constexpr topology::topology_t base = topology::SHELL_QUAD_4;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_8,
-                                                                  topology::QUAD_8};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 8, 16};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7,
-                                                          0, 3, 2, 1,  7, 6, 5, 4};
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
+
+  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_8,
+                                                                  topology::QUAD_8};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 8, 16};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7,
+                                                           0, 3, 2, 1,  7, 6, 5, 4};
 };
 
 template <>
@@ -1060,19 +1076,21 @@ struct topology_data<topology::SHELL_QUAD_9>
 {
   static constexpr topology::topology_t value = topology::SHELL_QUAD_9;
   static constexpr topology::topology_t base = topology::SHELL_QUAD_4;
-  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_9,
-                                                                  topology::QUAD_9};
 
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr bool is_shell = true;
   static constexpr bool has_homogeneous_faces = true;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_faces = 2;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 9, 18};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7,  8,
-                                                          0, 3, 2, 1,  7, 6, 5, 4,  8};
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_faces = 2;
+
+  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_9,
+                                                                  topology::QUAD_9};
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 9, 18};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7,  8,
+                                                           0, 3, 2, 1,  7, 6, 5, 4,  8};
 };
 
 //***************************************************************************
@@ -1086,61 +1104,62 @@ struct topology_data<topology::TET_4>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::TET_4;
   static constexpr topology::topology_t base = topology::TET_4;
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
+  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
-                                                                  topology::TRI_3,
-                                                                  topology::TRI_3,
-                                                                  topology::TRI_3};
-  static constexpr unsigned num_nodes = 4;
-
-  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
-  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = true;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_vertices = 4;
-  static constexpr uint8_t num_edges = 6;
-  static constexpr uint8_t num_faces = 4;
-  static constexpr uint8_t num_permutations = 12;
-  static constexpr uint8_t num_positive_permutations = 12;
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_nodes = 4;
+  static constexpr unsigned num_vertices = 4;
+  static constexpr unsigned num_edges = 6;
+  static constexpr unsigned num_faces = 4;
+  static constexpr unsigned num_permutations = 12;
+  static constexpr unsigned num_positive_permutations = 12;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 0,
-                                                          0, 3,
-                                                          1, 3,
-                                                          2, 3};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
+                                                                  topology::TRI_3,
+                                                                  topology::TRI_3,
+                                                                  topology::TRI_3};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 3, 6, 9, 12};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 3,
-                                                          1, 2, 3,
-                                                          0, 3, 2,
-                                                          0, 2, 1};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 0,
+                                                           0, 3,
+                                                           1, 3,
+                                                           2, 3};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3,
-                                                                 1, 2, 0, 3,
-                                                                 2, 0, 1, 3,
-                                                                 0, 3, 1, 2,
-                                                                 3, 1, 0, 2,
-                                                                 1, 0, 3, 2,
-                                                                 0, 2, 3, 1,
-                                                                 2, 3, 0, 1,
-                                                                 3, 0, 2, 1,
-                                                                 1, 3, 2, 0,
-                                                                 3, 2, 1, 0,
-                                                                 2, 1, 3, 0};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 3, 6, 9, 12};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 3,
+                                                           1, 2, 3,
+                                                           0, 3, 2,
+                                                           0, 2, 1};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3,
+                                                                  1, 2, 0, 3,
+                                                                  2, 0, 1, 3,
+                                                                  0, 3, 1, 2,
+                                                                  3, 1, 0, 2,
+                                                                  1, 0, 3, 2,
+                                                                  0, 2, 3, 1,
+                                                                  2, 3, 0, 1,
+                                                                  3, 0, 2, 1,
+                                                                  1, 3, 2, 0,
+                                                                  3, 2, 1, 0,
+                                                                  2, 1, 3, 0};
 };
 
 //TODO: Delete TET_8
@@ -1149,21 +1168,23 @@ struct topology_data<topology::TET_8>
   : public topology_data<topology::TET_4>
 {
   static constexpr topology::topology_t value = topology::TET_8;
+  static constexpr unsigned num_nodes = 8;
+
+  static constexpr unsigned num_permutations = 1;
+  static constexpr unsigned num_positive_permutations = 1;
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_4,
                                                                   topology::TRI_4,
                                                                   topology::TRI_4,
                                                                   topology::TRI_4};
-  static constexpr unsigned num_nodes = 8;
 
-  static constexpr uint8_t num_permutations = 1;
-  static constexpr uint8_t num_positive_permutations = 1;
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 4, 8, 12, 16};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 3,  4,
-                                                          1, 2, 3,  5,
-                                                          0, 3, 2,  7,
-                                                          0, 2, 1,  6};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 4, 8, 12, 16};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 3,  4,
+                                                           1, 2, 3,  5,
+                                                           0, 3, 2,  7,
+                                                           0, 2, 1,  6};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3,  4, 5, 6, 7};
 };
 
 template <>
@@ -1171,34 +1192,35 @@ struct topology_data<topology::TET_10>
   : public topology_data<topology::TET_4>
 {
   static constexpr topology::topology_t value = topology::TET_10;
+  static constexpr unsigned num_nodes = 10;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6};
-  static constexpr unsigned num_nodes = 10;
 
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  4,
+                                                           1, 2,  5,
+                                                           2, 0,  6,
+                                                           0, 3,  7,
+                                                           1, 3,  8,
+                                                           2, 3,  9};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  4,
-                                                          1, 2,  5,
-                                                          2, 0,  6,
-                                                          0, 3,  7,
-                                                          1, 3,  8,
-                                                          2, 3,  9};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 6, 12, 18, 24};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 3,  4, 8, 7,
+                                                           1, 2, 3,  5, 9, 8,
+                                                           0, 3, 2,  7, 9, 6,
+                                                           0, 2, 1,  6, 5, 4};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 6, 12, 18, 24};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 3,  4, 8, 7,
-                                                          1, 2, 3,  5, 9, 8,
-                                                          0, 3, 2,  7, 9, 6,
-                                                          0, 2, 1,  6, 5, 4};
-
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3,  4, 5, 6, 7, 8, 9,
     1, 2, 0, 3,  5, 6, 4, 8, 9, 7,
     2, 0, 1, 3,  6, 4, 5, 9, 7, 8,
@@ -1221,7 +1243,7 @@ struct topology_data<topology::TET_11>
   static constexpr topology::topology_t value = topology::TET_11;
   static constexpr unsigned num_nodes = 11;
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3,  4, 5, 6, 7, 8, 9,  10,
     1, 2, 0, 3,  5, 6, 4, 8, 9, 7,  10,
     2, 0, 1, 3,  6, 4, 5, 9, 7, 8,  10,
@@ -1247,6 +1269,10 @@ struct topology_data<topology::PYRAMID_5>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::PYRAMID_5;
   static constexpr topology::topology_t base = topology::PYRAMID_5;
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
+  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
@@ -1255,51 +1281,48 @@ struct topology_data<topology::PYRAMID_5>
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
-                                                                  topology::TRI_3,
-                                                                  topology::TRI_3,
-                                                                  topology::TRI_3,
-                                                                  topology::QUAD_4};
-  static constexpr unsigned num_nodes = 5;
-
-  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
-  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_vertices = 5;
-  static constexpr uint8_t num_edges = 8;
-  static constexpr uint8_t num_faces = 5;
-  static constexpr uint8_t num_permutations = 4;
-  static constexpr uint8_t num_positive_permutations = 4;
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_nodes = 5;
+  static constexpr unsigned num_vertices = 5;
+  static constexpr unsigned num_edges = 8;
+  static constexpr unsigned num_faces = 5;
+  static constexpr unsigned num_permutations = 4;
+  static constexpr unsigned num_positive_permutations = 4;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 3,
-                                                          3, 0,
-                                                          0, 4,
-                                                          1, 4,
-                                                          2, 4,
-                                                          3, 4};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_3,
+                                                                  topology::TRI_3,
+                                                                  topology::TRI_3,
+                                                                  topology::TRI_3,
+                                                                  topology::QUAD_4};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 16};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4,
-                                                          1, 2, 4,
-                                                          2, 3, 4,
-                                                          0, 4, 3,
-                                                          0, 3, 2, 1};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 3,
+                                                           3, 0,
+                                                           0, 4,
+                                                           1, 4,
+                                                           2, 4,
+                                                           3, 4};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4,
-                                                                 1, 2, 3, 0, 4,
-                                                                 2, 3, 0, 1, 4,
-                                                                 3, 0, 1, 2, 4};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 16};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4,
+                                                           1, 2, 4,
+                                                           2, 3, 4,
+                                                           0, 4, 3,
+                                                           0, 3, 2, 1};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4,
+                                                                  1, 2, 3, 0, 4,
+                                                                  2, 3, 0, 1, 4,
+                                                                  3, 0, 1, 2, 4};
 };
 
 template <>
@@ -1307,6 +1330,8 @@ struct topology_data<topology::PYRAMID_13>
   : public topology_data<topology::PYRAMID_5>
 {
   static constexpr topology::topology_t value = topology::PYRAMID_13;
+  static constexpr unsigned num_nodes = 13;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
@@ -1315,31 +1340,32 @@ struct topology_data<topology::PYRAMID_13>
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
+
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::QUAD_8};
-  static constexpr unsigned num_nodes = 13;
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  5,
-                                                          1, 2,  6,
-                                                          2, 3,  7,
-                                                          3, 0,  8,
-                                                          0, 4,  9,
-                                                          1, 4,  10,
-                                                          2, 4,  11,
-                                                          3, 4,  12};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  5,
+                                                           1, 2,  6,
+                                                           2, 3,  7,
+                                                           3, 0,  8,
+                                                           0, 4,  9,
+                                                           1, 4,  10,
+                                                           2, 4,  11,
+                                                           3, 4,  12};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 32};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4,  5, 10,  9,
-                                                          1, 2, 4,  6, 11, 10,
-                                                          2, 3, 4,  7, 12, 11,
-                                                          3, 0, 4,  8,  9, 12,
-                                                          0, 3, 2, 1,  8, 7, 6, 5};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 32};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4,  5, 10,  9,
+                                                           1, 2, 4,  6, 11, 10,
+                                                           2, 3, 4,  7, 12, 11,
+                                                           3, 0, 4,  8,  9, 12,
+                                                           0, 3, 2, 1,  8, 7, 6, 5};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4,  5, 6, 7, 8,   9, 10, 11, 12,
     1, 2, 3, 0, 4,  6, 7, 8, 5,  10, 11, 12,  9,
     2, 3, 0, 1, 4,  7, 8, 5, 6,  11, 12,  9, 10,
@@ -1352,22 +1378,23 @@ struct topology_data<topology::PYRAMID_14>
   : public topology_data<topology::PYRAMID_13>
 {
   static constexpr topology::topology_t value = topology::PYRAMID_14;
+  static constexpr unsigned num_nodes = 14;
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6,
                                                                   topology::QUAD_9};
-  static constexpr unsigned num_nodes = 14;
+
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 33};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4,  5, 10,  9,
+                                                           1, 2, 4,  6, 11, 10,
+                                                           2, 3, 4,  7, 12, 11,
+                                                           3, 0, 4,  8,  9, 12,
+                                                           0, 3, 2, 1,  8, 7, 6, 5,  13};
 
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 33};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4,  5, 10,  9,
-                                                          1, 2, 4,  6, 11, 10,
-                                                          2, 3, 4,  7, 12, 11,
-                                                          3, 0, 4,  8,  9, 12,
-                                                          0, 3, 2, 1,  8, 7, 6, 5,  13};
-
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4,  5, 6, 7, 8,   9, 10, 11, 12,  13,
     1, 2, 3, 0, 4,  6, 7, 8, 5,  10, 11, 12,  9,  13,
     2, 3, 0, 1, 4,  7, 8, 5, 6,  11, 12,  9, 10,  13,
@@ -1385,6 +1412,10 @@ struct topology_data<topology::WEDGE_6>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::WEDGE_6;
   static constexpr topology::topology_t base = topology::WEDGE_6;
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
+  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
@@ -1394,54 +1425,51 @@ struct topology_data<topology::WEDGE_6>
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::TRI_3,
-                                                                  topology::TRI_3};
-  static constexpr unsigned num_nodes = 6;
-
-  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
-  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = false;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_vertices = 6;
-  static constexpr uint8_t num_edges = 9;
-  static constexpr uint8_t num_faces = 5;
-  static constexpr uint8_t num_permutations = 6;
-  static constexpr uint8_t num_positive_permutations = 6;
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_nodes = 6;
+  static constexpr unsigned num_vertices = 6;
+  static constexpr unsigned num_edges = 9;
+  static constexpr unsigned num_faces = 5;
+  static constexpr unsigned num_permutations = 6;
+  static constexpr unsigned num_positive_permutations = 6;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 0,
-                                                          3, 4,
-                                                          4, 5,
-                                                          5, 3,
-                                                          0, 3,
-                                                          1, 4,
-                                                          2, 5};
+  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::TRI_3,
+                                                                  topology::TRI_3};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 4, 8, 12, 15, 18};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4, 3,
-                                                          1, 2, 5, 4,
-                                                          0, 3, 5, 2,
-                                                          0, 2, 1,
-                                                          3, 4, 5};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 0,
+                                                           3, 4,
+                                                           4, 5,
+                                                           5, 3,
+                                                           0, 3,
+                                                           1, 4,
+                                                           2, 5};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4, 5,
-                                                                 1, 2, 0, 4, 5, 3,
-                                                                 2, 0, 1, 5, 3, 4,
-                                                                 3, 5, 4, 0, 2, 1,
-                                                                 5, 4, 3, 2, 1, 0,
-                                                                 4, 3, 5, 1, 0, 2};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 4, 8, 12, 15, 18};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4, 3,
+                                                           1, 2, 5, 4,
+                                                           0, 3, 5, 2,
+                                                           0, 2, 1,
+                                                           3, 4, 5};
+
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4, 5,
+                                                                  1, 2, 0, 4, 5, 3,
+                                                                  2, 0, 1, 5, 3, 4,
+                                                                  3, 5, 4, 0, 2, 1,
+                                                                  5, 4, 3, 2, 1, 0,
+                                                                  4, 3, 5, 1, 0, 2};
 };
 
 template <>
@@ -1449,6 +1477,8 @@ struct topology_data<topology::WEDGE_12>
   : public topology_data<topology::WEDGE_6>
 {
   static constexpr topology::topology_t value = topology::WEDGE_12;
+  static constexpr unsigned num_nodes = 12;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
@@ -1458,32 +1488,33 @@ struct topology_data<topology::WEDGE_12>
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
+
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_6,
                                                                   topology::QUAD_6,
                                                                   topology::QUAD_6,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6};
-  static constexpr unsigned num_nodes = 12;
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 20, 22, 24};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  6,
-                                                          1, 2,  7,
-                                                          2, 0,  8,
-                                                          3, 4,  9,
-                                                          4, 5,  10,
-                                                          5, 3,  11,
-                                                          0, 3,
-                                                          1, 4,
-                                                          2, 5};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 20, 22, 24};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  6,
+                                                           1, 2,  7,
+                                                           2, 0,  8,
+                                                           3, 4,  9,
+                                                           4, 5,  10,
+                                                           5, 3,  11,
+                                                           0, 3,
+                                                           1, 4,
+                                                           2, 5};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 30};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 9,
-                                                          1, 2, 5, 4,  7, 10,
-                                                          0, 3, 5, 2,  8, 11,
-                                                          0, 2, 1,   8, 7, 6,
-                                                          3, 4, 5,  9, 10, 11};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 6, 12, 18, 24, 30};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 9,
+                                                           1, 2, 5, 4,  7, 10,
+                                                           0, 3, 5, 2,  8, 11,
+                                                           0, 2, 1,   8, 7, 6,
+                                                           3, 4, 5,  9, 10, 11};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4, 5,  6,  7,  8,  9, 10, 11,
     1, 2, 0, 4, 5, 3,  7,  8,  6, 10, 11,  9,
     2, 0, 1, 5, 3, 4,  8,  6,  7, 11,  9, 10,
@@ -1498,6 +1529,8 @@ struct topology_data<topology::WEDGE_15>
   : public topology_data<topology::WEDGE_6>
 {
   static constexpr topology::topology_t value = topology::WEDGE_15;
+  static constexpr unsigned num_nodes = 15;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
@@ -1507,32 +1540,33 @@ struct topology_data<topology::WEDGE_15>
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
+
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6};
-  static constexpr unsigned num_nodes = 15;
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  6,
-                                                          1, 2,  7,
-                                                          2, 0,  8,
-                                                          3, 4,  12,
-                                                          4, 5,  13,
-                                                          5, 3,  14,
-                                                          0, 3,  9,
-                                                          1, 4,  10,
-                                                          2, 5,  11};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  6,
+                                                           1, 2,  7,
+                                                           2, 0,  8,
+                                                           3, 4,  12,
+                                                           4, 5,  13,
+                                                           5, 3,  14,
+                                                           0, 3,  9,
+                                                           1, 4,  10,
+                                                           2, 5,  11};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 8, 16, 24, 30, 36};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 10, 12,  9,
-                                                          1, 2, 5, 4,  7, 11, 13, 10,
-                                                          0, 3, 5, 2,  9, 14, 11,  8,
-                                                          0, 2, 1,   8,  7,  6,
-                                                          3, 4, 5,  12, 13, 14};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 8, 16, 24, 30, 36};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 10, 12,  9,
+                                                           1, 2, 5, 4,  7, 11, 13, 10,
+                                                           0, 3, 5, 2,  9, 14, 11,  8,
+                                                           0, 2, 1,   8,  7,  6,
+                                                           3, 4, 5,  12, 13, 14};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4, 5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
     1, 2, 0, 4, 5, 3,  7,  8,  6, 10, 11,  9, 13, 14, 12,
     2, 0, 1, 5, 3, 4,  8,  6,  7, 11,  9, 10, 14, 12, 13,
@@ -1547,21 +1581,22 @@ struct topology_data<topology::WEDGE_18>
   : public topology_data<topology::WEDGE_15>
 {
   static constexpr topology::topology_t value = topology::WEDGE_18;
+  static constexpr unsigned num_nodes = 18;
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::TRI_6,
                                                                   topology::TRI_6};
-  static constexpr unsigned num_nodes = 18;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 9, 18, 27, 33, 39};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 10, 12,  9,  15,
-                                                          1, 2, 5, 4,  7, 11, 13, 10,  16,
-                                                          0, 3, 5, 2,  9, 14, 11,  8,  17,
-                                                          0, 2, 1,   8,  7,  6,
-                                                          3, 4, 5,  12, 13, 14};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 9, 18, 27, 33, 39};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 4, 3,  6, 10, 12,  9,  15,
+                                                           1, 2, 5, 4,  7, 11, 13, 10,  16,
+                                                           0, 3, 5, 2,  9, 14, 11,  8,  17,
+                                                           0, 2, 1,   8,  7,  6,
+                                                           3, 4, 5,  12, 13, 14};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4, 5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
     1, 2, 0, 4, 5, 3,  7,  8,  6, 10, 11,  9, 13, 14, 12, 16, 17, 15,
     2, 0, 1, 5, 3, 4,  8,  6,  7, 11,  9, 10, 14, 12, 13, 17, 15, 16,
@@ -1656,6 +1691,10 @@ struct topology_data<topology::HEX_8>
   typedef topology::topology_t value_type;
   static constexpr topology::topology_t value = topology::HEX_8;
   static constexpr topology::topology_t base = topology::HEX_8;
+
+  static constexpr bool is_valid = true;
+  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
+  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
@@ -1668,78 +1707,75 @@ struct topology_data<topology::HEX_8>
                                                                   topology::LINE_2,
                                                                   topology::LINE_2,
                                                                   topology::LINE_2};
-  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::QUAD_4,
-                                                                  topology::QUAD_4};
-  static constexpr unsigned num_nodes = 8;
 
-  static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
-  static constexpr topology::rank_t side_rank = topology::FACE_RANK;
-  static constexpr bool is_valid = true;
   static constexpr bool has_homogeneous_faces = true;
   static constexpr bool is_shell = false;
-  static constexpr uint8_t dimension = 3;
-  static constexpr uint8_t num_vertices = 8;
-  static constexpr uint8_t num_edges = 12;
-  static constexpr uint8_t num_faces = 6;
-  static constexpr uint8_t num_permutations = 24;
-  static constexpr uint8_t num_positive_permutations = 24;
+  static constexpr unsigned dimension = 3;
+  static constexpr unsigned num_nodes = 8;
+  static constexpr unsigned num_vertices = 8;
+  static constexpr unsigned num_edges = 12;
+  static constexpr unsigned num_faces = 6;
+  static constexpr unsigned num_permutations = 24;
+  static constexpr unsigned num_positive_permutations = 24;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
                                                        false,  // 2d
                                                        true};  // 3d
 
+  static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::QUAD_4,
+                                                                  topology::QUAD_4};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,
-                                                          1, 2,
-                                                          2, 3,
-                                                          3, 0,
-                                                          4, 5,
-                                                          5, 6,
-                                                          6, 7,
-                                                          7, 4,
-                                                          0, 4,
-                                                          1, 5,
-                                                          2, 6,
-                                                          3, 7};
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,
+                                                           1, 2,
+                                                           2, 3,
+                                                           3, 0,
+                                                           4, 5,
+                                                           5, 6,
+                                                           6, 7,
+                                                           7, 4,
+                                                           0, 4,
+                                                           1, 5,
+                                                           2, 6,
+                                                           3, 7};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 4, 8, 12, 16, 20, 24};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 5, 4,
-                                                          1, 2, 6, 5,
-                                                          2, 3, 7, 6,
-                                                          0, 4, 7, 3,
-                                                          0, 3, 2, 1,
-                                                          4, 5, 6, 7};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 4, 8, 12, 16, 20, 24};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 5, 4,
+                                                           1, 2, 6, 5,
+                                                           2, 3, 7, 6,
+                                                           0, 4, 7, 3,
+                                                           0, 3, 2, 1,
+                                                           4, 5, 6, 7};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4, 5, 6, 7,
-                                                                 0, 1, 5, 4, 3, 2, 6, 7,
-                                                                 0, 4, 7, 3, 1, 5, 6, 2,
-                                                                 1, 2, 3, 0, 5, 6, 7, 4,
-                                                                 1, 2, 6, 5, 0, 3, 7, 4,
-                                                                 1, 5, 4, 0, 2, 6, 7, 3,
-                                                                 2, 3, 0, 1, 6, 7, 4, 5,
-                                                                 2, 3, 7, 6, 1, 0, 4, 5,
-                                                                 2, 6, 5, 1, 3, 7, 4, 0,
-                                                                 3, 0, 1, 2, 7, 4, 5, 6,
-                                                                 3, 0, 4, 7, 2, 1, 5, 6,
-                                                                 3, 7, 6, 2, 0, 4, 5, 1,
-                                                                 4, 0, 1, 5, 7, 3, 2, 6,
-                                                                 4, 7, 3, 0, 5, 6, 2, 1,
-                                                                 4, 7, 6, 5, 0, 3, 2, 1,
-                                                                 5, 1, 2, 6, 4, 0, 3, 7,
-                                                                 5, 4, 0, 1, 6, 7, 3, 2,
-                                                                 5, 4, 7, 6, 1, 0, 3, 2,
-                                                                 6, 2, 3, 7, 5, 1, 0, 4,
-                                                                 6, 5, 1, 2, 7, 4, 0, 3,
-                                                                 6, 5, 4, 7, 2, 1, 0, 3,
-                                                                 7, 3, 0, 4, 6, 2, 1, 5,
-                                                                 7, 6, 2, 3, 4, 5, 1, 0,
-                                                                 7, 6, 5, 4, 3, 2, 1, 0};
+  static constexpr unsigned permutation_node_ordinals_vector[] = {0, 1, 2, 3, 4, 5, 6, 7,
+                                                                  0, 1, 5, 4, 3, 2, 6, 7,
+                                                                  0, 4, 7, 3, 1, 5, 6, 2,
+                                                                  1, 2, 3, 0, 5, 6, 7, 4,
+                                                                  1, 2, 6, 5, 0, 3, 7, 4,
+                                                                  1, 5, 4, 0, 2, 6, 7, 3,
+                                                                  2, 3, 0, 1, 6, 7, 4, 5,
+                                                                  2, 3, 7, 6, 1, 0, 4, 5,
+                                                                  2, 6, 5, 1, 3, 7, 4, 0,
+                                                                  3, 0, 1, 2, 7, 4, 5, 6,
+                                                                  3, 0, 4, 7, 2, 1, 5, 6,
+                                                                  3, 7, 6, 2, 0, 4, 5, 1,
+                                                                  4, 0, 1, 5, 7, 3, 2, 6,
+                                                                  4, 7, 3, 0, 5, 6, 2, 1,
+                                                                  4, 7, 6, 5, 0, 3, 2, 1,
+                                                                  5, 1, 2, 6, 4, 0, 3, 7,
+                                                                  5, 4, 0, 1, 6, 7, 3, 2,
+                                                                  5, 4, 7, 6, 1, 0, 3, 2,
+                                                                  6, 2, 3, 7, 5, 1, 0, 4,
+                                                                  6, 5, 1, 2, 7, 4, 0, 3,
+                                                                  6, 5, 4, 7, 2, 1, 0, 3,
+                                                                  7, 3, 0, 4, 6, 2, 1, 5,
+                                                                  7, 6, 2, 3, 4, 5, 1, 0,
+                                                                  7, 6, 5, 4, 3, 2, 1, 0};
 };
 
 template <>
@@ -1747,6 +1783,10 @@ struct topology_data<topology::HEX_20>
   : public topology_data<topology::HEX_8>
 {
   static constexpr topology::topology_t value = topology::HEX_20;
+  static constexpr unsigned num_nodes = 20;
+  static constexpr unsigned num_permutations = 24;
+  static constexpr unsigned num_positive_permutations = 24;
+
   static constexpr topology::topology_t edge_topology_vector[] = {topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
@@ -1759,40 +1799,37 @@ struct topology_data<topology::HEX_20>
                                                                   topology::LINE_3,
                                                                   topology::LINE_3,
                                                                   topology::LINE_3};
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::QUAD_8,
                                                                   topology::QUAD_8};
-  static constexpr unsigned num_nodes = 20;
 
-  static constexpr uint8_t num_permutations = 24;
-  static constexpr uint8_t num_positive_permutations = 24;
+  static constexpr unsigned edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36};
+  static constexpr unsigned edge_node_ordinals_vector[] = {0, 1,  8,
+                                                           1, 2,  9,
+                                                           2, 3,  10,
+                                                           3, 0,  11,
+                                                           4, 5,  16,
+                                                           5, 6,  17,
+                                                           6, 7,  18,
+                                                           7, 4,  19,
+                                                           0, 4,  12,
+                                                           1, 5,  13,
+                                                           2, 6,  14,
+                                                           3, 7,  15};
 
-  static constexpr uint8_t edge_node_ordinals_offsets[] = {0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36};
-  static constexpr uint8_t edge_node_ordinals_vector[] = {0, 1,  8,
-                                                          1, 2,  9,
-                                                          2, 3,  10,
-                                                          3, 0,  11,
-                                                          4, 5,  16,
-                                                          5, 6,  17,
-                                                          6, 7,  18,
-                                                          7, 4,  19,
-                                                          0, 4,  12,
-                                                          1, 5,  13,
-                                                          2, 6,  14,
-                                                          3, 7,  15};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 8, 16, 24, 32, 40, 48};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 5, 4,   8, 13, 16, 12,
+                                                           1, 2, 6, 5,   9, 14, 17, 13,
+                                                           2, 3, 7, 6,  10, 15, 18, 14,
+                                                           0, 4, 7, 3,  12, 19, 15, 11,
+                                                           0, 3, 2, 1,  11, 10,  9,  8,
+                                                           4, 5, 6, 7,  16, 17, 18, 19};
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 8, 16, 24, 32, 40, 48};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 5, 4,   8, 13, 16, 12,
-                                                          1, 2, 6, 5,   9, 14, 17, 13,
-                                                          2, 3, 7, 6,  10, 15, 18, 14,
-                                                          0, 4, 7, 3,  12, 19, 15, 11,
-                                                          0, 3, 2, 1,  11, 10,  9,  8,
-                                                          4, 5, 6, 7,  16, 17, 18, 19};
-
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4, 5, 6, 7,   8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     0, 1, 5, 4, 3, 2, 6, 7,   8, 13, 16, 12, 11,  9, 17, 19, 10, 14, 18, 15,
     0, 4, 7, 3, 1, 5, 6, 2,  12, 19, 15, 11,  8, 16, 18, 10, 13, 17, 14,  9,
@@ -1825,23 +1862,24 @@ struct topology_data<topology::HEX_27>
   : public topology_data<topology::HEX_20>
 {
   static constexpr topology::topology_t value = topology::HEX_27;
+  static constexpr unsigned num_nodes = 27;
+
   static constexpr topology::topology_t face_topology_vector[] = {topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::QUAD_9,
                                                                   topology::QUAD_9};
-  static constexpr unsigned num_nodes = 27;
 
-  static constexpr uint8_t face_node_ordinals_offsets[] = {0, 9, 18, 27, 36, 45, 54};
-  static constexpr uint8_t face_node_ordinals_vector[] = {0, 1, 5, 4,   8, 13, 16, 12,  25,
-                                                          1, 2, 6, 5,   9, 14, 17, 13,  24,
-                                                          2, 3, 7, 6,  10, 15, 18, 14,  26,
-                                                          0, 4, 7, 3,  12, 19, 15, 11,  23,
-                                                          0, 3, 2, 1,  11, 10,  9,  8,  21,
-                                                          4, 5, 6, 7,  16, 17, 18, 19,  22};
+  static constexpr unsigned face_node_ordinals_offsets[] = {0, 9, 18, 27, 36, 45, 54};
+  static constexpr unsigned face_node_ordinals_vector[] = {0, 1, 5, 4,   8, 13, 16, 12,  25,
+                                                           1, 2, 6, 5,   9, 14, 17, 13,  24,
+                                                           2, 3, 7, 6,  10, 15, 18, 14,  26,
+                                                           0, 4, 7, 3,  12, 19, 15, 11,  23,
+                                                           0, 3, 2, 1,  11, 10,  9,  8,  21,
+                                                           4, 5, 6, 7,  16, 17, 18, 19,  22};
 
-  static constexpr uint8_t permutation_node_ordinals_vector[] = {
+  static constexpr unsigned permutation_node_ordinals_vector[] = {
     0, 1, 2, 3, 4, 5, 6, 7,   8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,  20, 21, 22, 23, 24, 25, 26,
     0, 1, 5, 4, 3, 2, 6, 7,   8, 13, 16, 12, 11,  9, 17, 19, 10, 14, 18, 15,  20, 25, 26, 23, 24, 21, 22,
     0, 4, 7, 3, 1, 5, 6, 2,  12, 19, 15, 11,  8, 16, 18, 10, 13, 17, 14,  9,  20, 23, 24, 21, 22, 25, 26,
@@ -1879,11 +1917,10 @@ struct topology_data<Topology, typename std::enable_if< (Topology > topology::SU
 {
   static constexpr topology::topology_t value = Topology;
   static constexpr topology::topology_t base = value;
-  static constexpr unsigned num_nodes = Topology - topology::SUPEREDGE_START;
-
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::EDGE_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr unsigned num_nodes = Topology - topology::SUPEREDGE_START;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
@@ -1897,11 +1934,10 @@ struct topology_data<Topology, typename std::enable_if< (Topology > topology::SU
 {
   static constexpr topology::topology_t value = Topology;
   static constexpr topology::topology_t base = value;
-  static constexpr unsigned num_nodes = Topology - topology::SUPERFACE_START;
-
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::FACE_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr unsigned num_nodes = Topology - topology::SUPERFACE_START;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        false,  // 1d
@@ -1919,11 +1955,10 @@ struct topology_data<Topology, typename std::enable_if< (Topology > topology::SU
 {
   static constexpr topology::topology_t value = Topology;
   static constexpr topology::topology_t base = value;
-  static constexpr unsigned num_nodes = Topology - topology::SUPERELEMENT_START;
-
+  static constexpr bool is_valid = true;
   static constexpr topology::rank_t rank = topology::ELEMENT_RANK;
   static constexpr topology::rank_t side_rank = topology::INVALID_RANK;
-  static constexpr bool is_valid = true;
+  static constexpr unsigned num_nodes = Topology - topology::SUPERELEMENT_START;
 
   static constexpr bool spatial_dimension_vector[4] = {false,  // 0d
                                                        true,   // 1d

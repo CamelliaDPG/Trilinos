@@ -39,21 +39,21 @@
 
 
 #
-# @MACRO: advanced_set()
+# @MACRO: ADVANCED_SET()
 #
 # Macro that sets a variable and marks it as advanced (removes boiler-plate
 # and duplication).
 #
 # Usage::
 #
-#   advanced_set(<varName> [other arguments])
+#   ADVANCED_SET(<varName> [other arguments])
 #
 # This just calls the built-in commands::
 #
-#   set(<varName> [other arguments])
-#   mark_as_advanced(<varName>)
+#   SET(<varName> [other arguments])
+#   MARK_AS_ADVANCED(<varName>)
 #
-macro(advanced_set VARNAME)
-  set(${VARNAME} ${ARGN})
-  mark_as_advanced(${VARNAME})
-endmacro()
+MACRO(ADVANCED_SET VARNAME)
+  SET(${VARNAME} ${ARGN})
+  MARK_AS_ADVANCED(${VARNAME})
+ENDMACRO()

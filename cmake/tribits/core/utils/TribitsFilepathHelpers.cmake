@@ -1,14 +1,14 @@
-include(MessageWrapper)
-include(Split)
+INCLUDE(MessageWrapper)
+INCLUDE(Split)
 
 #
-# @FUNCTION: tribits_dir_is_basedir()
+# @FUNCTION: TRIBITS_DIR_IS_BASEDIR()
 #
 # Function to determine if a given path is a base dir of another path.
 #
 # Usage::
 #
-#   tribits_dir_is_basedir(<absBaseDir> <absFullDir> <isBaseDirVarOut>)
+#   TRIBITS_DIR_IS_BASEDIR(<absBaseDir> <absFullDir> <isBaseDirVarOut>)
 #
 # If the absolute path ``<absBaseDir>`` is a subdir of the absolute path
 # ``<absFullDir>``, then the variable ``<isBaseDirVarOut>`` is set to
@@ -17,80 +17,80 @@ include(Split)
 # For example, the output var ``isBaseDir`` would be set to ``TRUE`` in the
 # following examples::
 #
-#   tribits_dir_is_basedir(/some/base/path /some/base/path/more isBaseDir)
+#   TRIBITS_DIR_IS_BASEDIR(/some/base/path /some/base/path/more isBaseDir)
 #
-#   tribits_dir_is_basedir(/some/base/path /some/base/path isBaseDir)
+#   TRIBITS_DIR_IS_BASEDIR(/some/base/path /some/base/path isBaseDir)
 #
 # However, in the following examples, ``isBaseDir`` would be set to ``FALSE``::
 #
-#   tribits_dir_is_basedir(/some/base/path/more /some/base/path isBaseDir)
+#   TRIBITS_DIR_IS_BASEDIR(/some/base/path/more /some/base/path isBaseDir)
 #
-#   tribits_dir_is_basedir(/some/base/path /some/other/path isBaseDir)
+#   TRIBITS_DIR_IS_BASEDIR(/some/base/path /some/other/path isBaseDir)
 #
-function(tribits_dir_is_basedir  absBaseDir  absFullDir  isBaseDirVarOut)
+FUNCTION(TRIBITS_DIR_IS_BASEDIR  absBaseDir  absFullDir  isBaseDirVarOut)
 
   # Assume not base dir by default unless we find it is
-  set(isBaseDir FALSE)
+  SET(isBaseDir FALSE)
 
-  string(LENGTH "${absBaseDir}" absBaseDirLen)
-  string(LENGTH "${absFullDir}" absFullDirLen)
+  STRING(LENGTH "${absBaseDir}" absBaseDirLen)
+  STRING(LENGTH "${absFullDir}" absFullDirLen)
 
-  if (absBaseDir STREQUAL absFullDir)
-    set(isBaseDir TRUE)
-  elseif (NOT absBaseDirLen GREATER absFullDirLen)
-    string(FIND "${absFullDir}" "${absBaseDir}/" baseDirIdx)
-    if (baseDirIdx EQUAL 0)
-      set(isBaseDir TRUE)
-    endif()
-  endif()
+  IF (absBaseDir STREQUAL absFullDir)
+    SET(isBaseDir TRUE)
+  ELSEIF (NOT absBaseDirLen GREATER absFullDirLen)
+    STRING(FIND "${absFullDir}" "${absBaseDir}/" baseDirIdx)
+    IF (baseDirIdx EQUAL 0)
+      SET(isBaseDir TRUE)
+    ENDIF()
+  ENDIF()
 
-  set(${isBaseDirVarOut} ${isBaseDir} PARENT_SCOPE)
+  SET(${isBaseDirVarOut} ${isBaseDir} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_get_dir_array_below_base_dir()
+# @FUNCTION: TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR()
 #
 # Returns the array of directories below a base directory.
 #
 # Usage::
 #
-#  tribits_get_dir_array_below_base_dir(<absBaseDir> <absFullDir>
+#  TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR(<absBaseDir> <absFullDir>
 #     <trailingDirArrayVarOut>)
 #
 # The following show examples of what this returns:
 #
-#   tribits_get_dir_array_below_base_dir("/a/b/c" "/a/b/c", dirArray)
+#   TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR("/a/b/c" "/a/b/c", dirArray)
 #     => dirArray = ""
 #
-#   tribits_get_dir_array_below_base_dir("/a/b/c" "/a/b/c/d", dirArray)
+#   TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR("/a/b/c" "/a/b/c/d", dirArray)
 #     => dirArray = "d"
 #
-#   tribits_get_dir_array_below_base_dir("/a/b/c" "/a/b/c/d/e", dirArray)
+#   TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR("/a/b/c" "/a/b/c/d/e", dirArray)
 #     => dirArray = "d;e"
 #
-function(tribits_get_dir_array_below_base_dir  absBaseDir  absFullDir
+FUNCTION(TRIBITS_GET_DIR_ARRAY_BELOW_BASE_DIR  absBaseDir  absFullDir
   trailingDirArrayVarOut
   )
 
-  tribits_dir_is_basedir("${absBaseDir}" "${absFullDir}" isBaseDir)
-  if (NOT isBaseDir)
-    message_wrapper(FATAL_ERROR
+  TRIBITS_DIR_IS_BASEDIR("${absBaseDir}" "${absFullDir}" isBaseDir)
+  IF (NOT isBaseDir)
+    MESSAGE_WRAPPER(FATAL_ERROR
       "ERROR: '${absBaseDir}' is not a base dir of '${absFullDir}'")
-  endif()
+  ENDIF()
 
-  string(LENGTH "${absBaseDir}" absBaseDirLen)
-  string(LENGTH "${absFullDir}" absFullDirLen)
+  STRING(LENGTH "${absBaseDir}" absBaseDirLen)
+  STRING(LENGTH "${absFullDir}" absFullDirLen)
 
-  if (absBaseDirLen EQUAL absFullDirLen)
-    set(trailingDirArray "")
-  else()
-    math(EXPR trailingDirsStrStartIdx "${absBaseDirLen}+1")
-    string(SUBSTRING "${absFullDir}" ${trailingDirsStrStartIdx} -1 trailingDirsStr)
-    split("${trailingDirsStr}" "/" trailingDirArray)
-  endif()
+  IF (absBaseDirLen EQUAL absFullDirLen)
+    SET(trailingDirArray "")
+  ELSE()
+    MATH(EXPR trailingDirsStrStartIdx "${absBaseDirLen}+1")
+    STRING(SUBSTRING "${absFullDir}" ${trailingDirsStrStartIdx} -1 trailingDirsStr)
+    SPLIT("${trailingDirsStr}" "/" trailingDirArray)
+  ENDIF()
 
-  set(${trailingDirArrayVarOut} "${trailingDirArray}" PARENT_SCOPE)
+  SET(${trailingDirArrayVarOut} "${trailingDirArray}" PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()

@@ -16,17 +16,11 @@ namespace Tpetra {
 
 namespace { // (anonymous)
 
-#ifdef TPETRA_ENABLE_DEPRECATED_CODE
 template<class SC, class LO, class GO, class NT>
-// This function is deprecated, but users don't call it directly; it is a 
-// helper from createDeepCopy.  createDeepCopy is also deprecated.
-// We silence TPETRA_DEPRECATED warnings here to prevent noise from
-// compilation of createDeepCopy.
-// TPETRA_DEPRECATED
 typename CrsMatrix<SC, LO, GO, NT>::local_matrix_type
+TPETRA_DEPRECATED
 localDeepCopyFillCompleteCrsMatrix (const CrsMatrix<SC, LO, GO, NT>& A)
 {
-  using execution_space = typename NT::execution_space;
   using Kokkos::view_alloc;
   using Kokkos::WithoutInitializing;
   using crs_matrix_type = CrsMatrix<SC, LO, GO, NT>;
@@ -38,35 +32,29 @@ localDeepCopyFillCompleteCrsMatrix (const CrsMatrix<SC, LO, GO, NT>& A)
   using inds_type = typename local_graph_device_type::entries_type;
   inds_type ind (view_alloc ("ind", WithoutInitializing),
                  A_lcl.graph.entries.extent (0));
-
-  // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-  Kokkos::deep_copy (execution_space(), ind, A_lcl.graph.entries);
+  Kokkos::deep_copy (ind, A_lcl.graph.entries);
 
   using offsets_type =
     typename local_graph_device_type::row_map_type::non_const_type;
   offsets_type ptr (view_alloc ("ptr", WithoutInitializing),
                     A_lcl.graph.row_map.extent (0));
-
-  // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-  Kokkos::deep_copy (execution_space(), ptr, A_lcl.graph.row_map);
+  Kokkos::deep_copy (ptr, A_lcl.graph.row_map);
 
   using values_type = typename local_matrix_type::values_type;
   values_type val (view_alloc ("val", WithoutInitializing),
                    A_lcl.values.extent (0));
+  Kokkos::deep_copy (val, A_lcl.values);
 
-  // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-  Kokkos::deep_copy (execution_space(), val, A_lcl.values);  
   local_graph_device_type lclGraph (ind, ptr);
-  const size_t numCols = A.getColMap ()->getLocalNumElements ();
-
+  const size_t numCols = A.getColMap ()->getNodeNumElements ();
   return local_matrix_type (A.getObjectLabel (), numCols, val, lclGraph);
 }
 
 } // namespace // (anonymous)
 
 template<class SC, class LO, class GO, class NT>
-TPETRA_DEPRECATED
 CrsMatrix<SC, LO, GO, NT>
+TPETRA_DEPRECATED
 createDeepCopy (const RowMatrix<SC, LO, GO, NT>& A)
 {
   using crs_matrix_type = CrsMatrix<SC, LO, GO, NT>;
@@ -84,7 +72,7 @@ createDeepCopy (const RowMatrix<SC, LO, GO, NT>& A)
                             G->getExporter ());
   }
   else if (A.isGloballyIndexed ()) {
-    const LO lclNumRows (A.getLocalNumRows ());
+    const LO lclNumRows (A.getNodeNumRows ());
 
     std::unique_ptr<size_t[]> entPerRow (new size_t [lclNumRows]);
     size_t maxNumEnt = 0;
@@ -171,7 +159,6 @@ createDeepCopy (const RowMatrix<SC, LO, GO, NT>& A)
     }
   }
 }
-#endif
 
 } // namespace Tpetra
 

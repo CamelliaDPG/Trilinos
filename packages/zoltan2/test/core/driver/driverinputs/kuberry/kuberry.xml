@@ -10,9 +10,7 @@
     <Parameter name="kind" type="string" value="partitioning"/>
     <ParameterList name="InputAdapterParameters">
       <Parameter name="data type" type="string" value="coordinates"/>
-      <Parameter name="input adapter" type="string"
-          value="XpetraMultiVector"/>
-      <!--Parameter name="input adapter" type="string" value="BasicVector"/-->
+      <Parameter name="input adapter" type="string" value="XpetraMultiVector"/>
     </ParameterList>
 
     <ParameterList name="Zoltan2Parameters">

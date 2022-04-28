@@ -283,9 +283,9 @@ namespace MueLu {
 
 
     *out << "The index manager has now been built" << std::endl;
-    *out << "graph num nodes: " << fineMap->getLocalNumElements()
+    *out << "graph num nodes: " << fineMap->getNodeNumElements()
          << ", structured aggregation num nodes: " << geoData->getNumLocalFineNodes() << std::endl;
-    TEUCHOS_TEST_FOR_EXCEPTION(fineMap->getLocalNumElements()
+    TEUCHOS_TEST_FOR_EXCEPTION(fineMap->getNodeNumElements()
                                != static_cast<size_t>(geoData->getNumLocalFineNodes()),
                                Exceptions::RuntimeError,
                                "The local number of elements in the graph's map is not equal to "

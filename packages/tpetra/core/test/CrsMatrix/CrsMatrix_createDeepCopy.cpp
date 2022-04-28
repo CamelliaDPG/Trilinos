@@ -138,12 +138,12 @@ public:
     return G_->getGlobalNumCols ();
   }
 
-  size_t getLocalNumRows () const override {
-    return G_->getLocalNumRows ();
+  size_t getNodeNumRows () const override {
+    return G_->getNodeNumRows ();
   }
 
-  size_t getLocalNumCols () const override {
-    return G_->getLocalNumCols ();
+  size_t getNodeNumCols () const override {
+    return G_->getNodeNumCols ();
   }
 
   GO getIndexBase () const override {
@@ -154,8 +154,8 @@ public:
     return G_->getGlobalNumEntries ();
   }
 
-  size_t getLocalNumEntries () const override {
-    return G_->getLocalNumEntries ();
+  size_t getNodeNumEntries () const override {
+    return G_->getNodeNumEntries ();
   }
 
   size_t getNumEntriesInGlobalRow (GO gblRow) const override {
@@ -170,8 +170,8 @@ public:
     return G_->getGlobalMaxNumRowEntries ();
   }
 
-  size_t getLocalMaxNumRowEntries () const override {
-    return G_->getLocalMaxNumRowEntries ();
+  size_t getNodeMaxNumRowEntries () const override {
+    return G_->getNodeMaxNumRowEntries ();
   }
 
   bool hasColMap () const override {
@@ -264,10 +264,11 @@ public:
   pack (const Teuchos::ArrayView<const LO>& exportLIDs,
         Teuchos::Array<GO>& exports,
         const Teuchos::ArrayView<size_t>& numPacketsPerLID,
-        size_t& constantNumPackets) const override
+        size_t& constantNumPackets,
+        Tpetra::Distributor& distor) const override
   {
     return G_->pack (exportLIDs, exports, numPacketsPerLID,
-                     constantNumPackets);
+                     constantNumPackets, distor);
   }
 
 private:
@@ -323,12 +324,12 @@ public:
     return A_->getGlobalNumCols ();
   }
 
-  size_t getLocalNumRows () const override {
-    return A_->getLocalNumRows ();
+  size_t getNodeNumRows () const override {
+    return A_->getNodeNumRows ();
   }
 
-  size_t getLocalNumCols () const override {
-    return A_->getLocalNumCols ();
+  size_t getNodeNumCols () const override {
+    return A_->getNodeNumCols ();
   }
 
   GO getIndexBase () const override {
@@ -339,8 +340,8 @@ public:
     return A_->getGlobalNumEntries ();
   }
 
-  size_t getLocalNumEntries () const override {
-    return A_->getLocalNumEntries ();
+  size_t getNodeNumEntries () const override {
+    return A_->getNodeNumEntries ();
   }
 
   size_t getNumEntriesInGlobalRow (GO gblRow) const override {
@@ -355,8 +356,8 @@ public:
     return A_->getGlobalMaxNumRowEntries ();
   }
 
-  size_t getLocalMaxNumRowEntries () const override {
-    return A_->getLocalMaxNumRowEntries ();
+  size_t getNodeMaxNumRowEntries () const override {
+    return A_->getNodeMaxNumRowEntries ();
   }
 
   bool hasColMap () const override {
@@ -501,10 +502,11 @@ public:
   pack (const Teuchos::ArrayView<const LO>& exportLIDs,
         Teuchos::Array<char>& exports,
         const Teuchos::ArrayView<size_t>& numPacketsPerLID,
-        size_t& constantNumPackets) const override
+        size_t& constantNumPackets,
+        Tpetra::Distributor& distor) const override
   {
     return A_->pack (exportLIDs, exports, numPacketsPerLID,
-                     constantNumPackets);
+                     constantNumPackets, distor);
   }
 
   void
@@ -594,7 +596,7 @@ crsMatrixInstancesEqual (const Tpetra::CrsMatrix<SC, LO, GO, NT>& A,
   }
 
   const auto& rowMap = * (A.getRowMap ());
-  const LO lclNumRows = A.getLocalNumRows ();
+  const LO lclNumRows = A.getNodeNumRows ();
 
   values_view A_vals;
   values_view B_vals;

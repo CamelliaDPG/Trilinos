@@ -138,7 +138,8 @@ postRegistrationSetup(typename TRAITS::SetupData d,
     int fieldNum = fieldIds_[fd];
     const std::vector<int> & offsets = globalIndexer_->getGIDFieldOffsets(blockId,fieldNum);
     scratch_offsets_[fd] = PHX::View<int*>("offsets",offsets.size());
-    Kokkos::deep_copy(scratch_offsets_[fd], Kokkos::View<const int*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(offsets.data(), offsets.size()));
+    for(std::size_t i=0;i<offsets.size();i++)
+      scratch_offsets_[fd](i) = offsets[i];
   }
 
   scratch_lids_ = PHX::View<LO**>("lids",gatherFields_[0].extent(0),
@@ -181,7 +182,7 @@ evaluateFields(typename TRAITS::EvalData workset)
    else
      x = tpetraContainer_->get_x();
 
-   auto x_data = x->getLocalViewDevice(Tpetra::Access::ReadOnly);
+   auto x_data = x->template getLocalView<PHX::Device>();
 
    globalIndexer_->getElementLIDs(this->wda(workset).cell_local_ids_k,scratch_lids_);
 
@@ -460,7 +461,8 @@ postRegistrationSetup(typename TRAITS::SetupData d,
     int fieldNum = fieldIds_[fd];
     const std::vector<int> & offsets = globalIndexer_->getGIDFieldOffsets(blockId,fieldNum);
     scratch_offsets_[fd] = PHX::View<int*>("offsets",offsets.size());
-    Kokkos::deep_copy(scratch_offsets_[fd], Kokkos::View<const int*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>(offsets.data(), offsets.size()));
+    for(std::size_t i=0;i<offsets.size();i++)
+      scratch_offsets_[fd](i) = offsets[i];
   }
 
   scratch_lids_ = PHX::View<LO**>("lids",gatherFields_[0].extent(0),
@@ -505,6 +507,8 @@ preEvaluate(typename TRAITS::PreEvalData d)
 
     x_vector = ro_ged->getGhostedVector_Tpetra();
 
+    x_vector->template sync<PHX::Device>();
+
     return;
   }
 
@@ -527,6 +531,8 @@ preEvaluate(typename TRAITS::PreEvalData d)
       else
         x_vector = tpetraContainer->get_x();
 
+      x_vector->template sync<PHX::Device>();
+
       return; // epetraContainer was found
     }
   }
@@ -537,6 +543,8 @@ preEvaluate(typename TRAITS::PreEvalData d)
 
     x_vector = ro_ged->getGhostedVector_Tpetra();
   }
+
+  x_vector->template sync<PHX::Device>();
 }
 
 // **********************************************************************
@@ -587,7 +595,7 @@ evaluateFields(typename TRAITS::EvalData workset)
    // now setup the fuctor_data, and run the parallel_for loop
    //////////////////////////////////////////////////////////////////////////////////
 
-   functor_data.x_data = x_vector->getLocalViewDevice(Tpetra::Access::ReadOnly);
+   functor_data.x_data = x_vector->template getLocalView<PHX::Device>();
    functor_data.seed_value = seed_value;
    functor_data.lids = scratch_lids_;
 
@@ -604,7 +612,6 @@ evaluateFields(typename TRAITS::EvalData workset)
      else
        Kokkos::parallel_for(Kokkos::RangePolicy<PHX::Device,NoSeed>(0,workset.num_cells),*this);
    }
-   functor_data.x_data = Kokkos::View<const double**, Kokkos::LayoutLeft,PHX::Device>();
 }
 
 // **********************************************************************

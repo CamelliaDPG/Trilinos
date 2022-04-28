@@ -285,64 +285,68 @@ public:
   //! Returns a status test set from a parameter list xml file.
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildStatusTests(const std::string& file_name, const NOX::Utils& utils,
-                   std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests=nullptr) const;
+           std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+           tagged_tests=0) const;
 
   //! Returns a status test set from a parameter list.
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildStatusTests(Teuchos::ParameterList& p, const NOX::Utils& utils,
-                   std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests=nullptr) const;
+           std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+           tagged_tests=0) const;
 
 private:
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildComboTest(Teuchos::ParameterList& p,
-                 const NOX::Utils& utils,
-                 std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests=nullptr) const;
+         const NOX::Utils& utils,
+         std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+         tagged_tests=0) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildNormFTest(Teuchos::ParameterList& p,
-                 const NOX::Utils& utils) const;
+         const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildNormUpdateTest(Teuchos::ParameterList& p,
-                      const NOX::Utils& utils) const;
+              const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildNormWRMSTest(Teuchos::ParameterList& p,
-                    const NOX::Utils& utils) const;
+            const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildMaxItersTest(Teuchos::ParameterList& p,
-                    const NOX::Utils& utils) const;
+            const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildFiniteValueTest(Teuchos::ParameterList& p,
-                       const NOX::Utils& utils) const;
+               const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildDivergenceTest(Teuchos::ParameterList& p,
-                      const NOX::Utils& utils) const;
+              const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildStagnationTest(Teuchos::ParameterList& p,
-                      const NOX::Utils& utils) const;
+              const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildRelativeNormFTest(Teuchos::ParameterList& p,
-                         const NOX::Utils& utils) const;
+             const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildNStepTest(Teuchos::ParameterList& p,
-                 const NOX::Utils& utils) const;
+         const NOX::Utils& utils) const;
 
   Teuchos::RCP<NOX::StatusTest::Generic>
   buildUserDefinedTest(Teuchos::ParameterList& p,
-                       const NOX::Utils& utils) const;
+               const NOX::Utils& utils) const;
 
   //! Checks if a tag is present in the param list and adds the test to the tagged_test std::map if true.  Returns true if a tag was present.
   bool checkAndTagTest(const Teuchos::ParameterList& p,
-                       const Teuchos::RCP<NOX::StatusTest::Generic>& test,
-                       std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests) const;
+               const Teuchos::RCP<NOX::StatusTest::Generic>& test,
+         std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+               tagged_tests) const;
 };
 
 /*! \brief Nonmember helper function for the NOX::StatusTest::Factory.
@@ -352,7 +356,8 @@ private:
 */
 Teuchos::RCP<NOX::StatusTest::Generic>
 buildStatusTests(const std::string& file_name, const NOX::Utils& utils,
-                 std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests=nullptr);
+         std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+         tagged_tests=0);
 
 /*! \brief Nonmember helper function for the NOX::StatusTest::Factory.
 
@@ -361,7 +366,8 @@ buildStatusTests(const std::string& file_name, const NOX::Utils& utils,
 */
 Teuchos::RCP<NOX::StatusTest::Generic>
 buildStatusTests(Teuchos::ParameterList& p, const NOX::Utils& utils,
-                 std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >* tagged_tests=nullptr);
+         std::map<std::string, Teuchos::RCP<NOX::StatusTest::Generic> >*
+         tagged_tests=0);
 
 } // namespace StatusTest
 } // namespace NOX

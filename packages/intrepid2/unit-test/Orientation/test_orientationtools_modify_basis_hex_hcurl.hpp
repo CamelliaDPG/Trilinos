@@ -87,6 +87,14 @@ namespace Intrepid2 {
 
       Teuchos::oblackholestream oldFormatState;
       oldFormatState.copyfmt(std::cout);
+      using DeviceSpaceType = typename DeviceType::execution_space;
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
+
+      *outStream << "DeviceSpace::  "; DeviceSpaceType::print_configuration(*outStream, false);
+      *outStream << "HostSpace::    ";   HostSpaceType::print_configuration(*outStream, false);
+      *outStream << "\n";
+
       
       *outStream
         << "===============================================================================\n"
@@ -142,7 +150,7 @@ namespace Intrepid2 {
           const ordinal_type numCells = 27, numVerts = 8, numEdges = 12, numFaces = 6;
 
           // view to import refMesh from host          
-          Kokkos::DynRankView<ordinal_type,Kokkos::LayoutRight,Kokkos::HostSpace> 
+          Kokkos::DynRankView<ordinal_type,Kokkos::LayoutRight,HostSpaceType> 
             elemNodesHost(&refMesh[0][0], numCells, numVerts);
           auto elemNodes = Kokkos::create_mirror_view(typename DeviceType::memory_space(), elemNodesHost);
           Kokkos::deep_copy(elemNodes, elemNodesHost);
@@ -151,14 +159,14 @@ namespace Intrepid2 {
           Kokkos::DynRankView<Orientation,DeviceType> elemOrts("elemOrts", numCells);
           ots::getOrientation(elemOrts, elemNodes, cellTopo);
 
-          auto elemOrtsHost = Kokkos::create_mirror_view( elemOrts);
+          auto elemOrtsHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), elemOrts);
           Kokkos::deep_copy(elemOrtsHost, elemOrts);
 
           // cell specific modified basis 
           Kokkos::DynRankView<double,DeviceType> outValues("outValues", numCells, ndofBasis);
           Kokkos::DynRankView<double,DeviceType> refValues("refValues", numCells, ndofBasis);
 
-          auto refValuesHost = Kokkos::create_mirror_view( refValues);
+          auto refValuesHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), refValues);
           for (ordinal_type cell=0;cell<numCells;++cell)           
             for (ordinal_type bf=0;bf<ndofBasis;++bf) 
               refValuesHost(cell, bf) = (bf+1);
@@ -170,7 +178,7 @@ namespace Intrepid2 {
                                         elemOrts,
                                         &cellBasis);
 
-          auto outValuesHost = Kokkos::create_mirror_view( outValues);
+          auto outValuesHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), outValues);
           Kokkos::deep_copy(outValuesHost, outValues);
 
           for (ordinal_type cell=0;cell<numCells;++cell) {

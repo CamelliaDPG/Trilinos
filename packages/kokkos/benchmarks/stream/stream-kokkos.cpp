@@ -52,33 +52,35 @@
 
 #define HLINE "-------------------------------------------------------------\n"
 
-using StreamDeviceArray =
-    Kokkos::View<double*, Kokkos::MemoryTraits<Kokkos::Restrict>>;
-using StreamHostArray = typename StreamDeviceArray::HostMirror;
+#if defined(KOKKOS_ENABLE_CUDA)
+using StreamHostArray   = Kokkos::View<double*, Kokkos::CudaSpace>::HostMirror;
+using StreamDeviceArray = Kokkos::View<double*, Kokkos::CudaSpace>;
+#else
+using StreamHostArray   = Kokkos::View<double*, Kokkos::HostSpace>::HostMirror;
+using StreamDeviceArray = Kokkos::View<double*, Kokkos::HostSpace>;
+#endif
 
 using StreamIndex = int;
-using Policy      = Kokkos::RangePolicy<Kokkos::IndexType<StreamIndex>>;
 
-void perform_set(StreamDeviceArray& a, const double scalar) {
+double now() {
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+
+  return (double)now.tv_sec + ((double)now.tv_usec * 1.0e-6);
+}
+
+void perform_copy(StreamDeviceArray& a, StreamDeviceArray& b,
+                  StreamDeviceArray& c) {
   Kokkos::parallel_for(
-      "set", Policy(0, a.extent(0)),
-      KOKKOS_LAMBDA(const StreamIndex i) { a[i] = scalar; });
+      "copy", a.extent(0), KOKKOS_LAMBDA(const StreamIndex i) { c[i] = a[i]; });
 
   Kokkos::fence();
 }
 
-void perform_copy(StreamDeviceArray& a, StreamDeviceArray& b) {
+void perform_scale(StreamDeviceArray& a, StreamDeviceArray& b,
+                   StreamDeviceArray& c, const double scalar) {
   Kokkos::parallel_for(
-      "copy", Policy(0, a.extent(0)),
-      KOKKOS_LAMBDA(const StreamIndex i) { b[i] = a[i]; });
-
-  Kokkos::fence();
-}
-
-void perform_scale(StreamDeviceArray& b, StreamDeviceArray& c,
-                   const double scalar) {
-  Kokkos::parallel_for(
-      "scale", Policy(0, b.extent(0)),
+      "copy", a.extent(0),
       KOKKOS_LAMBDA(const StreamIndex i) { b[i] = scalar * c[i]; });
 
   Kokkos::fence();
@@ -87,7 +89,7 @@ void perform_scale(StreamDeviceArray& b, StreamDeviceArray& c,
 void perform_add(StreamDeviceArray& a, StreamDeviceArray& b,
                  StreamDeviceArray& c) {
   Kokkos::parallel_for(
-      "add", Policy(0, a.extent(0)),
+      "add", a.extent(0),
       KOKKOS_LAMBDA(const StreamIndex i) { c[i] = a[i] + b[i]; });
 
   Kokkos::fence();
@@ -96,7 +98,7 @@ void perform_add(StreamDeviceArray& a, StreamDeviceArray& b,
 void perform_triad(StreamDeviceArray& a, StreamDeviceArray& b,
                    StreamDeviceArray& c, const double scalar) {
   Kokkos::parallel_for(
-      "triad", Policy(0, a.extent(0)),
+      "triad", a.extent(0),
       KOKKOS_LAMBDA(const StreamIndex i) { a[i] = b[i] + scalar * c[i]; });
 
   Kokkos::fence();
@@ -182,7 +184,6 @@ int run_benchmark() {
 
   const double scalar = 3.0;
 
-  double setTime   = std::numeric_limits<double>::max();
   double copyTime  = std::numeric_limits<double>::max();
   double scaleTime = std::numeric_limits<double>::max();
   double addTime   = std::numeric_limits<double>::max();
@@ -190,10 +191,13 @@ int run_benchmark() {
 
   printf("Initializing Views...\n");
 
+#if defined(KOKKOS_HAVE_OPENMP)
   Kokkos::parallel_for(
-      "init",
-      Kokkos::RangePolicy<Kokkos::DefaultHostExecutionSpace>(0,
-                                                             STREAM_ARRAY_SIZE),
+      "init", Kokkos::RangePolicy<Kokkos::OpenMP>(0, STREAM_ARRAY_SIZE),
+#else
+  Kokkos::parallel_for(
+      "init", Kokkos::RangePolicy<Kokkos::Serial>(0, STREAM_ARRAY_SIZE),
+#endif
       KOKKOS_LAMBDA(const int i) {
         a[i] = 1.0;
         b[i] = 2.0;
@@ -205,30 +209,26 @@ int run_benchmark() {
   Kokkos::deep_copy(dev_b, b);
   Kokkos::deep_copy(dev_c, c);
 
+  double start;
+
   printf("Starting benchmarking...\n");
 
-  Kokkos::Timer timer;
-
   for (StreamIndex k = 0; k < STREAM_NTIMES; ++k) {
-    timer.reset();
-    perform_set(dev_c, 1.5);
-    setTime = std::min(setTime, timer.seconds());
+    start = now();
+    perform_copy(dev_a, dev_b, dev_c);
+    copyTime = std::min(copyTime, (now() - start));
 
-    timer.reset();
-    perform_copy(dev_a, dev_c);
-    copyTime = std::min(copyTime, timer.seconds());
+    start = now();
+    perform_scale(dev_a, dev_b, dev_c, scalar);
+    scaleTime = std::min(scaleTime, (now() - start));
 
-    timer.reset();
-    perform_scale(dev_b, dev_c, scalar);
-    scaleTime = std::min(scaleTime, timer.seconds());
-
-    timer.reset();
+    start = now();
     perform_add(dev_a, dev_b, dev_c);
-    addTime = std::min(addTime, timer.seconds());
+    addTime = std::min(addTime, (now() - start));
 
-    timer.reset();
+    start = now();
     perform_triad(dev_a, dev_b, dev_c, scalar);
-    triadTime = std::min(triadTime, timer.seconds());
+    triadTime = std::min(triadTime, (now() - start));
   }
 
   Kokkos::deep_copy(a, dev_a);
@@ -240,9 +240,6 @@ int run_benchmark() {
 
   printf(HLINE);
 
-  printf("Set             %11.2f MB/s\n",
-         (1.0e-06 * 1.0 * (double)sizeof(double) * (double)STREAM_ARRAY_SIZE) /
-             setTime);
   printf("Copy            %11.2f MB/s\n",
          (1.0e-06 * 2.0 * (double)sizeof(double) * (double)STREAM_ARRAY_SIZE) /
              copyTime);

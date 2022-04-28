@@ -281,11 +281,6 @@ void STK_Interface::addMeshCoordFields(const std::string & blockId,
    }
 }
 
-void STK_Interface::addInformationRecords(const std::vector<std::string> & info_records)
-{
-   informationRecords_.insert(info_records.begin(), info_records.end());
-}
-
 void STK_Interface::initialize(stk::ParallelMachine parallelMach,bool setupIO,
                                const bool buildRefinementSupport)
 {
@@ -330,16 +325,18 @@ void STK_Interface::initialize(stk::ParallelMachine parallelMach,bool setupIO,
       {
          std::map<std::string, stk::mesh::Part*>::iterator itr;
          for(itr=edgeBlocks_.begin();itr!=edgeBlocks_.end();++itr)
-            if(!stk::io::is_part_edge_block_io_part(*itr->second))
+            if(!stk::io::is_part_edge_block_io_part(*itr->second)) {
                stk::io::put_edge_block_io_part_attribute(*itr->second); // this can only be called once per part
+            }
       }
 
       // add face blocks
       {
          std::map<std::string, stk::mesh::Part*>::iterator itr;
          for(itr=faceBlocks_.begin();itr!=faceBlocks_.end();++itr)
-            if(!stk::io::is_part_face_block_io_part(*itr->second))
+            if(!stk::io::is_part_face_block_io_part(*itr->second)) {
                stk::io::put_face_block_io_part_attribute(*itr->second); // this can only be called once per part
+            }
       }
 
       // add side sets
@@ -533,12 +530,10 @@ void STK_Interface::addEntityToEdgeBlock(stk::mesh::Entity entity,stk::mesh::Par
 }
 void STK_Interface::addEntitiesToEdgeBlock(std::vector<stk::mesh::Entity> entities,stk::mesh::Part * edgeblock)
 {
-   if (entities.size() > 0) {
-      std::vector<stk::mesh::Part*> edgeblockV;
-      edgeblockV.push_back(edgeblock);
+   std::vector<stk::mesh::Part*> edgeblockV;
+   edgeblockV.push_back(edgeblock);
 
-      bulkData_->change_entity_parts(entities,edgeblockV);
-   }
+   bulkData_->change_entity_parts(entities,edgeblockV);
 }
 
 void STK_Interface::addEntityToFaceBlock(stk::mesh::Entity entity,stk::mesh::Part * faceblock)
@@ -550,12 +545,10 @@ void STK_Interface::addEntityToFaceBlock(stk::mesh::Entity entity,stk::mesh::Par
 }
 void STK_Interface::addEntitiesToFaceBlock(std::vector<stk::mesh::Entity> entities,stk::mesh::Part * faceblock)
 {
-   if (entities.size() > 0) {
-      std::vector<stk::mesh::Part*> faceblockV;
-      faceblockV.push_back(faceblock);
+   std::vector<stk::mesh::Part*> faceblockV;
+   faceblockV.push_back(faceblock);
 
-      bulkData_->change_entity_parts(entities,faceblockV);
-   }
+   bulkData_->change_entity_parts(entities,faceblockV);
 }
 
 void STK_Interface::addElement(const Teuchos::RCP<ElementDescriptor> & ed,stk::mesh::Part * block)
@@ -718,10 +711,6 @@ setupExodusFile(const std::string& filename,
       meshData_->add_field(meshIndex_, *fields[i]);
     }
   }
-
-  // convert the set to a vector
-  std::vector<std::string> deduped_info_records(informationRecords_.begin(),informationRecords_.end());
-  meshData_->add_info_records(meshIndex_, deduped_info_records);
 #else
   TEUCHOS_ASSERT(false)
 #endif
@@ -1197,7 +1186,8 @@ void STK_Interface::getMyEdges(std::vector<stk::mesh::Entity> & edges) const
    stk::mesh::Selector ownedPart = metaData_->locally_owned_part();
 
    // grab elements
-   stk::mesh::get_selected_entities(ownedPart,bulkData_->buckets(getEdgeRank()),edges);
+   stk::mesh::EntityRank edgeRank = getEdgeRank();
+   stk::mesh::get_selected_entities(ownedPart,bulkData_->buckets(edgeRank),edges);
 }
 
 void STK_Interface::getMyEdges(const std::string & edgeBlockName,std::vector<stk::mesh::Entity> & edges) const
@@ -1637,36 +1627,22 @@ Teuchos::RCP<const std::vector<stk::mesh::Entity> > STK_Interface::getEdgesOrder
    return orderedEdgeVector_.getConst();
 }
 
-void STK_Interface::addEdgeBlock(const std::string & elemBlockName,
-                                 const std::string & edgeBlockName,
-                                 const stk::topology & topology)
+void STK_Interface::addEdgeBlock(const std::string & name,const CellTopologyData * ctData)
 {
    TEUCHOS_ASSERT(not initialized_);
 
-   stk::mesh::Part * edge_block = metaData_->get_part(edgeBlockName);
-   if(edge_block==0) {
-      edge_block = &metaData_->declare_part_with_topology(edgeBlockName, topology);
+   stk::mesh::Part * block = metaData_->get_part(name);
+   if(block==0) {
+     block = &metaData_->declare_part_with_topology(name, stk::mesh::get_topology(shards::CellTopology(ctData), dimension_));
    }
 
-   /* There is only one edge block for each edge topology, so declare it
-    * as a subset of the element block even if it wasn't just created.
-    */
-   stk::mesh::Part * elem_block = metaData_->get_part(elemBlockName);
-   metaData_->declare_part_subset(*elem_block, *edge_block);
+   // construct cell topology object for this block
+   Teuchos::RCP<shards::CellTopology> ct
+         = Teuchos::rcp(new shards::CellTopology(ctData));
 
    // add edge block part
-   edgeBlocks_.insert(std::make_pair(edgeBlockName,edge_block));
-}
-
-void STK_Interface::addEdgeBlock(const std::string & elemBlockName,
-                                 const std::string & edgeBlockName,
-                                 const CellTopologyData * ctData)
-{
-   TEUCHOS_ASSERT(not initialized_);
-
-   addEdgeBlock(elemBlockName,
-                edgeBlockName,
-                stk::mesh::get_topology(shards::CellTopology(ctData), dimension_));
+   edgeBlocks_.insert(std::make_pair(name,block));
+   edgeBlockCT_.insert(std::make_pair(name,ct));
 }
 
 Teuchos::RCP<const std::vector<stk::mesh::Entity> > STK_Interface::getFacesOrderedByLID() const
@@ -1682,36 +1658,22 @@ Teuchos::RCP<const std::vector<stk::mesh::Entity> > STK_Interface::getFacesOrder
    return orderedFaceVector_.getConst();
 }
 
-void STK_Interface::addFaceBlock(const std::string & elemBlockName,
-                                 const std::string & faceBlockName,
-                                 const stk::topology & topology)
+void STK_Interface::addFaceBlock(const std::string & name,const CellTopologyData * ctData)
 {
    TEUCHOS_ASSERT(not initialized_);
 
-   stk::mesh::Part * face_block = metaData_->get_part(faceBlockName);
-   if(face_block==0) {
-      face_block = &metaData_->declare_part_with_topology(faceBlockName, topology);
+   stk::mesh::Part * block = metaData_->get_part(name);
+   if(block==0) {
+     block = &metaData_->declare_part_with_topology(name, stk::mesh::get_topology(shards::CellTopology(ctData), dimension_));
    }
 
-   /* There is only one face block for each edge topology, so declare it
-    * as a subset of the element block even if it wasn't just created.
-    */
-   stk::mesh::Part * elem_block = metaData_->get_part(elemBlockName);
-   metaData_->declare_part_subset(*elem_block, *face_block);
+   // construct cell topology object for this block
+   Teuchos::RCP<shards::CellTopology> ct
+         = Teuchos::rcp(new shards::CellTopology(ctData));
 
    // add face block part
-   faceBlocks_.insert(std::make_pair(faceBlockName,face_block));
-}
-
-void STK_Interface::addFaceBlock(const std::string & elemBlockName,
-                                 const std::string & faceBlockName,
-                                 const CellTopologyData * ctData)
-{
-   TEUCHOS_ASSERT(not initialized_);
-
-   addFaceBlock(elemBlockName,
-                faceBlockName,
-                stk::mesh::get_topology(shards::CellTopology(ctData), dimension_));
+   faceBlocks_.insert(std::make_pair(name,block));
+   faceBlockCT_.insert(std::make_pair(name,ct));
 }
 
 void STK_Interface::initializeFromMetaData()

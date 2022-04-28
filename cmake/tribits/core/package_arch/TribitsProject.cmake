@@ -39,46 +39,46 @@
 
 # Projects that change the location of the source need to consider this in
 # their top-level CMakeLists.txt file
-set(${PROJECT_NAME}_TRIBITS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tribits"
+SET(${PROJECT_NAME}_TRIBITS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tribits"
   CACHE PATH
   "The base directory pointing to the TriBITS system.  If provided as a relative path (formatted as STRING) then will be set to '${CMAKE_CURRENT_SOURCE_DIR}/'.  NOTE: If you leave off the STRING datatype, and it is a relative path, then it will be interpreted as relative to the build directory!"
   )
-mark_as_advanced(${PROJECT_NAME}_TRIBITS_DIR)
+MARK_AS_ADVANCED(${PROJECT_NAME}_TRIBITS_DIR)
 
-if (NOT IS_ABSOLUTE "${${PROJECT_NAME}_TRIBITS_DIR}")
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    message("NOTE: ${PROJECT_NAME}_TRIBITS_DIR = '${${PROJECT_NAME}_TRIBITS_DIR}' provided as a relative directory so making this relative to '${CMAKE_CURRENT_SOURCE_DIR}'!")
-  endif()
-  set(${PROJECT_NAME}_TRIBITS_DIR
+IF (NOT IS_ABSOLUTE "${${PROJECT_NAME}_TRIBITS_DIR}")
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    MESSAGE("NOTE: ${PROJECT_NAME}_TRIBITS_DIR = '${${PROJECT_NAME}_TRIBITS_DIR}' provided as a relative directory so making this relative to '${CMAKE_CURRENT_SOURCE_DIR}'!")
+  ENDIF()
+  SET(${PROJECT_NAME}_TRIBITS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/${${PROJECT_NAME}_TRIBITS_DIR}")
-endif()
+ENDIF()
 
-if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-  message("${PROJECT_NAME}_TRIBITS_DIR='${${PROJECT_NAME}_TRIBITS_DIR}'")
-endif()
+IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+  MESSAGE("${PROJECT_NAME}_TRIBITS_DIR='${${PROJECT_NAME}_TRIBITS_DIR}'")
+ENDIF()
 
-set(CMAKE_MODULE_PATH
+SET(CMAKE_MODULE_PATH
    ${${PROJECT_NAME}_TRIBITS_DIR}/core/package_arch
    )
 
-if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-  message("CMAKE_MODULE_PATH='${CMAKE_MODULE_PATH}'")
-endif()
+IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+  MESSAGE("CMAKE_MODULE_PATH='${CMAKE_MODULE_PATH}'")
+ENDIF()
 
 # Overrides that we have for CMake functions
-include(TribitsCMakePolicies)
-include(TribitsProjectImpl)
+INCLUDE(TribitsCMakePolicies)
+INCLUDE(TribitsProjectImpl)
 
 
 #
-# @MACRO: tribits_project()
+# @MACRO: TRIBITS_PROJECT()
 #
 # Processes a `TriBITS Project`_'s files and configures its software which is
 # called from the project's top-level `<projectDir>/CMakeLists.txt`_ file.
 #
 # Usage::
 #
-#   tribits_project()
+#   TRIBITS_PROJECT()
 #
 # This macro requires that the variable `PROJECT_NAME`_ be defined before
 # calling this macro.  All default values for project settings should be set
@@ -89,11 +89,11 @@ include(TribitsProjectImpl)
 # then performs all processing of the TriBITS project files (see `Full TriBITS
 # Project Configuration`_).
 #
-macro(tribits_project)
-  tribits_project_impl(${ARGN})
-endmacro()
+MACRO(TRIBITS_PROJECT)
+  TRIBITS_PROJECT_IMPL(${ARGN})
+ENDMACRO()
 
 # Note, this is just a shell of a macro that calls the real implementation
-# tribits_project_impl().  This allows someone to set
+# TRIBITS_PROJECT_IMPL().  This allows someone to set
 # ${PROJECT_NAME}_TRIBITS_DIR in the env and point to a different Tribits
 # implementation to test before snapshoting.

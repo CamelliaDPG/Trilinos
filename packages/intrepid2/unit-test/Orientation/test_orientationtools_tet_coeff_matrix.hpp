@@ -74,7 +74,7 @@ namespace Intrepid2 {
       *outStream << "-------------------------------------------------------------------------------" << "\n\n"; \
     }
 
-    template<typename DeviceType>
+    template<typename DeviceSpaceType>
     int OrientationToolsTetCoeffMatrix(const bool verbose) {
 
       Teuchos::RCP<std::ostream> outStream;
@@ -88,6 +88,14 @@ namespace Intrepid2 {
       Teuchos::oblackholestream oldFormatState;
       oldFormatState.copyfmt(std::cout);
 
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
+
+      *outStream << "DeviceSpace::  "; DeviceSpaceType::print_configuration(*outStream, false);
+      *outStream << "HostSpace::    ";   HostSpaceType::print_configuration(*outStream, false);
+      *outStream << "\n";
+
+
       *outStream
         << "===============================================================================\n"
         << "|                                                                             |\n"
@@ -99,7 +107,7 @@ namespace Intrepid2 {
       //const double tol = tolerence();
       constexpr ordinal_type maxOrder = Parameters::MaxOrder;
 
-      typedef OrientationTools<DeviceType> ots;
+      typedef OrientationTools<DeviceSpaceType> ots;
       try {
         const ordinal_type testOrderBegin = 1, testOrderEnd = std::min(4, maxOrder);
         for (ordinal_type testOrder=testOrderBegin;testOrder<=testOrderEnd;++testOrder) {
@@ -113,11 +121,11 @@ namespace Intrepid2 {
 
             {
               *outStream << "\n -- Testing Tetrahedral HGRAD \n\n";
-              Basis_HGRAD_TET_Cn_FEM<DeviceType> cellBasis(order);
+              Basis_HGRAD_TET_Cn_FEM<DeviceSpaceType> cellBasis(order);
               if (cellBasis.requireOrientation()) {
                 const auto matData = ots::createCoeffMatrix(&cellBasis);
 
-                auto matDataHost = Kokkos::create_mirror_view( matData);
+                auto matDataHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), matData);
                 Kokkos::deep_copy(matDataHost, matData);
 
                 // check face only
@@ -154,11 +162,11 @@ namespace Intrepid2 {
 
             {
               *outStream << "\n -- Testing Tetrahedral HCURL \n\n";
-              Basis_HCURL_TET_In_FEM<DeviceType> cellBasis(order);
+              Basis_HCURL_TET_In_FEM<DeviceSpaceType> cellBasis(order);
               if (cellBasis.requireOrientation()) {
                 const auto matData = ots::createCoeffMatrix(&cellBasis);
 
-                auto matDataHost = Kokkos::create_mirror_view( matData);
+                auto matDataHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), matData);
                 Kokkos::deep_copy(matDataHost, matData);
 
                 // check face only
@@ -195,11 +203,11 @@ namespace Intrepid2 {
 
             {
               *outStream << "\n -- Testing Tetrahedral HDIV \n\n";
-              Basis_HDIV_TET_In_FEM<DeviceType> cellBasis(order);
+              Basis_HDIV_TET_In_FEM<DeviceSpaceType> cellBasis(order);
               if (cellBasis.requireOrientation()) {
                 const auto matData = ots::createCoeffMatrix(&cellBasis);
 
-                auto matDataHost = Kokkos::create_mirror_view( matData);
+                auto matDataHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), matData);
                 Kokkos::deep_copy(matDataHost, matData);
 
                 // check face only

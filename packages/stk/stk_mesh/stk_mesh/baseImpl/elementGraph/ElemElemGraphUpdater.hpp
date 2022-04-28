@@ -43,6 +43,7 @@
 #include <stk_util/parallel/ParallelReduce.hpp>
 #include <vector>                       // for allocator, vector
 #include "stk_mesh/base/Bucket.hpp"     // for Bucket
+#include "stk_mesh/base/BulkDataInlinedMethods.hpp"
 #include "stk_mesh/base/Entity.hpp"     // for Entity
 #include "stk_mesh/base/Selector.hpp"   // for Selector
 #include "stk_mesh/base/Types.hpp"      // for EntityId, EntityVector
@@ -78,11 +79,7 @@ public:
 
     virtual void finished_modification_end_notification()
     {
-        if (changeEntityOwnerInProgress) {
-            elemGraph.fill_from_mesh();
-            changeEntityOwnerInProgress = false;
-        }
-        else if (maxNumAdded > 0) {
+        if (maxNumAdded > 0) {
             elemGraph.add_elements(elementsAdded);
             elementsAdded.clear();
         }
@@ -116,6 +113,11 @@ public:
         changeEntityOwnerInProgress = true;
     }
 
+    virtual void elements_moved_procs_notification(const stk::mesh::EntityProcVec &elemProcPairsToMove)
+    {
+        elemGraph.fill_from_mesh();
+        changeEntityOwnerInProgress = false;
+    }
 private:
     bool any_added_elements_are_owned(stk::mesh::EntityVector& elems)
     {

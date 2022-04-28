@@ -17,11 +17,7 @@ namespace balance
 //////////////////////////////////////////////////////////////////////////
 
 BalanceSettings::BalanceSettings()
-  : m_numInputProcessors(0),
-    m_numOutputProcessors(0),
-    m_isRebalancing(false),
-    m_initialDecompMethod("RIB"),
-    m_useNestedDecomp(false)
+  : m_initialDecompMethod("RIB")
 {}
 
 size_t BalanceSettings::getNumNodesRequiredForConnection(stk::topology element1Topology, stk::topology element2Topology) const
@@ -251,16 +247,6 @@ void BalanceSettings::set_output_filename(const std::string& filename)
 std::string BalanceSettings::get_output_filename() const
 {
   return m_outputFilename;
-}
-
-void BalanceSettings::set_log_filename(const std::string& filename)
-{
-  m_logFilename = filename;
-}
-
-std::string BalanceSettings::get_log_filename() const
-{
-  return m_logFilename;
 }
 
 //////////////////////////////////////

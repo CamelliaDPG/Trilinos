@@ -50,11 +50,11 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
     using map_t = Tpetra::Map<lno_t,gno_t>;
     using femv_scalar_t = int;
     using femv_t = Tpetra::FEMultiVector<femv_scalar_t, lno_t, gno_t>; 
-    using device_type = typename femv_t::device_type;
-    using execution_space = typename device_type::execution_space;
-    using memory_space = typename device_type::memory_space;
-    using host_exec = typename femv_t::host_view_type::device_type::execution_space;
-    using host_mem = typename femv_t::host_view_type::device_type::memory_space;
+    using device_type = Tpetra::Map<>::device_type;
+    using execution_space = Tpetra::Map<>::execution_space;
+    using memory_space = Tpetra::Map<>::memory_space;
+    using host_exec = typename Kokkos::View<device_type>::HostMirror::execution_space;
+    using host_mem = typename Kokkos::View<device_type>::HostMirror::memory_space;
 
     double timer(){
       struct timeval tp;
@@ -1334,6 +1334,9 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
       this->colorInterior(n_local, adjs_dev, offsets_dev, femv,adjs_dev,0,use_vbbit);
       interior_time = timer() - interior_time;
       comp_time = interior_time;
+      //get the color view from the FEMultiVector
+      auto femvColors = femv->getLocalViewDevice(Tpetra::Access::ReadWrite);
+      auto femv_colors = subview(femvColors, Kokkos::ALL, 0);
 
       //ghost_colors holds the colors of only ghost vertices.
       //ghost_colors(0) holds the color of a vertex with LID n_local.
@@ -1357,14 +1360,9 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
       //store ghost colors so we can restore them after recoloring.
       //the local process can't color ghosts correctly, so we
       //reset the colors to avoid consistency issues.
-      //get the color view from the FEMultiVector
-      auto femvColors = femv->getLocalViewDevice(Tpetra::Access::ReadWrite);
-      auto femv_colors = subview(femvColors, Kokkos::ALL, 0);
-      Kokkos::parallel_for("get femv colors",
-        Kokkos::RangePolicy<execution_space, int>(0,n_ghosts),
-        KOKKOS_LAMBDA(const int& i){
-          ghost_colors(i) = femv_colors(i+n_local);
-        });
+      Kokkos::parallel_for(n_ghosts, KOKKOS_LAMBDA(const int& i){
+        ghost_colors(i) = femv_colors(i+n_local);
+      });
       Kokkos::fence();
       
       double temp = timer();
@@ -1457,19 +1455,13 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
 	//the recoloring does not have enough information to color
 	//ghosts correctly, so we set the colors to what they were before
 	//to avoid consistency issues.
-        Kokkos::parallel_for("set femv colors",
-          Kokkos::RangePolicy<execution_space, int>(0,n_ghosts),
-          KOKKOS_LAMBDA(const int& i){
-            femv_colors(i+n_local) = ghost_colors(i);
-          });
+	Kokkos::parallel_for(n_ghosts, KOKKOS_LAMBDA(const int& i){
+          femv_colors(i+n_local) = ghost_colors(i);
+        });
         Kokkos::fence();
         
 	//send views are up-to-date, they were copied after conflict detection.
         //communicate the new colors
-
-        // Reset device views
-        femvColors = decltype(femvColors)();
-        femv_colors = decltype(femv_colors)();
         double curr_comm_time = doOwnedToGhosts(mapOwnedPlusGhosts,n_local,verts_to_send_host,verts_to_send_size_host,femv,procs_to_send,sent,recv);
 	comm_time += curr_comm_time;
 
@@ -1484,13 +1476,9 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
 	//this process doesn't have enough info to correctly color
 	//ghosts, so we set them back to what they were before to
 	//remove consistency issues.
-        femvColors = femv->getLocalViewDevice(Tpetra::Access::ReadWrite);
-        femv_colors = subview(femvColors, Kokkos::ALL, 0);
-        Kokkos::parallel_for("get femv colors 2",
-          Kokkos::RangePolicy<execution_space, int>(0,n_ghosts),
-          KOKKOS_LAMBDA(const int& i){
-            ghost_colors(i) = femv_colors(i+n_local);
-          });
+        Kokkos::parallel_for(n_ghosts, KOKKOS_LAMBDA(const int& i){
+          ghost_colors(i) = femv_colors(i+n_local);
+        });
         Kokkos::fence();
         
 
@@ -1549,9 +1537,6 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
        
       //Now we do a similar coloring loop to before, 
       //but using only host views in a serial execution space.
-      // Reset device views
-      femvColors = decltype(femvColors)();
-      femv_colors = decltype(femv_colors)();
       while(recoloringSize_host(0) > 0 || !done){
 	auto femvColors_host = femv->getLocalViewHost(Tpetra::Access::ReadWrite);
 	auto colors_host = subview(femvColors_host, Kokkos::ALL, 0);
@@ -1563,8 +1548,8 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
 	
 	double recolor_temp = timer();
 	if(verts_to_recolor_size_host(0) > 0){
-	  this->colorInterior_serial(colors_host.size(), dist_adjs_host, dist_offsets_host, femv, 
-			             verts_to_recolor_host, verts_to_recolor_size_host(0), true);
+	  this->colorInterior_serial(femv_colors.size(), dist_adjs_host, dist_offsets_host, femv, 
+			             verts_to_recolor_host, verts_to_recolor_size(0), true);
 	}
 	if(distributedRounds < numStatisticRecordingRounds){
 	  recoloringPerRound[distributedRounds] = timer() - recolor_temp;
@@ -1646,7 +1631,7 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
           }
         }      
         
-        //if(comm->getRank() == 0) printf("did %d rounds of distributed coloring\n", distributedRounds);
+        if(comm->getRank() == 0) printf("did %d rounds of distributed coloring\n", distributedRounds);
         uint64_t totalVertsPerRound[numStatisticRecordingRounds];
         uint64_t totalBoundarySize = 0;
         uint64_t totalIncorrectGhostsPerRound[numStatisticRecordingRounds];
@@ -1681,38 +1666,22 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
 			               Teuchos::REDUCE_MAX,numStatisticRecordingRounds,conflictDetectionPerRound,finalConflictDetectionPerRound);
         Teuchos::reduceAll<int,gno_t> (*comm, Teuchos::REDUCE_SUM,numStatisticRecordingRounds,recvPerRound,finalRecvPerRound);
         Teuchos::reduceAll<int,gno_t> (*comm, Teuchos::REDUCE_SUM,numStatisticRecordingRounds,sentPerRound,finalSentPerRound);
-        std::cout << "Rank " << comm->getRank() 
-                  << ": boundary size: " << localBoundaryVertices << std::endl;
-        if(comm->getRank() == 0) 
-          std::cout << "Total boundary size: " << totalBoundarySize << std::endl;
+        printf("Rank %d: boundary size: %ld\n",comm->getRank(),localBoundaryVertices);
+        if(comm->getRank() == 0) printf("Total boundary size: %ld\n",totalBoundarySize);
         for(int i = 0; i < std::min((int)distributedRounds,numStatisticRecordingRounds); i++){
-          std::cout << "Rank " << comm->getRank() 
-                    << ": recolor " << vertsPerRound[i] 
-                    << " vertices in round " << i << std::endl;
-          std::cout << "Rank " << comm->getRank() 
-                    << " sentbuf had " << sentPerRound[i] 
-                    << " entries in round " << i << std::endl;
+          printf("Rank %d: recolor %ld vertices in round %d\n",comm->getRank(), vertsPerRound[i],i);
+          printf("Rank %d: sentbuf had %lld entries in round %d\n", comm->getRank(), sentPerRound[i],i);
           if(comm->getRank()==0){
-            std::cout << "recolored " << totalVertsPerRound[i] 
-                      << " vertices in round " << i << std::endl;
-            std::cout << totalIncorrectGhostsPerRound[i] 
-                      << " inconsistent ghosts in round " << i << std::endl;
-            std::cout << "total time in round " << i 
-                      << ": " << finalTotalPerRound[i] << std::endl;
-            std::cout << "recoloring time in round " << i 
-                      << ": " << maxRecoloringPerRound[i] << std::endl;
-            std::cout << "min recoloring time in round " << i 
-                      << ": " << minRecoloringPerRound[i] << std::endl;
-            std::cout << "conflict detection time in round " << i
-                      << ": " << finalConflictDetectionPerRound[i] << std::endl;
-            std::cout << "comm time in round " << i
-                      << ": " << finalCommPerRound[i] << std::endl;
-            std::cout << "recvbuf size in round " << i 
-                      << ": " << finalRecvPerRound[i] << std::endl;
-            std::cout << "sendbuf size in round " << i 
-                      << ": " << finalSentPerRound[i] << std::endl;
-            std::cout << "comp time in round " << i
-                      << ": " << finalCompPerRound[i] << std::endl;
+            printf("recolored %ld vertices in round %d\n",totalVertsPerRound[i], i);
+            printf("%ld inconsistent ghosts in round %d\n",totalIncorrectGhostsPerRound[i],i);
+            printf("total time in round %d: %f\n",i,finalTotalPerRound[i]);
+            printf("recoloring time in round %d: %f\n",i,maxRecoloringPerRound[i]);
+            printf("min recoloring time in round %d: %f\n",i,minRecoloringPerRound[i]);
+            printf("conflict detection time in round %d: %f\n",i,finalConflictDetectionPerRound[i]);
+            printf("comm time in round %d: %f\n",i,finalCommPerRound[i]);
+            printf("recvbuf size in round %d: %lld\n",i,finalRecvPerRound[i]);
+            printf("sendbuf size in round %d: %lld\n",i,finalSentPerRound[i]);
+            printf("comp time in round %d: %f\n",i,finalCompPerRound[i]);
           }
         }
       } else if (timing){
@@ -1733,13 +1702,13 @@ class AlgTwoGhostLayer : public Algorithm<Adapter> {
         comm->barrier();
         fflush(stdout);
         if(comm->getRank()==0){
-          std::cout << "Total Time: " << global_total_time << std::endl;
-          std::cout << "Interior Time: " << global_interior_time << std::endl;
-          std::cout << "Recoloring Time: " << global_recoloring_time << std::endl;
-          std::cout << "Min Recoloring Time: " << global_min_recoloring_time << std::endl;
-          std::cout << "Conflict Detection Time: " << global_conflict_detection << std::endl;
-          std::cout << "Comm Time: " << global_comm_time << std::endl;
-          std::cout << "Comp Time: " << global_comp_time << std::endl;
+          printf("Total Time: %f\n",global_total_time);
+          printf("Interior Time: %f\n",global_interior_time);
+          printf("Recoloring Time: %f\n",global_recoloring_time);
+          printf("Min Recoloring Time: %f\n",global_min_recoloring_time);
+          printf("Conflict Detection Time: %f\n",global_conflict_detection);
+          printf("Comm Time: %f\n",global_comm_time);
+          printf("Comp Time: %f\n",global_comp_time);
         }
       }
     }

@@ -37,10 +37,10 @@
 # ************************************************************************
 # @HEADER
 
-include(CMakeParseArguments)
+INCLUDE(CMakeParseArguments)
 
 #
-# FUNCTION: tribits_include_directories()
+# FUNCTION: TRIBITS_INCLUDE_DIRECTORIES()
 #
 
 # This function is to override the standard behavior of include_directories
@@ -48,7 +48,7 @@ include(CMakeParseArguments)
 
 # Usage::
 #
-#   tribits_include_directories(
+#   TRIBITS_INCLUDE_DIRECTORIES(
 #     [REQUIRED_DURING_INSTALLATION_TESTING] <dir0> <dir1> ...
 #     )
 #
@@ -66,8 +66,8 @@ include(CMakeParseArguments)
 # ``REQUIRED_DURING_INSTALLATION_TESTING`` to tell us that this include
 # directory does need to be set for instaltion testing.
 #
-function(tribits_include_directories)
-  cmake_parse_arguments(
+FUNCTION(TRIBITS_INCLUDE_DIRECTORIES)
+  CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #Options
@@ -79,12 +79,12 @@ function(tribits_include_directories)
     ${ARGN}
     )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  if(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
-    _include_directories(${PARSE_DEFAULT_ARGS})
-  endif()
-endfunction()
+  IF(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
+    _INCLUDE_DIRECTORIES(${PARSE_DEFAULT_ARGS})
+  ENDIF()
+ENDFUNCTION()
 
 #This function is to override the standard behavior of include_directories.
 #  We are overriding the default behavior for installation testing, this allows
@@ -96,8 +96,8 @@ endfunction()
 #an exception to this and that is when there are test only headers that are needed.
 #For that case we allow people to set "REQUIRED_DURING_INSTALLATION_TESTING" to
 #tell us that this include directory does need to be set for instaltion testing.
-function(include_directories)
-  cmake_parse_arguments(
+FUNCTION(INCLUDE_DIRECTORIES)
+  CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #Options
@@ -109,9 +109,9 @@ function(include_directories)
     ${ARGN}
     )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  if(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
-    _include_directories(${PARSE_DEFAULT_ARGS})
-  endif()
-endfunction()
+  IF(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
+    _INCLUDE_DIRECTORIES(${PARSE_DEFAULT_ARGS})
+  ENDIF()
+ENDFUNCTION()

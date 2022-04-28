@@ -63,15 +63,12 @@ public:
   /** \name Constructors/initializers */
   //@{
   /** \brief . */
-  explicit TransientSolver(const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >&model,
-		           const Teuchos::RCP<Teuchos::ParameterList> &appParams,
-			   const Teuchos::RCP<Piro::ObserverBase<Scalar> > &piroObserver = Teuchos::null); 
+  explicit TransientSolver(const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >&model);  
 
-  TransientSolver(const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> >&model,
-		  const int sens_param_index = -1, 
-		  const int response_fn_index = -1); 
-
-
+  /** \brief . */
+  TransientSolver(
+      const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> > &model,
+      int numParameters); 
   //@}
 
   /** \name Overridden from Thyra::ModelEvaluatorBase. */
@@ -110,14 +107,6 @@ public:
   void setPiroTempusIntegrator(Teuchos::RCP<const Piro::TempusIntegrator<Scalar>> piroTempusIntegrator); 
   //@}
   
-  /** \brief . */
-  void resetSensitivityParamIndex(const int sens_param_index);
-  //@}
-
-  /** \brief . */
-  void resetResponseFnIndex(const int response_fn_index);
-  //@}
-
 protected:
   /** \name Service methods for subclasses. */
   //@{
@@ -140,14 +129,9 @@ private:
   Teuchos::RCP<Teuchos::FancyOStream> out_;
   Teuchos::RCP<Thyra::ModelEvaluator<Scalar> > model_;
   Teuchos::RCP<const Piro::TempusIntegrator<Scalar>> piroTempusIntegrator_; 
-  Teuchos::RCP<Piro::ObserverBase<Scalar> > piroObserver_; 
 
   int num_p_;
   int num_g_;
-
-  //The following are for sensitivities
-  mutable int response_fn_index_{0}; 
-  mutable int sens_param_index_{0}; 
 
   SENS_METHOD sensitivityMethod_;
 

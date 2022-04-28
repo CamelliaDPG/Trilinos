@@ -60,7 +60,7 @@ __global__ void offset(int* p) {
 // HIP.
 TEST(hip, raw_hip_interop) {
   int* p;
-  KOKKOS_IMPL_HIP_SAFE_CALL(hipMalloc(&p, sizeof(int) * 100));
+  HIP_SAFE_CALL(hipMalloc(&p, sizeof(int) * 100));
   Kokkos::InitArguments arguments{-1, -1, -1, false};
   Kokkos::initialize(arguments);
 
@@ -70,12 +70,11 @@ TEST(hip, raw_hip_interop) {
   Kokkos::finalize();
 
   offset<<<dim3(100), dim3(100), 0, nullptr>>>(p);
-  KOKKOS_IMPL_HIP_SAFE_CALL(hipDeviceSynchronize());
+  HIP_SAFE_CALL(hipDeviceSynchronize());
 
   std::array<int, 100> h_p;
-  KOKKOS_IMPL_HIP_SAFE_CALL(
-      hipMemcpy(h_p.data(), p, sizeof(int) * 100, hipMemcpyDefault));
-  KOKKOS_IMPL_HIP_SAFE_CALL(hipDeviceSynchronize());
+  HIP_SAFE_CALL(hipMemcpy(h_p.data(), p, sizeof(int) * 100, hipMemcpyDefault));
+  HIP_SAFE_CALL(hipDeviceSynchronize());
   int64_t sum        = 0;
   int64_t sum_expect = 0;
   for (int i = 0; i < 100; i++) {
@@ -84,6 +83,6 @@ TEST(hip, raw_hip_interop) {
   }
 
   ASSERT_EQ(sum, sum_expect);
-  KOKKOS_IMPL_HIP_SAFE_CALL(hipFree(p));
+  HIP_SAFE_CALL(hipFree(p));
 }
 }  // namespace Test

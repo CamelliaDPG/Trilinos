@@ -38,6 +38,7 @@
 #include "mpi.h"                        // for MPI_COMM_WORLD, etc
 
 #include "stk_mesh/base/BulkData.hpp"   // for BulkData
+#include "stk_mesh/base/BulkDataInlinedMethods.hpp"
 #include "stk_mesh/base/Entity.hpp"     // for Entity
 #include "stk_mesh/base/EntityKey.hpp"  // for EntityKey
 #include "stk_mesh/base/MetaData.hpp"   // for MetaData

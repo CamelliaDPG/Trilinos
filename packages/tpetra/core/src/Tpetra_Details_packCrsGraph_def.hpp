@@ -77,6 +77,11 @@
 
 namespace Tpetra {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration of Distributor
+class Distributor;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
 //
 // Users must never rely on anything in the Details namespace.
 //
@@ -114,23 +119,23 @@ public:
   static_assert (std::is_same<typename CountsViewType::device_type::execution_space,
                    typename device_type::execution_space>::value,
                  "OutputOffsetsViewType and CountsViewType must have the same execution space.");
-  static_assert (Kokkos::is_view<OutputOffsetsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<OutputOffsetsViewType>::value,
                  "OutputOffsetsViewType must be a Kokkos::View.");
   static_assert (std::is_same<typename OutputOffsetsViewType::value_type, output_offset_type>::value,
                  "OutputOffsetsViewType must be a nonconst Kokkos::View.");
   static_assert (std::is_integral<output_offset_type>::value,
                  "The type of each entry of OutputOffsetsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<CountsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<CountsViewType>::value,
                  "CountsViewType must be a Kokkos::View.");
   static_assert (std::is_same<typename CountsViewType::value_type, output_offset_type>::value,
                  "CountsViewType must be a nonconst Kokkos::View.");
   static_assert (std::is_integral<count_type>::value,
                  "The type of each entry of CountsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<InputOffsetsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<InputOffsetsViewType>::value,
                  "InputOffsetsViewType must be a Kokkos::View.");
   static_assert (std::is_integral<input_offset_type>::value,
                  "The type of each entry of InputOffsetsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<InputLocalRowIndicesViewType>::value,
+  static_assert (Kokkos::Impl::is_view<InputLocalRowIndicesViewType>::value,
                  "InputLocalRowIndicesViewType must be a Kokkos::View.");
   static_assert (std::is_integral<local_row_index_type>::value,
                  "The type of each entry of InputLocalRowIndicesViewType must be a built-in integer type.");
@@ -224,9 +229,7 @@ public:
   //! Host function for getting the error.
   int getError () const {
     auto error_h = Kokkos::create_mirror_view (error_);
-    // DEEP_COPY REVIEW - DEVICE-TO-HOSTMIRROR
-    using execution_space = typename device_type::execution_space;
-    Kokkos::deep_copy (execution_space(), error_h, error_);
+    Kokkos::deep_copy (error_h, error_);
     return error_h ();
   }
 
@@ -675,7 +678,8 @@ packCrsGraph
    typename CrsGraph<LO, GO, NT>::buffer_device_type
  >& export_pids,
  size_t& constant_num_packets,
- const bool pack_pids)
+ const bool pack_pids,
+ Distributor& /* dist */)
 {
   using Kokkos::View;
   using crs_graph_type = CrsGraph<LO, GO, NT>;
@@ -765,7 +769,8 @@ packCrsGraph (const CrsGraph<LO, GO, NT>& sourceGraph,
               Teuchos::Array<typename CrsGraph<LO,GO,NT>::packet_type>& exports,
               const Teuchos::ArrayView<size_t>& numPacketsPerLID,
               const Teuchos::ArrayView<const LO>& exportLIDs,
-              size_t& constantNumPackets)
+              size_t& constantNumPackets,
+              Distributor& distor)
 {
   using Kokkos::HostSpace;
   using Kokkos::MemoryUnmanaged;
@@ -823,17 +828,14 @@ packCrsGraph (const CrsGraph<LO, GO, NT>& sourceGraph,
 
   PackCrsGraphImpl::packCrsGraph
     (sourceGraph, exports_dv, num_packets_per_lid_d, export_lids_d,
-     export_pids_d, constantNumPackets, pack_pids);
+     export_pids_d, constantNumPackets, pack_pids, distor);
 
   // The counts are an output of packCrsGraph, so we have to copy
   // them back to host.
   View<size_t*, HostSpace, MemoryUnmanaged>
     num_packets_per_lid_h (numPacketsPerLID.getRawPtr (),
                            numPacketsPerLID.size ());
-
-  // DEEP_COPY REVIEW - DEVICE-TO-HOST
-  using execution_space = typename BDT::execution_space;
-  Kokkos::deep_copy (execution_space(), num_packets_per_lid_h, num_packets_per_lid_d);
+  Kokkos::deep_copy (num_packets_per_lid_h, num_packets_per_lid_d);
 
   // FIXME (mfh 23 Aug 2017) If we're forced to use a DualView for
   // exports_dv above, then we have two host copies for exports_h.
@@ -846,8 +848,7 @@ packCrsGraph (const CrsGraph<LO, GO, NT>& sourceGraph,
   }
   View<packet_type*, HostSpace, MemoryUnmanaged>
     exports_h (exports.getRawPtr (), exports.size ());
-  // DEEP_COPY REVIEW - DEVICE-TO-HOST
-  Kokkos::deep_copy (execution_space(), exports_h, exports_dv.d_view);
+  Kokkos::deep_copy (exports_h, exports_dv.d_view);
 }
 
 /// \brief Pack specified entries of the given local sparse graph for
@@ -871,7 +872,8 @@ packCrsGraphNew (const CrsGraph<LO,GO,NT>& sourceGraph,
                    typename CrsGraph<LO,GO,NT>::buffer_device_type
                  > num_packets_per_lid,
                  size_t& constant_num_packets,
-                 const bool pack_pids)
+                 const bool pack_pids,
+                 Distributor& /* dist */)
 {
   using Kokkos::View;
   using crs_graph_type = CrsGraph<LO,GO,NT>;
@@ -960,7 +962,8 @@ packCrsGraphWithOwningPIDs
  const Teuchos::ArrayView<size_t>& numPacketsPerLID,
  const Teuchos::ArrayView<const LO>& exportLIDs,
  const Teuchos::ArrayView<const int>& sourcePIDs,
- size_t& constantNumPackets)
+ size_t& constantNumPackets,
+ Distributor& distor)
 {
   using Kokkos::HostSpace;
   using Kokkos::MemoryUnmanaged;
@@ -995,16 +998,13 @@ packCrsGraphWithOwningPIDs
   constexpr bool pack_pids = true;
   PackCrsGraphImpl::packCrsGraph
     (sourceGraph, exports_dv, num_packets_per_lid_d, export_lids_d,
-     export_pids_d, constantNumPackets, pack_pids);
+     export_pids_d, constantNumPackets, pack_pids, distor);
 
   // The counts are an output of packCrsGraph, so we
   // have to copy them back to host.
   View<size_t*, HostSpace, MemoryUnmanaged> num_packets_per_lid_h
     (numPacketsPerLID.getRawPtr (), numPacketsPerLID.size ());
-  // DEEP_COPY REVIEW - DEVICE-TO-HOST
-  using execution_space = typename buffer_device_type::execution_space;
-  Kokkos::deep_copy (execution_space(),
-    num_packets_per_lid_h, num_packets_per_lid_d);
+  Kokkos::deep_copy (num_packets_per_lid_h, num_packets_per_lid_d);
 }
 
 } // namespace Details
@@ -1017,7 +1017,8 @@ packCrsGraphWithOwningPIDs
     Teuchos::Array<CrsGraph<LO,GO,NT>::packet_type>&, \
     const Teuchos::ArrayView<size_t>&, \
     const Teuchos::ArrayView<const LO>&, \
-    size_t&); \
+    size_t&, \
+    Distributor&); \
   template void \
   Details::packCrsGraphNew<LO, GO, NT> ( \
     const CrsGraph<LO, GO, NT>&, \
@@ -1034,7 +1035,8 @@ packCrsGraphWithOwningPIDs
       size_t*, \
       CrsGraph<LO,GO,NT>::buffer_device_type>, \
     size_t&, \
-    const bool); \
+    const bool, \
+    Distributor&); \
   template void \
   Details::packCrsGraphWithOwningPIDs<LO, GO, NT> ( \
     const CrsGraph<LO, GO, NT>&, \
@@ -1042,6 +1044,7 @@ packCrsGraphWithOwningPIDs
     const Teuchos::ArrayView<size_t>&, \
     const Teuchos::ArrayView<const LO>&, \
     const Teuchos::ArrayView<const int>&, \
-    size_t&);
+    size_t&, \
+    Distributor&);
 
 #endif // TPETRA_DETAILS_PACKCRSGRAPH_DEF_HPP

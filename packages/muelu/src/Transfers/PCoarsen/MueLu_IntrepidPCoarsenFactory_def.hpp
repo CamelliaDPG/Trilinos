@@ -140,8 +140,6 @@ inline std::string tolower(const std::string & str) {
     std::vector<std::set<LocalOrdinal>> seedSets(spaceDim+1);
 
     int numCells = elementToNodeMap.extent(0);
-    auto elementToNodeMap_host = Kokkos::create_mirror_view(elementToNodeMap);
-    Kokkos::deep_copy(elementToNodeMap_host,elementToNodeMap);
     for (int cellOrdinal=0; cellOrdinal<numCells; cellOrdinal++)
     {
       for (int d=0; d<=spaceDim; d++)
@@ -157,7 +155,7 @@ inline std::string tolower(const std::string & str) {
           for (int basisOrdinalOrdinal=0; basisOrdinalOrdinal<dofCount; basisOrdinalOrdinal++)
           {
             int basisOrdinal = basis->getDofOrdinal(d,subcord,basisOrdinalOrdinal);
-            int colLID = elementToNodeMap_host(cellOrdinal,basisOrdinal);
+            int colLID = elementToNodeMap(cellOrdinal,basisOrdinal);
             if (colLID != Teuchos::OrdinalTraits<LO>::invalid())
             {
               GlobalOrdinal colGID = columnMap.getGlobalElement(colLID);
@@ -295,27 +293,24 @@ void GenerateLoNodeInHiViaGIDs(const std::vector<std::vector<size_t> > & candida
    size_t lo_nperel   = candidates.size();
    Kokkos::resize(lo_elemToHiRepresentativeNode,numElem, lo_nperel);
 
-   auto lo_elemToHiRepresentativeNode_host = Kokkos::create_mirror_view(lo_elemToHiRepresentativeNode);
-   auto hi_elemToNode_host = Kokkos::create_mirror_view(hi_elemToNode);
-   Kokkos::deep_copy(hi_elemToNode_host, hi_elemToNode);
+
    for(size_t i=0; i<numElem; i++)
      for(size_t j=0; j<lo_nperel; j++) {
        if(candidates[j].size() == 1)
-         lo_elemToHiRepresentativeNode_host(i,j) =  hi_elemToNode_host(i,candidates[j][0]);
+         lo_elemToHiRepresentativeNode(i,j) =  hi_elemToNode(i,candidates[j][0]);
        else {
          // First we get the GIDs for each candidate
          std::vector<GO> GID(candidates[j].size());
          for(size_t k=0; k<(size_t)candidates[j].size(); k++)
-           GID[k] = hi_columnMap->getGlobalElement(hi_elemToNode_host(i,candidates[j][k]));
+           GID[k] = hi_columnMap->getGlobalElement(hi_elemToNode(i,candidates[j][k]));
 
          // Find the one with smallest GID
          size_t which = std::distance(GID.begin(),std::min_element(GID.begin(),GID.end()));
 
          // Record this
-         lo_elemToHiRepresentativeNode_host(i,j) =  hi_elemToNode_host(i,candidates[j][which]);
+         lo_elemToHiRepresentativeNode(i,j) =  hi_elemToNode(i,candidates[j][which]);
        }
      }
-   Kokkos::deep_copy(lo_elemToHiRepresentativeNode, lo_elemToHiRepresentativeNode_host);
 }
 
 /*********************************************************************************************************/
@@ -345,12 +340,10 @@ void BuildLoElemToNodeViaRepresentatives(const LOFieldContainer & hi_elemToNode,
   Kokkos::resize(lo_elemToNode,numElem, lo_nperel);
 
   // Start by flagginc the representative nodes
-  auto lo_elemToHiRepresentativeNode_host = Kokkos::create_mirror_view(lo_elemToHiRepresentativeNode);
-  Kokkos::deep_copy(lo_elemToHiRepresentativeNode_host, lo_elemToHiRepresentativeNode);
   std::vector<bool> is_low_order(hi_numNodes,false);
   for(size_t i=0; i<numElem; i++)
     for(size_t j=0; j<lo_nperel; j++) {
-      LO id = lo_elemToHiRepresentativeNode_host(i,j);
+      LO id = lo_elemToHiRepresentativeNode(i,j);
       is_low_order[id] = true; // This can overwrite and that is OK.
     }
 
@@ -374,10 +367,9 @@ void BuildLoElemToNodeViaRepresentatives(const LOFieldContainer & hi_elemToNode,
   }
 
   // Translate lo_elemToNode to a lo local index
-  auto lo_elemToNode_host = Kokkos::create_mirror_view(lo_elemToNode);
   for(size_t i=0; i<numElem; i++)
     for(size_t j=0; j<lo_nperel; j++)
-      lo_elemToNode_host(i,j) = hi_to_lo_map[lo_elemToHiRepresentativeNode_host(i,j)];
+      lo_elemToNode(i,j) = hi_to_lo_map[lo_elemToHiRepresentativeNode(i,j)];
 
 
   // Check for the [E|T]petra column map ordering property, namely LIDs for owned nodes should all appear first.
@@ -389,7 +381,6 @@ void BuildLoElemToNodeViaRepresentatives(const LOFieldContainer & hi_elemToNode,
 
   if(!map_ordering_test_passed)
     throw std::runtime_error("MueLu::MueLuIntrepid::BuildLoElemToNodeViaRepresentatives failed map ordering test");
-  Kokkos::deep_copy(lo_elemToNode, lo_elemToNode_host);
 
 }
 
@@ -427,19 +418,16 @@ void BuildLoElemToNode(const LOFieldContainer & hi_elemToNode,
 
   // Build lo_elemToNode (in the hi local index ordering) and flag owned ones
   std::vector<bool> is_low_order(hi_numNodes,false);
-  auto hi_elemToNode_host = Kokkos::create_mirror_view(hi_elemToNode);
-  Kokkos::deep_copy(hi_elemToNode_host, hi_elemToNode);
-  auto lo_elemToNode_host = Kokkos::create_mirror_view(lo_elemToNode);
   for(size_t i=0; i<numElem; i++)
     for(size_t j=0; j<lo_nperel; j++) {
-      LO lid = hi_elemToNode_host(i,lo_node_in_hi[j]);
+      LO lid = hi_elemToNode(i,lo_node_in_hi[j]);
 
       // Remove Dirichlet
       if(hi_isDirichlet[lid])
-        lo_elemToNode_host(i,j) = LOINVALID;
+        lo_elemToNode(i,j) = LOINVALID;
       else {
-        lo_elemToNode_host(i,j)  = lid;
-        is_low_order[hi_elemToNode_host(i,lo_node_in_hi[j])] = true; // This can overwrite and that is OK.
+        lo_elemToNode(i,j)  = lid;
+        is_low_order[hi_elemToNode(i,lo_node_in_hi[j])] = true; // This can overwrite and that is OK.
       }
     }
 
@@ -465,10 +453,9 @@ void BuildLoElemToNode(const LOFieldContainer & hi_elemToNode,
   // Translate lo_elemToNode to a lo local index
   for(size_t i=0; i<numElem; i++)
     for(size_t j=0; j<lo_nperel; j++) {
-      if(lo_elemToNode_host(i,j) != LOINVALID)
-        lo_elemToNode_host(i,j) = hi_to_lo_map[lo_elemToNode_host(i,j)];
+      if(lo_elemToNode(i,j) != LOINVALID)
+        lo_elemToNode(i,j) = hi_to_lo_map[lo_elemToNode(i,j)];
     }
-  Kokkos::deep_copy(lo_elemToNode, lo_elemToNode_host);
 
   // Check for the [E|T]petra column map ordering property, namely LIDs for owned nodes should all appear first.
   // Since we're injecting from the higher-order mesh, it should be true, but we should add an error check & throw in case.
@@ -510,12 +497,10 @@ void BuildLoElemToNode(const LOFieldContainer & hi_elemToNode,
 
   // NOTE: This assumes rowMap==colMap and [E|T]petra ordering of all the locals first in the colMap
   RCP<GOVector> dvec = Xpetra::VectorFactory<GO, LO, GO, NO>::Build(hi_domainMap);
-  {
-    ArrayRCP<GO> dvec_data = dvec->getDataNonConst(0);
-    for(size_t i=0; i<hi_domainMap->getLocalNumElements(); i++) {
-      if(hi_to_lo_map[i]!=lo_invalid) dvec_data[i] = lo_domainMap.getGlobalElement(hi_to_lo_map[i]);
-      else dvec_data[i] = go_invalid;
-    }
+  ArrayRCP<GO> dvec_data = dvec->getDataNonConst(0);
+  for(size_t i=0; i<hi_domainMap->getNodeNumElements(); i++) {
+    if(hi_to_lo_map[i]!=lo_invalid) dvec_data[i] = lo_domainMap.getGlobalElement(hi_to_lo_map[i]);
+    else dvec_data[i] = go_invalid;
   }
 
 
@@ -525,13 +510,11 @@ void BuildLoElemToNode(const LOFieldContainer & hi_elemToNode,
   // Generate the lo_columnMap
   // HOW: We can use the local hi_to_lo_map from the GID's in cvec to generate the non-contiguous colmap ids.
   Array<GO> lo_col_data(lo_columnMapLength);
-  {
-    ArrayRCP<GO> cvec_data = cvec->getDataNonConst(0);
-    for(size_t i=0,idx=0; i<hi_columnMap->getLocalNumElements(); i++) {
-      if(hi_to_lo_map[i]!=lo_invalid) {
-        lo_col_data[idx] = cvec_data[i];
-        idx++;
-      }
+  ArrayRCP<GO> cvec_data = cvec->getDataNonConst(0);
+  for(size_t i=0,idx=0; i<hi_columnMap->getNodeNumElements(); i++) {
+    if(hi_to_lo_map[i]!=lo_invalid) {
+      lo_col_data[idx] = cvec_data[i];
+      idx++;
     }
   }
 
@@ -573,17 +556,15 @@ void GenerateRepresentativeBasisNodes(const Basis & basis, const SCFieldContaine
 #endif
 
   representative_node_candidates.resize(numFieldsLo);
-  auto LoValues_host = Kokkos::create_mirror_view(LoValues);
-  Kokkos::deep_copy(LoValues_host, LoValues);
   for(size_t i=0; i<numFieldsLo; i++) {
     // 1st pass: find the max value
     typename Teuchos::ScalarTraits<SC>::magnitudeType vmax = Teuchos::ScalarTraits<typename Teuchos::ScalarTraits<SC>::magnitudeType>::zero();
     for(size_t j=0; j<numFieldsHi; j++)
-      vmax = std::max(vmax,Teuchos::ScalarTraits<SC>::magnitude(LoValues_host(i,j)));
+      vmax = std::max(vmax,Teuchos::ScalarTraits<SC>::magnitude(LoValues(i,j)));
 
     // 2nd pass: Find all values w/i threshhold of target
     for(size_t j=0; j<numFieldsHi; j++) {
-      if(Teuchos::ScalarTraits<SC>::magnitude(vmax - LoValues_host(i,j)) < threshold*vmax)
+      if(Teuchos::ScalarTraits<SC>::magnitude(vmax - LoValues(i,j)) < threshold*vmax)
         representative_node_candidates[i].push_back(j);
     }
   }
@@ -622,8 +603,7 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
   LocalOrdinal LOINVALID = Teuchos::OrdinalTraits<LocalOrdinal>::invalid();
   FC LoValues_at_HiDofs("LoValues_at_HiDofs",numFieldsLo,numFieldsHi);
   lo_basis.getValues(LoValues_at_HiDofs, hi_DofCoords, Intrepid2::OPERATOR_VALUE);
-  auto LoValues_at_HiDofs_host = Kokkos::create_mirror_view(LoValues_at_HiDofs);
-  Kokkos::deep_copy(LoValues_at_HiDofs_host, LoValues_at_HiDofs);
+
   Kokkos::fence(); // for kernel in getValues
 
   typedef typename Teuchos::ScalarTraits<SC>::halfPrecision SClo;
@@ -636,23 +616,21 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
 
   // Slow-ish fill
   size_t Nelem=hi_elemToNode.extent(0);
-  std::vector<bool> touched(hi_map->getLocalNumElements(),false);
+  std::vector<bool> touched(hi_map->getNodeNumElements(),false);
   Teuchos::Array<GO> col_gid(1);
   Teuchos::Array<SC> val(1);
-  auto hi_elemToNode_host = Kokkos::create_mirror_view(hi_elemToNode);
-  Kokkos::deep_copy(hi_elemToNode_host, hi_elemToNode);
   for(size_t i=0; i<Nelem; i++) {
     for(size_t j=0; j<numFieldsHi; j++) {
-      LO row_lid = hi_elemToNode_host(i,j);
+      LO row_lid = hi_elemToNode(i,j);
       GO row_gid = hi_map->getGlobalElement(row_lid);
       if(hi_nodeIsOwned[row_lid] && !touched[row_lid]) {
         for(size_t k=0; k<numFieldsLo; k++) {
           // Get the local id in P1's column map
-          LO col_lid = hi_to_lo_map[hi_elemToNode_host(i,lo_node_in_hi[k])];
+          LO col_lid = hi_to_lo_map[hi_elemToNode(i,lo_node_in_hi[k])];
           if(col_lid==LOINVALID) continue;
 
           col_gid[0] = {lo_colMap->getGlobalElement(col_lid)};
-          val[0]     = LoValues_at_HiDofs_host(k,j);
+          val[0]     = LoValues_at_HiDofs(k,j);
 
           // Skip near-zeros
           if(Teuchos::ScalarTraits<SC>::magnitude(val[0]) >= effective_zero)
@@ -683,12 +661,7 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
   size_t numFieldsLo = lo_basis.getCardinality();
   FC LoValues_at_HiDofs("LoValues_at_HiDofs",numFieldsLo,numFieldsHi);
   lo_basis.getValues(LoValues_at_HiDofs, hi_DofCoords, Intrepid2::OPERATOR_VALUE);
-  auto LoValues_at_HiDofs_host = Kokkos::create_mirror_view(LoValues_at_HiDofs);
-  auto hi_elemToNode_host = Kokkos::create_mirror_view(hi_elemToNode);
-  auto lo_elemToHiRepresentativeNode_host = Kokkos::create_mirror_view(lo_elemToHiRepresentativeNode);
-  Kokkos::deep_copy(LoValues_at_HiDofs_host, LoValues_at_HiDofs);
-  Kokkos::deep_copy(hi_elemToNode_host, hi_elemToNode);
-  Kokkos::deep_copy(lo_elemToHiRepresentativeNode_host, lo_elemToHiRepresentativeNode);
+
   Kokkos::fence(); // for kernel in getValues
 
   typedef typename Teuchos::ScalarTraits<SC>::halfPrecision SClo;
@@ -701,19 +674,19 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
 
   // Slow-ish fill
   size_t Nelem=hi_elemToNode.extent(0);
-  std::vector<bool> touched(hi_map->getLocalNumElements(),false);
+  std::vector<bool> touched(hi_map->getNodeNumElements(),false);
   Teuchos::Array<GO> col_gid(1);
   Teuchos::Array<SC> val(1);
   for(size_t i=0; i<Nelem; i++) {
     for(size_t j=0; j<numFieldsHi; j++) {
-      LO row_lid = hi_elemToNode_host(i,j);
+      LO row_lid = hi_elemToNode(i,j);
       GO row_gid = hi_map->getGlobalElement(row_lid);
       if(hi_nodeIsOwned[row_lid] && !touched[row_lid]) {
         for(size_t k=0; k<numFieldsLo; k++) {
           // Get the local id in P1's column map
-          LO col_lid = hi_to_lo_map[lo_elemToHiRepresentativeNode_host(i,k)];
+          LO col_lid = hi_to_lo_map[lo_elemToHiRepresentativeNode(i,k)];
           col_gid[0] = {lo_colMap->getGlobalElement(col_lid)};
-          val[0]     = LoValues_at_HiDofs_host(k,j);
+          val[0]     = LoValues_at_HiDofs(k,j);
 
           // Skip near-zeros
           if(Teuchos::ScalarTraits<SC>::magnitude(val[0]) >= effective_zero)
@@ -824,9 +797,9 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
     RCP<const Map> domainMap = A->getDomainMap();
     int NumProc = rowMap->getComm()->getSize();
     assert(rowMap->isSameAs(*domainMap));
-    std::vector<bool> Pn_nodeIsOwned(colMap->getLocalNumElements(),false);
+    std::vector<bool> Pn_nodeIsOwned(colMap->getNodeNumElements(),false);
     LO num_owned_rows = 0;
-    for(size_t i=0; i<rowMap->getLocalNumElements(); i++) {
+    for(size_t i=0; i<rowMap->getNodeNumElements(); i++) {
       if(rowMap->getGlobalElement(i) == colMap->getGlobalElement(i)) {
         Pn_nodeIsOwned[i] = true;
         num_owned_rows++;
@@ -853,11 +826,11 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
 
 #if 0
     printf("[%d] isDirichletRow = ",A->getRowMap()->getComm()->getRank());
-    for(size_t i=0;i<hi_isDirichletRow->getMap()->getLocalNumElements(); i++)
+    for(size_t i=0;i<hi_isDirichletRow->getMap()->getNodeNumElements(); i++)
       printf("%d ",hi_isDirichletRow->getData(0)[i]);
     printf("\n");
     printf("[%d] isDirichletCol = ",A->getRowMap()->getComm()->getRank());
-    for(size_t i=0;i<hi_isDirichletCol->getMap()->getLocalNumElements(); i++)
+    for(size_t i=0;i<hi_isDirichletCol->getMap()->getNodeNumElements(); i++)
       printf("%d ",hi_isDirichletCol->getData(0)[i]);
     printf("\n");
     fflush(stdout);
@@ -870,7 +843,7 @@ void IntrepidPCoarsenFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Generat
 
       // Generate lower-order element-to-node map
       MueLuIntrepid::BuildLoElemToNode(*Pn_elemToNode,Pn_nodeIsOwned,lo_node_in_hi,hi_isDirichletCol->getData(0),*P1_elemToNode,P1_nodeIsOwned,hi_to_lo_map,P1_numOwnedNodes);
-      assert(hi_to_lo_map.size() == colMap->getLocalNumElements());
+      assert(hi_to_lo_map.size() == colMap->getNodeNumElements());
    }
     else {
         // Get lo-order candidates

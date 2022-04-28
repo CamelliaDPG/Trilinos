@@ -53,77 +53,72 @@
 # A) Echo input options (must be specified with -D arguments to CMake command)
 
 # PROJECT_SOURCE_DIR
-message("Input: PROJECT_SOURCE_DIR = '${PROJECT_SOURCE_DIR}'")
-if ("${PROJECT_SOURCE_DIR}" STREQUAL "")
-  get_filename_component( DEFAULT_PROJECT_SOURCE_DIR
+MESSAGE("Input: PROJECT_SOURCE_DIR = '${PROJECT_SOURCE_DIR}'")
+IF ("${PROJECT_SOURCE_DIR}" STREQUAL "")
+  GET_FILENAME_COMPONENT( DEFAULT_PROJECT_SOURCE_DIR
      "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE )
-  message("-- DEFAULT_PROJECT_SOURCE_DIR='${DEFAULT_PROJECT_SOURCE_DIR}'")
-  if (EXISTS "${DEFAULT_PROJECT_SOURCE_DIR}/ProjectName.cmake")
-    message("-- Setting default PROJECT_SOURCE_DIR=${DEFAULT_PROJECT_SOURCE_DIR}")
-    set(PROJECT_SOURCE_DIR "${DEFAULT_PROJECT_SOURCE_DIR}")
-  else()
-    message(FATAL_ERROR
+  MESSAGE("-- DEFAULT_PROJECT_SOURCE_DIR='${DEFAULT_PROJECT_SOURCE_DIR}'")
+  IF (EXISTS "${DEFAULT_PROJECT_SOURCE_DIR}/ProjectName.cmake")
+    MESSAGE("-- Setting default PROJECT_SOURCE_DIR=${DEFAULT_PROJECT_SOURCE_DIR}")
+    SET(PROJECT_SOURCE_DIR "${DEFAULT_PROJECT_SOURCE_DIR}")
+  ELSE()
+    MESSAGE(FATAL_ERROR
       "ERROR: Cannot determine a default PROJECT_SOURCE_DIR location, please set PROJECT_SOURCE_DIR!") 
-  endif()
-else()
-  set(PROJECT_NAME_FILE "${PROJECT_SOURCE_DIR}/ProjectName.cmake")
-  if (NOT EXISTS "${PROJECT_NAME_FILE}")
-    message(FATAL_ERROR
+  ENDIF()
+ELSE()
+  SET(PROJECT_NAME_FILE "${PROJECT_SOURCE_DIR}/ProjectName.cmake")
+  IF (NOT EXISTS "${PROJECT_NAME_FILE}")
+    MESSAGE(FATAL_ERROR
       "ERROR: PROJECT_SOURCE_DIR='${PROJECT_SOURCE_DIR}' is not a TriBITS project"
       " base dir since it is missing the file ProjectName.cmake!") 
-  endif()
+  ENDIF()
   # Else, this is a valid project source dir location
-endif()
+ENDIF()
 
 # Read in ProjectName.cmake to get PROJECT_NAME var
-set(PROJECT_NAME_FILE "${PROJECT_SOURCE_DIR}/ProjectName.cmake")
-include("${PROJECT_NAME_FILE}")
+SET(PROJECT_NAME_FILE "${PROJECT_SOURCE_DIR}/ProjectName.cmake")
+INCLUDE("${PROJECT_NAME_FILE}")
 
 # Print the other vars
-message("Input: ${PROJECT_NAME}_PRE_REPOSITORIES = '${${PROJECT_NAME}_PRE_REPOSITORIES}'")
-message("Input: ${PROJECT_NAME}_EXTRA_REPOSITORIES = '${${PROJECT_NAME}_EXTRA_REPOSITORIES}'")
-message("Input: ${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE = '${${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE}'")
+MESSAGE("Input: ${PROJECT_NAME}_PRE_REPOSITORIES = '${${PROJECT_NAME}_PRE_REPOSITORIES}'")
+MESSAGE("Input: ${PROJECT_NAME}_EXTRA_REPOSITORIES = '${${PROJECT_NAME}_EXTRA_REPOSITORIES}'")
+MESSAGE("Input: ${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE = '${${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE}'")
 
-if ("${${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE}" STREQUAL "")
-    message(FATAL_ERROR
+IF ("${${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE}" STREQUAL "")
+    MESSAGE(FATAL_ERROR
       "ERROR: ${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE cannot be empty."
       "  Please set ${PROJECT_NAME}_DEPS_XML_OUTPUT_FILE!") 
-endif()
+ENDIF()
 
 #
 # Execute the rest of the script now that everything has been asserted or found
 #
 
 # Get the TRIBITS_DIR (we can always find this easy since this scrit is in TriBITS)
-get_filename_component( ${PROJECT_NAME}_TRIBITS_DIR  "${CMAKE_CURRENT_LIST_DIR}/.."  ABSOLUTE )
-message("-- Setting ${PROJECT_NAME}_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}")
+GET_FILENAME_COMPONENT( ${PROJECT_NAME}_TRIBITS_DIR  "${CMAKE_CURRENT_LIST_DIR}/.."  ABSOLUTE )
+MESSAGE("-- Setting ${PROJECT_NAME}_TRIBITS_DIR=${${PROJECT_NAME}_TRIBITS_DIR}")
 
-set( CMAKE_MODULE_PATH
+SET( CMAKE_MODULE_PATH
   "${${PROJECT_NAME}_TRIBITS_DIR}/core/utils"
   "${${PROJECT_NAME}_TRIBITS_DIR}/core/package_arch"
-  "${${PROJECT_NAME}_TRIBITS_DIR}/ci_support"
   )
 
-include(TribitsConstants)
-tribits_asesrt_minimum_cmake_version()
-include(TribitsCMakePolicies)
+INCLUDE(TribitsConstants)
+TRIBITS_ASESRT_MINIMUM_CMAKE_VERSION()
+INCLUDE(TribitsCMakePolicies)
 
-include(TribitsGlobalMacros)
-include(TribitsPrintDependencyInfo)
-include(TribitsWriteXmlDependenciesFiles)
+INCLUDE(TribitsGlobalMacros)
 
 # Generate the dependencies file
 
-set(${PROJECT_NAME}_ASSERT_MISSING_PACKAGES FALSE)
-set(${PROJECT_NAME}_OUTPUT_DEPENDENCY_FILES FALSE)
-if (NOT ${PROJECT_NAME}_PRE_REPOSITORIES) # Make sure is defined!
-  set(${PROJECT_NAME}_PRE_REPOSITORIES "")
-endif()
-if (NOT ${PROJECT_NAME}_EXTRA_REPOSITORIES) # Make sure is defined!
-  set(${PROJECT_NAME}_EXTRA_REPOSITORIES "")
-endif()
-tribits_read_in_native_repositories()
-tribits_combine_native_and_extra_repos()
-tribits_read_all_project_deps_files_create_deps_graph()
-tribits_print_initial_dependency_info()
-tribits_write_xml_dependency_files()
+SET(${PROJECT_NAME}_ASSERT_MISSING_PACKAGES FALSE)
+SET(${PROJECT_NAME}_OUTPUT_DEPENDENCY_FILES FALSE)
+IF (NOT ${PROJECT_NAME}_PRE_REPOSITORIES) # Make sure is defined!
+  SET(${PROJECT_NAME}_PRE_REPOSITORIES "")
+ENDIF()
+IF (NOT ${PROJECT_NAME}_EXTRA_REPOSITORIES) # Make sure is defined!
+  SET(${PROJECT_NAME}_EXTRA_REPOSITORIES "")
+ENDIF()
+TRIBITS_READ_IN_NATIVE_REPOSITORIES()
+TRIBITS_COMBINE_NATIVE_AND_EXTRA_REPOS()
+TRIBITS_READ_PACKAGES_PROCESS_DEPENDENCIES_WRITE_XML()

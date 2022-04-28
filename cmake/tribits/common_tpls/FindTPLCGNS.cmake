@@ -39,24 +39,24 @@
 
 #
 # First, set up the variables for the (backward-compatible) TriBITS way of
-# finding Netcdf.  These are used in case find_package(NetCDF ...) is not
+# finding Netcdf.  These are used in case FIND_PACKAGE(NetCDF ...) is not
 # called or does not find NetCDF.  Also, these variables need to be non-null
 # in order to trigger the right behavior in the function
-# tribits_tpl_find_include_dirs_and_libraries().
+# TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES().
 #
-set(REQUIRED_HEADERS cgnslib.h)
-set(REQUIRED_LIBS_NAMES cgns)
+SET(REQUIRED_HEADERS cgnslib.h)
+SET(REQUIRED_LIBS_NAMES cgns)
 
 #
 # Second, search for Netcdf components (if allowed) using the standard
-# find_package(CGNS ...).
+# FIND_PACKAGE(CGNS ...).
 #
-tribits_tpl_allow_pre_find_package(CGNS  CGNS_ALLOW_PREFIND)
-if (CGNS_ALLOW_PREFIND)
+TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE(CGNS  CGNS_ALLOW_PREFIND)
+IF (CGNS_ALLOW_PREFIND)
 
-  message("-- Using find_package(CGNS ...) ...")
+  MESSAGE("-- Using FIND_PACKAGE(CGNS ...) ...")
 
-  set(CMAKE_MODULE_PATH
+  SET(CMAKE_MODULE_PATH
     "${CMAKE_MODULE_PATH}"
     "${CMAKE_CURRENT_LIST_DIR}/find_modules"
     "${CMAKE_CURRENT_LIST_DIR}/utils"
@@ -64,18 +64,18 @@ if (CGNS_ALLOW_PREFIND)
   
   find_package(CGNS)
 
-  if (CGNS_FOUND)
+  IF (CGNS_FOUND)
     set(TPL_CGNS_LIBRARIES ${CGNS_LIBRARIES} CACHE PATH
-      "List of semi-colon separated (full) paths to the CGNS libraries")
+      "List of semi-colon seprated (full) paths to the CGNS libraries")
     set(TPL_CGNS_INCLUDE_DIRS ${CGNS_INCLUDE_DIRS} CACHE PATH
-      "List of semi-colon separated list of directories containing CGNS header files")
-  endif()
+      "List of semi-colon seprated list of directories containing CGNS header files")
+  ENDIF()
 
-endif()
+ENDIF()
 
 #
-# Third, call tribits_tpl_find_include_dirs_and_libraries()
+# Third, call TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES()
 #
-tribits_tpl_find_include_dirs_and_libraries( CGNS
+TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES( CGNS
   REQUIRED_HEADERS ${REQUIRED_HEADERS}
   REQUIRED_LIBS_NAMES ${REQUIRED_LIBS_NAMES})

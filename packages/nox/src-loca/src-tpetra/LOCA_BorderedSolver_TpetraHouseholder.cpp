@@ -80,7 +80,7 @@
 // Forward declaration needed for ParameterList validation
 namespace LOCA {
   namespace MultiContinuation {
-    class ConstraintInterface;
+    class ConstraintModelEvaluator;
   }
 }
 
@@ -170,7 +170,7 @@ TpetraHouseholder(const Teuchos::RCP<LOCA::GlobalData>& global_data,
 {
   Teuchos::ParameterList validParams;
   validParams.set("Bordered Solver Method", "Householder");
-  validParams.set("Constraint Object",Teuchos::RCP<LOCA::MultiContinuation::ConstraintInterface>(Teuchos::null));
+  validParams.set("Constraint Object",Teuchos::RCP<LOCA::MultiContinuation::ConstraintModelEvaluator>(Teuchos::null));
   validParams.set("Constraint Parameter Names",Teuchos::RCP<std::vector<std::string>>(Teuchos::null));
   validParams.set("Scale Augmented Rows", true);
   Teuchos::setStringToIntegralParameter<int>("Preconditioner Method",
@@ -773,8 +773,8 @@ LOCA::BorderedSolver::TpetraHouseholder::solve(
     //*tpetraPrecMatrix = *jac_crs;
     {
       tpetraPrecMatrix->resumeFill();
-      auto jac_view = jac_crs->getLocalMatrixDevice().values;
-      auto prec_view = tpetraPrecMatrix->getLocalMatrixDevice().values;
+      auto jac_view = jac_crs->getLocalMatrix().values;
+      auto prec_view = tpetraPrecMatrix->getLocalMatrix().values;
       Kokkos::deep_copy(prec_view,jac_view);
       tpetraPrecMatrix->fillComplete();
     }
@@ -1116,19 +1116,21 @@ updateCrsMatrixForPreconditioner(const NOX::Abstract::MultiVector& UU,
 
   auto& UU_tpetra = NOX::Tpetra::getTpetraMultiVector(UU);
   auto& VV_tpetra = NOX::Tpetra::getTpetraMultiVector(VV);
-  const auto uu = UU_tpetra.getLocalViewDevice(::Tpetra::Access::ReadOnly);
-  const auto vv = VV_tpetra.getLocalViewDevice(::Tpetra::Access::ReadOnly);
+  const_cast<NOX::TMultiVector&>(UU_tpetra).sync_device();
+  const_cast<NOX::TMultiVector&>(VV_tpetra).sync_device();
+  const auto uu = UU_tpetra.getLocalViewDevice();
+  const auto vv = VV_tpetra.getLocalViewDevice();
 
-  const auto numRows = matrix.getLocalNumRows();
+  const auto numRows = matrix.getNodeNumRows();
   const auto rowMap = matrix.getRowMap()->getLocalMap();
   const auto colMap = matrix.getColMap()->getLocalMap();
   const auto uMap = UU_tpetra.getMap()->getLocalMap();
   const auto vMap = VV_tpetra.getMap()->getLocalMap();
-  auto J_view = matrix.getLocalMatrixDevice();
+  auto J_view = matrix.getLocalMatrix();
   auto numConstraintsLocal = numConstraints; // for cuda lambda capture
 
-  TEUCHOS_ASSERT(static_cast<size_t>(matrix.getRowMap()->getLocalNumElements()) == uu.extent(0));
-  TEUCHOS_ASSERT(static_cast<size_t>(matrix.getRowMap()->getLocalNumElements()) == vv.extent(0));
+  TEUCHOS_ASSERT(static_cast<size_t>(matrix.getRowMap()->getNodeNumElements()) == uu.extent(0));
+  TEUCHOS_ASSERT(static_cast<size_t>(matrix.getRowMap()->getNodeNumElements()) == vv.extent(0));
   TEUCHOS_ASSERT(numConstraintsLocal == static_cast<int>(uu.extent(1)));
   TEUCHOS_ASSERT(numConstraintsLocal == static_cast<int>(vv.extent(1)));
 

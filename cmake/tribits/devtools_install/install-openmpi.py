@@ -148,7 +148,7 @@ and the executables and compiler wrappers (e.g. mpicc, mpic++, mpirun, etc.) in:
 
   """+self.inOptions.installDir+"""/bin
 
-Actually, using the MPI compiler wrappers mpicc, mpic++, etc. is preferred.
+Actually, using the MPI compiler wrappers mpicc, mpic++, etc. is prefered.
 """
 
   def getEnvCmnd(self):

@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -13,20 +13,20 @@
 #include <string>
 #include <tokenize.h>
 
-#if defined(__IOSS_WINDOWS__)
+#ifndef _WIN32
+#include <sys/unistd.h>
+#else
 #include <direct.h>
 #include <io.h>
 #define access _access
-#define R_OK   4 /* Test for read permission.  */
-#define W_OK   2 /* Test for write permission.  */
-#define X_OK   1 /* execute permission - unsupported in windows*/
-#define F_OK   0 /* Test for existence.  */
+#define R_OK 4 /* Test for read permission.  */
+#define W_OK 2 /* Test for write permission.  */
+#define X_OK 1 /* execute permission - unsupported in windows*/
+#define F_OK 0 /* Test for existence.  */
 #ifndef S_ISREG
 #define S_ISREG(m) (((m)&_S_IFMT) == _S_IFREG)
 #define S_ISDIR(m) (((m)&_S_IFMT) == _S_IFDIR)
 #endif
-#else
-#include <sys/unistd.h>
 #endif
 
 #ifdef SEACAS_HAVE_MPI
@@ -35,9 +35,7 @@
 
 #include <cstdio>
 #include <sys/stat.h>
-#ifndef _MSC_VER
 #include <unistd.h>
-#endif
 
 namespace {
   bool internal_access(const std::string &name, int mode);
@@ -82,33 +80,40 @@ namespace Ioss {
   //: Returns TRUE if the file exists (is readable)
   bool FileInfo::exists() const { return exists_; }
 
-  int FileInfo::parallel_exists(Ioss_MPI_Comm communicator, std::string &where) const
+  int FileInfo::parallel_exists(MPI_Comm communicator, std::string &where) const
   {
     PAR_UNUSED(communicator);
     PAR_UNUSED(where);
-    int sum = exists_ ? 1 : 0;
 
 #ifdef SEACAS_HAVE_MPI
-    Ioss::ParallelUtils pu(communicator);
-    int                 my_rank = pu.parallel_rank();
-    int                 my_size = pu.parallel_size();
-    if (my_size > 1) {
-      // Handle the parallel case
-      std::vector<int> result;
-      pu.all_gather(sum, result);
-      sum = std::accumulate(result.begin(), result.end(), 0);
-      if (my_rank == 0 && sum < my_size) {
-        std::vector<size_t> procs;
-        for (int i = 0; i < my_size; i++) {
-          if (result[i] == 0) {
-            procs.push_back(i);
-          }
-        }
-        where = Ioss::Utils::format_id_list(procs, "--");
-      }
+    int my_rank = 0;
+    int my_size = 1;
+    if (communicator != MPI_COMM_NULL) {
+      MPI_Comm_rank(communicator, &my_rank);
+      MPI_Comm_size(communicator, &my_size);
     }
+    if (my_size == 1)
 #endif
+      return exists_ ? 1 : 0;
+
+#ifdef SEACAS_HAVE_MPI
+    // Now handle the parallel case
+    std::vector<int> result(my_size);
+    int              my_val = exists_ ? 1 : 0;
+    MPI_Allgather(&my_val, 1, MPI_INT, &result[0], 1, MPI_INT, communicator);
+
+    int sum = std::accumulate(result.begin(), result.end(), 0);
+    if (my_rank == 0 && sum < my_size) {
+      std::vector<size_t> procs;
+      for (int i = 0; i < my_size; i++) {
+        if (result[i] == 0) {
+          procs.push_back(i);
+        }
+      }
+      where = Ioss::Utils::format_id_list(procs, "--");
+    }
     return sum;
+#endif
   }
 
   //: Returns TRUE if the file is readable
@@ -151,7 +156,7 @@ namespace Ioss {
   //: Returns TRUE if we are pointing to a symbolic link
   bool FileInfo::is_symlink() const
   {
-#if !defined(__IOSS_WINDOWS__)
+#ifndef _WIN32
     struct stat s
     {
     };
@@ -284,7 +289,7 @@ namespace Ioss {
 
   std::string FileInfo::realpath() const
   {
-#if defined(__IOSS_WINDOWS__)
+#ifdef _WIN32
     char *path = _fullpath(nullptr, filename_.c_str(), _MAX_PATH);
 #else
     char *path = ::realpath(filename_.c_str(), nullptr);
@@ -320,7 +325,7 @@ namespace Ioss {
 
       struct stat st;
       if (stat(path_root.c_str(), &st) != 0) {
-#if defined(__IOSS_WINDOWS__)
+#ifdef _WIN32
         if (mkdir(path_root.c_str()) != 0 && errno != EEXIST) {
 #else
         const int mode = 0777; // Users umask will be applied to this.
@@ -346,7 +351,7 @@ namespace Ioss {
     }
   }
 
-  void FileInfo::create_path(const std::string &filename, Ioss_MPI_Comm communicator)
+  void FileInfo::create_path(const std::string &filename, MPI_Comm communicator)
   {
     PAR_UNUSED(communicator);
 #ifdef SEACAS_HAVE_MPI
@@ -368,7 +373,10 @@ namespace Ioss {
       errmsg << "ERROR: Could not create path '" << filename << "'.\n";
     }
 
-    util.broadcast(error_found);
+    if (util.parallel_size() > 1) {
+      MPI_Bcast(&error_found, 1, MPI_INT, 0, communicator);
+    }
+
     if (error_found) {
       IOSS_ERROR(errmsg);
     }

@@ -1,4 +1,4 @@
-tribits_package_define_dependencies(
+TRIBITS_PACKAGE_DEFINE_DEPENDENCIES(
   SUBPACKAGES_DIRS_CLASSIFICATIONS_OPTREQS
     CoreLibs      src                  PT  REQUIRED
     GoodStuff     good_stuff           ST  OPTIONAL

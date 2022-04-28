@@ -14,7 +14,7 @@ double checkeig(double *err, struct vtx_data **A, double *y, int n, double lambd
 {
   double resid;
   double normy;
-  double ch_norm(double *vec, int beg, int end);
+  double ch_norm();
   void   splarax(), scadd();
 
   splarax(err, A, n, y, vwsqrt, work);

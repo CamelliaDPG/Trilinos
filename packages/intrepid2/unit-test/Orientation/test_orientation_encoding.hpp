@@ -73,7 +73,7 @@ namespace Intrepid2 {
       *outStream << "-------------------------------------------------------------------------------" << "\n\n"; \
     }
     
-    template<typename DeviceType>
+    template<typename DeviceSpaceType>
     int OrientationEncoding(const bool verbose) {
 
       Teuchos::RCP<std::ostream> outStream;
@@ -87,6 +87,14 @@ namespace Intrepid2 {
       Teuchos::oblackholestream oldFormatState;
       oldFormatState.copyfmt(std::cout);
 
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
+
+      *outStream << "DeviceSpace::  "; DeviceSpaceType::print_configuration(*outStream, false);
+      *outStream << "HostSpace::    ";   HostSpaceType::print_configuration(*outStream, false);
+      *outStream << "\n";
+
+      
       *outStream
         << "===============================================================================\n"
         << "|                                                                             |\n"
@@ -137,7 +145,7 @@ namespace Intrepid2 {
           *outStream << "Triangle element edge orientation with vertex permutations\n";          
           for (auto i=0;i<6;++i) {
             // find orientation
-            const auto nodes = Kokkos::View<const ordinal_type[3],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[3],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation
@@ -230,7 +238,7 @@ namespace Intrepid2 {
           *outStream << "Quadrilateral element edge orientation with vertex permutations\n";          
           for (auto i=0;i<24;++i) {
             // find orientation
-            const auto nodes = Kokkos::View<const ordinal_type[4],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[4],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation
@@ -368,7 +376,7 @@ namespace Intrepid2 {
           *outStream << "Hexahedral element edge orientation with vertex permutations\n";          
           for (auto i=0;i<24;++i) {                                          
             // find orientation                                              
-            const auto nodes = Kokkos::View<const ordinal_type[8],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[8],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation
@@ -439,7 +447,7 @@ namespace Intrepid2 {
           *outStream << "Hexahedral element face orientation with vertex permutations\n";          
           for (auto i=0;i<24;++i) {                                          
             // find orientation                                              
-            const auto nodes = Kokkos::View<const ordinal_type[8],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[8],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation
@@ -585,7 +593,7 @@ namespace Intrepid2 {
           *outStream << "Tetrahedral element edge orientation with vertex permutations\n";          
           for (auto i=0;i<24;++i) {                                          
             // find orientation                                              
-            const auto nodes = Kokkos::View<const ordinal_type[4],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[4],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation
@@ -634,7 +642,7 @@ namespace Intrepid2 {
           *outStream << "Tetrahedral element face orientation with vertex permutations\n";          
           for (auto i=0;i<24;++i) {                                          
             // find orientation                                              
-            const auto nodes = Kokkos::View<const ordinal_type[4],Kokkos::HostSpace>(elemNodes[i]);
+            const auto nodes = Kokkos::View<const ordinal_type[4],HostSpaceType>(elemNodes[i]);
             const auto ort = Orientation::getOrientation(cellTopo, nodes);
             
             // decode orientation

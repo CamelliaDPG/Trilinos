@@ -1,6 +1,6 @@
-set_default_and_from_env(GIT_URL_REPO_BASE  git@github.com:TriBITSPub/)
+SET_DEFAULT_AND_FROM_ENV(GIT_URL_REPO_BASE  git@github.com:TriBITSPub/)
 
-tribits_project_define_extra_repositories(
+TRIBITS_PROJECT_DEFINE_EXTRA_REPOSITORIES(
   TribitsExampleProject   ""  GIT  ${GIT_URL_REPO_BASE}TribitsExampleProject
      PRE   Continuous
   )

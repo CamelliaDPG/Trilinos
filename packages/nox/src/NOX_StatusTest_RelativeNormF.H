@@ -79,9 +79,8 @@ class RelativeNormF : public Generic {
 public:
 
   RelativeNormF(double tolerance,
-                bool scale_norms_by_vector_length = false,
-                const NOX::Utils* u = NULL,
-                NOX::Abstract::Vector::NormType ntype = NOX::Abstract::Vector::TwoNorm);
+        bool scale_norms_by_vector_length = false,
+        const NOX::Utils* u = NULL);
 
   // derived
   virtual NOX::StatusTest::StatusType
@@ -112,8 +111,6 @@ private:
   //! Ostream used to print errors
   NOX::Utils utils;
 
-  //! Type of norm to use
-  NOX::Abstract::Vector::NormType norm_type;
 };
 
 } // namespace Status

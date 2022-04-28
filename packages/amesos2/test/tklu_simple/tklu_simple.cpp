@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 
   // Get update list and number of local equations from newly created map.
 
-  const size_t numMyElements = map->getLocalNumElements();
+  const size_t numMyElements = map->getNodeNumElements();
 
   if( numMyElements != numGlobalElements )
   if (numProc != 1) {
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  Teuchos::ArrayView<const Ordinal> myGlobalElements = map->getLocalElementList();
+  Teuchos::ArrayView<const Ordinal> myGlobalElements = map->getNodeElementList();
 
 //    klu_symbolic *Symbolic ;
 //    klu_numeric *Numeric ;

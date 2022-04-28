@@ -54,8 +54,15 @@ TEST(TEST_CATEGORY, team_shared_request) {
 }
 
 TEST(TEST_CATEGORY, team_scratch_request) {
-  TestScratchTeam<TEST_EXECSPACE, Kokkos::Schedule<Kokkos::Static> >();
-  TestScratchTeam<TEST_EXECSPACE, Kokkos::Schedule<Kokkos::Dynamic> >();
+  // FIXME_HIP the parallel_reduce in this test requires a team size larger than
+  // 256. Fixed in ROCm 3.9
+#if defined(KOKKOS_ENABLE_HIP) && (HIP_VERSION < 309)
+  if (!std::is_same<TEST_EXECSPACE, Kokkos::Experimental::HIP>::value)
+#endif
+  {
+    TestScratchTeam<TEST_EXECSPACE, Kokkos::Schedule<Kokkos::Static> >();
+    TestScratchTeam<TEST_EXECSPACE, Kokkos::Schedule<Kokkos::Dynamic> >();
+  }
 }
 
 #if defined(KOKKOS_ENABLE_CXX11_DISPATCH_LAMBDA)
@@ -71,14 +78,21 @@ TEST(TEST_CATEGORY, scratch_align) { TestScratchAlignment<TEST_EXECSPACE>(); }
 TEST(TEST_CATEGORY, shmem_size) { TestShmemSize<TEST_EXECSPACE>(); }
 
 TEST(TEST_CATEGORY, multi_level_scratch) {
+  // FIXME_HIP the parallel_for and the parallel_reduce in this test requires a
+  // team size larger than 256. Fixed In ROCm 3.9
   // FIXME_OPENMPTARGET This unit test needs ~350KB of scratch memory for L0 and
   // L1 combined per team. Currently OpenMPTarget cannot allocate this high
   // amount of scratch memory.
 #if !defined(KOKKOS_ENABLE_OPENMPTARGET)
-  TestMultiLevelScratchTeam<TEST_EXECSPACE,
-                            Kokkos::Schedule<Kokkos::Static> >();
-  TestMultiLevelScratchTeam<TEST_EXECSPACE,
-                            Kokkos::Schedule<Kokkos::Dynamic> >();
+#if defined(KOKKOS_ENABLE_HIP) && (HIP_VERSION < 309)
+  if (!std::is_same<TEST_EXECSPACE, Kokkos::Experimental::HIP>::value)
+#endif
+  {
+    TestMultiLevelScratchTeam<TEST_EXECSPACE,
+                              Kokkos::Schedule<Kokkos::Static> >();
+    TestMultiLevelScratchTeam<TEST_EXECSPACE,
+                              Kokkos::Schedule<Kokkos::Dynamic> >();
+  }
 #endif
 }
 

@@ -57,8 +57,6 @@ gPipeAndViewsState = None
 
 def GetFrameTagCounter():
   global gPipeAndViewsState
-  if gPipeAndViewsState == None:
-    return 0
   return gPipeAndViewsState.mFrameTagCounter
 
 try: paraview.simple
@@ -74,15 +72,6 @@ global gParaViewCatalystVersionFlag
 #gParaViewCatalystVersionFlag = 40100
 #gParaViewCatalystVersionFlag = 50400
 gParaViewCatalystVersionFlag = 50502
-#gParaViewCatalystVersionFlag = 51000
-
-#attempt to use paraview.simple.GetParaViewVersion() to set version
-try:
-  versionTuple = GetParaViewVersion()
-  gParaViewCatalystVersionFlag = versionTuple.major * 10000
-  gParaViewCatalystVersionFlag += versionTuple.minor * 100
-except:
-  raise Exception("exception while working with paraview.simple.GetParaViewVersion()")
 
 global gPointsString
 if gParaViewCatalystVersionFlag <= 40100:
@@ -1944,11 +1933,7 @@ def SetDataRepresentationToDefault(inDataRepresentation):
   inDataRepresentation.SelectionPointLabelColor = [0.5, 0.5, 0.5]
   inDataRepresentation.SelectionPointFieldDataArrayName = 'displ'
   inDataRepresentation.SuppressLOD = 0
-  global gParaViewCatalystVersionFlag
-  if gParaViewCatalystVersionFlag < 51000:
-    inDataRepresentation.BlockVisibility = []
-    inDataRepresentation.BlockOpacity = {}
-    inDataRepresentation.BlockColor = {}
+  inDataRepresentation.BlockVisibility = []
   inDataRepresentation.Position = [0.0, 0.0, 0.0]
   inDataRepresentation.BackfaceRepresentation = 'Follow Frontface'
   inDataRepresentation.SelectionOpacity = 1.0
@@ -1999,6 +1984,7 @@ def SetDataRepresentationToDefault(inDataRepresentation):
   inDataRepresentation.Texture = []
   inDataRepresentation.SelectionCellLabelShadow = 0
   inDataRepresentation.AmbientColor = [1.0, 1.0, 1.0]
+  inDataRepresentation.BlockOpacity = {}
   inDataRepresentation.MapScalars = 1
   inDataRepresentation.PointSize = 2.0
   inDataRepresentation.SelectionCellLabelFormat = ''
@@ -2017,6 +2003,7 @@ def SetDataRepresentationToDefault(inDataRepresentation):
   inDataRepresentation.SelectionPointLabelFontSize = 18
   inDataRepresentation.SelectionCellFieldDataArrayName = 'GlobalElementId'
   inDataRepresentation.SelectionColor = [1.0, 0.0, 1.0]
+  inDataRepresentation.BlockColor = {}
   inDataRepresentation.Ambient = 0.0
   inDataRepresentation.ScaleFactor = 0.775
   inDataRepresentation.BackfaceAmbientColor = [1.0, 1.0, 1.0]
@@ -2069,7 +2056,6 @@ def AddRenderView(inPhactoriImagesetInfo, inColorSettings,
     global localCpViews
     global PhactoriRenderViewInfoList
     global currentPhactoriRenderViewInfo
-    global gParaViewCatalystVersionFlag
 
     if PhactoriDbg(100):
       myDebugPrint3("AddRenderView entered\n", 100)
@@ -2140,6 +2126,7 @@ def AddRenderView(inPhactoriImagesetInfo, inColorSettings,
         RenderView1.LightSwitch = 0
       RenderView1.UseOutlineForLODRendering = 0
       RenderView1.KeyLightAzimuth = 10.0
+      RenderView1.UseTexturedBackground = 0
       RenderView1.UseLight = 1
       RenderView1.CameraPosition = [3.681775921856809, 3.2427490288581042, 6.445486324396935]
       RenderView1.FillLightKFRatio = 3.0
@@ -2194,14 +2181,11 @@ def AddRenderView(inPhactoriImagesetInfo, inColorSettings,
       RenderView1.OrientationAxesOutlineColor = [1.0, 1.0, 1.0]
       RenderView1.LODThreshold = 5.0
       RenderView1.CollectGeometryThreshold = 100.0
+      RenderView1.UseGradientBackground = 0
       RenderView1.KeyLightWarmth = 0.6
       RenderView1.OrientationAxesLabelColor = [1.0, 1.0, 1.0]
       #RenderView1.OrientationAxesLabelColor = inColorSettings.mOrientationAxesLabelColor
       #rigid_body_impact_6_ff_e = CreateProducer( datadescription, "input" )
-
-      if gParaViewCatalystVersionFlag < 51000:
-        RenderView1.UseTexturedBackground = 0
-        RenderView1.UseGradientBackground = 0
 
       SetAxesGridVisibility(RenderView1, 0)
 
@@ -3513,8 +3497,6 @@ def SetForCorrectColorBy(inImagesetInfo, inPhactoriOperation,
         inPvDataRepresentation, inPhactoriRepresentation,
         inInitializeColorLegendFlag):
 
-  global gParaViewCatalystVersionFlag
-
   if PhactoriDbg():
     if inPhactoriOperation != None:
         opStr = inPhactoriOperation.mName
@@ -3548,8 +3530,7 @@ def SetForCorrectColorBy(inImagesetInfo, inPhactoriOperation,
   if inPhactoriRepresentation != None:
     if inPhactoriRepresentation.mColorByBlockFlag == False:
       #clear block color
-      if gParaViewCatalystVersionFlag < 51000:
-        inPvDataRepresentation.BlockColor = {}
+      inPvDataRepresentation.BlockColor = {}
     if inPhactoriRepresentation.mColorByBlockFlag:
       if PhactoriDbg():
         myDebugPrint3("inPhactoriRepresentation.mColorByBlockFlag is true\n")
@@ -3721,21 +3702,9 @@ def ParseOneFilterTypeFromViewMapOperation(ioOperationBlock, inTypeString, inOpe
 def ConstructClipPlaneOperationFromParsedOperationBlockC(ioPipeAndViewsState, ioOperationBlock):
   return
 
-def ConstructPipelineOperationFromParsedOperationBlockC_ForTest(ioOperationBlock, inputParaviewFilter):
-  if PhactoriDbg(100):
-    myDebugPrint3("ConstructPipelineOperationFromParsedOperationBlockC_ForTest entered\n", 100)
-  particularOperation = ioOperationBlock.mOperationSpecifics
-  if ioOperationBlock.mType == 'group':
-    myDebugPrint3("not doing group yet")
-    raise Exception("not doing group yet")
-  else:
-    inputSource = inputParaviewFilter
-    newParaViewFilter = particularOperation.CreateParaViewFilter2(inputSource, None)
-  ioOperationBlock.mParaViewFilter = newParaViewFilter
-  if PhactoriDbg(100):
-    myDebugPrint3("ConstructPipelineOperationFromParsedOperationBlockC_ForTest returning\n", 100)
 
 def ConstructPipelineOperationFromParsedOperationBlockC(ioPipeAndViewsState, ioOperationBlock):
+
   if PhactoriDbg(100):
     myDebugPrint3("ConstructPipelineOperationFromParsedOperationBlockC entered\n", 100)
   if PhactoriDbg():
@@ -4138,9 +4107,6 @@ def FindReferredBlockC(referringBlock, referringKey, referredBlockset):
 
 def UpdatePipelineWithCurrentTimeArgument(inParaViewFilter):
   global gPipeAndViewsState
-  if gPipeAndViewsState == None:
-    inParaViewFilter.UpdatePipeline()
-    return
   thisTime = gPipeAndViewsState.CurrentDatadescription.GetTime()
   inParaViewFilter.UpdatePipeline(thisTime)
 
@@ -8688,11 +8654,7 @@ class PhactoriAnnotationViewSettings:
     self.mShadow = False
     self.mOpacity = 1.0
     self.mAlign = 'Center'
-    global gParaViewCatalystVersionFlag
-    if gParaViewCatalystVersionFlag < 51000:
-      self.mWindowLocation = 'UpperLeftCorner'
-    else:
-      self.mWindowLocation = 'Upper Left Corner'
+    self.mWindowLocation = 'UpperLeftCorner'
     if PhactoriDbg():
       myDebugPrint3("ViewSettingsPhactoriAnnotation::__init__ returning\n")
 
@@ -8713,41 +8675,22 @@ class PhactoriAnnotationViewSettings:
       winPos = windowPosSize[0]
       winSize = windowPosSize[1]
       self.SetSizeScale(winSize)
-      global gParaViewCatalystVersionFlag
-      if gParaViewCatalystVersionFlag < 51000:
-        if winPos == 'top left':
-          self.SetWindowLocation('UpperLeftCorner')
-        elif winPos == 'top right':
-          self.SetWindowLocation('UpperRightCorner')
-        elif winPos == 'top':
-          self.SetWindowLocation('UpperCenter')
-        elif winPos == 'bottom left':
-          self.SetWindowLocation('LowerLeftCorner')
-        elif winPos == 'bottom right':
-          self.SetWindowLocation('LowerRightCorner')
-        elif winPos == 'bottom':
-          self.SetWindowLocation('LowerCenter')
-        else:
-          if PhactoriDbg():
-            myDebugPrint3("bad time annotation position, using upper left\n")
-          self.SetWindowLocation('UpperLeftCorner')
-      else: #gParaViewCatalystVersionFlag >= 51000
-        if winPos == 'top left':
-          self.SetWindowLocation('Upper Left Corner')
-        elif winPos == 'top right':
-          self.SetWindowLocation('Upper Right Corner')
-        elif winPos == 'top':
-          self.SetWindowLocation('Upper Center')
-        elif winPos == 'bottom left':
-          self.SetWindowLocation('Lower Left Corner')
-        elif winPos == 'bottom right':
-          self.SetWindowLocation('Lower Right Corner')
-        elif winPos == 'bottom':
-          self.SetWindowLocation('Lower Center')
-        else:
-          if PhactoriDbg():
-            myDebugPrint3("bad time annotation position, using upper left\n")
-          self.SetWindowLocation('UpperLeftCorner')
+      if winPos == 'top left':
+        self.SetWindowLocation('UpperLeftCorner')
+      elif winPos == 'top right':
+        self.SetWindowLocation('UpperRightCorner')
+      elif winPos == 'top':
+        self.SetWindowLocation('UpperCenter')
+      elif winPos == 'bottom left':
+        self.SetWindowLocation('LowerLeftCorner')
+      elif winPos == 'bottom right':
+        self.SetWindowLocation('LowerRightCorner')
+      elif winPos == 'bottom':
+        self.SetWindowLocation('LowerCenter')
+      else:
+        if PhactoriDbg():
+          myDebugPrint3("bad time annotation position, using upper left\n")
+        self.SetWindowLocation('UpperLeftCorner')
 
     if 'time format string' in inJsn:
       self.mTimeFormatString = inJsn['time format string']
@@ -8777,15 +8720,9 @@ class PhactoriAnnotationViewSettings:
     #self.mParaViewRepresentation.FontSize = self.mFontSize
 
   def SetWindowLocation(self, inNewPosition):
-    global gParaViewCatalystVersionFlag
-    if gParaViewCatalystVersionFlag < 51000:
-      validPositions = ['UpperLeftCorner', 'UpperRightCorner', 
-          'LowerLeftCorner', 'LowerRightCorner',
-          'UpperCenter', 'LowerCenter']
-    else:
-      validPositions = ['Upper Left Corner', 'Upper Right Corner', 
-          'Lower Left Corner', 'Lower Right Corner',
-          'Upper Center', 'Lower Center']
+    validPositions = ['UpperLeftCorner', 'UpperRightCorner', 
+        'LowerLeftCorner', 'LowerRightCorner',
+        'UpperCenter', 'LowerCenter']
     if inNewPosition in validPositions:
       #self.mParaViewRepresentation.WindowLocation = inNewPosition
       self.mWindowLocation = inNewPosition
@@ -9096,6 +9033,7 @@ class PhactoriPlot1Base:
     self.mSharedPvRenderView2.BottomAxisUseCustomRange = 0
 
     if self.m_PlotType == "PhactoriPlotOverTimeBlock":
+      self.mPvDataRepresentation2.AttributeType = "Point Data"
       self.mPvDataRepresentation2.AttributeType = "Row Data"
       self.mSharedPvRenderView2.LeftAxisTitle = self.m_YAxisVariableInfo.GetXYPlotAxisTitle()
       self.mSharedPvRenderView2.BottomAxisTitle = "Time"
@@ -9626,23 +9564,12 @@ class PhactoriImagesetBlock:
                 RunCalculationToCastRays(gPipeAndViewsState)
             UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
           if onevisop.mName == "surfaceofinterest1":
-            global gParaViewCatalystVersionFlag
-            if gParaViewCatalystVersionFlag < 51000:
-              svrng = onevisop.mParaViewFilter.ThresholdRange
-              #onevisop.mParaViewFilter.ThresholdRange = [svrng[0]*0.5, svrng[1]*0.5]
-              onevisop.mParaViewFilter.ThresholdRange = [1.0, 10.0]
-              UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
-              onevisop.mParaViewFilter.ThresholdRange = svrng
-              UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
-            else:
-              svrngLower = onevisop.mParaViewFilter.LowerThreshold
-              svrngUpper = onevisop.mParaViewFilter.UpperThreshold
-              onevisop.mParaViewFilter.LowerThreshold = 1.0
-              onevisop.mParaViewFilter.UpperThreshold = 10.0
-              UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
-              onevisop.mParaViewFilter.LowerThreshold = svrngLower
-              onevisop.mParaViewFilter.UpperThreshold = svrngUpper
-              UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
+            svrng = onevisop.mParaViewFilter.ThresholdRange
+            #onevisop.mParaViewFilter.ThresholdRange = [svrng[0]*0.5, svrng[1]*0.5]
+            onevisop.mParaViewFilter.ThresholdRange = [1.0, 10.0]
+            UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
+            onevisop.mParaViewFilter.ThresholdRange = svrng
+            UpdatePipelineWithCurrentTimeArgument(onevisop.mParaViewFilter)
 
         if PhactoriDbg():
           firstop = self.mVisibleOps[0]
@@ -11979,24 +11906,20 @@ def ColorByBlock(inParaViewDataSource, inParaViewDataRepresentation,
 
   blockAndLeafBlockCounter = [0,0]
 
-  global gParaViewCatalystVersionFlag
-  if gParaViewCatalystVersionFlag < 51000:
+  blockColorData = inParaViewDataRepresentation.BlockColor
+  if PhactoriDbg(100):
+    myDebugPrint3('  blockColorData is ' + str(blockColorData) + '\n', 100)
+  if PhactoriDbg(100):
+    myDebugPrint3('  blockColorData type is ' + str(type(blockColorData)) + '\n', 100)
 
-    blockColorData = inParaViewDataRepresentation.BlockColor
-    if PhactoriDbg(100):
-      myDebugPrint3('  blockColorData is ' + str(blockColorData) + '\n', 100)
-    if PhactoriDbg(100):
-      myDebugPrint3('  blockColorData type is ' + str(type(blockColorData)) + '\n', 100)
+  ColorByBlockRecurse1(csdata, blockAndLeafBlockCounter, inParaViewDataRepresentation.BlockColor, False)
 
-    ColorByBlockRecurse1(csdata, blockAndLeafBlockCounter, inParaViewDataRepresentation.BlockColor, False)
-
-    #inParaViewDataRepresentation.BlockColor = blockColorData
+  #inParaViewDataRepresentation.BlockColor = blockColorData
   
-    if PhactoriDbg(100):
-      myDebugPrint3('   block color data: ' + str(inParaViewDataRepresentation.BlockColor) + '\n', 100)
-    if PhactoriDbg(100):
-      myDebugPrint3('   final count: ' + str(blockAndLeafBlockCounter) + '\n', 100)
-
+  if PhactoriDbg(100):
+    myDebugPrint3('   block color data: ' + str(inParaViewDataRepresentation.BlockColor) + '\n', 100)
+  if PhactoriDbg(100):
+    myDebugPrint3('   final count: ' + str(blockAndLeafBlockCounter) + '\n', 100)
   if PhactoriDbg(100):
     myDebugPrint3('ColorByBlock returning\n', 100)
 
@@ -12586,8 +12509,6 @@ def ShowDataColorLegendXX(inPvView,
       rendering in shared view.  On or off state for rendering is stored
       as a flag in the ioPhactoriImagesetBlock instance"""
 
-  global gParaViewCatalystVersionFlag
-
   if PhactoriDbg(100):
     myDebugPrint3('phactori.ShowDataColorLegendXX entered, setting:' + \
         inOnOffSetting + '\n', 100)
@@ -12719,7 +12640,7 @@ def ShowDataColorLegendXX(inPvView,
         "  legendOrientation: " + str(legendOrientation) + "\n"\
         "  legendFontSize: " + str(legendFontSize) + "\n")
 
-  elif gParaViewCatalystVersionFlag < 51000:
+  else:
     defaultLegendLength = 0.33
     defaultMidPos = 0.5 - 0.5*defaultLegendLength
     #legendFontSize = 16
@@ -12761,48 +12682,6 @@ def ShowDataColorLegendXX(inPvView,
     else:
       legendOrientation = 'Vertical'
       legendWindowLocation = 'LowerRightCorner'
-  else:
-    defaultLegendLength = 0.33
-    defaultMidPos = 0.5 - 0.5*defaultLegendLength
-    #legendFontSize = 16
-    #legendSize = 1.0
-    #validPositions = ['UpperLeftCorner', 'UpperRightCorner', 
-    #    'LowerLeftCorner', 'LowerRightCorner',
-    #    'UpperCenter', 'LowerCenter']
-    legendPosition=[0.0, 0.0]
-    if inColorLegendPositionAndSize[0] == 'top':
-      legendOrientation = 'Horizontal'
-      legendWindowLocation = 'Upper Center'
-    elif inColorLegendPositionAndSize[0] == 'bottom':
-      legendOrientation = 'Horizontal'
-      legendWindowLocation = 'Lower Center'
-    elif inColorLegendPositionAndSize[0] == 'left':
-      legendOrientation = 'Vertical'
-      legendPosition=[0.02, defaultMidPos]
-      legendWindowLocation = 'Any Location'
-    elif inColorLegendPositionAndSize[0] == 'right':
-      legendOrientation = 'Vertical'
-      legendPosition=[0.89, defaultMidPos]
-      legendWindowLocation = 'Any Location'
-    elif inColorLegendPositionAndSize[0] == 'top left':
-      legendOrientation = 'Vertical'
-      legendWindowLocation = 'Upper Left Corner'
-    elif inColorLegendPositionAndSize[0] == 'top right':
-      legendOrientation = 'Vertical'
-      legendWindowLocation = 'Upper Right Corner'
-    elif inColorLegendPositionAndSize[0] == 'bottom left':
-      legendOrientation = 'Vertical'
-      legendWindowLocation = 'Lower Left Corner'
-    elif inColorLegendPositionAndSize[0] == 'bottom right':
-      legendOrientation = 'Vertical'
-      legendWindowLocation = 'Lower Right Corner'
-    elif inColorLegendPositionAndSize[0] == 'parameters':
-      legendOrientation = inColorLegendPositionAndSize[1]
-      legendPosition = inColorLegendPositionAndSize[2]
-      legendWindowLocation = 'Any Location'
-    else:
-      legendOrientation = 'Vertical'
-      legendWindowLocation = 'Lower Right Corner'
 
     #newScalarBarWidgetRepresentation = CreateScalarBar( Title=inPvDataRep.ColorArrayName, Position2=[0.13, 0.5], TitleOpacity=1.0, TitleShadow=0, AutomaticLabelFormat=1, TitleFontSize=12, TitleColor=[1.0, 1.0, 1.0], AspectRatio=20.0, NumberOfLabels=5, ComponentTitle='', Resizable=1, TitleFontFamily='Arial', Visibility=myVisibility, LabelFontSize=12, LabelFontFamily='Arial', TitleItalic=0, Selectable=0, LabelItalic=0, Enabled=0, LabelColor=[1.0, 1.0, 1.0], Position=[0.9, 0.31396255850234012], LabelBold=0, UseNonCompositedRenderer=1, LabelOpacity=1.0, TitleBold=0, LabelFormat='%-#6.3g', Orientation='Vertical', LabelShadow=0, LookupTable=inPvDataRep.LookupTable, Repositionable=1 )
   if gParaViewCatalystVersionFlag <= 40100:
@@ -12868,34 +12747,9 @@ def ShowDataColorLegendXX(inPvView,
       #LabelShadow=0,
       #Repositionable=1
       )
-  elif gParaViewCatalystVersionFlag < 51000:
+  else:
     newScalarBarWidgetRepresentation = CreateScalarBar(
         Title=localColorArrayName, ComponentTitle='')
-    newScalarBarWidgetRepresentation.Orientation = legendOrientation
-    newScalarBarWidgetRepresentation.WindowLocation = legendWindowLocation
-    if legendWindowLocation == 'AnyLocation':
-      newScalarBarWidgetRepresentation.Position = legendPosition
-    if PhactoriDbg():
-      nbwr = newScalarBarWidgetRepresentation
-      myDebugPrint3("newScalarBarWidgetRepresentation:\n" +\
-        str(nbwr) + "\n" +\
-        "  Title: " + str(nbwr.Title) + "\n" +\
-        "  ComponentTitle: " + str(nbwr.ComponentTitle) + "\n" +\
-        "  WindowLocation: " + str(nbwr.WindowLocation) + "\n" +\
-        "  Position: " + str(nbwr.Position) + "\n" +\
-        "  ScalarBarLength: " + str(nbwr.ScalarBarLength) + "\n" +\
-        "  ScalarBarThickness: " + str(nbwr.ScalarBarThickness) + "\n" +\
-        "  Orientation: " + str(nbwr.Orientation) + "\n" +\
-        "  LabelFontSize: " + str(nbwr.LabelFontSize) + "\n" +\
-        "  TitleFontSize: " + str(nbwr.TitleFontSize) + "\n" +\
-        "  LabelFontFamily: " + str(nbwr.LabelFontFamily) + "\n" +\
-        "  TitleFontFamily: " + str(nbwr.TitleFontSize) + "\n")
-        #"  LockPosition: " + str(nbwr.LockPosition) + "\n" +\
-        #"  Repositionable: " + str(nbwr.Repositionable) + "\n" +\
-        #"  AutoOrient: " + str(nbwr.AutoOrient) + "\n" +\
-  else:
-    pv_4_3_LUT = GetColorTransferFunction(inPvDataRep.ColorArrayName[1])
-    newScalarBarWidgetRepresentation = GetScalarBar(pv_4_3_LUT, inPvView)
     newScalarBarWidgetRepresentation.Orientation = legendOrientation
     newScalarBarWidgetRepresentation.WindowLocation = legendWindowLocation
     if legendWindowLocation == 'AnyLocation':
@@ -12954,6 +12808,76 @@ def ApplyClipPlane(inNormal, inOrigin, inClipPlaneFilterName):
   newClip.ClipType.Origin = inOrigin
   SetActiveSource(newClip);
   AddFilterToFilterMap(inClipPlaneFilterName, newClip)
+
+global gThresholdFilterNameCounter
+gThresholdFilterNameCounter = 0
+
+def ThresholdFilter(inVariableName, inType, inRange, inThresholdFilterName = None):
+  "Apply a threshold filter.  inVariableName is the variable to use for "
+  "thresholding, inType is 'POINTS' or 'CELLS', inRange is the threhold "
+  "range, such as [0.5, 1.5] or [-10.0, 10.0]"
+  if PhactoriDbg(100):
+    myDebugPrint3('phactori.ThresholdFilter entered, setting:' + inVariableName + ' ' + inType + ' ' + str(inRange) + '\n', 100)
+
+  activeSource = GetActiveSource()
+
+  CellDataList = []
+  for ii in range(activeSource.CellData.GetNumberOfArrays()):
+      CellDataList.append(activeSource.CellData.GetArray(ii).Name)
+  if PhactoriDbg():
+    myDebugPrint3('before threshold cell data items: ' + str(CellDataList) + '\n');
+
+  myThreshold = Threshold(activeSource)
+  myThreshold.ThresholdRange = inRange
+  myThreshold.Scalars = [inType, inVariableName]
+  SetActiveSource(myThreshold)
+  if inThresholdFilterName == None:
+    global gThresholdFilterNameCounter
+    inThresholdFilterName = "ThresholdFilter" + str(gThresholdFilterNameCounter)
+    gThresholdFilterNameCounter += 1
+  AddFilterToFilterMap(inThresholdFilterName, myThreshold)
+
+  activeSource = GetActiveSource()
+  CellDataList = []
+  for ii in range(activeSource.CellData.GetNumberOfArrays()):
+      CellDataList.append(activeSource.CellData.GetArray(ii).Name)
+  if PhactoriDbg():
+    myDebugPrint3('after threshold cell data items: ' + str(CellDataList) + '\n');
+
+  if PhactoriDbg(100):
+    myDebugPrint3('phactori.ThresholdFilter returning \n', 100)
+
+
+#def WarpMeshByDisplacement(inDisplacementVariableName, inWarpDisplacementFilterName = 'WarpDisplacementCalculator'):
+#  "Warp the mesh by the displacement variable; in paraview this means we "
+#  "add a calculator with adds the displacement value to the coordinates "
+#  "of each corresponding mesh element"
+#
+#  print 'WarpMeshByDisplacement entered'
+#  print '  active view A: ' + str(GetActiveView())
+#  print '  active source A: ' + str(GetActiveSource())
+#
+#
+#
+#  myDebugPrint3('phactori.WarpMeshByDisplacement entered, setting:' + inDisplacementVariableName + '\n')
+#
+#  PointDataList = []
+#
+#  FunctionString = 'coords + ' + inDisplacementVariableName
+#  DisplacementWarpCalculator = Calculator( guiName="Calculator1", Function=FunctionString, ReplacementValue=0.0, ResultArrayName='Result', ReplaceInvalidResults=1, CoordinateResults=1 )
+#  #DisplacementWarpCalculator = Calculator( guiName="Calculator1", Function=FunctionString, ReplacementValue=0.0, ResultArrayName='Result', ReplaceInvalidResults=1, AttributeMode='point_data', CoordinateResults=1 )
+#  myDebugPrint3('DisplacementWarpCalculator has ' + str(DisplacementWarpCalculator.PointData.GetNumberOfArrays()) + ' point data items\n');
+#  for ii in range(DisplacementWarpCalculator.PointData.GetNumberOfArrays()):
+#      PointDataList.append(DisplacementWarpCalculator.PointData.GetArray(ii).Name)
+#  myDebugPrint3('DisplacementWarpCalculator point data items: ' + str(PointDataList) + '\n');
+#  #tempDataRepresentation = GetDisplayProperties(currentSi.ActiveSource)
+#  #tempDataRepresentation.Visibility = 0
+#  SetActiveSource(DisplacementWarpCalculator);
+#  AddFilterToFilterMap(inWarpDisplacementFilterName, DisplacementWarpCalculator)
+#
+#  print '  active view B: ' + str(GetActiveView())
+#  print '  active source B: ' + str(GetActiveSource())
+#  print 'WarpMeshByDisplacement returning'
 
 def TempAddTestFiltersAfterDispl():
     """create the clip plane filter for ParaView"""

@@ -4,8 +4,8 @@ IF (${PACKAGE_NAME}_ENABLE_Epetra)
   TRIBITS_ADD_EXECUTABLE_AND_TEST(
     BlockedCrsMatrix_UnitTests
     SOURCES
-      BlockedCrsMatrix_UnitTests.cpp
-      ../Xpetra_UnitTests.cpp
+      BlockedCrsMatrix_UnitTests
+      ../Xpetra_UnitTests
     COMM serial mpi
     STANDARD_PASS_OUTPUT
     )
@@ -14,8 +14,8 @@ IF (${PACKAGE_NAME}_ENABLE_Thyra)
   TRIBITS_ADD_EXECUTABLE_AND_TEST(
     ThyraBlockedOperator_UnitTests
     SOURCES
-      ThyraBlockedOperator_UnitTests.cpp
-      ../Xpetra_UnitTests.cpp
+      ThyraBlockedOperator_UnitTests
+      ../Xpetra_UnitTests
     COMM serial mpi
     STANDARD_PASS_OUTPUT
     )

@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -16,8 +16,9 @@
 #include <exodusII.h>
 #include <fmt/ostream.h>
 #include <string> // for string
+#include <zlib.h>
 
-#include "Ioss_CodeTypes.h" // for Ioss_MPI_Comm
+#include "Ioss_CodeTypes.h" // for MPI_Comm
 #include "Ioss_DBUsage.h"   // for DatabaseUsage
 #include "Ioss_IOFactory.h" // for IOFactory
 
@@ -57,7 +58,7 @@ namespace Ioex {
   }
 
   Ioss::DatabaseIO *IOFactory::make_IO(const std::string &filename, Ioss::DatabaseUsage db_usage,
-                                       Ioss_MPI_Comm                communicator,
+                                       MPI_Comm                     communicator,
                                        const Ioss::PropertyManager &properties) const
   {
 #if defined(PARALLEL_AWARE_EXODUS)
@@ -69,8 +70,10 @@ namespace Ioex {
     // 2. There is a DECOMPOSITION_METHOD specified in 'properties'
     // 3. The decomposition method is not "EXTERNAL"
 
-    Ioss::ParallelUtils pu(communicator);
-    int                 proc_count = pu.parallel_size();
+    int proc_count = 1;
+    if (communicator != MPI_COMM_NULL) {
+      MPI_Comm_size(communicator, &proc_count);
+    }
 
     bool decompose = false;
     if (proc_count > 1) {
@@ -113,6 +116,10 @@ namespace Ioex {
     fmt::print(config, "\tZoltan Library is Available for Parallel Decomposition.\n\n");
 #else
     fmt::print(config, "\tZoltan Library is NOT Available for Parallel Decomposition.\n\n");
+#endif
+#if defined(ZLIBNG_VERSION)
+    fmt::print(config, "\tZlib-NG library version {} being used for accelerated compression.\n\n",
+               ZLIBNG_VERSION);
 #endif
     return config.str();
   }

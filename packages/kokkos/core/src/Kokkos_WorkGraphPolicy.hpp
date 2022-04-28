@@ -213,9 +213,7 @@ class WorkGraphPolicy : public Kokkos::Impl::PolicyTraits<Properties...> {
       using closure_type = Kokkos::Impl::ParallelFor<self_type, policy_type>;
       const closure_type closure(*this, policy_type(0, m_queue.size()));
       closure.execute();
-      execution_space().fence(
-          "Kokkos::WorkGraphPolicy::WorkGraphPolicy: fence after executing "
-          "graph init");
+      execution_space().fence();
     }
 
     {  // execute-after counts
@@ -223,9 +221,7 @@ class WorkGraphPolicy : public Kokkos::Impl::PolicyTraits<Properties...> {
       using closure_type = Kokkos::Impl::ParallelFor<self_type, policy_type>;
       const closure_type closure(*this, policy_type(0, m_graph.entries.size()));
       closure.execute();
-      execution_space().fence(
-          "Kokkos::WorkGraphPolicy::WorkGraphPolicy: fence after executing "
-          "graph count");
+      execution_space().fence();
     }
 
     {  // Scheduling ready tasks
@@ -233,9 +229,7 @@ class WorkGraphPolicy : public Kokkos::Impl::PolicyTraits<Properties...> {
       using closure_type = Kokkos::Impl::ParallelFor<self_type, policy_type>;
       const closure_type closure(*this, policy_type(0, m_graph.numRows()));
       closure.execute();
-      execution_space().fence(
-          "Kokkos::WorkGraphPolicy::WorkGraphPolicy: fence after executing "
-          "readied graph");
+      execution_space().fence();
     }
   }
 };

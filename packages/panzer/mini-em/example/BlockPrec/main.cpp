@@ -13,7 +13,6 @@
 #include "Teuchos_StackedTimer.hpp"
 #include "Teuchos_ScalarTraits.hpp"
 
-#include "Kokkos_View_Fad.hpp"
 #include "KokkosCompat_ClassicNodeAPI_Wrapper.hpp"
 
 #include "Panzer_NodeType.hpp"

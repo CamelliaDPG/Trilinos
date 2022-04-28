@@ -16,7 +16,6 @@ ADD_SUBDIRECTORIES(
   CrsMatrix
 
 # Tests specifically written for Xpetra:
-  IO
   Matrix
   MatrixMatrix
   MatrixUtils

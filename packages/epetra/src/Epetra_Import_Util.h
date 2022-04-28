@@ -67,8 +67,7 @@ namespace Epetra_Import_Util {
 
    \warning This method is intended for expert developer use only, and should never be called by user code.
  */
-int EPETRA_LIB_DLL_EXPORT PackAndPrepareWithOwningPIDs(
-				 const Epetra_CrsMatrix & SourceMatrix,
+int PackAndPrepareWithOwningPIDs(const Epetra_CrsMatrix & SourceMatrix,
 				 int NumExportIDs,
 				 int * ExportLIDs,
 				 int & LenExports,
@@ -84,8 +83,7 @@ int EPETRA_LIB_DLL_EXPORT PackAndPrepareWithOwningPIDs(
 
    \warning This method is intended for expert developer use only, and should never be called by user code.
 */
-int EPETRA_LIB_DLL_EXPORT UnpackWithOwningPIDsCount(
-					const Epetra_CrsMatrix& SourceMatrix,
+int UnpackWithOwningPIDsCount(const Epetra_CrsMatrix& SourceMatrix,
 			      int NumSameIDs,
 			      int NumRemoteIDs,
 			      const int * RemoteLIDs,
@@ -107,8 +105,7 @@ int EPETRA_LIB_DLL_EXPORT UnpackWithOwningPIDsCount(
 
    \warning This method is intended for expert developer use only, and should never be called by user code.
    */
-int EPETRA_LIB_DLL_EXPORT UnpackAndCombineIntoCrsArrays(
-				  const Epetra_CrsMatrix& SourceMatrix,
+int UnpackAndCombineIntoCrsArrays(const Epetra_CrsMatrix& SourceMatrix,
 				  int NumSameIDs,
 				  int NumRemoteIDs,
 				  const int * RemoteLIDs,
@@ -137,8 +134,7 @@ int EPETRA_LIB_DLL_EXPORT UnpackAndCombineIntoCrsArrays(
 
    \warning This method is intended for expert developer use only, and should never be called by user code.
    */
-int EPETRA_LIB_DLL_EXPORT UnpackAndCombineIntoCrsArrays(
-				  const Epetra_CrsMatrix& SourceMatrix,
+int UnpackAndCombineIntoCrsArrays(const Epetra_CrsMatrix& SourceMatrix,
 				  int NumSameIDs,
 				  int NumRemoteIDs,
 				  const int * RemoteLIDs,

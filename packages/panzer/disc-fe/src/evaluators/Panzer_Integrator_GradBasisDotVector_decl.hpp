@@ -358,9 +358,6 @@ namespace panzer
       PHX::MDField<double, panzer::Cell, panzer::BASIS, panzer::IP,
         panzer::Dim> basis_;
 
-    /// Temporary used when shared memory is disabled
-    PHX::View<ScalarT*> tmp_;
-
   }; // end of class Integrator_GradBasisDotVector
 
 } // end of namespace panzer

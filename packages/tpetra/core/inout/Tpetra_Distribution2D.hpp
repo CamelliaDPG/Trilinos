@@ -138,6 +138,10 @@ public:
 
   virtual ~Distribution2D() {};
 
+  // Return whether this rank owns nonzero (i,j)
+  virtual bool Mine(gno_t i, gno_t j) = 0;
+  inline bool Mine(gno_t i, gno_t j, int p) {return Mine(i,j);}
+
 protected:
 
   // Return the processor row for rank p
@@ -218,7 +222,6 @@ public:
     return ((mypRow == Distribution2D<gno_t,scalar_t>::TWODPROW(idx)) // RowMine
             && (j >= myFirstCol && j <= myLastCol));  // ColMine
   }
-  inline bool Mine(gno_t i, gno_t j, int p) {return Mine(i,j);}
 
   inline bool VecMine(gno_t i) {
     return(i >= entries[me] && i < entries[me+1]); 
@@ -253,7 +256,6 @@ public:
     return ((mypRow == this->TWODPROW(this->HashToProc(i))) &&  // RowMine
             (mypCol == this->TWODPCOL(this->HashToProc(j))));   // ColMine
   }
-  inline bool Mine(gno_t i, gno_t j, int p) {return Mine(i,j);}
 
   inline bool VecMine(gno_t i) { return (me == this->HashToProc(i)); }
 
@@ -324,7 +326,6 @@ public:
   bool Mine(gno_t i, gno_t j) {
     return (me == (vecpart[i] % npRows + (vecpart[j] / npRows) * npRows));
   }
-  inline bool Mine(gno_t i, gno_t j, int p) {return Mine(i,j);}
 
   inline bool VecMine(gno_t i) { return(vecpart[i] == me); }
 

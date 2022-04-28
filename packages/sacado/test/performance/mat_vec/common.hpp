@@ -31,7 +31,7 @@
 
 //#define SACADO_DISABLE_FAD_VIEW_SPEC
 
-#include "Kokkos_Timer.hpp"
+#include "impl/Kokkos_Timer.hpp"
 
 struct Perf {
   double time;

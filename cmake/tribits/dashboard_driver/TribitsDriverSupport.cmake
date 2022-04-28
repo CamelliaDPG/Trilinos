@@ -37,20 +37,20 @@
 # ************************************************************************
 # @HEADER
 
-include(GetCurrentListDir)
-include(CMakeParseArguments)
-include(SetDefaultAndFromEnv)
+INCLUDE(GetCurrentListDir)
+INCLUDE(CMakeParseArguments)
+INCLUDE(SetDefaultAndFromEnv)
 
 # Set if the inner CMake installs are performed or not
-set_default_and_from_env(TDD_FORCE_INNER_CMAKE_INSTALL 1)
+SET_DEFAULT_AND_FROM_ENV(TDD_FORCE_INNER_CMAKE_INSTALL 1)
 
 # Set if the inner CMake installs are performed or not
-set_default_and_from_env(TRIBITS_TDD_USE_SYSTEM_CTEST 0)
+SET_DEFAULT_AND_FROM_ENV(TRIBITS_TDD_USE_SYSTEM_CTEST 0)
 
 # Get this value outside of any functions so it will be the path to
 # *this* file and not the path to the file calling any of these
 # functions.
-get_current_list_dir(THIS_SCRIPT_DIR)
+GET_CURRENT_LIST_DIR(THIS_SCRIPT_DIR)
 
 #
 # Placeholder for any global setup necessary on all machines...
@@ -58,7 +58,7 @@ get_current_list_dir(THIS_SCRIPT_DIR)
 # Call this function first at the top of any drivers/MACHINE/CMakeLists.txt
 # file.
 #
-function(tribits_driver_setup)
+function(TRIBITS_DRIVER_SETUP)
   #
   # But right now... no global setup required...
   #
@@ -75,7 +75,7 @@ endfunction()
 # TRIBITS_DRIVER_ADD_DASHBOARD have collected a list of which flavors
 # of CMake are required to run all the dashboards on this machine.
 #
-function(tribits_driver_add_test_that_installs_cmake cmake_type)
+function(TRIBITS_DRIVER_ADD_TEST_THAT_INSTALLS_CMAKE cmake_type)
 
   set(known 0)
   if("${cmake_type}" STREQUAL "min" OR
@@ -99,12 +99,12 @@ function(tribits_driver_add_test_that_installs_cmake cmake_type)
 
   find_program(PYTHON_EXE python)
 
-  set_default_and_from_env( TDD_HTTP_PROXY "" )
-  if (TDD_HTTP_PROXY)
-    set(TDD_HTTP_PROXY_ARG "--http-proxy=${TDD_HTTP_PROXY}")
-  else()
-    set(TDD_HTTP_PROXY_ARG "")
-  endif()
+  SET_DEFAULT_AND_FROM_ENV( TDD_HTTP_PROXY "" )
+  IF (TDD_HTTP_PROXY)
+    SET(TDD_HTTP_PROXY_ARG "--http-proxy=${TDD_HTTP_PROXY}")
+  ELSE()
+    SET(TDD_HTTP_PROXY_ARG "")
+  ENDIF()
 
   add_test(uninstall-cmake-${cmake_type} ${CMAKE_COMMAND}
     -E remove_directory "${TD_BASE_DIR}/tools/cmake-${cmake_type}"
@@ -141,11 +141,11 @@ endfunction()
 #  [RUN_SERIAL]
 #  [TIMEOUT_MINUTES 180]
 #
-function(tribits_driver_add_dashboard testname scriptname)
+function(TRIBITS_DRIVER_ADD_DASHBOARD testname scriptname)
 
-  message("TRIBITS_DRIVER_ADD_DASHBOARD:  '${testname}'  '${scriptname}' [${ARGN}]")
+  MESSAGE("TRIBITS_DRIVER_ADD_DASHBOARD:  '${testname}'  '${scriptname}' [${ARGN}]")
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
     # prefix
     PARSE
     # options
@@ -231,21 +231,21 @@ endfunction()
 # flavors of ctest required to drive the other tests added with
 # TRIBITS_DRIVER_ADD_DASHBOARD.
 #
-function(tribits_add_required_cmake_installs)
+function(TRIBITS_ADD_REQUIRED_CMAKE_INSTALLS)
 
-  if (TRIBITS_TDD_USE_SYSTEM_CTEST STREQUAL "1")
+  IF (TRIBITS_TDD_USE_SYSTEM_CTEST STREQUAL "1")
 
-    message(STATUS "Skipping CMake install tests because TRIBITS_TDD_USE_SYSTEM_CTEST==1")
+    MESSAGE(STATUS "Skipping CMake install tests because TRIBITS_TDD_USE_SYSTEM_CTEST==1")
 
-  elseif (TDD_FORCE_INNER_CMAKE_INSTALL STREQUAL "1")
+  ELSEIF (TDD_FORCE_INNER_CMAKE_INSTALL STREQUAL "1")
 
     get_property(types GLOBAL PROPERTY TD_CMAKE_INSTALLER_TYPES)
 
     if (types)
       list(REMOVE_DUPLICATES types)
       foreach (type ${types})
-        message(STATUS "Adding CMake install test ${type}")
-        tribits_driver_add_test_that_installs_cmake(${type})
+        MESSAGE(STATUS "Adding CMake install test ${type}")
+        TRIBITS_DRIVER_ADD_TEST_THAT_INSTALLS_CMAKE(${type})
       endforeach()
     else()
       message("warning: no cmake install tests are necessary...")
@@ -253,10 +253,10 @@ function(tribits_add_required_cmake_installs)
       message("  *before* calls to TRIBITS_ADD_REQUIRED_CMAKE_INSTALLS...")
     endif()
 
-  else()
+  ELSE()
 
-    message(STATUS "Skipping CMake install tests because TDD_FORCE_INNER_CMAKE_INSTALL!=1")
+    MESSAGE(STATUS "Skipping CMake install tests because TDD_FORCE_INNER_CMAKE_INSTALL!=1")
 
-  endif()
+  ENDIF()
 
 endfunction()

@@ -109,7 +109,7 @@ Perf fenl_assembly(
 
   //------------------------------------
 
-  Kokkos::Timer wall_clock ;
+  Kokkos::Impl::Timer wall_clock ;
 
   Perf perf_stats = Perf() ;
 

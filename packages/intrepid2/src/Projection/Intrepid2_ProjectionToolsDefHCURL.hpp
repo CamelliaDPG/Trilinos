@@ -518,13 +518,13 @@ ProjectionTools<DeviceType>::getHCurlBasisCoeffs(Kokkos::DynRankView<basisCoeffs
   for(ordinal_type ie=0; ie<numEdges; ++ie)
     numEdgeDofs += cellBasis->getDofCount(edgeDim,ie);
 
-  ordinal_type numTotalFaceDofs(0);
+  ordinal_type numFaceDofs(0);
   for(ordinal_type iface=0; iface<numFaces; ++iface)
-    numTotalFaceDofs += cellBasis->getDofCount(faceDim,iface);
+    numFaceDofs += cellBasis->getDofCount(faceDim,iface);
 
   auto tagToOrdinal = Kokkos::create_mirror_view_and_copy(MemSpaceType(), cellBasis->getAllDofOrdinal());
 
-  Kokkos::View<ordinal_type*, DeviceType> computedDofs("computedDofs",numEdgeDofs+numTotalFaceDofs);
+  Kokkos::View<ordinal_type*, DeviceType> computedDofs("computedDofs",numEdgeDofs+numFaceDofs);
 
   auto targetEPointsRange  = projStruct->getTargetPointsRange();
   auto targetCurlEPointsRange  = projStruct->getTargetDerivPointsRange();
@@ -820,7 +820,7 @@ ProjectionTools<DeviceType>::getHCurlBasisCoeffs(Kokkos::DynRankView<basisCoeffs
         tagToOrdinal, hGradTagToOrdinal,
         numCellDofs, hgradCardinality,
         offsetBasis, offsetBasisCurl,  offsetTargetCurl,
-        numEdgeDofs+numTotalFaceDofs, dim, derDim));
+        numEdgeDofs+numFaceDofs, dim, derDim));
 
     ScalarViewType cellMassMat_("cellMassMat_", numCells, numCellDofs+hgradCardinality, numCellDofs+hgradCardinality),
         cellRhsMat_("rhsMat_", numCells, numCellDofs+hgradCardinality);

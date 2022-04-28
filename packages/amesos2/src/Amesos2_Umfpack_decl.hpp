@@ -91,11 +91,6 @@ public:
 
   typedef FunctionMap<Amesos2::Umfpack,umfpack_type>           function_map;
 
-  typedef Kokkos::DefaultHostExecutionSpace              HostExecSpaceType;
-  typedef Kokkos::View<int*, HostExecSpaceType>          host_size_type_array;
-  typedef Kokkos::View<int*, HostExecSpaceType>          host_ordinal_type_array;
-  typedef Kokkos::View<umfpack_type*, HostExecSpaceType> host_value_type_array;
-
   /// \name Constructor/Destructor methods
   //@{
 
@@ -202,15 +197,14 @@ private:
     double Control[UMFPACK_CONTROL];
   } data_;
 
-  // The following Kokkos::View's are persisting storage for A's CCS arrays
+  // The following Arrays are persisting storage arrays for A, X, and B
   /// Stores the values of the nonzero entries for Umfpack
-  host_value_type_array nzvals_view_;
+  Teuchos::Array<umfpack_type> nzvals_;
   /// Stores the location in \c Ai_ and Aval_ that starts row j
-  host_ordinal_type_array rowind_view_;
+  Teuchos::Array<int> rowind_;
   /// Stores the row indices of the nonzero entries
-  host_size_type_array colptr_view_;
+  Teuchos::Array<int> colptr_;
 
-  // The following Arrays are persisting storage arrays for X, and B
   /// Persisting 1D store for X
   Teuchos::Array<umfpack_type> xvals_;  int ldx_;
   /// Persisting 1D store for B

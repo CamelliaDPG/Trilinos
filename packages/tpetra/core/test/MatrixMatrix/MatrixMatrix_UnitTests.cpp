@@ -120,7 +120,7 @@ getIdentityMatrix (Teuchos::FancyOStream& out,
     Tpetra::createCrsMatrix<SC, LO, GO, NT> (identityRowMap, 1);
 
   out << "Fill CrsMatrix" << endl;
-  Teuchos::ArrayView<const GO> gblRows = identityRowMap->getLocalElementList ();
+  Teuchos::ArrayView<const GO> gblRows = identityRowMap->getNodeElementList ();
   for (auto it = gblRows.begin (); it != gblRows.end (); ++it) {
     Teuchos::Array<GO> col (1, *it);
     Teuchos::Array<SC> val (1, Teuchos::ScalarTraits<SC>::one ());
@@ -153,7 +153,7 @@ getIdentityMatrixWithMap (Teuchos::FancyOStream& out,
     Tpetra::createCrsMatrix<SC, LO, GO, NT> (identityRowMap, 1);
 
   out << "Fill CrsMatrix" << endl;
-  Teuchos::ArrayView<const GO> gblRows = identityRowMap->getLocalElementList ();
+  Teuchos::ArrayView<const GO> gblRows = identityRowMap->getNodeElementList ();
   for (auto it = gblRows.begin (); it != gblRows.end (); ++it) {
     Teuchos::Array<GO> col (1, *it);
     Teuchos::Array<SC> val (1, Teuchos::ScalarTraits<SC>::one ());
@@ -1051,7 +1051,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMat, operations_test,SC,LO, GO, NT) 
       auto rowMap = A->getRowMap();
       Tpetra::Vector<MT, LO, GO, NT> diags(rowMap);
       A->getLocalDiagCopy(diags);
-      size_t diagLength = rowMap->getLocalNumElements();
+      size_t diagLength = rowMap->getNodeNumElements();
       Teuchos::Array<MT> diagonal(diagLength);
       diags.get1dCopy(diagonal());
 
@@ -1130,14 +1130,14 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMat, operations_test,SC,LO, GO, NT) 
       B = Reader<Matrix_t >::readSparseFile(B_file, comm, true, false, false);
       //declare E with enough entries to receive A + B
       size_t n = 0;
-      for (size_t i = 0; i < B->getLocalNumRows(); i++) {
+      for (size_t i = 0; i < B->getNodeNumRows(); i++) {
 	if (n < B->getNumEntriesInLocalRow(i))
 	  n = B->getNumEntriesInLocalRow(i);
       }
-      n += A->getLocalMaxNumRowEntries();
+      n += A->getNodeMaxNumRowEntries();
 
       RCP<const map_type> rm = B->getRowMap();
-      RCP<Matrix_t> E = rcp (new Matrix_t(rm, n));
+      RCP<Matrix_t> E = rcp (new Matrix_t(rm, n, Tpetra::StaticProfile));
       auto one = Teuchos::ScalarTraits<MT>::one();
       Tpetra::MatrixMatrix::Add(*B, BT, one, *E, one);
 
@@ -1277,7 +1277,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMat, range_row_test, SC, LO, GO, NT)
 
   newOut << "Fill bMatrix" << endl;
   {
-    Teuchos::ArrayView<const GO> gblRows = bRowMap->getLocalElementList ();
+    Teuchos::ArrayView<const GO> gblRows = bRowMap->getNodeElementList ();
     for (auto it = gblRows.begin (); it != gblRows.end (); ++it) {
       Array<GO> col(1,(*it)/2);
       Array<SC> val(1,3.0);
@@ -1339,7 +1339,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMat, range_row_test, SC, LO, GO, NT)
     Tpetra::createCrsMatrix<SC,LO,GO,NT>(bTransRowMap, 2);
 
   {
-    Teuchos::ArrayView<const GO> gblRows = bRowMap->getLocalElementList ();
+    Teuchos::ArrayView<const GO> gblRows = bRowMap->getNodeElementList ();
     for (auto it = gblRows.begin (); it != gblRows.end (); ++it) {
       Teuchos::Array<GO> col(1,*it);
       Teuchos::Array<SC> val(1,3.0);
@@ -1472,7 +1472,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMat, ATI_range_row_test, SC, LO, GO,
 
   newOut << "Fill matrix aMat" << endl;
   {
-    Teuchos::ArrayView<const GO> gblRows = aRowMap->getLocalElementList ();
+    Teuchos::ArrayView<const GO> gblRows = aRowMap->getNodeElementList ();
     for (auto it = gblRows.begin (); it != gblRows.end (); ++it) {
       Teuchos::Array<GO> col(1,(*it)/2);
       Teuchos::Array<SC> val(1,3.0);
@@ -1814,7 +1814,7 @@ bool checkLocallySorted(const CrsMat& A)
   using Teuchos::reduceAll;
   using Teuchos::outArg;
   auto graph = A.getLocalMatrixHost().graph;
-  LO numLocalRows = A.getLocalNumRows();
+  LO numLocalRows = A.getNodeNumRows();
   int allSorted = 1;
   for(int i = 0; i < numLocalRows; i++)
   {
@@ -1847,7 +1847,7 @@ bool verifySum(const CrsMat& A, const CrsMat& B, const CrsMat& C)
   typedef typename CrsMat::nonconst_values_host_view_type vals_type;
 
   auto rowMap = A.getRowMap();
-  LO numLocalRows = rowMap->getLocalNumElements();
+  LO numLocalRows = rowMap->getNodeNumElements();
   GO Amax = A.getGlobalMaxNumRowEntries();
   GO Bmax = B.getGlobalMaxNumRowEntries();
   GO Cmax = C.getGlobalMaxNumRowEntries();
@@ -1937,11 +1937,11 @@ RCP<Tpetra::CrsMatrix<SC, LO, GO, NT>> getTestMatrix(
 {
   using Teuchos::Array;
   using Teuchos::ArrayView;
-  const LO maxNnzPerRow = colMap->getLocalNumElements();
+  const LO maxNnzPerRow = colMap->getNodeNumElements();
   auto mat = rcp(new Tpetra::CrsMatrix<SC, LO, GO, NT>(rowRangeMap, colMap, maxNnzPerRow));
   //get consistent results between runs on a given machine
   srand(seed);
-  LO numLocalRows = mat->getLocalNumRows();
+  LO numLocalRows = mat->getNodeNumRows();
   for(LO i = 0; i < numLocalRows; i++)
   {
     int n = rand() % maxNnzPerRow;
@@ -1950,7 +1950,7 @@ RCP<Tpetra::CrsMatrix<SC, LO, GO, NT>> getTestMatrix(
     for(int j = 0; j < n; j++)
     {
       vals[j] = 10.0 * rand() / RAND_MAX;
-      inds[j] = rand() % colMap->getLocalNumElements();
+      inds[j] = rand() % colMap->getNodeNumElements();
     }
     mat->insertLocalValues(i, inds(), vals());
   }
@@ -1976,8 +1976,8 @@ RCP<Tpetra::CrsMatrix<SC, LO, GO, NT>> getUnsortedTestMatrix(
   using kk_scalar_t =  typename KCRS::values_type::non_const_value_type;
   //Get consistent results between runs on a given machine
   srand(seed);
-  lno_t numLocalRows = rowRangeMap->getLocalNumElements();
-  lno_t numLocalCols = colMap->getLocalNumElements();
+  lno_t numLocalRows = rowRangeMap->getNodeNumElements();
+  lno_t numLocalCols = colMap->getNodeNumElements();
   Array<int> entriesPerRow(numLocalRows, 0);
   for(LO i = 0; i < numLocalRows; i++)
     entriesPerRow[i] = rand() % numLocalCols;
@@ -2209,8 +2209,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMatAdd, locally_unsorted, SC, LO, GO
 }*/
 
 
-// These are the tests associated to UNIT_TEST_GROUP_SC_LO_GO_NO that work for all backends.
-#define UNIT_TEST_GROUP_SC_LO_GO_NO_COMMON( SC, LO, GO, NT )                   \
+#define UNIT_TEST_GROUP_SC_LO_GO_NO( SC, LO, GO, NT )                   \
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMat, operations_test,SC, LO, GO, NT) \
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMat, range_row_test, SC, LO, GO, NT) \
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMat, ATI_range_row_test, SC, LO, GO, NT) \
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMat, threaded_add_sorted, SC, LO, GO, NT) \
@@ -2221,18 +2221,6 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(Tpetra_MatMatAdd, locally_unsorted, SC, LO, GO
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMatAdd, locally_unsorted, SC, LO, GO, NT) \
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMatAdd, different_col_maps, SC, LO, GO, NT) \
   TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMatAdd, different_index_base, SC, LO, GO, NT)
-
-// FIXME_SYCL requires querying free device memory in KokkosKernels, see
-// https://github.com/kokkos/kokkos-kernels/issues/1062.
-// The SYCL specifications don't allow asking for that.
-#ifdef HAVE_TPETRA_SYCL
-  #define UNIT_TEST_GROUP_SC_LO_GO_NO( SC, LO, GO, NT )  \
-    UNIT_TEST_GROUP_SC_LO_GO_NO_COMMON( SC, LO, GO, NT )
-#else
-  #define UNIT_TEST_GROUP_SC_LO_GO_NO( SC, LO, GO, NT )                                 \
-    TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(Tpetra_MatMat, operations_test,SC, LO, GO, NT) \
-    UNIT_TEST_GROUP_SC_LO_GO_NO_COMMON( SC, LO, GO, NT )
-#endif
 
   TPETRA_ETI_MANGLING_TYPEDEFS()
 

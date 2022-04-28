@@ -173,9 +173,6 @@ typedef MueLu::LineDetectionFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> Line
 #ifdef MUELU_LOCALPERMUTATIONSTRATEGY_SHORT
 typedef MueLu::LocalPermutationStrategy<Scalar,LocalOrdinal,GlobalOrdinal,Node> LocalPermutationStrategy;
 #endif
-#ifdef MUELU_LOWPRECISIONFACTORY_SHORT
-typedef MueLu::LowPrecisionFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> LowPrecisionFactory;
-#endif
 #ifdef MUELU_MAPTRANSFERFACTORY_SHORT
 typedef MueLu::MapTransferFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> MapTransferFactory;
 #endif
@@ -250,9 +247,6 @@ typedef MueLu::RebalanceTransferFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> 
 #endif
 #ifdef MUELU_REGIONRFACTORY_SHORT
 typedef MueLu::RegionRFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> RegionRFactory;
-#endif
-#ifdef MUELU_REITZINGERPFACTORY_SHORT
-typedef MueLu::ReitzingerPFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> ReitzingerPFactory;
 #endif
 #ifdef MUELU_REORDERBLOCKAFACTORY_SHORT
 typedef MueLu::ReorderBlockAFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> ReorderBlockAFactory;
@@ -356,9 +350,6 @@ typedef MueLu::TpetraOperator<Scalar,LocalOrdinal,GlobalOrdinal,Node> TpetraOper
 #ifdef MUELU_TRANSPFACTORY_SHORT
 typedef MueLu::TransPFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> TransPFactory;
 #endif
-#ifdef MUELU_RFROMP_OR_TRANSP_SHORT
-typedef MueLu::RfromP_Or_TransP<Scalar,LocalOrdinal,GlobalOrdinal,Node> RfromP_Or_TransP;
-#endif
 #ifdef MUELU_TRILINOSSMOOTHER_SHORT
 typedef MueLu::TrilinosSmoother<Scalar,LocalOrdinal,GlobalOrdinal,Node> TrilinosSmoother;
 #endif
@@ -382,9 +373,6 @@ typedef MueLu::VariableDofLaplacianFactory<Scalar,LocalOrdinal,GlobalOrdinal,Nod
 #endif
 #ifdef MUELU_SEMICOARSENPFACTORY_SHORT
 typedef MueLu::SemiCoarsenPFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> SemiCoarsenPFactory;
-#endif
-#ifdef MUELU_SEMICOARSENPFACTORY_KOKKOS_SHORT
-typedef MueLu::SemiCoarsenPFactory_kokkos<Scalar,LocalOrdinal,GlobalOrdinal,Node> SemiCoarsenPFactory_kokkos;
 #endif
 #ifdef MUELU_UZAWASMOOTHER_SHORT
 typedef MueLu::UzawaSmoother<Scalar,LocalOrdinal,GlobalOrdinal,Node> UzawaSmoother;

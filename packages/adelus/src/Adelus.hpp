@@ -152,14 +152,10 @@ namespace Adelus {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called multiple times with the unmanaged View, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<double>**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
                          Kokkos::CudaSpace,
-#else
-                         Kokkos::Experimental::HIPSpace,
-#endif
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
     AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
@@ -201,14 +197,10 @@ namespace Adelus {
 
     AA_Internal AA_i(reinterpret_cast<Kokkos::complex<double> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) 
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<double>**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
-                         Kokkos::CudaSpace> AA_Internal_dev;
-#else
-                         Kokkos::Experimental::HIPSpace> AA_Internal_dev;
-#endif
+                         Kokkos::CudaSpace > AA_Internal_dev;
 
     AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
@@ -258,14 +250,10 @@ namespace Adelus {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called multiple times with the unmanaged View, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<double**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
                          Kokkos::CudaSpace,
-#else
-                         Kokkos::Experimental::HIPSpace,
-#endif
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
     AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
@@ -307,14 +295,10 @@ namespace Adelus {
 
     AA_Internal AA_i(reinterpret_cast<double *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP) 
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<double**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
-                         Kokkos::CudaSpace> AA_Internal_dev;
-#else
-                         Kokkos::Experimental::HIPSpace> AA_Internal_dev;
-#endif
+                         Kokkos::CudaSpace > AA_Internal_dev;
 
     AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
@@ -364,14 +348,10 @@ namespace Adelus {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called multiple times with the unmanaged View, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<float>**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
                          Kokkos::CudaSpace,
-#else
-                         Kokkos::Experimental::HIPSpace,
-#endif
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
     AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
@@ -413,14 +393,10 @@ namespace Adelus {
 
     AA_Internal AA_i(reinterpret_cast<Kokkos::complex<float> *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<Kokkos::complex<float>**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
-                         Kokkos::CudaSpace> AA_Internal_dev;
-#else
-                         Kokkos::Experimental::HIPSpace> AA_Internal_dev;
-#endif
+                         Kokkos::CudaSpace > AA_Internal_dev;
 
     AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 
@@ -470,14 +446,10 @@ namespace Adelus {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank) ;
 
     { // Note: To avoid segmentation fault when FactorSolve is called multiple times with the unmanaged View, it's safest to make sure unmanaged View falls out of scope before freeing its memory.
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<float**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
                          Kokkos::CudaSpace,
-#else
-                         Kokkos::Experimental::HIPSpace,
-#endif
                          Kokkos::MemoryTraits<Kokkos::Unmanaged> > AA_Internal;
 
     AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
@@ -519,14 +491,10 @@ namespace Adelus {
 
     AA_Internal AA_i(reinterpret_cast<float *>(AA), my_rows_, my_cols_ + my_rhs_ + 6);
 
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA 
     typedef Kokkos::View<float**,
                          Kokkos::LayoutLeft,
-#ifdef KOKKOS_ENABLE_CUDA
-                         Kokkos::CudaSpace> AA_Internal_dev;
-#else
-                         Kokkos::Experimental::HIPSpace> AA_Internal_dev;
-#endif
+                         Kokkos::CudaSpace > AA_Internal_dev;
 
     AA_Internal_dev AA_i_dev( "AA_i_dev", my_rows_, my_cols_ + my_rhs_ + 6 );
 

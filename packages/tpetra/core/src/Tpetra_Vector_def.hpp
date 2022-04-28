@@ -103,14 +103,6 @@ namespace Tpetra {
     : base_type (map, view, origView)
   {}
 
-
-  template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
-  Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
-  Vector (const Teuchos::RCP<const map_type>& map,
-          const wrapped_dual_view_type& view)
-    : base_type (map, view)
-  {}
-
   template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
   Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
   Vector (const MultiVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>& X,
@@ -237,7 +229,7 @@ namespace Tpetra {
     using Teuchos::rcp;
     typedef Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node> V;
 
-    const size_t newNumRows = subMap->getLocalNumElements ();
+    const size_t newNumRows = subMap->getNodeNumElements ();
     const bool tooManyElts = newNumRows + offset > this->getOrigNumLocalRows ();
     if (tooManyElts) {
       const int myRank = this->getMap ()->getComm ()->getRank ();
@@ -249,8 +241,11 @@ namespace Tpetra {
         << this->getOrigNumLocalRows () << " rows on this process.");
     }
 
-    // Need 'this->' to get view_ from parent class.
-    return rcp (new V (subMap, wrapped_dual_view_type(this->view_,Kokkos::pair<int,int>(offset,offset+newNumRows),ALL())));
+    const std::pair<size_t, size_t> offsetPair (offset, offset + newNumRows);
+    // Need 'this->' to get view_ and origView_ from parent class.
+    return rcp (new V (subMap,
+                       subview (this->view_, offsetPair, ALL ()),
+                       this->origView_));
   }
 
   template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>

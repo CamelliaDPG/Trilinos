@@ -17,7 +17,6 @@
 
 #if ENABLE_PARALLEL_EPU
 #include <mpi.h>
-#include "epu.C"
-#else
-#error "PEPU: Parallel capability not enabled. This should not happen."
 #endif
+
+#include "epu.C"

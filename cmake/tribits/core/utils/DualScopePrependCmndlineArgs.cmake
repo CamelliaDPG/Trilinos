@@ -37,11 +37,11 @@
 # ************************************************************************
 # @HEADER
 
-include(PrependCmndlineArgs)
-include(DualScopeSet)
+INCLUDE(PrependCmndlineArgs)
+INCLUDE(DualScopeSet)
 
 #
-# @MACRO: dual_scope_prepend_cmndline_args()
+# @MACRO: DUAL_SCOPE_PREPEND_CMNDLINE_ARGS()
 #
 # Utility function that prepends command-line arguments to a variable of
 # command-line arguments and sets the result in current scope and parent
@@ -49,11 +49,11 @@ include(DualScopeSet)
 #
 # Usage::
 #
-#   dual_scope_prepend_cmndline_args(<var> "<extraArgs>")
+#   DUAL_SCOPE_PREPEND_CMNDLINE_ARGS(<var> "<extraArgs>")
 #
-# Just calls `prepend_cmndline_args()`_ and then ``set(<var> ${<var>} PARENT_SCOPE)``.
+# Just calls `PREPEND_CMNDLINE_ARGS()`_ and then ``SET(<var> ${<var>} PARENT_SCOPE)``.
 #
-macro(dual_scope_prepend_cmndline_args  CMNDLINE_VAR_NAME  EXTRAARGS)
-  prepend_cmndline_args(${CMNDLINE_VAR_NAME} "${EXTRAARGS}")
-  set(${CMNDLINE_VAR_NAME} "${${CMNDLINE_VAR_NAME}}" PARENT_SCOPE)
-endmacro()
+MACRO(DUAL_SCOPE_PREPEND_CMNDLINE_ARGS  CMNDLINE_VAR_NAME  EXTRAARGS)
+  PREPEND_CMNDLINE_ARGS(${CMNDLINE_VAR_NAME} "${EXTRAARGS}")
+  SET(${CMNDLINE_VAR_NAME} "${${CMNDLINE_VAR_NAME}}" PARENT_SCOPE)
+ENDMACRO()

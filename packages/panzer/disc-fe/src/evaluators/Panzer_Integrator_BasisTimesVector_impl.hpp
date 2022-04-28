@@ -121,7 +121,7 @@ namespace panzer
     int i(0);
     fieldMults_.resize(fmNames.size());
     kokkosFieldMults_ =
-      View<Kokkos::View<const ScalarT**, typename PHX::DevLayout<ScalarT>::type, Kokkos::MemoryUnmanaged>*>("BasisTimesVector::KokkosFieldMultipliers",
+      View<View<const ScalarT**>*>("BasisTimesVector::KokkosFieldMultipliers",
       fmNames.size());
     for (const auto& name : fmNames)
     {
@@ -197,7 +197,7 @@ namespace panzer
     int i(0);
     fieldMults_.resize(multipliers.size());
     kokkosFieldMults_ =
-      View<Kokkos::View<const ScalarT**, typename PHX::DevLayout<ScalarT>::type, Kokkos::MemoryUnmanaged>*>("BasisTimesVector::KokkosFieldMultipliers",
+      View<View<const ScalarT**>*>("BasisTimesVector::KokkosFieldMultipliers",
       multipliers.size());
     for (const auto& fm : multipliers)
     {
@@ -261,10 +261,8 @@ namespace panzer
     using std::size_t;
 
     // Get the PHX::Views of the field multipliers.
-    auto kokkosFieldMults_h = Kokkos::create_mirror_view(kokkosFieldMults_);
     for (size_t i(0); i < fieldMults_.size(); ++i)
-      kokkosFieldMults_h(i) = fieldMults_[i].get_static_view();
-    Kokkos::deep_copy(kokkosFieldMults_, kokkosFieldMults_h);
+      kokkosFieldMults_(i) = fieldMults_[i].get_static_view();
 
     // Determine the number of quadrature points and the dimensionality of the
     // vector that we're integrating.
@@ -274,15 +272,6 @@ namespace panzer
     // Determine the index in the Workset bases for our particular basis name.
     if (not useDescriptors_)
       basisIndex_ = getBasisIndex(basisName_, (*sd.worksets_)[0], this->wda);
-
-    // Allocate temporary memory
-    if (Sacado::IsADType<ScalarT>::value) {
-      const auto fadSize = Kokkos::dimension_scalar(field_.get_static_view());
-      tmp_ = PHX::View<ScalarT*>("panzer::Integrator::BasisTimesVector::tmp_",field_.extent(0),fadSize);
-    } else {
-      tmp_ = PHX::View<ScalarT*>("panzer::Integrator::BasisTimesVector::tmp_",field_.extent(0));
-    }
-
   } // end of postRegistrationSetup()
 
   /////////////////////////////////////////////////////////////////////////////
@@ -309,6 +298,7 @@ namespace panzer
 
     // The following if-block is for the sake of optimization depending on the
     // number of field multipliers.
+    ScalarT tmp;
     if (NUM_FIELD_MULT == 0)
     {
       // Loop over the quadrature points and dimensions of our vector fields,
@@ -318,8 +308,9 @@ namespace panzer
       {
         for (int dim(0); dim < numDim_; ++dim)
         {
+          tmp = multiplier_ * vector_(cell, qp, dim);
           for (int basis(0); basis < numBases; ++basis)
-            field_(cell, basis) += basis_(cell, basis, qp, dim) * multiplier_ * vector_(cell, qp, dim);
+            field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     }
@@ -332,8 +323,10 @@ namespace panzer
       {
         for (int dim(0); dim < numDim_; ++dim)
         {
+          tmp = multiplier_ * vector_(cell, qp, dim) *
+            kokkosFieldMults_(0)(cell, qp);
           for (int basis(0); basis < numBases; ++basis)
-            field_(cell, basis) += basis_(cell, basis, qp, dim) * multiplier_ * vector_(cell, qp, dim) * kokkosFieldMults_(0)(cell, qp);
+            field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     }
@@ -347,13 +340,14 @@ namespace panzer
       const int numFieldMults(kokkosFieldMults_.extent(0));
       for (int qp(0); qp < numQP_; ++qp)
       {
-        tmp_(cell) = 1.0;
+        ScalarT fieldMultsTotal(1);
         for (int fm(0); fm < numFieldMults; ++fm)
-          tmp_(cell) *= kokkosFieldMults_(fm)(cell, qp);
+          fieldMultsTotal *= kokkosFieldMults_(fm)(cell, qp);
         for (int dim(0); dim < numDim_; ++dim)
         {
+          tmp = multiplier_ * vector_(cell, qp, dim) * fieldMultsTotal;
           for (int basis(0); basis < numBases; ++basis)
-            field_(cell, basis) += basis_(cell, basis, qp, dim) * multiplier_ * vector_(cell, qp, dim) * tmp_(cell);
+            field_(cell, basis) += basis_(cell, basis, qp, dim) * tmp;
         } // end loop over the dimensions of the vector field
       } // end loop over the quadrature points
     } // end if (NUM_FIELD_MULT == something)
@@ -377,8 +371,7 @@ namespace panzer
     const panzer::BasisValues2<double>& bv = useDescriptors_ ?
       this->wda(workset).getBasisValues(bd_,id_) :
       *this->wda(workset).bases[basisIndex_];
-    using Array=typename BasisValues2<double>::ConstArray_CellBasisIPDim;
-    basis_ = useDescriptors_ ? bv.getVectorBasisValues(true) : Array(bv.weighted_basis_vector);
+    basis_ = bv.weighted_basis_vector;
 
     // The following if-block is for the sake of optimization depending on the
     // number of field multipliers.  The parallel_fors will loop over the cells

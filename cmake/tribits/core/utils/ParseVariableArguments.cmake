@@ -37,28 +37,28 @@
 # ************************************************************************
 # @HEADER
 
-# Set up to use cmake_parse_arguments() function!
-include(CMakeParseArguments)
+# Set up to use CMAKE_PARSE_ARGUMENTS() function!
+INCLUDE(CMakeParseArguments)
 # NOTE: For CMake versions 3.5.0 and above, this module is empty so the
-# natively implemented function cmake_parse_arguments() will get used!
+# natively implemented function CMAKE_PARSE_ARGUMENTS() will get used!
 
-macro(parse_arguments_deprecated_warning)
-  message(WARNING "parse_arguments() is deprecated and should not be used."
-     " Instead use cmake_parse_arguments()")
-endmacro()
+MACRO(PARSE_ARGUMENTS_DEPRECATED_WARNING)
+  MESSAGE(WARNING "PARSE_ARGUMENTS() is deprecated and should not be used."
+     " Instead use CMAKE_PARSE_ARGUMENTS()")
+ENDMACRO()
 
-parse_arguments_deprecated_warning()
+PARSE_ARGUMENTS_DEPRECATED_WARNING()
 
 # Set PARSE_ARGUMENTS_DUMP_OUTPUT_ENABLED to TRUE to see output from parsing.
 
-function(parse_arguments_dump_output  OUTPUT_STR)
-  if (PARSE_ARGUMENTS_DUMP_OUTPUT_ENABLED)
-    message("${OUTPUT_STR}")
-  endif()
-endfunction()
+FUNCTION(PARSE_ARGUMENTS_DUMP_OUTPUT  OUTPUT_STR)
+  IF (PARSE_ARGUMENTS_DUMP_OUTPUT_ENABLED)
+    MESSAGE("${OUTPUT_STR}")
+  ENDIF()
+ENDFUNCTION()
 
 #
-# @MACRO: parse_arguments()
+# @MACRO: PARSE_ARGUMENTS()
 #
 # Parse a set of macro/function input arguments into different lists.  This
 # allows the easy implementation of keyword-based user-defined macros and
@@ -66,7 +66,7 @@ endfunction()
 #
 # Usage::
 #
-#   parse_arguments(
+#   PARSE_ARGUMENTS(
 #     <prefix>  <argNamesList>  <optionNamesList>
 #     <inputArgsList>
 #     )
@@ -105,11 +105,11 @@ endfunction()
 # functions like is used by some built-in CMake commands.
 #
 # For example, consider the following user-defined macro that uses both
-# positional and keyword-based arguments using ``parse_arguments()``::
+# positional and keyword-based arguments using ``PARSE_ARGUMENTS()``::
 #
-#   macro(parse_special_vars  BASE_NAME)
+#   MACRO(PARSE_SPECIAL_VARS  BASE_NAME)
 #
-#     parse_arguments(
+#     PARSE_ARGUMENTS(
 #       #prefix
 #       ${BASE_NAME}
 #       #lists
@@ -119,11 +119,11 @@ endfunction()
 #       ${ARGN}
 #       )
 #
-#   endmacro()
+#   ENDMACRO()
 #
 # Calling this macro as::
 #
-#   parse_special_vars(MyVar ARG0 a b ARG2 c OPT1)
+#   PARSE_SPECIAL_VARS(MyVar ARG0 a b ARG2 c OPT1)
 #
 # sets the following variables in the current scope::
 #
@@ -145,7 +145,7 @@ endfunction()
 # arguments are put into ``<prefix>_DEFAULT_ARGS``.  For example, if one
 # passes in::
 #
-#   parse_special_vars(MyVar ARG5 a b c)
+#   PARSE_SPECIAL_VARS(MyVar ARG5 a b c)
 #
 # you will get::
 #
@@ -159,7 +159,7 @@ endfunction()
 # Multiple occurrences of keyword arguments in ``<inputArgsList>`` is allowed
 # but only the last one listed will be recorded.  For example, if one calls::
 #
-#   parse_special_vars(MyVar ARG1 a b ARG1 c)
+#   PARSE_SPECIAL_VARS(MyVar ARG1 a b ARG1 c)
 #
 # then this will set::
 #
@@ -176,7 +176,7 @@ endfunction()
 # If one puts an option keyword in the middle of a keyword argument list, the
 # option keyword will get pulled out of the list.  For example, if one calls::
 #
-#   parse_special_vars(MyVar ARG0 a OPT0 c)
+#   PARSE_SPECIAL_VARS(MyVar ARG0 a OPT0 c)
 #
 # then this will set::
 #
@@ -195,65 +195,65 @@ endfunction()
 #
 # **PERFORMANCE:** This function will scale as::
 #
-#   o( (len(<argNamesList>) * len(<optionNamesList>)) * len(<inputArgsList>) )
+#   O( (len(<argNamesList>) * len(<optionNamesList>)) * len(<inputArgsList>) )
 #
 # Therefore, this could scale very badly for large sets of argument and option
 # names and input argument list names.
 #
-macro(parse_arguments prefix arg_names option_names)
+MACRO(PARSE_ARGUMENTS prefix arg_names option_names)
    
-  parse_arguments_deprecated_warning()
+  PARSE_ARGUMENTS_DEPRECATED_WARNING()
  
-  parse_arguments_dump_output("PARSE_ARGUMENTS: prefix='${prefix}'")
-  parse_arguments_dump_output("PARSE_ARGUMENTS: arg_names='${arg_names}'")
-  parse_arguments_dump_output("PARSE_ARGUMENTS: option_names='${option_names}'")
-  parse_arguments_dump_output("PARSE_ARGUMENTS: ARGN='${ARGN}'")
+  PARSE_ARGUMENTS_DUMP_OUTPUT("PARSE_ARGUMENTS: prefix='${prefix}'")
+  PARSE_ARGUMENTS_DUMP_OUTPUT("PARSE_ARGUMENTS: arg_names='${arg_names}'")
+  PARSE_ARGUMENTS_DUMP_OUTPUT("PARSE_ARGUMENTS: option_names='${option_names}'")
+  PARSE_ARGUMENTS_DUMP_OUTPUT("PARSE_ARGUMENTS: ARGN='${ARGN}'")
 
-  foreach(arg_name ${arg_names})
-    set(${prefix}_${arg_name})
-  endforeach()
+  FOREACH(arg_name ${arg_names})
+    SET(${prefix}_${arg_name})
+  ENDFOREACH()
 
-  foreach(option ${option_names})
-    set(${prefix}_${option} FALSE)
-  endforeach()
+  FOREACH(option ${option_names})
+    SET(${prefix}_${option} FALSE)
+  ENDFOREACH()
 
-  set(DEFAULT_ARGS)
-  set(current_arg_name DEFAULT_ARGS)
-  set(current_arg_list)
+  SET(DEFAULT_ARGS)
+  SET(current_arg_name DEFAULT_ARGS)
+  SET(current_arg_list)
 
-  foreach(arg ${ARGN})
-    set(larg_names ${arg_names})
-    list(FIND larg_names "${arg}" is_arg_name)
-    if (is_arg_name GREATER -1)
-      set(${prefix}_${current_arg_name} "${current_arg_list}")
-      parse_arguments_dump_output("PARSE_ARGUMENTS: ${prefix}_${current_arg_name} = '${${prefix}_${current_arg_name}}'" )
-      set(current_arg_name "${arg}")
-      set(current_arg_list)
-    else()
-      set(loption_names "${option_names}")
-      list(FIND loption_names "${arg}" is_option)
-      if (is_option GREATER -1)
-        set(${prefix}_${arg} TRUE)
-        parse_arguments_dump_output( "PARSE_ARGUMENTS: ${prefix}_${arg} = '${${prefix}_${arg}}'" )
-      else()
-        list(APPEND current_arg_list "${arg}")
-      endif()
-    endif()
-  endforeach()
+  FOREACH(arg ${ARGN})
+    SET(larg_names ${arg_names})
+    LIST(FIND larg_names "${arg}" is_arg_name)
+    IF (is_arg_name GREATER -1)
+      SET(${prefix}_${current_arg_name} "${current_arg_list}")
+      PARSE_ARGUMENTS_DUMP_OUTPUT("PARSE_ARGUMENTS: ${prefix}_${current_arg_name} = '${${prefix}_${current_arg_name}}'" )
+      SET(current_arg_name "${arg}")
+      SET(current_arg_list)
+    ELSE()
+      SET(loption_names "${option_names}")
+      LIST(FIND loption_names "${arg}" is_option)
+      IF (is_option GREATER -1)
+        SET(${prefix}_${arg} TRUE)
+        PARSE_ARGUMENTS_DUMP_OUTPUT( "PARSE_ARGUMENTS: ${prefix}_${arg} = '${${prefix}_${arg}}'" )
+      ELSE()
+        LIST(APPEND current_arg_list "${arg}")
+      ENDIF()
+    ENDIF()
+  ENDFOREACH()
 
-  set(${prefix}_${current_arg_name} "${current_arg_list}")
-  parse_arguments_dump_output( "PARSE_ARGUMENTS: ${prefix}_${current_arg_name} = '${${prefix}_${current_arg_name}}'" )
+  SET(${prefix}_${current_arg_name} "${current_arg_list}")
+  PARSE_ARGUMENTS_DUMP_OUTPUT( "PARSE_ARGUMENTS: ${prefix}_${current_arg_name} = '${${prefix}_${current_arg_name}}'" )
 
-endmacro()
+ENDMACRO()
 
 # NOTE: If the above function turns out to be a performance bottle neck, there
 # are a few things that could be done to improve performance.  One thing you
-# could do is repalce the o(len(arg_names)) and o(len(option_names)) lookups
-# with o(1) lookups by creating CMake variables of the name
-# ${OUTER_FUNC_NAME}_arg_<argNamei> and then just look of that variable exists
+# could do is repalce the O(len(arg_names)) and O(len(option_names)) lookups
+# with O(1) lookups by creating CMake variables of the name
+# ${OUTER_FUNC_NAME}_arg_<argNamei> and then just look of that varible exists
 # or not.  That should use a hash function.  That might actually slow things
 # down for short lists however so we would have to measure, measure,
 # measure. I would have to pass in the function/macro name to disabiguate
-# the variable names.  It would really be better if cmake would provide a
+# the varible names.  It would really be better if cmake would provide a
 # sorted list find operation.  That would make this much faster for large
 # numbers of argument and option names.

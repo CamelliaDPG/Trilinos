@@ -6,10 +6,16 @@
 // ****************************************************************************
 // @HEADER
 
-#include "Tempus_UnitTest_Utils.hpp"
-
+#include "Teuchos_UnitTestHarness.hpp"
 #include "Teuchos_XMLParameterListHelpers.hpp"
+#include "Teuchos_TimeMonitor.hpp"
+#include "Teuchos_DefaultComm.hpp"
 
+#include "Thyra_VectorStdOps.hpp"
+
+#include "Tempus_IntegratorBasic.hpp"
+#include "Tempus_StepperFactory.hpp"
+#include "Tempus_UnitTest_Utils.hpp"
 #include "Tempus_TimeStepControl.hpp"
 
 #include "Tempus_StepperNewmarkImplicitDForm.hpp"
@@ -18,8 +24,13 @@
 #include "Tempus_StepperNewmarkImplicitDFormModifierDefault.hpp"
 #include "Tempus_StepperNewmarkImplicitDFormModifierXDefault.hpp"
 
+#include "../TestModels/SinCosModel.hpp"
+#include "../TestModels/VanDerPolModel.hpp"
 #include "../TestModels/HarmonicOscillatorModel.hpp"
+#include "../TestUtils/Tempus_ConvergenceTestUtils.hpp"
 
+#include <fstream>
+#include <vector>
 
 namespace Tempus_Unit_Test {
 
@@ -29,6 +40,7 @@ using Teuchos::rcp_const_cast;
 using Teuchos::rcp_dynamic_cast;
 using Teuchos::ParameterList;
 using Teuchos::sublist;
+using Teuchos::getParametersFromXmlFile;
 
 using Tempus::StepperFactory;
 
@@ -231,13 +243,14 @@ TEUCHOS_UNIT_TEST(NewmarkImplicitDForm, StepperFactory_Construction)
 TEUCHOS_UNIT_TEST(NewmarkImplicitDForm, AppAction_Modifier)
 {
   using Teuchos::RCP;
+  using Teuchos::getParametersFromXmlFile;
   using Teuchos::sublist;
   using Teuchos::ParameterList;
 
   double dt = 1.0;
 
   // Read params from .xml file
-  RCP<ParameterList> pList = Teuchos::getParametersFromXmlFile(
+  RCP<ParameterList> pList = getParametersFromXmlFile(
     "Tempus_NewmarkImplicitAForm_HarmonicOscillator_Damped_SecondOrder.xml");
   RCP<ParameterList> pl = sublist(pList, "Tempus", true);
 
@@ -320,13 +333,14 @@ TEUCHOS_UNIT_TEST(NewmarkImplicitDForm, AppAction_Modifier)
 TEUCHOS_UNIT_TEST(NewmarkImplicitDForm, AppAction_ModifierX)
 {
   using Teuchos::RCP;
+  using Teuchos::getParametersFromXmlFile;
   using Teuchos::sublist;
   using Teuchos::ParameterList;
 
   double dt = 1.0;
 
   // Read params from .xml file
-  RCP<ParameterList> pList = Teuchos::getParametersFromXmlFile(
+  RCP<ParameterList> pList = getParametersFromXmlFile(
     "Tempus_NewmarkImplicitAForm_HarmonicOscillator_Damped_SecondOrder.xml");
   RCP<ParameterList> pl = sublist(pList, "Tempus", true);
 

@@ -15,7 +15,6 @@
 #include "Thyra_VectorStdOps.hpp"
 
 #include "Tempus_InterpolatorFactory.hpp"
-#include "Tempus_NumericalUtils.hpp"
 
 
 namespace Tempus {
@@ -183,22 +182,19 @@ template<class Scalar>
 Teuchos::RCP<SolutionState<Scalar> >
 SolutionHistory<Scalar>::findState(const Scalar time) const
 {
-  // Use last step in solution history as the scale for comparing times
-  Scalar scale = 1.0;
-  if (history_->size() > 0) scale = (*history_)[history_->size()-1]->getTime();
-  if (approxZero(scale)) scale = Scalar(1.0);
-
-  const Scalar absTol = scale*numericalTol<Scalar>();
   TEUCHOS_TEST_FOR_EXCEPTION(
-    !(minTime()-absTol <= time && time <= maxTime()+absTol), std::logic_error,
+    !(minTime() <= time && time <= maxTime()), std::logic_error,
     "Error - SolutionHistory::findState() Requested time out of range!\n"
     "        [Min, Max] = [" << minTime() << ", " << maxTime() << "]\n"
     "        time = "<< time <<"\n");
 
+  // Use last step in solution history as the scale for comparing times
+  const Scalar scale =
+    history_->size() > 0 ? (*history_)[history_->size()-1]->getTime() : Scalar(1.0);
   // Linear search
   auto state_it = history_->begin();
   for ( ; state_it < history_->end(); ++state_it) {
-    if ( approxEqualAbsTol(time, (*state_it)->getTime(), absTol))
+    if (floating_compare_equals((*state_it)->getTime(),time,scale))
       break;
   }
 
@@ -709,7 +705,7 @@ Teuchos::RCP<SolutionHistory<Scalar> > createSolutionHistoryPL(
   auto sh = rcp(new SolutionHistory<Scalar>());
   sh->setName("From createSolutionHistoryPL");
 
-  if (pl == Teuchos::null || pl->numParams() == 0) return sh;
+  if (pl == Teuchos::null) return sh;  // Return default SolutionHistory.
 
   pl->validateParametersAndSetDefaults(*sh->getValidParameters());
 

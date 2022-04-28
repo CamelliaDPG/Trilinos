@@ -9,7 +9,7 @@
 
 #ifdef BASKER_KOKKOS
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Timer.hpp>
+#include <impl/Kokkos_Timer.hpp>
 #endif 
 
 namespace BaskerNS
@@ -134,6 +134,7 @@ namespace BaskerNS
     Int          lval  = 0;
     Int          uval  = 0;
 
+    Int i,j,k;
 //    Int top, top1, maxindex, t;  //NDE - warning: top1 set but not used
     Int top, maxindex, t; 
     Int lnnz, unnz, xnnz, lcnt, ucnt;
@@ -143,8 +144,8 @@ namespace BaskerNS
     Entry pivot, value;
     Entry absv, maxv;
 
-    Int llnnz = L.mnnz;
-    Int uunnz = U.mnnz;
+    Int llnnz = L.nnz;
+    Int uunnz = U.nnz;
     
     //Why did we need this?
     Int col_idx_offset = M.nnz;
@@ -176,7 +177,7 @@ namespace BaskerNS
     //Entry dfs_time = 0;
     
     //for each column    
-    for(Int k = 0; k < M.ncol; ++k)
+    for(k = 0; k < M.ncol; ++k)
         {
           #ifdef BASKER_DEBUG_NFACTOR_BLK
           printf("\n----------------K=%d %d--------------\n", k+M.scol, kid);
@@ -203,12 +204,12 @@ namespace BaskerNS
 	  //for(i = M.col_ptr(k); i < M.col_ptr(k+1); ++i)
 
 	  //Debug of dim
-	  //Kokkos::Timer timer;
+	  //Kokkos::Impl::Timer timer;
 	  if(Options.same_pattern == BASKER_FALSE)
 	    {
-	  for(Int i = M.col_ptr(k+1)-1; i >= M.col_ptr(k); --i)
+	  for(i = M.col_ptr(k+1)-1; i >= M.col_ptr(k); --i)
 	    {
-	      Int j = M.row_idx(i);
+	      j = M.row_idx(i);
 	      X(j) = M.val(i);
 	           
         #ifdef BASKER_DEBUG_NFACTOR_BLK_INC
@@ -252,7 +253,7 @@ namespace BaskerNS
 	      //Populate X(j) with values of New A
 	      for(Int i = M.col_ptr(k); i < M.col_ptr(k+1); i++)
 		{
-		  Int j = M.row_idx(i);
+		  j = M.row_idx(i);
 		  X(j) = M.val(i);
 		}
 
@@ -260,7 +261,7 @@ namespace BaskerNS
 	      for(Int i = L.col_ptr(k+1)-1; i >= L.col_ptr(k);
 		  i--)
 		{
-		  Int j = L.row_idx(i);
+		  j = L.row_idx(i);
 		  color[j] = 2;
 		  
 		  //Lower does not matter if pivot or not
@@ -272,7 +273,7 @@ namespace BaskerNS
 		  i--)
 		{
 		  
-		  Int j = U.row_idx(i);
+		  j = U.row_idx(i);
 		  color[j] = 2;
 		 
 		  if(Options.no_pivot == BASKER_TRUE)
@@ -323,9 +324,9 @@ namespace BaskerNS
 	  //Which is no_pivot in incomplete factorization
           maxv = 0.0;
 	  ucnt = 0;
-	  for(Int i = top; i < ws_size; i++)
+	  for(i = top; i < ws_size; i++)
 	    {
-	      Int j = pattern[i];
+	      j = pattern[i];
 	      t = gperm(j+brow);
 
 	      //printf("Consider: %d %d inc: %d \n",
@@ -463,10 +464,10 @@ namespace BaskerNS
           lnnz++;
      
           Entry lastU = (Entry) 0.0;
-          for(Int i = top; i < ws_size; i++)
+          for( i = top; i < ws_size; i++)
             {
 
-	      Int j = pattern[i];
+	      j = pattern[i];
 	      pattern[i] = 0;
 	      t = gperm(j+brow);
             
@@ -1621,7 +1622,7 @@ namespace BaskerNS
     for(Int i = 0 ; i < x_size-1; ++i)
       {
 	
-	const Int k_i  = x_idx[i+x_offset];
+	const Int k    = x_idx[i+x_offset];
 	const Entry xj = x(i+x_offset);
 	#ifdef BASKER_DEBUG_NFACTOR_BLK
 	printf("t_back_solve_diag, kid: %d k: %d [%d %d] \n",
@@ -1638,8 +1639,8 @@ namespace BaskerNS
 	//printf("considering K: %d kid: %d\n",
 	//     k+L.scol, kid);
 
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj = L.row_idx(j);
 
@@ -1659,7 +1660,7 @@ namespace BaskerNS
 	      {
 		#ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 		printf("continue, already use Linc(%d): %d %d\n", 
-		       j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow));
+		       j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow));
 		#endif
 		continue;
 	      }
@@ -1669,7 +1670,7 @@ namespace BaskerNS
 		   jj, j);
 	    printf("VALUE: before: %f %f %f AFTER: %f kid: %d jj: %d k: %d\n",
 		   X(jj), L.val(j), xj, X(jj)-L.val(j)*xj, 
-		   kid, jj+L.srow, k_i+L.scol);
+		   kid, jj+L.srow, k+L.scol);
 	    #endif
 
 	    X(jj) -= L.val(j)*xj;
@@ -1768,21 +1769,21 @@ namespace BaskerNS
     for(Int i = 0 ; i < x_size; ++i)
       {
 	
-	const Int k_i  = x_idx[i+x_offset];
+	const Int k    = x_idx[i+x_offset];
 	const Entry xj = x(i+x_offset);
 	#ifdef BASKER_DEBUG_NFACTOR_BLK
 	printf("t_back_solve_diag, kid: %d k: %d [%d %d] \n",
-	       kid, k_i+pbrow, L.col_ptr[k_i], L.col_ptr[k_i+1]);
+	       kid, k+pbrow, L.col_ptr[k], L.col_ptr[k+1]);
 	#endif
 
         #ifdef BASKER_DEBUG_NFACTOR_INC_LVL
 	//A multiple of a value at lvl l results in l+1 fill-in
 	printf("LVL_TEMP[%d] = %d, %d kid: %d continue? \n", 
-	       k_i+pbrow, INC_LVL_TEMP(k_i+pbrow), Options.inc_lvl, kid); 
+	       k+pbrow, INC_LVL_TEMP(k+pbrow), Options.inc_lvl, kid); 
 	#endif
 
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj = L.row_idx(j);
 
@@ -1793,14 +1794,14 @@ namespace BaskerNS
 
 	    #ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 	    printf("L.inc_lvl[%d]: %d %d kid: %d \n",
-		   j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow),kid);
+		   j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow),kid);
 	    #endif
 
 	    if((stack[jj]) > Options.inc_lvl)
 	      {
 		#ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 		printf("continue, already use Linc(%d): %d %d\n", 
-		       j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow));
+		       j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow));
 		#endif
 		continue;
 	      }
@@ -1819,7 +1820,7 @@ namespace BaskerNS
 		   jj, j);
 	    printf("VALUE: before: %f %f %f AFTER: %f kid: %d jj: %d k: %d\n",
 		   X(jj), L.val(j), xj, X(jj)-L.val(j)*xj, 
-		   kid, jj+L.srow, k_i+L.scol);
+		   kid, jj+L.srow, k+L.scol);
 	    #endif
 
 	    X(jj) -= L.val(j)*xj;
@@ -1932,17 +1933,17 @@ namespace BaskerNS
     for(Int i = 0 ; i < x_size; ++i)
       {
 	
-	const Int k_i  = x_idx[i+x_offset];
+	const Int k    = x_idx[i+x_offset];
 	const Entry xj = x(i+x_offset);
 	#ifdef BASKER_DEBUG_NFACTOR_BLK
 	printf("t_back_solve_diag, kid: %d k: %d [%d %d] \n",
-	       kid, k+pbrow, L.col_ptr[k_i], L.col_ptr[k_i+1]);
+	       kid, k+pbrow, L.col_ptr[k], L.col_ptr[k+1]);
 	#endif
 
         #ifdef BASKER_DEBUG_NFACTOR_INC_LVL
 	//A multiple of a value at lvl l results in l+1 fill-in
 	printf("LVL_TEMP[%d] = %d, %d kid: %d continue? \n", 
-	       k_i+pbrow, INC_LVL_TEMP(k_i+pbrow), Options.inc_lvl, kid); 
+	       k+pbrow, INC_LVL_TEMP(k+pbrow), Options.inc_lvl, kid); 
 	#endif
 
 	//We can't do this because might be one added
@@ -1965,8 +1966,8 @@ namespace BaskerNS
 
 	//printf("==before col== size: %d\n",
 	//     L.col_ptr(k+1)-L.col_ptr(k));
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj = L.row_idx(j);
 
@@ -1977,10 +1978,10 @@ namespace BaskerNS
 
 	    #ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 	    printf("L.inc_lvl[%d]: %d %d kid: %d \n",
-		   j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow),kid);
+		   j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow),kid);
 	    #endif
 
-	    Int temp_cal = L.inc_lvl(j)+INC_LVL_TEMP(k_i+pbrow)+1; 
+	    Int temp_cal = L.inc_lvl(j)+INC_LVL_TEMP(k+pbrow)+1; 
 	    if(stack[jj] == BASKER_MAX_IDX)
 	      {
 		stack[jj] = temp_cal;
@@ -2001,7 +2002,7 @@ namespace BaskerNS
 	      {
 		#ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 		printf("continue, already use Linc(%d): %d %d\n", 
-		       j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow));
+		       j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow));
 		#endif
 		continue;
 	      }
@@ -2195,8 +2196,8 @@ namespace BaskerNS
     Entry pivot, value;
     Entry absv, maxv;
 
-    Int llnnz = L.mnnz;
-    Int uunnz = U.mnnz;
+    Int llnnz = L.nnz;
+    Int uunnz = U.nnz;
     Int scol  = L.scol; //Note: this seems like over kill --clean up variables
     Int ecol  = L.ecol;
     
@@ -3036,7 +3037,7 @@ namespace BaskerNS
 
     for(Int i = 0 ; i < x_size; ++i)
       {
-	const Int k_i  = x_idx(i+x_offset);
+	const Int k    = x_idx(i+x_offset);
 	const Entry xj = x(i+x_offset);
 
         #ifdef BASKER_DEBUG_NFACTOR_BLK
@@ -3049,11 +3050,11 @@ namespace BaskerNS
 	#ifdef BASKER_DEBUG_NFACTOR_BLK
 	if((kid == 2)||(kid==3))
 	printf("L_size: %d k: %d kid: %d \n",
-	       L.col_ptr(k_i+1)-L.col_ptr(k_i), k, kid);
+	       L.col_ptr(k+1)-L.col_ptr(k), k, kid);
 	#endif
 
-	for(Int j = L.col_ptr(k_i); 
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k); 
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj = L.row_idx(j);
             #ifdef BASKER_DEBUG_NFACTOR_BLK
@@ -3097,7 +3098,7 @@ namespace BaskerNS
 		*/
 		
 
-	    Int temp = INC_LVL_TEMP(k_i+LL(blkcol)(0).srow) + L.inc_lvl(j) + 1;
+	    Int temp = INC_LVL_TEMP(k+LL(blkcol)(0).srow)+ L.inc_lvl(j) + 1;
 	   
 	    /*
 	    printf("lower row: %d kid: %d inc: %d %d %d j: %d \n",
@@ -3366,19 +3367,19 @@ namespace BaskerNS
     for(Int i = 0 ; i < x_size; ++i)
       {
 	
-	const Int k_i  = x_idx[i+x_offset];
+	const Int k    = x_idx[i+x_offset];
 	#ifdef BASKER_DEBUG_NFACTOR_BLK
 	printf("t_back_solve_diag, kid: %d k: %d [%d %d] \n",
-	       kid, k+pbrow, L.col_ptr[k_i], L.col_ptr[k_i+1]);
+	       kid, k+pbrow, L.col_ptr[k], L.col_ptr[k+1]);
 	#endif
 
         #ifdef BASKER_DEBUG_NFACTOR_INC_LVL
 	printf("LVL_TEMP[%d] = %d, %d kid: %d continue? \n", 
-	       k_i+pbrow, INC_LVL_TEMP(k_i+pbrow), Options.inc_lvl, kid); 
+	       k+pbrow, INC_LVL_TEMP(k+pbrow), Options.inc_lvl, kid); 
 	#endif
 	
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj = L.row_idx(j);
 
@@ -3389,10 +3390,10 @@ namespace BaskerNS
 
 	    #ifdef BASKER_DEBUG_NFACTOR_BLK_INC
 	    printf("L.inc_lvl[%d]: %d %d kid: %d \n",
-		   j, L.inc_lvl(j), INC_LVL_TEMP(k_i+pbrow),kid);
+		   j, L.inc_lvl(j), INC_LVL_TEMP(k+pbrow),kid);
 	    #endif
 
-	    Int temp_cal = L.inc_lvl(j)+INC_LVL_TEMP(k_i+pbrow)+1; 
+	    Int temp_cal = L.inc_lvl(j)+INC_LVL_TEMP(k+pbrow)+1; 
 	    if(stack[jj] == BASKER_MAX_IDX)
 	      {
 		stack[jj] = temp_cal;
@@ -3459,7 +3460,7 @@ namespace BaskerNS
     //Simulate SPMV to get fill-in pattern
     for(Int i = 0; i < x_size; i++)
       {
-	const Int k_i   = x_idx(i+x_offset);
+	const Int k     = x_idx(i+x_offset);
 	const Int flvl  = x_fill(i+x_offset);
 
 	/*
@@ -3477,8 +3478,8 @@ namespace BaskerNS
 	    continue;
 	  }
 	
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj    = L.row_idx(j);
 	    const Int nflvl = L.inc_lvl(j) + flvl + 1;
@@ -3489,7 +3490,7 @@ namespace BaskerNS
 	      {
 		
 		printf("fill-32.  kid: %d col: %d xj-lvl: %d col-lvl: %d %d\n",
-		       kid, k_i+L.scol, 
+		       kid, k+L.scol, 
 		       flvl,
 		       L.inc_lvl(j),
 		       nflvl);
@@ -3503,7 +3504,7 @@ namespace BaskerNS
 	       {
 			
 		printf("fill-20.  kid: %d col: %d xj-lvl: %d col-lvl: %d %d \n",
-		       kid, k_i+L.scol, 
+		       kid, k+L.scol, 
 		       flvl,
 		       L.inc_lvl(j),
 		       nflvl);
@@ -3618,7 +3619,7 @@ namespace BaskerNS
     //Simulate SPMV to get fill-in pattern
     for(Int i = 0; i < x_size; i++)
       {
-	const Int k_i   = x_idx(i+x_offset);
+	const Int k     = x_idx(i+x_offset);
 	const Int flvl  = x_fill(i+x_offset);
 
 	if(kid == 1)
@@ -3629,8 +3630,8 @@ namespace BaskerNS
 
 	//In RLVL we can not skip out
 		
-	for(Int j = L.col_ptr(k_i);
-	    j < L.col_ptr(k_i+1); j++)
+	for(Int j = L.col_ptr(k);
+	    j < L.col_ptr(k+1); j++)
 	  {
 	    const Int jj    = L.row_idx(j);
 	    const Int nflvl = L.inc_lvl(j) + flvl + 1;

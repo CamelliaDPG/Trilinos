@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Ioss_Element_Topology_h
+#define IOSS_Ioss_Element_Topology_h
 
 #include <Ioss_CodeTypes.h>
 #include <map>    // for map, map<>::value_compare
@@ -65,7 +66,7 @@ namespace Ioss {
 
     //: Return whether the topology describes an "element". If it
     //: isn't an element, then it is a component of an element.  For
-    // example, a quadrilateral Shell is an element, but a QuadFace is
+    // example, a quadrilater Shell is an element, but a QuadFace is
     // not.
     //
     // Default implementation returns true if spatial_dimension() ==
@@ -103,7 +104,7 @@ namespace Ioss {
     virtual IntVector face_edge_connectivity(int face_number) const;
     IntVector         element_edge_connectivity() const;
 
-    ElementTopology         *boundary_type(int face_number = 0) const;
+    ElementTopology *        boundary_type(int face_number = 0) const;
     virtual ElementTopology *face_type(int face_number = 0) const = 0;
     virtual ElementTopology *edge_type(int edge_number = 0) const = 0;
 
@@ -111,7 +112,6 @@ namespace Ioss {
     static ElementTopology *factory(unsigned int unique_id);
     static unsigned int     get_unique_id(const std::string &type);
     static int              describe(NameList *names);
-    static NameList         describe();
 
     bool operator==(const Ioss::ElementTopology &rhs) const;
     bool operator!=(const Ioss::ElementTopology &rhs) const;
@@ -128,3 +128,4 @@ namespace Ioss {
     static ETRegistry &registry();
   };
 } // namespace Ioss
+#endif

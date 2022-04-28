@@ -32,8 +32,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
-#include "gtest/gtest.h"              // for Test, EXPECT_EQ, Message, TestPartResult, SuiteApiR...
-#include "stk_topology/topology.hpp"  // for topology, topology::HEX_8
+#include <gtest/gtest.h>
+#include <stk_topology/topology.hpp>
+#include <vector>
 
 #ifndef __IBMCPP__
 

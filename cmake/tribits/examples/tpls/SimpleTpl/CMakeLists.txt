@@ -1,15 +1,15 @@
-cmake_minimum_required(VERSION 3.17.0)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.17.0)
 
-add_library(simpletpl SimpleTpl.hpp SimpleTpl.cpp)
+ADD_LIBRARY(simpletpl SimpleTpl.hpp SimpleTpl.cpp)
 
-install(
+INSTALL(
   TARGETS simpletpl
   RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
   LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
   )
 
-install(
+INSTALL(
   FILES SimpleTpl.hpp
   DESTINATION "${CMAKE_INSTALL_PREFIX}/include"
   )

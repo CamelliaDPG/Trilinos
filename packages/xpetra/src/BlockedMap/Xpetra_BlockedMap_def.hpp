@@ -125,7 +125,7 @@ BlockedMap(const RCP<const Map>& fullmap, const std::vector<RCP<const Map>>& map
         const GO                   INVALID = Teuchos::OrdinalTraits<Xpetra::global_size_t>::invalid();
         for(size_t v = 0; v < maps.size(); ++v)
         {
-            size_t                     myNumElements = maps[ v ]->getLocalNumElements();
+            size_t                     myNumElements = maps[ v ]->getNodeNumElements();
             std::vector<GlobalOrdinal> subMapGids(myNumElements, 0);
             for(LocalOrdinal l = 0; l < Teuchos::as<LocalOrdinal>(myNumElements); ++l)
             {
@@ -195,7 +195,7 @@ BlockedMap(const std::vector<RCP<const Map>>& maps, const std::vector<RCP<const 
                                    std::logic_error,
                                    "logic error. When using Thyra-style numbering all sub-block maps must start with zero as GID.");
 
-        XPETRA_TEST_FOR_EXCEPTION(thyramaps[ v ]->getLocalNumElements() != maps[ v ]->getLocalNumElements(),
+        XPETRA_TEST_FOR_EXCEPTION(thyramaps[ v ]->getNodeNumElements() != maps[ v ]->getNodeNumElements(),
                                   std::logic_error,
                                   "logic error. The size of the submaps must be identical (same distribution, just different GIDs)");
     }
@@ -270,9 +270,9 @@ getGlobalNumElements() const
 
 template<class LocalOrdinal, class GlobalOrdinal, class Node>
 size_t
-BlockedMap<LocalOrdinal, GlobalOrdinal, Node>::getLocalNumElements() const
+BlockedMap<LocalOrdinal, GlobalOrdinal, Node>::getNodeNumElements() const
 {
-    return fullmap_->getLocalNumElements();
+    return fullmap_->getNodeNumElements();
 }
 
 
@@ -383,9 +383,9 @@ getRemoteIndexList(const Teuchos::ArrayView<const GlobalOrdinal>& /* GIDList */,
 template<class LocalOrdinal, class GlobalOrdinal, class Node>
 Teuchos::ArrayView<const GlobalOrdinal>
 BlockedMap<LocalOrdinal, GlobalOrdinal, Node>::
-getLocalElementList() const
+getNodeElementList() const
 {
-    return fullmap_->getLocalElementList();
+    return fullmap_->getNodeElementList();
 }
 
 
@@ -714,10 +714,10 @@ concatenateMaps(const std::vector<Teuchos::RCP<const Xpetra::Map<LocalOrdinal, G
         Teuchos::RCP<const Xpetra::Map<LocalOrdinal, GlobalOrdinal, Node>> subMap = subMaps[ tt ];
 
 #if 1      // WCMCLEN : IS THIS NECESSARY TO HANG ONTO?
-        Teuchos::ArrayView<const GlobalOrdinal> subMapGids = subMap->getLocalElementList();
+        Teuchos::ArrayView<const GlobalOrdinal> subMapGids = subMap->getNodeElementList();
         gids.insert(gids.end(), subMapGids.begin(), subMapGids.end());
 #else
-        size_t myNumElements = subMap->getLocalNumElements();
+        size_t myNumElements = subMap->getNodeNumElements();
         for(LocalOrdinal l = 0; l < Teuchos::as<LocalOrdinal>(myNumElements); ++l)
         {
             GlobalOrdinal gid = subMap->getGlobalElement(l);
@@ -749,7 +749,7 @@ CheckConsistency() const
     {
         const RCP<const Map> map = getMap(i);
 
-        ArrayView<const GlobalOrdinal> mapGids = map->getLocalElementList();
+        ArrayView<const GlobalOrdinal> mapGids = map->getNodeElementList();
         for(typename ArrayView<const GlobalOrdinal>::const_iterator it = mapGids.begin(); it != mapGids.end(); it++)
         {
             if(fullMap->isNodeGlobalElement(*it) == false)

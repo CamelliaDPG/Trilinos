@@ -52,7 +52,6 @@
 #define TESTING_AMESOS2_WITH_TPETRA_REMOVE_UVM
 #if defined(TESTING_AMESOS2_WITH_TPETRA_REMOVE_UVM)
 #include "KokkosKernels_SparseUtils.hpp"
-#include "KokkosKernels_Sorting.hpp"
 #endif
 
 namespace Amesos2 {
@@ -247,14 +246,14 @@ namespace Amesos2 {
   size_t
   MatrixAdapter<Matrix>::getLocalNumRows() const
   {
-    return row_map_->getLocalNumElements(); // TODO: verify
+    return row_map_->getNodeNumElements(); // TODO: verify
   }
 
   template < class Matrix >
   size_t
   MatrixAdapter<Matrix>::getLocalNumCols() const
   {
-    return col_map_->getLocalNumElements();
+    return col_map_->getNodeNumElements();
   }
   
   template < class Matrix >
@@ -422,7 +421,7 @@ namespace Amesos2 {
     // compatibility, but things are working fine now.
 
     RCP<const Tpetra::Map<local_ordinal_t,global_ordinal_t,node_t> > rmap = get_mat->getRowMap();
-    ArrayView<const global_ordinal_t> node_elements = rmap->getLocalElementList();
+    ArrayView<const global_ordinal_t> node_elements = rmap->getNodeElementList();
     if( node_elements.size() == 0 ) return; // no more contribution
 
     typename ArrayView<const global_ordinal_t>::iterator row_it, row_end;
@@ -509,7 +508,7 @@ namespace Amesos2 {
     // compatibility, but things are working fine now.
 
     RCP<const Tpetra::Map<local_ordinal_t,global_ordinal_t,node_t> > rmap = get_mat->getRowMap();
-    ArrayView<const global_ordinal_t> node_elements = rmap->getLocalElementList();
+    ArrayView<const global_ordinal_t> node_elements = rmap->getNodeElementList();
     //if( node_elements.size() == 0 ) return; // no more contribution
     typename ArrayView<const global_ordinal_t>::iterator row_it, row_end;
     row_end = node_elements.end();
@@ -609,7 +608,7 @@ namespace Amesos2 {
     // sort
     if( ordering == SORTED_INDICES ) {
       using execution_space = typename KV_GS::execution_space;
-      KokkosKernels::sort_crs_matrix <execution_space, KV_GS, KV_GO, KV_S>
+      KokkosKernels::Impl::sort_crs_matrix <execution_space, KV_GS, KV_GO, KV_S>
         (rowptr, colind, nzval);
     }
     #endif
@@ -788,7 +787,7 @@ namespace Amesos2 {
     RCP<const Tpetra::Map<scalar_t,local_ordinal_t,global_ordinal_t> > cmap = get_mat->getColMap();
     TEUCHOS_ASSERT( *colmap == *cmap );
 
-    ArrayView<global_ordinal_t> node_elements = cmap->getLocalElementList();
+    ArrayView<global_ordinal_t> node_elements = cmap->getNodeElementList();
     if( node_elements.size() == 0 ) return; // no more contribution
     
     typename ArrayView<global_ordinal_t>::iterator col_it, col_end;

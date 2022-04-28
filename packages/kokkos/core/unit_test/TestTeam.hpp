@@ -137,10 +137,8 @@ struct TestTeamPolicy {
     Kokkos::TeamPolicy<ExecSpace, NoOpTag> none_auto(
         smallest_work, smallest_work, smallest_work);
 #endif
-    (void)none_auto;
     Kokkos::TeamPolicy<ExecSpace, NoOpTag> both_auto(
         smallest_work, Kokkos::AUTO(), Kokkos::AUTO());
-    (void)both_auto;
     // FIXME_OPENMPTARGET temporary restriction for team size to be at least 32
 #ifdef KOKKOS_ENABLE_OPENMPTARGET
     Kokkos::TeamPolicy<ExecSpace, NoOpTag> auto_vector(smallest_work, 32,
@@ -149,10 +147,8 @@ struct TestTeamPolicy {
     Kokkos::TeamPolicy<ExecSpace, NoOpTag> auto_vector(
         smallest_work, smallest_work, Kokkos::AUTO());
 #endif
-    (void)auto_vector;
     Kokkos::TeamPolicy<ExecSpace, NoOpTag> auto_team(
         smallest_work, Kokkos::AUTO(), smallest_work);
-    (void)auto_team;
   }
 
   static void test_for(const size_t league_size) {
@@ -465,9 +461,8 @@ class TestScanTeam {
     functor_type functor;
 
     policy_type team_exec(nteam, 1);
-    const auto team_size =
-        team_exec.team_size_max(functor, Kokkos::ParallelReduceTag());
-    team_exec = policy_type(nteam, team_size);
+    team_exec = policy_type(
+        nteam, team_exec.team_size_max(functor, Kokkos::ParallelReduceTag()));
 
     for (unsigned i = 0; i < Repeat; ++i) {
       int64_t accum = 0;
@@ -808,13 +803,6 @@ struct TestScratchTeam {
         Functor(), result_type(&error_count));
     Kokkos::fence();
     ASSERT_EQ(error_count, 0);
-
-    Kokkos::parallel_reduce(
-        team_exec.set_scratch_size(1, Kokkos::PerTeam(team_scratch_size),
-                                   Kokkos::PerThread(thread_scratch_size)),
-        Functor(), Kokkos::Sum<typename Functor::value_type>(error_count));
-    Kokkos::fence();
-    ASSERT_EQ(error_count, 0);
   }
 };
 
@@ -982,11 +970,7 @@ struct ClassNoShmemSizeFunction {
                 double *, ExecSpace,
                 Kokkos::MemoryTraits<Kokkos::Unmanaged> >::shmem_size(1600);
 
-#ifdef KOKKOS_ENABLE_SYCL
-    int team_size = 4;
-#else
-    int team_size      = 8;
-#endif
+    int team_size = 8;
     if (team_size > ExecSpace::concurrency())
       team_size = ExecSpace::concurrency();
     {
@@ -1131,11 +1115,7 @@ void test_team_mulit_level_scratch_test_lambda() {
       Kokkos::View<double *, ExecSpace,
                    Kokkos::MemoryTraits<Kokkos::Unmanaged> >::shmem_size(1600);
 
-#ifdef KOKKOS_ENABLE_SYCL
-  int team_size = 4;
-#else
   int team_size = 8;
-#endif
   if (team_size > ExecSpace::concurrency())
     team_size = ExecSpace::concurrency();
 
@@ -1420,7 +1400,7 @@ struct TestTeamBroadcast<
     // above because the functor switches it back.
     bool setValue = ((lid % ts) != tid);
 
-    teamMember.team_broadcast([&](value_type &var) { var += var; }, value,
+    teamMember.team_broadcast([&](value_type &var) { var *= 2; }, value,
                               lid % ts);
     teamMember.team_broadcast([&](bool &bVar) { bVar = !bVar; }, setValue,
                               lid % ts);
@@ -1485,7 +1465,7 @@ struct TestTeamBroadcast<
     value_type expected_result = 0;
     for (unsigned int i = 0; i < league_size; i++) {
       value_type val =
-          (value_type((i % team_size) * 3) + off) * value_type(team_size);
+          (value_type((i % team_size) * 3) + off) * (value_type)team_size;
       expected_result += val;
     }
     // For comparison purposes treat the reduction as a random walk in the
@@ -1538,7 +1518,7 @@ struct TestScratchAlignment {
             .set_scratch_size(0, Kokkos::PerTeam(shmem_size)),
         KOKKOS_LAMBDA(
             const typename Kokkos::TeamPolicy<ExecSpace>::member_type &team) {
-          if (allocate_small) ScratchViewInt(team.team_scratch(0), 1);
+          if (allocate_small) ScratchViewInt p(team.team_scratch(0), 1);
           ScratchView a(team.team_scratch(0), 11);
           if (ptrdiff_t(a.data()) % sizeof(TestScalar) != 0)
             Kokkos::abort("Error: invalid scratch view alignment\n");

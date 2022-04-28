@@ -1,11 +1,12 @@
 /*
- * Copyright(C) 1999-2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2021 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
  * See packages/seacas/LICENSE for details
  */
-#pragma once
+#ifndef IOPX_DECOMPOSITONDATA_H
+#define IOPX_DECOMPOSITONDATA_H
 
 #include <exodusII.h>
 #if defined PARALLEL_AWARE_EXODUS
@@ -32,7 +33,7 @@ namespace Ioex {
   class DecompositionDataBase
   {
   public:
-    DecompositionDataBase(Ioss_MPI_Comm comm) : comm_(comm) {}
+    DecompositionDataBase(MPI_Comm comm) : comm_(comm) {}
 
     virtual ~DecompositionDataBase()            = default;
     virtual int    int_size() const             = 0;
@@ -51,7 +52,7 @@ namespace Ioex {
 
     virtual std::vector<double> &centroids() = 0;
 
-    Ioss_MPI_Comm comm_;
+    MPI_Comm comm_;
 
     int m_processor{0};
     int m_processorCount{0};
@@ -97,7 +98,7 @@ namespace Ioex {
   template <typename INT> class DecompositionData : public DecompositionDataBase
   {
   public:
-    DecompositionData(const Ioss::PropertyManager &props, Ioss_MPI_Comm communicator);
+    DecompositionData(const Ioss::PropertyManager &props, MPI_Comm communicator);
     ~DecompositionData() = default;
 
     int int_size() const { return sizeof(INT); }
@@ -242,7 +243,7 @@ namespace Ioex {
 
     void get_common_set_data(int filePtr, ex_entity_type set_type,
                              std::vector<Ioss::SetDecompositionData> &sets,
-                             const std::string                       &set_type_name);
+                             const std::string &                      set_type_name);
 
     void get_nodeset_data(int filePtr, size_t set_count);
 
@@ -263,4 +264,5 @@ namespace Ioex {
     Ioss::Decomposition<INT> m_decomposition;
   };
 } // namespace Ioex
+#endif
 #endif

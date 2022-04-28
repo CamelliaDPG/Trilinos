@@ -25,7 +25,7 @@ namespace LOCA {
       x_ = cloneVec.clone(NOX::ShapeCopy);
       dgdx_ = cloneVec.createMultiVector(constraintResponseNames.size(),NOX::ShapeCopy);
 
-      TEUCHOS_ASSERT(constraintResponseNames.size() <= size_t(pVec_.length()));
+      TEUCHOS_ASSERT(constraintResponseNames.size() == size_t(pVec_.length()));
 
       // Get the parameter indices
       meParameterIndices_.clear();
@@ -185,7 +185,8 @@ namespace LOCA {
       using extractor = ::Thyra::TpetraOperatorVectorExtraction<NOX::Scalar,NOX::LocalOrdinal,NOX::GlobalOrdinal,NOX::NodeType>;
       for (size_t i=0; i < me_g_.size(); ++i) {
         auto tmp = extractor::getTpetraMultiVector(me_g_[i]);
-        auto val = tmp->getLocalViewHost(Tpetra::Access::ReadOnly);
+        tmp->sync_host();
+        auto val = tmp->getLocalViewHost();
         constraints_(i,0) = val(0,0);
         if (printDebug_)
           std::cout << "LOCA::ConstraintME: constraints_(" << i << ")=" << val(0,0) << std::endl;
@@ -277,7 +278,8 @@ namespace LOCA {
       for (size_t j=0; j < me_dgdp_.size(); ++j) {
         for (size_t l=0; l < paramIDs.size(); ++l) {
           auto tmp = extractor::getTpetraMultiVector(me_dgdp_[j][paramIDs[l]]);
-          auto val = tmp->getLocalViewHost(Tpetra::Access::ReadOnly);
+          tmp->sync_host();
+          auto val = tmp->getLocalViewHost();
           // first col contains g, so we shift the columns by one
           dgdp(j,l+1) = val(0,0);
         }
@@ -302,10 +304,6 @@ namespace LOCA {
     NOX::Abstract::MultiVector *
     ConstraintModelEvaluator::getDX () const
     {return dgdx_.get();}
-
-    const LOCA::ParameterVector
-    ConstraintModelEvaluator::getParams() const
-    {return pVec_;}
 
   } // namespace MultiContinuation
 } //  namespace LOCA

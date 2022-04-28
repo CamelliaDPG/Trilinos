@@ -1,4 +1,4 @@
-set(${PROJECT_NAME}_NATIVE_REPOSITORIES
+SET(${PROJECT_NAME}_NATIVE_REPOSITORIES
   .
   preCopyrightTrilinos
   extraTrilinosRepo

@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -46,7 +46,7 @@
 
 #if defined(Build64) && !defined(DEFAULT_REAL_INT)
 /* 64-bit */
-#define real      double
+#define real double
 #define entity_id ex_entity_id
 
 #ifdef ADDC_
@@ -61,7 +61,7 @@
 
 #else
 /* 32-bit */
-#define real      float
+#define real float
 #define entity_id int
 #ifdef ADDC_
 #define F2C(name, NAME) name##_
@@ -80,21 +80,23 @@ static void ex_fcdcpy(char *fstring, /* output string to be blank-filled */
                       int   fslen,   /* length of output string */
                       char *sstring)
 { /* input string, null-terminated */
+  int i, len;
+
   if (sstring != NULL) {
-    int len = strlen(sstring);
+    len = strlen(sstring);
     if (len > fslen) {
       len = fslen;
     }
 
-    for (int i = 0; i < len; i++) {
+    for (i = 0; i < len; i++) {
       *(fstring + i) = *(sstring + i);
     }
-    for (int i = len; i < fslen; i++) {
+    for (i = len; i < fslen; i++) {
       *(fstring + i) = ' ';
     }
   }
   else {
-    for (int i = 0; i < fslen; i++) {
+    for (i = 0; i < fslen; i++) {
       *(fstring + i) = ' ';
     }
   }
@@ -146,21 +148,21 @@ static void ex_nstrncpy(char *target, /* space to be copied into */
  * +  Look at existing functions for guidance...
  */
 
-/*!
+/*
  * create an EXODUS II file
- * \sa ex_create()
  */
 int F2C(excre, EXCRE)(char *path, int *clobmode, int *cpu_word_size, int *io_word_size, int *ierr,
                       int pathlen)
 {
   char *name;
+  int   idexo;
+
   if (!(name = malloc((pathlen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return (EX_FATAL);
   }
   (void)ex_nstrncpy(name, path, pathlen);
 
-  int idexo;
   if ((idexo = ex_create(name, *clobmode, cpu_word_size, io_word_size)) != EX_FATAL) {
     free(name);
     *ierr = 0;
@@ -171,22 +173,21 @@ int F2C(excre, EXCRE)(char *path, int *clobmode, int *cpu_word_size, int *io_wor
   return (EX_FATAL);
 }
 
-/*!
+/*
  * open an EXODUS II file
- * \sa ex_open()
  */
 int F2C(exopen, EXOPEN)(char *path, int *mode, int *cpu_word_size, int *io_word_size,
                         float *version, /* This is float always; not real */
                         int *ierr, int pathlen)
 {
   char *name;
+  int   idexo;
+
   if (!(name = malloc((pathlen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return (EX_FATAL);
   }
   (void)ex_nstrncpy(name, path, pathlen);
-
-  int idexo;
   if ((idexo = ex_open(name, *mode, cpu_word_size, io_word_size, version)) != EX_FATAL) {
     free(name);
     *ierr = 0;
@@ -197,31 +198,31 @@ int F2C(exopen, EXOPEN)(char *path, int *mode, int *cpu_word_size, int *io_word_
   return (EX_FATAL);
 }
 
-/*!
+/*
  * close an EXODUS II file
- * \sa ex_close()
  */
 void F2C(exclos, EXCLOS)(int *idexo, int *ierr) { *ierr = ex_close(*idexo); }
 
-/*!
+/*
  * update an EXODUS II file
- * \sa ex_update()
  */
 void F2C(exupda, EXUPDA)(int *idexo, int *ierr) { *ierr = ex_update(*idexo); }
 
-/*!
+/*
  * write initialization parameters
- * \sa ex_put_init()
  */
 void F2C(expini, EXPINI)(int *idexo, char *title, void_int *num_dim, void_int *num_nodes,
                          void_int *num_elem, void_int *num_elem_blk, void_int *num_node_sets,
                          void_int *num_side_sets, int *ierr, int titlelen)
 {
-  int slen = MAX_LINE_LENGTH; /* max line size */
+  int   slen;
+  char *name;
+
+  slen = MAX_LINE_LENGTH; /* max line size */
   if (titlelen != MAX_LINE_LENGTH) {
     slen = titlelen;
   }
-  char *name = malloc((slen + 1) * sizeof(char));
+  name = malloc((slen + 1) * sizeof(char));
   (void)ex_fstrncpy(name, title, slen);
 
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
@@ -249,20 +250,21 @@ void F2C(expini, EXPINI)(int *idexo, char *title, void_int *num_dim, void_int *n
   free(name);
 }
 
-/*!
+/*
  * read initialization parameters
- * \sa ex_get_init()
  */
 void F2C(exgini, EXGINI)(int *idexo, char *title, void_int *num_dim, void_int *num_nodes,
                          void_int *num_elem, void_int *num_elem_blk, void_int *num_node_sets,
                          void_int *num_side_sets, int *ierr, int titlelen)
 {
-  *ierr    = 0;
-  int slen = MAX_LINE_LENGTH; /* max line size */
+  int   slen;
+  char *name;
+
+  *ierr = 0;
+  slen  = MAX_LINE_LENGTH; /* max line size */
   if (titlelen != MAX_LINE_LENGTH) {
     slen = titlelen;
   }
-  char *name;
   if (!(name = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -276,24 +278,26 @@ void F2C(exgini, EXGINI)(int *idexo, char *title, void_int *num_dim, void_int *n
   free(name);
 }
 
-/*!
+/*
  * write QA records
- * \sa ex_put_qa()
  */
 void F2C(expqa, EXPQA)(int *idexo, int *num_qa_records, char *qa_record, int *ierr,
                        int qa_recordlen)
 {
+  char   errmsg[MAX_ERR_LENGTH];
+  char **sptr; /* internal string pointer array for malloc
+                * use */
+  int i, ii, iii, slen, alen;
+
   *ierr = 0; /* default no error */
 
-  int slen = MAX_STR_LENGTH; /* max str size */
+  slen = MAX_STR_LENGTH; /* max str size */
   if (qa_recordlen != MAX_STR_LENGTH) {
     slen = qa_recordlen;
   }
-  int alen = 4; /* qa records are 4 strings deep */
+  alen = 4; /* qa records are 4 strings deep */
 
   /* Allocate space for the name ptr array */
-  char **sptr; /* internal string pointer array for malloc
-                * use */
   if (!(sptr = malloc(((*num_qa_records) * alen + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -303,14 +307,13 @@ void F2C(expqa, EXPQA)(int *idexo, int *num_qa_records, char *qa_record, int *ie
    * ptr into str ptr array,  and Copy Fortran qa records to staging
    * space
    */
-  int iii = 0; /* offset counter */
-  for (int i = 0; i < *num_qa_records; i++) {
-    for (int ii = 0; ii < alen; ii++) {
+  iii = 0; /* offset counter */
+  for (i = 0; i < *num_qa_records; i++) {
+    for (ii = 0; ii < alen; ii++) {
       *(sptr + iii) = malloc((slen + 1) * sizeof(char));
-      if (*(sptr + iii) == NULL) {
+      if (*(sptr + iii) == 0) {
         free(sptr); /* free up array ptr space */
         *ierr = EX_MEMFAIL;
-        char errmsg[MAX_ERR_LENGTH];
         snprintf(errmsg, MAX_ERR_LENGTH,
                  "Error: failed to allocate space for qa record %d for file id %d", i, *idexo);
         ex_err_fn(*idexo, __func__, errmsg, EX_MEMFAIL);
@@ -321,7 +324,7 @@ void F2C(expqa, EXPQA)(int *idexo, int *num_qa_records, char *qa_record, int *ie
       iii++; /* bump char array pointer */
     }
   }
-  *(sptr + iii) = NULL; /* set last pointer to null */
+  *(sptr + iii) = 0; /* set last pointer to null */
 
   if (ex_put_qa(*idexo, *num_qa_records, (void *)sptr) == EX_FATAL) {
     *ierr = EX_FATAL;
@@ -329,8 +332,8 @@ void F2C(expqa, EXPQA)(int *idexo, int *num_qa_records, char *qa_record, int *ie
 
   /* Free up the space we used */
   iii = 0;
-  for (int i = 0; i < *num_qa_records; i++) {
-    for (int ii = 0; ii < alen; ii++) {
+  for (i = 0; i < *num_qa_records; i++) {
+    for (ii = 0; ii < alen; ii++) {
       free(*(sptr + iii)); /* First free up string space */
       iii++;
     }
@@ -338,30 +341,32 @@ void F2C(expqa, EXPQA)(int *idexo, int *num_qa_records, char *qa_record, int *ie
   free(sptr); /* Then free up array ptr space */
 }
 
-/*!
+/*
  * read QA records
- * \sa ex_get_qa()
  */
 void F2C(exgqa, EXGQA)(int *idexo, char *qa_record, int *ierr, int qa_recordlen)
 {
+  int    num_qa_records;
+  char **sptr; /* internal string pointer array for malloc
+                * use */
+  int i, ii, iii, slen, alen;
+
   *ierr = 0; /* default no error */
 
-  int slen = MAX_STR_LENGTH; /* max str size */
+  slen = MAX_STR_LENGTH; /* max str size */
   if (qa_recordlen != MAX_STR_LENGTH) {
     slen = qa_recordlen;
   }
-  int alen = 4; /* qa records are 4 strings deep */
+  alen = 4; /* qa records are 4 strings deep */
 
   /* do Exodus C call to find out how many qa records are avail */
-  int num_qa_records = ex_inquire_int(*idexo, EX_INQ_QA);
+  num_qa_records = ex_inquire_int(*idexo, EX_INQ_QA);
   if (num_qa_records < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
   /* Allocate space for the QA string ptr array */
-  char **sptr; /* internal string pointer array for malloc
-                * use */
   if (!(sptr = malloc((num_qa_records * alen + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -372,11 +377,11 @@ void F2C(exgqa, EXGQA)(int *idexo, char *qa_record, int *ierr, int qa_recordlen)
    * qa records Step 3: Copy C qa records to passed Fortran array space
    */
 
-  int iii = 0;                               /* offset counter */
-  for (int i = 0; i < num_qa_records; i++) { /* pointer allocation loop */
-    for (int ii = 0; ii < alen; ii++) {
+  iii = 0;                               /* offset counter */
+  for (i = 0; i < num_qa_records; i++) { /* pointer allocation loop */
+    for (ii = 0; ii < alen; ii++) {
       *(sptr + iii) = malloc((slen + 1) * sizeof(char));
-      if (*(sptr + iii) == NULL) {
+      if (*(sptr + iii) == 0) {
         free(sptr);
         *ierr = EX_MEMFAIL;
         return;
@@ -384,16 +389,16 @@ void F2C(exgqa, EXGQA)(int *idexo, char *qa_record, int *ierr, int qa_recordlen)
       iii++; /* bump char array pointer */
     }
   }
-  *(sptr + iii) = NULL; /* null out last pointer */
+  *(sptr + iii) = 0; /* null out last pointer */
 
   /* do Exodus C call to get qa records */
   if (ex_get_qa(*idexo, (void *)sptr) == EX_FATAL) {
     *ierr = EX_FATAL;
     goto error_ret;
   }
-  iii = 0;                                   /* offset counter */
-  for (int i = 0; i < num_qa_records; i++) { /* string copy loop */
-    for (int ii = 0; ii < alen; ii++) {
+  iii = 0;                               /* offset counter */
+  for (i = 0; i < num_qa_records; i++) { /* string copy loop */
+    for (ii = 0; ii < alen; ii++) {
       /* copy fortran string into allocated space */
       ex_fcdcpy(qa_record + iii * qa_recordlen, slen, *(sptr + iii));
       iii++; /* bump char array pointer */
@@ -403,8 +408,8 @@ void F2C(exgqa, EXGQA)(int *idexo, char *qa_record, int *ierr, int qa_recordlen)
 error_ret:
   /* Free up the space we used */
   iii = 0;
-  for (int i = 0; i < num_qa_records; i++) {
-    for (int ii = 0; ii < alen; ii++) {
+  for (i = 0; i < num_qa_records; i++) {
+    for (ii = 0; ii < alen; ii++) {
       free(*(sptr + iii)); /* First free up string space */
       iii++;
     }
@@ -412,39 +417,39 @@ error_ret:
   free(sptr); /* Then free up array ptr space */
 }
 
-/*!
+/*
  * write information records
- * \sa ex_put_info()
  */
 void F2C(expinf, EXPINF)(int *idexo, int *num_info, char *info, int *ierr, int infolen)
 {
-  *ierr    = 0;               /* default no error */
-  int slen = MAX_LINE_LENGTH; /* max str size */
+  char **aptr; /* internal string array pointer for malloc
+                * use */
+  char *sptr;  /* internal string pointer for malloc use */
+  int   i, slen;
+
+  *ierr = 0;               /* default no error */
+  slen  = MAX_LINE_LENGTH; /* max str size */
   if (infolen != MAX_LINE_LENGTH) {
     slen = infolen;
   }
   /* Allocate space for the string ptr array */
-  char **aptr; /* internal string array pointer for malloc
-                * use */
   if (!(aptr = malloc(((*num_info) + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the info records */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc(*num_info * (slen + 1) * sizeof(char)))) {
     free(aptr); /* Free up string ptr array */
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Copy Fortran info records to staging space */
-  int i;
   for (i = 0; i < *num_info; i++) {
     *(aptr + i) = sptr + i * (slen + 1);                /* put address into ptr array */
     ex_fstrncpy(*(aptr + i), info + i * infolen, slen); /* copy string into
                                                          * buffer */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
   if (ex_put_info(*idexo, *num_info, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
     free(sptr); /* Free up string staging area */
@@ -455,22 +460,26 @@ void F2C(expinf, EXPINF)(int *idexo, int *num_info, char *info, int *ierr, int i
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * read information records
- * \sa ex_get_info()
  */
 void F2C(exginf, EXGINF)(int *idexo, char *info, int *ierr, int infolen)
 {
+  char **aptr; /* internal string array pointer for malloc
+                * use */
+  char *sptr;  /* internal string pointer for malloc use */
+  int   i, slen, num_info;
+
   *ierr = 0; /* default no error */
 
   /* do exodus C call to find out how many info records are avail */
-  int num_info = ex_inquire_int(*idexo, EX_INQ_INFO);
+  num_info = ex_inquire_int(*idexo, EX_INQ_INFO);
   if (num_info < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  int slen = MAX_LINE_LENGTH; /* max str size */
+  slen = MAX_LINE_LENGTH; /* max str size */
   if (infolen != MAX_LINE_LENGTH) {
     slen = infolen;
   }
@@ -482,26 +491,22 @@ void F2C(exginf, EXGINF)(int *idexo, char *info, int *ierr, int infolen)
    */
 
   /* Allocate space for the string ptr array */
-  char **aptr; /* internal string array pointer for malloc
-                * use */
   if (!(aptr = malloc((num_info + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate block of space for info strings */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc(num_info * (slen + 1) * sizeof(char)))) {
     free(aptr); /* Free up string ptr array */
     *ierr = EX_MEMFAIL;
     return;
   }
-  int i;
   for (i = 0; i < num_info; i++) { /* Put pointers to the info records in ptr
                                     * array */
     *(aptr + i) = sptr + i * (slen + 1);
-  }                   /* put ptr in string ptr
-                       * array */
-  *(aptr + i) = NULL; /* null out last pointer */
+  }                /* put ptr in string ptr
+                    * array */
+  *(aptr + i) = 0; /* null out last pointer */
 
   /* Do exodus call to get info records */
   if (ex_get_info(*idexo, aptr) == EX_FATAL) {
@@ -521,33 +526,35 @@ void F2C(exginf, EXGINF)(int *idexo, char *info, int *ierr, int infolen)
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * write nodal coordinates
- * \sa ex_put_coord()
  */
 void F2C(expcor, EXPCOR)(int *idexo, real *x_coor, real *y_coor, real *z_coor, int *ierr)
 {
   *ierr = ex_put_coord(*idexo, x_coor, y_coor, z_coor);
 }
 
-/*!
+/*
  * read nodal coordinates
- * \sa ex_get_coord()
  */
 void F2C(exgcor, EXGCOR)(int *idexo, real *x_coor, real *y_coor, real *z_coor, int *ierr)
 {
   *ierr = ex_get_coord(*idexo, x_coor, y_coor, z_coor);
 }
 
-/*!
+/*
  * write coordinate names
- * \sa ex_put_coord_names()
  */
 void F2C(expcon, EXPCON)(int *idexo, char *coord_names, int *ierr, int coord_nameslen)
 {
+  char **aptr; /* internal array of string pointers for
+                * malloc use */
+  char *sptr;  /* internal string pointer for malloc use */
+  int   i, ndim, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -557,15 +564,13 @@ void F2C(expcon, EXPCON)(int *idexo, char *coord_names, int *ierr, int coord_nam
     slen = coord_nameslen;
   }
   /* do Exodus C call to find out how many dimensions  */
-  int ndim = ex_inquire_int(*idexo, EX_INQ_DIM);
+  ndim = ex_inquire_int(*idexo, EX_INQ_DIM);
   if (ndim < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
   /* Allocate space for the name ptr array */
-  char **aptr; /* internal array of string pointers for
-                * malloc use */
   if (!(aptr = malloc((ndim + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -576,19 +581,17 @@ void F2C(expcon, EXPCON)(int *idexo, char *coord_names, int *ierr, int coord_nam
    * to staging space
    */
 
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc(ndim * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr);
     return;
   }
-  int i;
   for (i = 0; i < ndim; i++) {
     *(aptr + i) = sptr + i * (slen + 1);
     /* copy fortran string into allocated space */
     ex_fstrncpy(*(aptr + i), coord_names + i * coord_nameslen, slen);
   }
-  *(aptr + i) = NULL; /* set last pointer to null */
+  *(aptr + i) = 0; /* set last pointer to null */
 
   if (ex_put_coord_names(*idexo, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
@@ -597,15 +600,20 @@ void F2C(expcon, EXPCON)(int *idexo, char *coord_names, int *ierr, int coord_nam
   free(sptr); /* First free up string space */
   free(aptr); /* Then free up array ptr space */
 }
-/*!
+/*
  * read coordinate names
- * \sa ex_get_coord_names()
  */
 void F2C(exgcon, EXGCON)(int *idexo, char *coord_names, int *ierr, int coord_nameslen)
 {
+  char **aptr; /* internal string array pointer for malloc
+                * use */
+  char *sptr;  /* internal string pointer for malloc use */
+  int   ndim;
+  int   i, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -615,27 +623,23 @@ void F2C(exgcon, EXGCON)(int *idexo, char *coord_names, int *ierr, int coord_nam
     slen = coord_nameslen;
   }
   /* do Exodus C call to find out how many dimensions */
-  int ndim = ex_inquire_int(*idexo, EX_INQ_DIM);
+  ndim = ex_inquire_int(*idexo, EX_INQ_DIM);
   if (ndim < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
   /* allocate memory to stage the coordinate name ptrs into */
-  char **aptr; /* internal string array pointer for malloc
-                * use */
   if (!(aptr = malloc((ndim + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* allocate a block of memory to stage the coordinate names into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc(ndim * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr); /* free up array ptr space */
     return;
   }
-  int i;
   for (i = 0; i < ndim; i++) { /* put pointers to staging space into ptr
                                 * array */
     *(aptr + i) = sptr + i * (slen + 1);
@@ -658,66 +662,67 @@ void F2C(exgcon, EXGCON)(int *idexo, char *coord_names, int *ierr, int coord_nam
   free(aptr);
 }
 
-/*!
+/*
  * write element order map
- * \sa ex_put_map()
  */
 void F2C(expmap, EXPMAP)(int *idexo, void_int *elem_map, int *ierr)
 {
   *ierr = ex_put_map(*idexo, elem_map);
 }
 
-/*!
+/*
  * read element order map
- * \sa ex_get_map()
  */
 void F2C(exgmap, EXGMAP)(int *idexo, void_int *elem_map, int *ierr)
 {
   *ierr = ex_get_map(*idexo, elem_map);
 }
 
-/*!
+/*
  * write concatenated element block parameters
- * \sa ex_put_concat_elem_block()
  */
 void F2C(expclb, EXPCLB)(int *idexo, void_int *elem_blk_id, char *elem_type,
                          void_int *num_elem_this_blk, void_int *num_nodes_per_elem,
                          void_int *num_attr, int *create_maps, int *ierr, int elem_typelen)
 {
+  int num_elem_blk;
+
+  char **aptr; /* ptr to temp staging space for string array
+                * ptrs */
+  char * sptr; /* ptr to temp staging space for strings */
+  int    i;
+  size_t slen;
+
   *ierr = 0; /* default no error */
 
-  int num_elem_blk = ex_inquire_int(*idexo, EX_INQ_ELEM_BLK);
+  num_elem_blk = ex_inquire_int(*idexo, EX_INQ_ELEM_BLK);
   if (num_elem_blk < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  size_t slen = MAX_STR_LENGTH; /* max str size */
+  slen = MAX_STR_LENGTH; /* max str size */
   if (elem_typelen != MAX_STR_LENGTH) {
     slen = elem_typelen;
   }
   /* allocate memory for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((num_elem_blk + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* allocate memory to stage the element type name into */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(num_elem_blk * (slen + 1) * sizeof(char)))) {
     free(aptr);
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Copy element type names from Fortran array to staging area */
-  int i;
   for (i = 0; i < num_elem_blk; i++) {
     *(aptr + i) = sptr + i * (slen + 1);                          /* put address into ptr array */
     ex_fstrncpy(*(aptr + i), elem_type + i * elem_typelen, slen); /* copy string into
                                                                    * buffer */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
 
   if (ex_put_concat_elem_block(*idexo, elem_blk_id, aptr, num_elem_this_blk, num_nodes_per_elem,
                                num_attr, *create_maps) == EX_FATAL) {
@@ -727,22 +732,23 @@ void F2C(expclb, EXPCLB)(int *idexo, void_int *elem_blk_id, char *elem_type,
   free(aptr);
 }
 
-/*!
+/*
  * write element block parameters
- * \sa ex_put_block()
  */
 void F2C(expelb, EXPELB)(int *idexo, entity_id *elem_blk_id, char *elem_type,
                          void_int *num_elem_this_blk, void_int *num_nodes_per_elem,
                          void_int *num_attr, int *ierr, int elem_typelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = MAX_STR_LENGTH; /* max str size */
+  slen = MAX_STR_LENGTH; /* max str size */
   if (elem_typelen != MAX_STR_LENGTH) {
     slen = elem_typelen;
   }
   /* allocate memory to stage the element type name into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -769,22 +775,23 @@ void F2C(expelb, EXPELB)(int *idexo, entity_id *elem_blk_id, char *elem_type,
   free(sptr);
 }
 
-/*!
+/*
  * read element block parameters
- * \sa ex_get_block()
  */
 void F2C(exgelb, EXGELB)(int *idexo, entity_id *elem_blk_id, char *elem_type,
                          void_int *num_elem_this_blk, void_int *num_nodes_per_elem,
                          void_int *num_attr, int *ierr, int elem_typelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0;
 
-  int slen = MAX_STR_LENGTH; /* max str size */
+  slen = MAX_STR_LENGTH; /* max str size */
   if (elem_typelen != MAX_STR_LENGTH) {
     slen = elem_typelen;
   }
   /* allocate memory to stage the element type names into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -800,36 +807,32 @@ void F2C(exgelb, EXGELB)(int *idexo, entity_id *elem_blk_id, char *elem_type,
   free(sptr);
 }
 
-/*!
+/*
  * read element blocks IDs
- * \sa ex_get_ids()
  */
 void F2C(exgebi, EXGEBI)(int *idexo, void_int *elem_blk_ids, int *ierr)
 {
   *ierr = ex_get_ids(*idexo, EX_ELEM_BLOCK, elem_blk_ids);
 }
 
-/*!
+/*
  * write element block connectivity
- * \sa ex_put_conn()
  */
 void F2C(expelc, EXPELC)(int *idexo, entity_id *elem_blk_id, void_int *connect, int *ierr)
 {
   *ierr = ex_put_conn(*idexo, EX_ELEM_BLOCK, *elem_blk_id, connect, NULL, NULL);
 }
 
-/*!
+/*
  * read element block connectivity
- * \sa ex_get_conn()
  */
 void F2C(exgelc, EXGELC)(int *idexo, entity_id *elem_blk_id, void_int *connect, int *ierr)
 {
   *ierr = ex_get_conn(*idexo, EX_ELEM_BLOCK, *elem_blk_id, connect, NULL, NULL);
 }
 
-/*!
+/*
  * write entity count-per-polyhedra information for nsided block
- * \sa ex_put_entity_count_per_polyhedra()
  */
 void F2C(expecpp, EXPECPP)(int *idexo, int *obj_type, entity_id *elem_blk_id, int *counts,
                            int *ierr)
@@ -838,9 +841,8 @@ void F2C(expecpp, EXPECPP)(int *idexo, int *obj_type, entity_id *elem_blk_id, in
       ex_put_entity_count_per_polyhedra(*idexo, (ex_entity_type)*obj_type, *elem_blk_id, counts);
 }
 
-/*!
+/*
  * read entity count-per-polyhedra information for nsided block
- * \sa ex_get_entity_count_per_polyhedra()
  */
 void F2C(exgecpp, EXGECPP)(int *idexo, int *obj_type, entity_id *elem_blk_id, int *counts,
                            int *ierr)
@@ -849,34 +851,36 @@ void F2C(exgecpp, EXGECPP)(int *idexo, int *obj_type, entity_id *elem_blk_id, in
       ex_get_entity_count_per_polyhedra(*idexo, (ex_entity_type)*obj_type, *elem_blk_id, counts);
 }
 
-/*!
+/*
  * write element block attributes
- * \sa ex_put_attr()
  */
 void F2C(expeat, EXPEAT)(int *idexo, entity_id *elem_blk_id, real *attrib, int *ierr)
 {
   *ierr = ex_put_attr(*idexo, EX_ELEM_BLOCK, *elem_blk_id, attrib);
 }
 
-/*!
+/*
  * read element block attributes
- * \sa ex_get_attr()
  */
 void F2C(exgeat, EXGEAT)(int *idexo, entity_id *elem_blk_id, real *attrib, int *ierr)
 {
   *ierr = ex_get_attr(*idexo, EX_ELEM_BLOCK, *elem_blk_id, attrib);
 }
 
-/*!
+/*
  * read element block attribute names
- * \sa ex_get_attr_names()
  */
 void F2C(exgean, EXGEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char *names, int *ierr,
                          int nameslen)
 {
+  char **aptr; /* ptr to temp staging space for string array
+                * ptrs */
+  char *sptr;  /* ptr to temp staging space for strings */
+  int   i, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -886,25 +890,20 @@ void F2C(exgean, EXGEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char
     slen = nameslen;
   }
   /* allocate memory to for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_attr + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_attr * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr); /* Free up string ptr array */
     return;
   }
-
-  int i;
   for (i = 0; i < *num_attr; i++) {
     *(aptr + i) = sptr + i * (slen + 1); /* put address into ptr array */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
 
   *ierr = 0;
   if (ex_get_attr_names(*idexo, EX_ELEM_BLOCK, *elem_blk_id, aptr) == EX_FATAL) {
@@ -924,16 +923,20 @@ void F2C(exgean, EXGEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * write element block attribute names
- * \sa ex_put_attr_names()
  */
 void F2C(expean, EXPEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char *names, int *ierr,
                          int nameslen)
 {
+  char **aptr; /* ptr to temp staging space for string array
+                * ptrs */
+  char *sptr;  /* ptr to temp staging space for strings */
+  int   i, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -943,28 +946,23 @@ void F2C(expean, EXPEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char
     slen = nameslen;
   }
   /* allocate memory to for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_attr + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
-
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_attr * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr); /* Free up string ptr array */
     return;
   }
   /* Copy Fortran names to staging space */
-  int i;
   for (i = 0; i < *num_attr; i++) {
     *(aptr + i) = sptr + i * (slen + 1);                  /* put address into ptr array */
     ex_fstrncpy(*(aptr + i), names + i * nameslen, slen); /* copy string into
                                                            * buffer */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
 
   *ierr = 0;
   if (ex_put_attr_names(*idexo, EX_ELEM_BLOCK, *elem_blk_id, aptr) == EX_FATAL) {
@@ -974,16 +972,20 @@ void F2C(expean, EXPEAN)(int *idexo, entity_id *elem_blk_id, int *num_attr, char
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * write object names
- * \sa ex_put_names()
  */
 void F2C(expnams, EXPNAMS)(int *idexo, int *type, int *num_obj, char *names, int *ierr,
                            int nameslen)
 {
+  char **aptr; /* ptr to temp staging space for string array
+                * ptrs */
+  char *sptr;  /* ptr to temp staging space for strings */
+  int   i, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -993,27 +995,23 @@ void F2C(expnams, EXPNAMS)(int *idexo, int *type, int *num_obj, char *names, int
     slen = nameslen;
   }
   /* allocate memory for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_obj + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_obj * (slen + 1) * sizeof(char)))) {
     free(aptr); /* Free up string ptr array */
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Copy Fortran names to staging space */
-  int i;
   for (i = 0; i < *num_obj; i++) {
     *(aptr + i) = sptr + i * (slen + 1);                  /* put address into ptr array */
     ex_fstrncpy(*(aptr + i), names + i * nameslen, slen); /* copy string into
                                                            * buffer */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
   /* do Exodus C call to write results variables names */
   if (ex_put_names(*idexo, (ex_entity_type)*type, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
@@ -1022,15 +1020,17 @@ void F2C(expnams, EXPNAMS)(int *idexo, int *type, int *num_obj, char *names, int
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * write single object names
- * \sa ex_put_name()
  */
 void F2C(expnam, EXPNAM)(int *idexo, int *type, int *id, char *name, int *ierr, int namelen)
 {
+  char *sptr; /* ptr to temp staging space for string */
+  int   slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1041,7 +1041,6 @@ void F2C(expnam, EXPNAM)(int *idexo, int *type, int *id, char *name, int *ierr, 
   }
 
   /* Allocate staging space for the variable name */
-  char *sptr; /* ptr to temp staging space for string */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1056,16 +1055,20 @@ void F2C(expnam, EXPNAM)(int *idexo, int *type, int *id, char *name, int *ierr, 
   free(sptr); /* Free up string staging area */
 }
 
-/*!
+/*
  * read object names
- * \sa ex_get_names()
  */
 void F2C(exgnams, EXGNAMS)(int *idexo, int *type, int *num_obj, char *names, int *ierr,
                            int nameslen)
 {
+  char **aptr; /* ptr to temp staging space for string array
+                * ptrs */
+  char *sptr;  /* ptr to temp staging space for strings */
+  int   i, slen;
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1075,25 +1078,20 @@ void F2C(exgnams, EXGNAMS)(int *idexo, int *type, int *num_obj, char *names, int
     slen = nameslen;
   }
   /* allocate memory to for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_obj + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_obj * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr); /* Free up string ptr array */
     return;
   }
-
-  int i;
   for (i = 0; i < *num_obj; i++) {
     *(aptr + i) = sptr + i * (slen + 1); /* put address into ptr array */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
 
   /* do Exodus C call to read results variables names */
   if (ex_get_names(*idexo, (ex_entity_type)*type, aptr) == EX_FATAL) {
@@ -1113,15 +1111,16 @@ void F2C(exgnams, EXGNAMS)(int *idexo, int *type, int *num_obj, char *names, int
   free(aptr); /* Free up string ptr array */
 }
 
-/*!
+/*
  * read single object name
- * \sa ex_get_name()
  */
 void F2C(exgnam, EXGNAM)(int *idexo, int *type, int *id, char *name, int *ierr, int namelen)
 {
+  char *sptr; /* ptr to temp staging space for string */
+  int   slen;
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1131,7 +1130,6 @@ void F2C(exgnam, EXGNAM)(int *idexo, int *type, int *id, char *name, int *ierr, 
     slen = namelen;
   }
   /* Allocate staging space for the object name */
-  char *sptr; /* ptr to temp staging space for string */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1149,16 +1147,20 @@ void F2C(exgnam, EXGNAM)(int *idexo, int *type, int *id, char *name, int *ierr, 
   free(sptr); /* Free up string staging area */
 }
 
-/*!
+/*
  * write property array names
- * \sa ex_put_prop_names()
  */
 void F2C(exppn, EXPPN)(int *idexo, int *obj_type, int *num_props, char *prop_names, int *ierr,
                        int prop_nameslen)
 {
+  char **aptr; /* internal string array pointer for malloc
+                * use */
+  char *sptr;  /* internal string pointer for malloc use */
+  int   i, slen;
+
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1168,8 +1170,6 @@ void F2C(exppn, EXPPN)(int *idexo, int *obj_type, int *num_props, char *prop_nam
     slen = prop_nameslen;
   }
   /* Allocate space for the name ptr array */
-  char **aptr; /* internal string array pointer for malloc
-                * use */
   if (!(aptr = malloc((*num_props + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1180,19 +1180,17 @@ void F2C(exppn, EXPPN)(int *idexo, int *obj_type, int *num_props, char *prop_nam
    * to staging space
    */
 
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((*num_props) * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr);
     return;
   }
-  int i;
   for (i = 0; i < *num_props; i++) {
     *(aptr + i) = sptr + i * (slen + 1);
     /* copy fortran string into allocated space */
     ex_fstrncpy(*(aptr + i), prop_names + i * prop_nameslen, slen);
   }
-  *(aptr + i) = NULL; /* set last pointer to null */
+  *(aptr + i) = 0; /* set last pointer to null */
 
   if (ex_put_prop_names(*idexo, (ex_entity_type)*obj_type, *num_props, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
@@ -1202,18 +1200,22 @@ void F2C(exppn, EXPPN)(int *idexo, int *obj_type, int *num_props, char *prop_nam
   free(aptr); /* Then free up array ptr space */
 }
 
-/*!
+/*
  * read property array names
- * \sa ex_get_prop_names()
  */
 void F2C(exgpn, EXGPN)(int *idexo, int *obj_type, char *prop_names, int *ierr, int prop_nameslen)
 {
-  char       errmsg[MAX_ERR_LENGTH];
+  char   errmsg[MAX_ERR_LENGTH];
+  char **aptr;     /* internal string array pointer for malloc
+                    * use */
+  char *     sptr; /* internal string pointer for malloc use */
+  int        i, slen;
   ex_inquiry inq_code;
+  int        num_props;
 
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1238,15 +1240,13 @@ void F2C(exgpn, EXGPN)(int *idexo, int *obj_type, char *prop_names, int *ierr, i
   }
 
   /* do Exodus C call to find out how many properties */
-  int num_props = ex_inquire_int(*idexo, inq_code);
+  num_props = ex_inquire_int(*idexo, inq_code);
   if (num_props < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
   /* Allocate space for the name ptr array */
-  char **aptr; /* internal string array pointer for malloc
-                * use */
   if (!(aptr = malloc((num_props + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1257,7 +1257,6 @@ void F2C(exgpn, EXGPN)(int *idexo, int *obj_type, char *prop_names, int *ierr, i
    * to staging space
    */
 
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc(num_props * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr);
@@ -1265,12 +1264,11 @@ void F2C(exgpn, EXGPN)(int *idexo, int *obj_type, char *prop_names, int *ierr, i
   }
   memset(sptr, 0, num_props * (slen + 1));
 
-  int i;
   for (i = 0; i < num_props; i++) {
     *(aptr + i) = sptr + i * (slen + 1);
-  }                   /* put ptrs to staging space
-                       * into ptr array */
-  *(aptr + i) = NULL; /* set last pointer to null */
+  }                /* put ptrs to staging space
+                    * into ptr array */
+  *(aptr + i) = 0; /* set last pointer to null */
 
   /* do Exodus C call to get property name records */
   if (ex_get_prop_names(*idexo, (ex_entity_type)*obj_type, aptr) == EX_FATAL) {
@@ -1290,16 +1288,18 @@ void F2C(exgpn, EXGPN)(int *idexo, int *obj_type, char *prop_names, int *ierr, i
   free(aptr); /* Then free up array ptr space */
 }
 
-/*!
+/*
  * write object property
- * \sa ex_put_prop()
  */
 void F2C(expp, EXPP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_name,
                      entity_id *value, int *ierr, int prop_namelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1309,7 +1309,6 @@ void F2C(expp, EXPP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_na
     slen = prop_namelen;
   }
   /* allocate memory to stage the property name into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1322,16 +1321,18 @@ void F2C(expp, EXPP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_na
   free(sptr);
 }
 
-/*!
+/*
  * read object property
- * \sa ex_get_prop()
  */
 void F2C(exgp, EXGP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_name, void_int *value,
                      int *ierr, int prop_namelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1341,7 +1342,6 @@ void F2C(exgp, EXGP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_na
     slen = prop_namelen;
   }
   /* allocate memory to stage the property name into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1356,16 +1356,18 @@ void F2C(exgp, EXGP)(int *idexo, int *obj_type, entity_id *obj_id, char *prop_na
   free(sptr);
 }
 
-/*!
+/*
  * read object property array
- * \sa ex_get_prop_array()
  */
 void F2C(exgpa, EXGPA)(int *idexo, int *obj_type, char *prop_name, void_int *values, int *ierr,
                        int prop_namelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1375,7 +1377,6 @@ void F2C(exgpa, EXGPA)(int *idexo, int *obj_type, char *prop_name, void_int *val
     slen = prop_namelen;
   }
   /* allocate memory to stage the property name into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1392,16 +1393,18 @@ void F2C(exgpa, EXGPA)(int *idexo, int *obj_type, char *prop_name, void_int *val
   free(sptr);
 }
 
-/*!
+/*
  * write object property array
- * \sa ex_put_prop_array()
  */
 void F2C(exppa, EXPPA)(int *idexo, int *obj_type, char *prop_name, void_int *values, int *ierr,
                        int prop_namelen)
 {
+  char *sptr; /* internal string pointer for malloc use */
+  int   slen;
+
   *ierr = 0;
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1411,7 +1414,6 @@ void F2C(exppa, EXPPA)(int *idexo, int *obj_type, char *prop_name, void_int *val
     slen = prop_namelen;
   }
   /* allocate memory to stage the property name into */
-  char *sptr; /* internal string pointer for malloc use */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -1426,9 +1428,8 @@ void F2C(exppa, EXPPA)(int *idexo, int *obj_type, char *prop_name, void_int *val
   free(sptr);
 }
 
-/*!
+/*
  * write node set parameters
- * \sa ex_put_set_param()
  */
 void F2C(expnp, EXPNP)(int *idexo, entity_id *node_set_id, void_int *num_nodes_in_set,
                        void_int *num_dist_in_set, int *ierr)
@@ -1445,9 +1446,8 @@ void F2C(expnp, EXPNP)(int *idexo, entity_id *node_set_id, void_int *num_nodes_i
   }
 }
 
-/*!
+/*
  * read node set parameters
- * \sa ex_get_set_param()
  */
 void F2C(exgnp, EXGNP)(int *idexo, entity_id *node_set_id, void_int *num_nodes_in_set,
                        void_int *num_dist_in_set, int *ierr)
@@ -1455,82 +1455,79 @@ void F2C(exgnp, EXGNP)(int *idexo, entity_id *node_set_id, void_int *num_nodes_i
   *ierr = ex_get_set_param(*idexo, EX_NODE_SET, *node_set_id, num_nodes_in_set, num_dist_in_set);
 }
 
-/*!
+/*
  * write node set
- * \sa ex_put_set()
  */
 void F2C(expns, EXPNS)(int *idexo, entity_id *node_set_id, void_int *node_set_node_list, int *ierr)
 {
   *ierr = ex_put_set(*idexo, EX_NODE_SET, *node_set_id, node_set_node_list, NULL);
 }
 
-/*!
+/*
  * write node set dist factors
- * \sa ex_put_set_dist_fact()
  */
 void F2C(expnsd, EXPNSD)(int *idexo, entity_id *node_set_id, real *node_set_dist_fact, int *ierr)
 {
   *ierr = ex_put_set_dist_fact(*idexo, EX_NODE_SET, *node_set_id, node_set_dist_fact);
 }
 
-/*!
+/*
  * read node set
- * \sa ex_get_set()
  */
 void F2C(exgns, EXGNS)(int *idexo, entity_id *node_set_id, void_int *node_set_node_list, int *ierr)
 {
   *ierr = ex_get_set(*idexo, EX_NODE_SET, *node_set_id, node_set_node_list, NULL);
 }
 
-/*!
+/*
  * read node set dist factors
- * \sa ex_get_set_dist_fact()
  */
 void F2C(exgnsd, EXGNSD)(int *idexo, entity_id *node_set_id, real *node_set_dist_fact, int *ierr)
 {
   *ierr = ex_get_set_dist_fact(*idexo, EX_NODE_SET, *node_set_id, node_set_dist_fact);
 }
 
-/*!
+/*
  * read node sets IDs
- * \sa ex_get_ids()
  */
 void F2C(exgnsi, EXGNSI)(int *idexo, void_int *node_set_ids, int *ierr)
 {
   *ierr = ex_get_ids(*idexo, EX_NODE_SET, node_set_ids);
 }
 
-/*!
+/*
  * write concatenated node sets
- * \sa ex_put_concat_sets()
  */
 void F2C(expcns, EXPCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes_per_set,
                          void_int *num_dist_per_set, void_int *node_sets_node_index,
                          void_int *node_sets_dist_index, void_int *node_sets_node_list,
                          real *node_sets_dist_fact, int *ierr)
 {
+  struct ex_set_specs set_specs;
+  int                 num_node_sets, i;
+  int                 int_size;
+
+  void_int *node_index_ptr, *dist_index_ptr;
+
   *ierr = 0;
 
-  int num_node_sets = ex_inquire_int(*idexo, EX_INQ_NODE_SETS);
+  num_node_sets = ex_inquire_int(*idexo, EX_INQ_NODE_SETS);
   if (num_node_sets < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  int int_size = sizeof(int);
+  int_size = sizeof(int);
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
     int_size = sizeof(int64_t);
   }
 
   /* allocate memory for C node index array */
-  void_int *node_index_ptr;
   if (!(node_index_ptr = malloc(num_node_sets * int_size))) {
     *ierr = EX_MEMFAIL;
     return;
   }
-
   /* allocate memory for C dist factor index array */
-  void_int *dist_index_ptr;
   if (!(dist_index_ptr = malloc(num_node_sets * int_size))) {
     free(node_index_ptr);
     *ierr = EX_MEMFAIL;
@@ -1538,19 +1535,18 @@ void F2C(expcns, EXPCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes
   }
 
   if (int_size == sizeof(int64_t)) {
-    for (int i = 0; i < num_node_sets; i++) { /* change from 1-based to 0 index */
+    for (i = 0; i < num_node_sets; i++) { /* change from 1-based to 0 index */
       ((int64_t *)node_index_ptr)[i] = ((int64_t *)node_sets_node_index)[i] - 1;
       ((int64_t *)dist_index_ptr)[i] = ((int64_t *)node_sets_dist_index)[i] - 1;
     }
   }
   else {
-    for (int i = 0; i < num_node_sets; i++) { /* change from 1-based to 0 index */
+    for (i = 0; i < num_node_sets; i++) { /* change from 1-based to 0 index */
       ((int *)node_index_ptr)[i] = ((int *)node_sets_node_index)[i] - 1;
       ((int *)dist_index_ptr)[i] = ((int *)node_sets_dist_index)[i] - 1;
     }
   }
 
-  struct ex_set_specs set_specs;
   set_specs.sets_ids            = node_set_ids;
   set_specs.num_entries_per_set = num_nodes_per_set;
   set_specs.num_dist_per_set    = num_dist_per_set;
@@ -1566,9 +1562,8 @@ void F2C(expcns, EXPCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes
   free(dist_index_ptr);
 }
 
-/*!
+/*
  * read concatenated node sets
- * \sa ex_get_concat_sets()
  */
 void F2C(exgcns, EXGCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes_per_set,
                          void_int *num_dist_per_set, void_int *node_sets_node_index,
@@ -1576,6 +1571,8 @@ void F2C(exgcns, EXGCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes
                          real *node_sets_dist_fact, int *ierr)
 {
   struct ex_set_specs set_specs;
+  int                 num_node_sets, i;
+
   set_specs.sets_ids            = node_set_ids;
   set_specs.num_entries_per_set = num_nodes_per_set;
   set_specs.num_dist_per_set    = num_dist_per_set;
@@ -1587,29 +1584,28 @@ void F2C(exgcns, EXGCNS)(int *idexo, void_int *node_set_ids, void_int *num_nodes
 
   *ierr = ex_get_concat_sets(*idexo, EX_NODE_SET, &set_specs);
 
-  int num_node_sets = ex_inquire_int(*idexo, EX_INQ_NODE_SETS);
+  num_node_sets = ex_inquire_int(*idexo, EX_INQ_NODE_SETS);
   if (num_node_sets < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
-    for (int i = 0; i < num_node_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_node_sets; i++) { /* change from 0-based to 1 index */
       ((int64_t *)node_sets_node_index)[i] += 1;
       ((int64_t *)node_sets_dist_index)[i] += 1;
     }
   }
   else {
-    for (int i = 0; i < num_node_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_node_sets; i++) { /* change from 0-based to 1 index */
       ((int *)node_sets_node_index)[i] += 1;
       ((int *)node_sets_dist_index)[i] += 1;
     }
   }
 }
 
-/*!
+/*
  * write side set parameters
- * \sa ex_put_set_param()
  */
 void F2C(expsp, EXPSP)(int *idexo, entity_id *side_set_id, void_int *num_sides_in_set,
                        void_int *num_df_in_set, int *ierr)
@@ -1626,9 +1622,8 @@ void F2C(expsp, EXPSP)(int *idexo, entity_id *side_set_id, void_int *num_sides_i
   }
 }
 
-/*!
+/*
  * read side set parameters
- * \sa ex_get_set_param()
  */
 void F2C(exgsp, EXGSP)(int *idexo, entity_id *side_set_id, void_int *num_sides_in_set,
                        void_int *num_df_in_set, int *ierr)
@@ -1636,18 +1631,16 @@ void F2C(exgsp, EXGSP)(int *idexo, entity_id *side_set_id, void_int *num_sides_i
   *ierr = ex_get_set_param(*idexo, EX_SIDE_SET, *side_set_id, num_sides_in_set, num_df_in_set);
 }
 
-/*!
+/*
  * get side set node list length
- * \sa ex_get_side_set_node_list_len()
  */
 void F2C(exgsnl, EXGSNL)(int *idexo, entity_id *side_set_id, void_int *num_nodes_in_set, int *ierr)
 {
   *ierr = ex_get_side_set_node_list_len(*idexo, *side_set_id, num_nodes_in_set);
 }
 
-/*!
+/*
  * write side set
- * \sa ex_put_set()
  */
 void F2C(expss, EXPSS)(int *idexo, entity_id *side_set_id, void_int *side_set_elem_list,
                        void_int *side_set_side_list, int *ierr)
@@ -1655,9 +1648,8 @@ void F2C(expss, EXPSS)(int *idexo, entity_id *side_set_id, void_int *side_set_el
   *ierr = ex_put_set(*idexo, EX_SIDE_SET, *side_set_id, side_set_elem_list, side_set_side_list);
 }
 
-/*!
+/*
  * read side set
- * \sa ex_get_set()
  */
 void F2C(exgss, EXGSS)(int *idexo, entity_id *side_set_id, void_int *side_set_elem_list,
                        void_int *side_set_side_list, int *ierr)
@@ -1665,64 +1657,63 @@ void F2C(exgss, EXGSS)(int *idexo, entity_id *side_set_id, void_int *side_set_el
   *ierr = ex_get_set(*idexo, EX_SIDE_SET, *side_set_id, side_set_elem_list, side_set_side_list);
 }
 
-/*!
+/*
  * write side set distribution factors
- * \sa ex_put_set_dist_fact()
  */
 void F2C(expssd, EXPSSD)(int *idexo, entity_id *side_set_id, real *side_set_dist_fact, int *ierr)
 {
   *ierr = ex_put_set_dist_fact(*idexo, EX_SIDE_SET, *side_set_id, side_set_dist_fact);
 }
 
-/*!
+/*
  * read side set distribution factors
- * \sa ex_get_set_dist_fact()
  */
 void F2C(exgssd, EXGSSD)(int *idexo, entity_id *side_set_id, real *side_set_dist_fact, int *ierr)
 {
   *ierr = ex_get_set_dist_fact(*idexo, EX_SIDE_SET, *side_set_id, side_set_dist_fact);
 }
 
-/*!
+/*
  * read side sets IDs
- * \sa ex_get_ids()
  */
 void F2C(exgssi, EXGSSI)(int *idexo, void_int *side_set_ids, int *ierr)
 {
   *ierr = ex_get_ids(*idexo, EX_SIDE_SET, side_set_ids);
 }
 
-/*!
+/*
  * write concatenated side sets
- * \sa ex_put_concat_sets()
  */
 void F2C(expcss, EXPCSS)(int *idexo, void_int *side_set_ids, void_int *num_elem_per_set,
                          void_int *num_dist_per_set, void_int *side_sets_elem_index,
                          void_int *side_sets_dist_index, void_int *side_sets_elem_list,
                          void_int *side_sets_side_list, real *side_sets_dist_fact, int *ierr)
 {
+  int                 num_side_sets, i;
+  void_int *          elem_index_ptr, *dist_index_ptr;
+  int                 int_size;
+  struct ex_set_specs set_specs;
+
   *ierr = 0;
 
-  int num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
+  num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
   if (num_side_sets < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  int int_size = sizeof(int);
+  int_size = sizeof(int);
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
     int_size = sizeof(int64_t);
   }
 
   /* allocate memory for C element index array */
-  void_int *elem_index_ptr;
   if (!(elem_index_ptr = malloc(num_side_sets * int_size))) {
     *ierr = EX_MEMFAIL;
     return;
   }
 
   /* allocate memory for C dist factor index array */
-  void_int *dist_index_ptr;
   if (!(dist_index_ptr = malloc(num_side_sets * int_size))) {
     free(elem_index_ptr);
     *ierr = EX_MEMFAIL;
@@ -1730,19 +1721,18 @@ void F2C(expcss, EXPCSS)(int *idexo, void_int *side_set_ids, void_int *num_elem_
   }
 
   if (int_size == sizeof(int64_t)) {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 1-based to 0 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 1-based to 0 index */
       ((int64_t *)elem_index_ptr)[i] = ((int64_t *)side_sets_elem_index)[i] - 1;
       ((int64_t *)dist_index_ptr)[i] = ((int64_t *)side_sets_dist_index)[i] - 1;
     }
   }
   else {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 1-based to 0 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 1-based to 0 index */
       ((int *)elem_index_ptr)[i] = ((int *)side_sets_elem_index)[i] - 1;
       ((int *)dist_index_ptr)[i] = ((int *)side_sets_dist_index)[i] - 1;
     }
   }
 
-  struct ex_set_specs set_specs;
   set_specs.sets_ids            = side_set_ids;
   set_specs.num_entries_per_set = num_elem_per_set;
   set_specs.num_dist_per_set    = num_dist_per_set;
@@ -1757,24 +1747,25 @@ void F2C(expcss, EXPCSS)(int *idexo, void_int *side_set_ids, void_int *num_elem_
   free(dist_index_ptr);
 }
 
-/*!
+/*
  * read concatenated side sets
- * \sa ex_get_concat_sets()
  */
 void F2C(exgcss, EXGCSS)(int *idexo, void_int *side_set_ids, void_int *num_elem_per_set,
                          void_int *num_dist_per_set, void_int *side_sets_elem_index,
                          void_int *side_sets_dist_index, void_int *side_sets_elem_list,
                          void_int *side_sets_side_list, real *side_sets_dist_fact, int *ierr)
 {
+  int                 i, num_side_sets;
+  struct ex_set_specs set_specs;
+
   *ierr = 0;
 
-  int num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
+  num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
   if (num_side_sets < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  struct ex_set_specs set_specs;
   set_specs.sets_ids            = side_set_ids;
   set_specs.num_entries_per_set = num_elem_per_set;
   set_specs.num_dist_per_set    = num_dist_per_set;
@@ -1787,35 +1778,36 @@ void F2C(exgcss, EXGCSS)(int *idexo, void_int *side_set_ids, void_int *num_elem_
   *ierr = ex_get_concat_sets(*idexo, EX_SIDE_SET, &set_specs);
 
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
       ((int64_t *)side_sets_elem_index)[i] += 1;
       ((int64_t *)side_sets_dist_index)[i] += 1;
     }
   }
   else {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
       ((int *)side_sets_elem_index)[i] += 1;
       ((int *)side_sets_dist_index)[i] += 1;
     }
   }
 }
 
-/*!
+/*
  * read concatenated side sets (no dist factors)
- * \sa ex_get_concat_sets()
  */
 void F2C(exgcssf, EXGCSSF)(int *idexo, void_int *side_set_ids, void_int *num_elem_per_set,
                            void_int *num_dist_per_set, void_int *side_sets_elem_index,
                            void_int *side_sets_dist_index, void_int *side_sets_elem_list,
                            void_int *side_sets_side_list, int *ierr)
 {
-  int num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
+  int                 i, num_side_sets;
+  struct ex_set_specs set_specs;
+
+  num_side_sets = ex_inquire_int(*idexo, EX_INQ_SIDE_SETS);
   if (num_side_sets < 0) {
     *ierr = EX_FATAL;
     return;
   }
 
-  struct ex_set_specs set_specs;
   set_specs.sets_ids            = side_set_ids;
   set_specs.num_entries_per_set = num_elem_per_set;
   set_specs.num_dist_per_set    = num_dist_per_set;
@@ -1828,22 +1820,21 @@ void F2C(exgcssf, EXGCSSF)(int *idexo, void_int *side_set_ids, void_int *num_ele
   *ierr = ex_get_concat_sets(*idexo, EX_SIDE_SET, &set_specs);
 
   if (ex_int64_status(*idexo) & EX_BULK_INT64_API) {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
       ((int64_t *)side_sets_elem_index)[i] += 1;
       ((int64_t *)side_sets_dist_index)[i] += 1;
     }
   }
   else {
-    for (int i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
+    for (i = 0; i < num_side_sets; i++) { /* change from 0-based to 1 index */
       ((int *)side_sets_elem_index)[i] += 1;
       ((int *)side_sets_dist_index)[i] += 1;
     }
   }
 }
 
-/*!
+/*
  * write results variables parameters
- * \sa ex_put_variable_param()
  */
 void F2C(expvp, EXPVP)(int *idexo, char *var_type, int *num_vars, int *ierr, int var_typelen)
 {
@@ -1852,9 +1843,8 @@ void F2C(expvp, EXPVP)(int *idexo, char *var_type, int *num_vars, int *ierr, int
   EX_UNUSED(var_typelen);
 }
 
-/*!
+/*
  * read results variables parameters
- * \sa ex_get_variable_param()
  */
 void F2C(exgvp, EXGVP)(int *idexo, char *var_type, int *num_vars, int *ierr, int var_typelen)
 {
@@ -1863,16 +1853,22 @@ void F2C(exgvp, EXGVP)(int *idexo, char *var_type, int *num_vars, int *ierr, int
   EX_UNUSED(var_typelen);
 }
 
-/*!
+/*
  * write results variables names
- * \sa ex_put_variable_names()
  */
 void F2C(expvan, EXPVAN)(int *idexo, char *var_type, int *num_vars, char *var_names, int *ierr,
                          int var_typelen, int var_nameslen)
 {
-  *ierr = 0; /* default no error */
+  char **aptr;         /* ptr to temp staging space for string array
+                        * ptrs */
+  char *         sptr; /* ptr to temp staging space for strings */
+  int            i, slen;
+  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  *ierr = 0; /* default no error */
+  EX_UNUSED(var_typelen);
+
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1882,47 +1878,46 @@ void F2C(expvan, EXPVAN)(int *idexo, char *var_type, int *num_vars, char *var_na
     slen = var_nameslen;
   }
   /* allocate memory for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_vars + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_vars * (slen + 1) * sizeof(char)))) {
     free(aptr); /* Free up string ptr array */
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Copy Fortran variable names to staging space */
-  int i;
   for (i = 0; i < *num_vars; i++) {
     *(aptr + i) = sptr + i * (slen + 1);                          /* put address into ptr array */
     ex_fstrncpy(*(aptr + i), var_names + i * var_nameslen, slen); /* copy string into
                                                                    * buffer */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
   /* do Exodus C call to write results variables names */
-
-  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
   if (ex_put_variable_names(*idexo, obj_type, *num_vars, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
   }
   free(sptr); /* Free up string staging area */
   free(aptr); /* Free up string ptr array */
-  EX_UNUSED(var_typelen);
 }
-/*!
+/*
  * read results variables names
- * \sa ex_get_variable_names()
  */
 void F2C(exgvan, EXGVAN)(int *idexo, char *var_type, int *num_vars, char *var_names, int *ierr,
                          int var_typelen, int var_nameslen)
 {
+  char **aptr;         /* ptr to temp staging space for string array
+                        * ptrs */
+  char *         sptr; /* ptr to temp staging space for strings */
+  int            i, slen;
+  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
+  EX_UNUSED(var_typelen);
+
   *ierr = 0; /* default no error */
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -1932,27 +1927,22 @@ void F2C(exgvan, EXGVAN)(int *idexo, char *var_type, int *num_vars, char *var_na
     slen = var_nameslen;
   }
   /* allocate memory to for pointer array */
-  char **aptr; /* ptr to temp staging space for string array
-                * ptrs */
   if (!(aptr = malloc((*num_vars + 1) * sizeof(char *)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* Allocate staging space for the variable names */
-  char *sptr; /* ptr to temp staging space for strings */
   if (!(sptr = malloc(*num_vars * (slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     free(aptr); /* Free up string ptr array */
     return;
   }
-  int i;
   for (i = 0; i < *num_vars; i++) {
     *(aptr + i) = sptr + i * (slen + 1); /* put address into ptr array */
   }
-  *(aptr + i) = NULL; /* null out last ptr */
+  *(aptr + i) = 0; /* null out last ptr */
 
   /* do Exodus C call to read results variables names */
-  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
   if (ex_get_variable_names(*idexo, obj_type, *num_vars, aptr) == EX_FATAL) {
     *ierr = EX_FATAL;
     free(sptr); /* free up allocated space */
@@ -1968,12 +1958,10 @@ void F2C(exgvan, EXGVAN)(int *idexo, char *var_type, int *num_vars, char *var_na
 
   free(sptr); /* Free up string staging area */
   free(aptr); /* Free up string ptr array */
-  EX_UNUSED(var_typelen);
 }
 
-/*!
+/*
  * write element variable truth table
- * \sa ex_put_truth_table()
  */
 void F2C(expvtt, EXPVTT)(int *idexo, int *num_elem_blk, int *num_elem_var, int *elem_var_tab,
                          int *ierr)
@@ -1981,27 +1969,24 @@ void F2C(expvtt, EXPVTT)(int *idexo, int *num_elem_blk, int *num_elem_var, int *
   *ierr = ex_put_truth_table(*idexo, EX_ELEM_BLOCK, *num_elem_blk, *num_elem_var, elem_var_tab);
 }
 
-/*!
+/*
  * write nodeset variable truth table
- * \sa ex_put_truth_table()
  */
 void F2C(expnstt, EXPNSTT)(int *idexo, int *num_entity, int *num_var, int *var_tab, int *ierr)
 {
   *ierr = ex_put_truth_table(*idexo, EX_NODE_SET, *num_entity, *num_var, var_tab);
 }
 
-/*!
+/*
  * write sideset variable truth table
- * \sa ex_put_truth_table()
  */
 void F2C(expsstt, EXPSSTT)(int *idexo, int *num_entity, int *num_var, int *var_tab, int *ierr)
 {
   *ierr = ex_put_truth_table(*idexo, EX_SIDE_SET, *num_entity, *num_var, var_tab);
 }
 
-/*!
+/*
  * read element variable truth table
- * \sa ex_get_truth_table()
  */
 void F2C(exgvtt, EXGVTT)(int *idexo, int *num_elem_blk, int *num_elem_var, int *elem_var_tab,
                          int *ierr)
@@ -2009,27 +1994,24 @@ void F2C(exgvtt, EXGVTT)(int *idexo, int *num_elem_blk, int *num_elem_var, int *
   *ierr = ex_get_truth_table(*idexo, EX_ELEM_BLOCK, *num_elem_blk, *num_elem_var, elem_var_tab);
 }
 
-/*!
+/*
  * read nodeset variable truth table
- * \sa ex_get_truth_table()
  */
 void F2C(exgnstt, EXGNSTT)(int *idexo, int *num_entity, int *num_var, int *var_tab, int *ierr)
 {
   *ierr = ex_get_truth_table(*idexo, EX_NODE_SET, *num_entity, *num_var, var_tab);
 }
 
-/*!
+/*
  * read sideset variable truth table
- * \sa ex_get_truth_table()
  */
 void F2C(exgsstt, EXGSSTT)(int *idexo, int *num_entity, int *num_var, int *var_tab, int *ierr)
 {
   *ierr = ex_get_truth_table(*idexo, EX_SIDE_SET, *num_entity, *num_var, var_tab);
 }
 
-/*!
+/*
  * write global variable values at time step
- * \sa ex_put_var()
  */
 void F2C(expgv, EXPGV)(int *idexo, int *time_step, int *num_glob_vars, real *glob_var_vals,
                        int *ierr)
@@ -2037,9 +2019,8 @@ void F2C(expgv, EXPGV)(int *idexo, int *time_step, int *num_glob_vars, real *glo
   *ierr = ex_put_var(*idexo, *time_step, EX_GLOBAL, 1, 0, *num_glob_vars, glob_var_vals);
 }
 
-/*!
+/*
  * read global variable values at a time step
- * \sa ex_get_var()
  */
 void F2C(exggv, EXGGV)(int *idexo, int *time_step, int *num_glob_vars, real *glob_var_vals,
                        int *ierr)
@@ -2047,9 +2028,8 @@ void F2C(exggv, EXGGV)(int *idexo, int *time_step, int *num_glob_vars, real *glo
   *ierr = ex_get_var(*idexo, *time_step, EX_GLOBAL, 1, 0, *num_glob_vars, glob_var_vals);
 }
 
-/*!
+/*
  * read global variable values through time
- * \sa ex_get_var_time()
  */
 void F2C(exggvt, EXGGVT)(int *idexo, int *glob_var_index, int *beg_time_step, int *end_time_step,
                          real *glob_var_vals, int *ierr)
@@ -2058,9 +2038,8 @@ void F2C(exggvt, EXGGVT)(int *idexo, int *glob_var_index, int *beg_time_step, in
                           glob_var_vals);
 }
 
-/*!
+/*
  * write nodal variable values at a time step
- * \sa ex_put_var()
  */
 void F2C(expnv, EXPNV)(int *idexo, int *time_step, int *nodal_var_index, void_int *num_nodes,
                        real *nodal_var_vals, int *ierr)
@@ -2076,9 +2055,8 @@ void F2C(expnv, EXPNV)(int *idexo, int *time_step, int *nodal_var_index, void_in
   *ierr = ex_put_var(*idexo, *time_step, EX_NODAL, *nodal_var_index, 1, nnodes, nodal_var_vals);
 }
 
-/*!
+/*
  * read nodal variable values at a time step
- * \sa ex_get_var()
  */
 void F2C(exgnv, EXGNV)(int *idexo, int *time_step, int *nodal_var_index, void_int *num_nodes,
                        real *nodal_var_vals, int *ierr)
@@ -2094,9 +2072,8 @@ void F2C(exgnv, EXGNV)(int *idexo, int *time_step, int *nodal_var_index, void_in
   *ierr = ex_get_var(*idexo, *time_step, EX_NODAL, *nodal_var_index, 1, nnodes, nodal_var_vals);
 }
 
-/*!
+/*
  * read nodal variable values through time
- * \sa ex_get_var_time()
  */
 void F2C(exgnvt, EXGNVT)(int *idexo, int *nodal_var_index, void_int *node_number,
                          int *beg_time_step, int *end_time_step, real *nodal_var_vals, int *ierr)
@@ -2113,9 +2090,8 @@ void F2C(exgnvt, EXGNVT)(int *idexo, int *nodal_var_index, void_int *node_number
                           nodal_var_vals);
 }
 
-/*!
+/*
  * write element variable values at a time step
- * \sa ex_put_var()
  */
 void F2C(expev, EXPEV)(int *idexo, int *time_step, int *elem_var_index, entity_id *elem_blk_id,
                        void_int *num_elem_this_blk, real *elem_var_vals, int *ierr)
@@ -2132,9 +2108,8 @@ void F2C(expev, EXPEV)(int *idexo, int *time_step, int *elem_var_index, entity_i
                      elem_var_vals);
 }
 
-/*!
+/*
  * read element variable values at a time step
- * \sa ex_get_var()
  */
 void F2C(exgev, EXGEV)(int *idexo, int *time_step, int *elem_var_index, entity_id *elem_blk_id,
                        void_int *num_elem_this_blk, real *elem_var_vals, int *ierr)
@@ -2151,9 +2126,8 @@ void F2C(exgev, EXGEV)(int *idexo, int *time_step, int *elem_var_index, entity_i
                      elem_var_vals);
 }
 
-/*!
+/*
  * read element variable values through time
- * \sa ex_get_var_time()
  */
 void F2C(exgevt, EXGEVT)(int *idexo, int *elem_var_index, void_int *elem_number, int *beg_time_step,
                          int *end_time_step, real *elem_var_vals, int *ierr)
@@ -2170,9 +2144,8 @@ void F2C(exgevt, EXGEVT)(int *idexo, int *elem_var_index, void_int *elem_number,
                           *end_time_step, elem_var_vals);
 }
 
-/*!
+/*
  * write nodeset variable values at a time step
- * \sa ex_put_var()
  */
 void F2C(expnsv, EXPNSV)(int *idexo, int *time_step, int *var_index, entity_id *id,
                          void_int *num_entity, real *var_vals, int *ierr)
@@ -2188,9 +2161,8 @@ void F2C(expnsv, EXPNSV)(int *idexo, int *time_step, int *var_index, entity_id *
   *ierr = ex_put_var(*idexo, *time_step, EX_NODE_SET, *var_index, *id, n_entity, var_vals);
 }
 
-/*!
+/*
  * read nodeset variable values at a time step
- * \sa ex_get_var()
  */
 void F2C(exgnsv, EXGNSV)(int *idexo, int *time_step, int *var_index, entity_id *id,
                          void_int *num_entity, real *var_vals, int *ierr)
@@ -2206,9 +2178,8 @@ void F2C(exgnsv, EXGNSV)(int *idexo, int *time_step, int *var_index, entity_id *
   *ierr = ex_get_var(*idexo, *time_step, EX_NODE_SET, *var_index, *id, n_entity, var_vals);
 }
 
-/*!
+/*
  * write sideset variable values at a time step
- * \sa ex_put_var()
  */
 void F2C(expssv, EXPSSV)(int *idexo, int *time_step, int *var_index, entity_id *id,
                          void_int *num_entity, real *var_vals, int *ierr)
@@ -2224,9 +2195,8 @@ void F2C(expssv, EXPSSV)(int *idexo, int *time_step, int *var_index, entity_id *
   *ierr = ex_put_var(*idexo, *time_step, EX_SIDE_SET, *var_index, *id, n_entity, var_vals);
 }
 
-/*!
+/*
  * read sideset variable values at a time step
- * \sa ex_get_var()
  */
 void F2C(exgssv, EXGSSV)(int *idexo, int *time_step, int *var_index, entity_id *id,
                          void_int *num_entity, real *var_vals, int *ierr)
@@ -2242,36 +2212,32 @@ void F2C(exgssv, EXGSSV)(int *idexo, int *time_step, int *var_index, entity_id *
   *ierr = ex_get_var(*idexo, *time_step, EX_SIDE_SET, *var_index, *id, n_entity, var_vals);
 }
 
-/*!
+/*
  * write time value for a time step
- * \sa ex_put_time()
  */
 void F2C(exptim, EXPTIM)(int *idexo, int *time_step, real *time_value, int *ierr)
 {
   *ierr = ex_put_time(*idexo, *time_step, time_value);
 }
 
-/*!
+/*
  * read time value for a time step
- * \sa ex_get_time()
  */
 void F2C(exgtim, EXGTIM)(int *idexo, int *time_step, real *time_value, int *ierr)
 {
   *ierr = ex_get_time(*idexo, *time_step, time_value);
 }
 
-/*!
+/*
  * read all time values
- * \sa ex_get_all_times()
  */
 void F2C(exgatm, EXGATM)(int *idexo, real *time_values, int *ierr)
 {
   *ierr = ex_get_all_times(*idexo, time_values);
 }
 
-/*!
+/*
  * inquire EXODUS parameters
- * \sa ex_inquire()
  */
 void F2C(exinq, EXINQ)(int *idexo, int *req_info, void_int *ret_int, float *ret_float,
                        char *ret_char, int *ierr, int ret_charlen)
@@ -2280,34 +2246,32 @@ void F2C(exinq, EXINQ)(int *idexo, int *req_info, void_int *ret_int, float *ret_
   EX_UNUSED(ret_charlen);
 }
 
-/*!
+/*
  * inquire integer EXODUS parameters
- * \sa ex_inquire_int()
  */
 int64_t F2C(exinqi, EXINQI)(int *idexo, int *req_info)
 {
   return ex_inquire_int(*idexo, (ex_inquiry)*req_info);
 }
 
-/*!
+/*
  * convert side set node lists to side set side lists
- * \sa ex_cvt_nodes_to_sides()
  */
 void F2C(excn2s, EXCN2S)(int *idexo, void_int *num_elem_per_set, void_int *num_nodes_per_set,
                          void_int *side_sets_elem_index, void_int *side_sets_node_index,
                          void_int *side_sets_elem_list, void_int *side_sets_node_list,
                          void_int *side_sets_side_list, int *ierr)
 {
+  EX_UNUSED(side_sets_elem_index);
+  EX_UNUSED(side_sets_node_index);
+
   *ierr = ex_cvt_nodes_to_sides(*idexo, num_elem_per_set, num_nodes_per_set, NULL, /* unused */
                                 NULL,                                              /* unused */
                                 side_sets_elem_list, side_sets_node_list, side_sets_side_list);
-  EX_UNUSED(side_sets_elem_index);
-  EX_UNUSED(side_sets_node_index);
 }
 
-/*!
+/*
  * read side set node list
- * \sa ex_get_side_set_node_list()
  */
 void F2C(exgssn, EXGSSN)(int *idexo, entity_id *side_set_id, int *side_set_node_cnt_list,
                          void_int *side_set_node_list, int *ierr)
@@ -2316,31 +2280,29 @@ void F2C(exgssn, EXGSSN)(int *idexo, entity_id *side_set_id, int *side_set_node_
       ex_get_side_set_node_list(*idexo, *side_set_id, side_set_node_cnt_list, side_set_node_list);
 }
 
-/*!
+/*
  * read side set node count
- * \sa ex_get_side_set_node_count()
  */
 void F2C(exgssc, EXGSSC)(int *idexo, entity_id *side_set_id, int *side_set_node_cnt_list, int *ierr)
 {
   *ierr = ex_get_side_set_node_count(*idexo, *side_set_id, side_set_node_cnt_list);
 }
 
-/*!
+/*
  * read concatenated side set node count
- * \sa ex_get_concat_side_set_node_count()
  */
 void F2C(exgcssc, EXGCSSC)(int *idexo, int *side_set_node_cnt_list, int *ierr)
 {
   *ierr = ex_get_concat_side_set_node_count(*idexo, side_set_node_cnt_list);
 }
 
-/*!
- *  ex_get_coordinate_frames -- read coordinate frames
- * \sa ex_get_coordinate_frames()
- */
+/* ex_get_coordinate_frames -- read coordinate frames */
 void F2C(exgfrm, EXGFRM)(int *idexo, int *nframeo, void_int *cfids, real *coord, int *tags,
                          int *ierr)
 {
+  int   i;
+  char *ctags = NULL;
+
   /* Determine number of coordinate frames stored in file */
   int nframe = ex_inquire_int(*idexo, EX_INQ_COORD_FRAMES);
   if (nframe < 0) {
@@ -2354,7 +2316,6 @@ void F2C(exgfrm, EXGFRM)(int *idexo, int *nframeo, void_int *cfids, real *coord,
   }
   /* Create array of characters to store tags... */
   if (nframe > 0) {
-    char *ctags = NULL;
     if (!(ctags = calloc(nframe, sizeof(char)))) {
       *ierr = EX_MEMFAIL;
       return;
@@ -2366,7 +2327,7 @@ void F2C(exgfrm, EXGFRM)(int *idexo, int *nframeo, void_int *cfids, real *coord,
       return;
     }
     /* Convert character tags back to integer tags for fortran */
-    for (int i = 0; i < nframe; i++) {
+    for (i = 0; i < nframe; i++) {
       if (ctags[i] == 'R' || ctags[i] == 'r') {
         tags[i] = EX_CF_RECTANGULAR;
       }
@@ -2381,22 +2342,21 @@ void F2C(exgfrm, EXGFRM)(int *idexo, int *nframeo, void_int *cfids, real *coord,
   }
 }
 
-/*!
- *  ex_put_coordinate_frames -- define/write coordinate frames
- * \sa ex_put_coordinate_frames()
- */
+/* ex_put_coordinate_frames -- define/write coordinate frames */
 void F2C(expfrm, EXPFRM)(int *idexo, int *nframe, void_int *cfids, real *coord, int *tags,
                          int *ierr)
 {
+  int   i;
+  char *ctags = NULL;
+
   /* Create array of characters to store tags... */
   if (*nframe > 0) {
-    char *ctags = NULL;
     if (!(ctags = calloc(*nframe, sizeof(char)))) {
       *ierr = EX_MEMFAIL;
       return;
     }
     /* Convert fortran integer tags to C API character tags */
-    for (int i = 0; i < *nframe; i++) {
+    for (i = 0; i < *nframe; i++) {
       if (tags[i] == EX_CF_RECTANGULAR) {
         ctags[i] = 'R';
       }
@@ -2417,22 +2377,13 @@ void F2C(expfrm, EXPFRM)(int *idexo, int *nframe, void_int *cfids, real *coord, 
   }
 }
 
-/*!
- *  Routine to return floating point word size
- * \sa ex__get_cpu_ws()
- */
-int F2C(excpws, EXCPWS)(void) { return (ex__get_cpu_ws()); }
+/* Routine to return floating point word size */
+int F2C(excpws, EXCPWS)() { return (ex__get_cpu_ws()); }
 
-/*!
- *  Routine to return large model setting
- * \sa ex_large_model()
- */
+/* Routine to return large model setting */
 int F2C(exlgmd, EXLGMD)(int *idexo) { return (ex_large_model(*idexo)); }
 
-/*!
- * Generalized error handling function
- * \sa ex_err()
- */
+/* Generalized error handling function */
 void F2C(exerr, EXERR)(char *pname, char *err_string, int *errcode, int pnamelen, int err_stringlen)
 {
 
@@ -2482,18 +2433,16 @@ void F2C(exsetopt, EXSETOPT)(int *idexo, int *option, int *value, int *ierr)
   *ierr = ex_set_option(*idexo, *option, *value);
 }
 
-/*!
+/*
  * copy EXODUS file
- * \sa ex_copy()
  */
 void F2C(excopy, EXCOPY)(int *idexo_in, int *idexo_out, int *ierr)
 {
   *ierr = ex_copy(*idexo_in, *idexo_out);
 }
 
-/*!
+/*
  * get element map
- * \sa ex_get_num_map()
  */
 void
 
@@ -2502,9 +2451,8 @@ void
   *ierr = ex_get_num_map(*idexo, EX_ELEM_MAP, *map_id, elem_map);
 }
 
-/*!
+/*
  * get partial_element map
- * \sa ex_get_partial_num_map()
  */
 void F2C(exgpem, EXGPEM)(int *idexo, entity_id *map_id, void_int *start, void_int *count,
                          void_int *elem_map, int *ierr)
@@ -2522,52 +2470,50 @@ void F2C(exgpem, EXGPEM)(int *idexo, entity_id *map_id, void_int *start, void_in
   *ierr = ex_get_partial_num_map(*idexo, EX_ELEM_MAP, *map_id, st, cnt, elem_map);
 }
 
-/*!
+/*
  * get element number map
- * \sa ex_get_id_map()
  */
 void F2C(exgenm, EXGENM)(int *idexo, void_int *elem_map, int *ierr)
 {
   *ierr = ex_get_id_map(*idexo, EX_ELEM_MAP, elem_map);
 }
 
-/*!
+/*
  * get map parameters
- * \sa ex_get_map_param()
  */
 void F2C(exgmp, EXGMP)(int *idexo, int *num_node_maps, int *num_elem_maps, int *ierr)
 {
   *ierr = ex_get_map_param(*idexo, num_node_maps, num_elem_maps);
 }
 
-/*!
+/*
  * get node map
- * \sa ex_get_num_map()
  */
 void F2C(exgnm, EXGNM)(int *idexo, entity_id *map_id, void_int *node_map, int *ierr)
 {
   *ierr = ex_get_num_map(*idexo, EX_NODE_MAP, *map_id, node_map);
 }
 
-/*!
+/*
  * get node number map
- * \sa ex_get_id_map()
  */
 void F2C(exgnnm, EXGNNM)(int *idexo, void_int *node_map, int *ierr)
 {
   *ierr = ex_get_id_map(*idexo, EX_NODE_MAP, node_map);
 }
 
-/*!
+/*
  * read single results variables name
- * \sa ex_get_variable_name()
  */
 void F2C(exgvnm, EXGVNM)(int *idexo, char *var_type, int *var_index, char *var_name, int *ierr,
                          int var_typelen, int var_namelen)
 {
-  *ierr = 0; /* default no error */
+  char *sptr; /* ptr to temp staging space for string */
+  int   slen;
+  *ierr                   = 0; /* default no error */
+  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
+  slen = ex_inquire_int(*idexo, EX_INQ_MAX_READ_NAME_LENGTH); /* max string size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -2577,13 +2523,11 @@ void F2C(exgvnm, EXGVNM)(int *idexo, char *var_type, int *var_index, char *var_n
     slen = var_namelen;
   }
   /* Allocate staging space for the variable name */
-  char *sptr; /* ptr to temp staging space for string */
   if (!(sptr = malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
   }
   /* do Exodus C call to read results variables names */
-  ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
   if (ex_get_variable_name(*idexo, obj_type, *var_index, sptr) == EX_FATAL) {
     *ierr = EX_FATAL;
     free(sptr); /* free up allocated space */
@@ -2598,18 +2542,16 @@ void F2C(exgvnm, EXGVNM)(int *idexo, char *var_type, int *var_index, char *var_n
   EX_UNUSED(var_typelen);
 }
 
-/*!
+/*
  * put element map
- * \sa ex_put_num_map()
  */
 void F2C(expem, EXPEM)(int *idexo, entity_id *map_id, void_int *elem_map, int *ierr)
 {
   *ierr = ex_put_num_map(*idexo, EX_ELEM_MAP, *map_id, elem_map);
 }
 
-/*!
+/*
  * put partial element map
- * \sa ex_put_partial_num_map()
  */
 void F2C(exppem, EXPPEM)(int *idexo, entity_id *map_id, void_int *start, void_int *count,
                          void_int *elem_map, int *ierr)
@@ -2626,53 +2568,50 @@ void F2C(exppem, EXPPEM)(int *idexo, entity_id *map_id, void_int *start, void_in
   *ierr = ex_put_partial_num_map(*idexo, EX_ELEM_MAP, *map_id, st, cnt, elem_map);
 }
 
-/*!
+/*
  * put element number map
- * \sa ex_put_id_map()
  */
 void F2C(expenm, EXPENM)(int *idexo, void_int *elem_map, int *ierr)
 {
   *ierr = ex_put_id_map(*idexo, EX_ELEM_MAP, elem_map);
 }
 
-/*!
+/*
  * put map parameters
- * \sa ex_put_map_param()
  */
 void F2C(expmp, EXPMP)(int *idexo, int *num_node_maps, int *num_elem_maps, int *ierr)
 {
   *ierr = ex_put_map_param(*idexo, *num_node_maps, *num_elem_maps);
 }
 
-/*!
+/*
  * put node map
- * \sa ex_put_num_map()
  */
 void F2C(expnm, EXPNM)(int *idexo, entity_id *map_id, void_int *node_map, int *ierr)
 {
   *ierr = ex_put_num_map(*idexo, EX_NODE_MAP, *map_id, node_map);
 }
 
-/*!
+/*
  * put node number map
- * \sa ex_put_id_map()
  */
 void F2C(expnnm, EXPNNM)(int *idexo, void_int *node_map, int *ierr)
 {
   *ierr = ex_put_id_map(*idexo, EX_NODE_MAP, node_map);
 }
 
-/*!
+/*
  * write results variable name
- * \sa ex_put_variable_name()
  */
 void F2C(expvnm, EXPVNM)(int *idexo, char *var_type, int *var_index, char *var_name, int *ierr,
                          int var_typelen, int var_namelen)
 {
+  char *sptr; /* ptr to temp staging space for string */
+  int   slen;
   *ierr                   = 0; /* default no error */
   ex_entity_type obj_type = ex_var_type_to_ex_entity_type(*var_type);
 
-  int slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
+  slen = ex_inquire_int(*idexo, EX_INQ_DB_MAX_ALLOWED_NAME_LENGTH); /* max str size */
   if (slen < 0) {
     *ierr = EX_FATAL;
     return;
@@ -2682,7 +2621,6 @@ void F2C(expvnm, EXPVNM)(int *idexo, char *var_type, int *var_index, char *var_n
     slen = var_namelen;
   }
   /* Allocate staging space for the variable name */
-  char *sptr; /* ptr to temp staging space for string */
   if (!(sptr = (char *)malloc((slen + 1) * sizeof(char)))) {
     *ierr = EX_MEMFAIL;
     return;
@@ -2699,14 +2637,15 @@ void F2C(expvnm, EXPVNM)(int *idexo, char *var_type, int *var_index, char *var_n
   EX_UNUSED(var_typelen);
 }
 
-/*!
+/*
  *  Get initial information from nemesis file
- * \sa ex_get_init_info()
  */
 void F2C(exgii, EXGII)(int *idne, int *nproc, int *nproc_in_f, char *ftype, int *ierr,
                        size_t ftypelen)
 {
   size_t slen = 1;
+  char * file_type;
+
   /* WARNING: ftypelen SHOULD be 1, but may not be depending on how
               the Fortran programmer passed it. It is best at
               this time to hard code it per NEPII spec. */
@@ -2715,12 +2654,12 @@ void F2C(exgii, EXGII)(int *idne, int *nproc, int *nproc_in_f, char *ftype, int 
     char errmsg[MAX_ERR_LENGTH];
     snprintf(errmsg, MAX_ERR_LENGTH, "Warning: file type string length is %lu in file id %d\n",
              ftypelen, *idne);
-    ex_err_fn(*idexo, __func__, errmsg, EX_MSG);
+    ex_err_fn(*idne, __func__, errmsg, EX_MSG);
 #endif
     slen = ftypelen;
   }
 
-  char *file_type = (char *)malloc((slen + 1) * sizeof(char));
+  file_type = (char *)malloc((slen + 1) * sizeof(char));
 
   if ((*ierr = ex_get_init_info(*idne, nproc, nproc_in_f, file_type)) != 0) {
     char errmsg[MAX_ERR_LENGTH];
@@ -2736,33 +2675,35 @@ void F2C(exgii, EXGII)(int *idne, int *nproc, int *nproc_in_f, char *ftype, int 
   free(file_type);
 }
 
-/*!
+/*
  *  Write initial information from nemesis file
- * \sa ex_put_init_info()
  */
 void F2C(expii, EXPII)(int *idne, int *nproc, int *nproc_in_f, char *ftype, int *ierr,
                        size_t ftypelen)
 {
+
+  char errmsg[MAX_ERR_LENGTH];
+
   size_t slen = 1;
+  char * file_type;
+
   /* WARNING: ftypelen SHOULD be 1, but may not be depending on how
               the Fortran programmer passed it. It is best at
               this time to hard code it per NEPII spec. */
   if (ftypelen != 1) {
     slen = ftypelen;
 #if defined(EXODUS_STRING_LENGTH_WARNING)
-    char errmsg[MAX_ERR_LENGTH];
     snprintf(errmsg, MAX_ERR_LENGTH, "Warning: file type string length is %lu in file id %d\n",
              ftypelen, *idne);
     ex_err_fn(*idne, __func__, errmsg, EX_MSG);
 #endif
   }
 
-  char *file_type = (char *)malloc((slen + 1) * sizeof(char));
+  file_type = (char *)malloc((slen + 1) * sizeof(char));
 
   ex_fstrncpy(file_type, ftype, slen);
 
   if ((*ierr = ex_put_init_info(*idne, *nproc, *nproc_in_f, file_type)) != 0) {
-    char errmsg[MAX_ERR_LENGTH];
     snprintf(errmsg, MAX_ERR_LENGTH, "Error: failed to put initial information in file id %d",
              *idne);
     ex_err_fn(*idne, __func__, errmsg, EX_MSG);
@@ -2771,9 +2712,8 @@ void F2C(expii, EXPII)(int *idne, int *nproc, int *nproc_in_f, char *ftype, int 
   free(file_type);
 }
 
-/*!
+/*
  * Read initial global information
- * \sa ex_get_init_global()
  */
 void F2C(exgig, EXGIG)(int *idne, void_int *nnodes_g, void_int *nelems_g, void_int *nelem_blks_g,
                        void_int *nnode_sets_g, void_int *nside_sets_g, int *ierr)
@@ -2787,9 +2727,8 @@ void F2C(exgig, EXGIG)(int *idne, void_int *nnodes_g, void_int *nelems_g, void_i
   }
 }
 
-/*!
+/*
  * Write initial global information
- * \sa ex_put_init_global()
  */
 void F2C(expig, EXPIG)(int *idne, void_int *nnodes_g, void_int *nelems_g, void_int *nelem_blks_g,
                        void_int *nnode_sets_g, void_int *nside_sets_g, int *ierr)
@@ -2821,9 +2760,8 @@ void F2C(expig, EXPIG)(int *idne, void_int *nnodes_g, void_int *nelems_g, void_i
   }
 }
 
-/*!
+/*
  * Read load balance parameters
- * \sa ex_get_loadbal_param()
  */
 void F2C(exglbp, EXGLBP)(int *idne, void_int *nint_nodes, void_int *nbor_nodes,
                          void_int *next_nodes, void_int *nint_elems, void_int *nbor_elems,
@@ -2838,9 +2776,8 @@ void F2C(exglbp, EXGLBP)(int *idne, void_int *nint_nodes, void_int *nbor_nodes,
   }
 }
 
-/*!
+/*
  * Write load balance parameters
- * \sa ex_put_loadbal_param()
  */
 void F2C(explbp, EXPLBP)(int *idne, void_int *nint_nodes, void_int *nbor_nodes,
                          void_int *next_nodes, void_int *nint_elems, void_int *nbor_elems,
@@ -2876,9 +2813,8 @@ void F2C(explbp, EXPLBP)(int *idne, void_int *nint_nodes, void_int *nbor_nodes,
   }
 }
 
-/*!
+/*
  * Write concatenated load balance parameters
- * \sa ex_put_loadbal_param_cc()
  */
 void F2C(explbpc, EXPLBPC)(int *idne, void_int *nint_nodes, void_int *nbor_nodes,
                            void_int *next_nodes, void_int *nint_elems, void_int *nbor_elems,
@@ -2893,9 +2829,8 @@ void F2C(explbpc, EXPLBPC)(int *idne, void_int *nint_nodes, void_int *nbor_nodes
   }
 }
 
-/*!
+/*
  * Read global node set parameters
- * \sa ex_get_ns_param_global()
  */
 void F2C(exgnspg, EXGNSPG)(int *idne, void_int *ns_ids_glob, void_int *ns_n_cnt_glob,
                            void_int *ns_df_cnt_glob, int *ierr)
@@ -2908,9 +2843,8 @@ void F2C(exgnspg, EXGNSPG)(int *idne, void_int *ns_ids_glob, void_int *ns_n_cnt_
   }
 }
 
-/*!
+/*
  * Write global node set parameters
- * \sa ex_put_ns_param_global()
  */
 void F2C(expnspg, EXPNSPG)(int *idne, void_int *global_ids, void_int *global_n_cnts,
                            void_int *global_df_cnts, int *ierr)
@@ -2923,9 +2857,8 @@ void F2C(expnspg, EXPNSPG)(int *idne, void_int *global_ids, void_int *global_n_c
   }
 }
 
-/*!
+/*
  * Read global side set parameters
- * \sa ex_get_ss_param_global()
  */
 void F2C(exgsspg, EXGSSPG)(int *idne, void_int *ss_ids_glob, void_int *ss_n_cnt_glob,
                            void_int *ss_df_cnt_glob, int *ierr)
@@ -2939,9 +2872,8 @@ void F2C(exgsspg, EXGSSPG)(int *idne, void_int *ss_ids_glob, void_int *ss_n_cnt_
   }
 }
 
-/*!
+/*
  * Write global side set parameters
- * \sa ex_put_ss_param_global()
  */
 void F2C(expsspg, EXPSSPG)(int *idne, void_int *global_ids, void_int *global_el_cnts,
                            void_int *global_df_cnts, int *ierr)
@@ -2954,9 +2886,8 @@ void F2C(expsspg, EXPSSPG)(int *idne, void_int *global_ids, void_int *global_el_
   }
 }
 
-/*!
+/*
  * Read global element block information
- * \sa ex_get_eb_info_global()
  */
 void F2C(exgebig, EXGEBIG)(int *idne, void_int *el_blk_ids, void_int *el_blk_cnts, int *ierr)
 {
@@ -2968,9 +2899,8 @@ void F2C(exgebig, EXGEBIG)(int *idne, void_int *el_blk_ids, void_int *el_blk_cnt
   }
 }
 
-/*!
+/*
  * Write global element block information
- * \sa ex_put_eb_info_global()
  */
 void F2C(expebig, EXPEBIG)(int *idne, void_int *el_blk_ids, void_int *el_blk_cnts, int *ierr)
 {
@@ -2982,9 +2912,8 @@ void F2C(expebig, EXPEBIG)(int *idne, void_int *el_blk_ids, void_int *el_blk_cnt
   }
 }
 
-/*!
+/*
  * Read side set element list and side set side list
- * \sa ex_get_partial_set()
  */
 void F2C(exgnss, EXGNSS)(int *idne, entity_id *ss_id, void_int *start, void_int *count,
                          void_int *ss_elem_list, void_int *ss_side_list, int *ierr)
@@ -3008,9 +2937,8 @@ void F2C(exgnss, EXGNSS)(int *idne, entity_id *ss_id, void_int *start, void_int 
   }
 }
 
-/*!
+/*
  * Write side set element list and side set side list
- * \sa ex_put_partial_set()
  */
 void F2C(expnss, EXPNSS)(int *idne, entity_id *ss_id, void_int *start, void_int *count,
                          void_int *ss_elem_list, void_int *ss_side_list, int *ierr)
@@ -3034,9 +2962,8 @@ void F2C(expnss, EXPNSS)(int *idne, entity_id *ss_id, void_int *start, void_int 
   }
 }
 
-/*!
+/*
  * Read side set distribution factor
- * \sa ex_get_partial_set_dist_fact()
  */
 void F2C(exgnssd, EXGNSSD)(int *idne, entity_id *ss_id, void_int *start, void_int *count,
                            real *ss_df, int *ierr)
@@ -3059,9 +2986,8 @@ void F2C(exgnssd, EXGNSSD)(int *idne, entity_id *ss_id, void_int *start, void_in
   }
 }
 
-/*!
+/*
  * Write side set distribution factor
- * \sa ex_put_partial_set_dist_fact()
  */
 void F2C(expnssd, EXPNSSD)(int *idne, entity_id *ss_id, void_int *start, void_int *count,
                            real *ss_df, int *ierr)
@@ -3084,9 +3010,8 @@ void F2C(expnssd, EXPNSSD)(int *idne, entity_id *ss_id, void_int *start, void_in
   }
 }
 
-/*!
+/*
  * Read node set list for a single node set
- * \sa ex_get_partial_set()
  */
 void F2C(exgnns, EXGNNS)(int *idne, entity_id *ns_id, void_int *start, void_int *count,
                          void_int *ns_node_list, int *ierr)
@@ -3109,9 +3034,8 @@ void F2C(exgnns, EXGNNS)(int *idne, entity_id *ns_id, void_int *start, void_int 
   }
 }
 
-/*!
+/*
  * Write node set list for a single node set
- * \sa ex_put_partial_set()
  */
 void F2C(expnns, EXPNNS)(int *idne, entity_id *ns_id, void_int *start, void_int *count,
                          void_int *ns_node_list, int *ierr)
@@ -3134,9 +3058,8 @@ void F2C(expnns, EXPNNS)(int *idne, entity_id *ns_id, void_int *start, void_int 
   }
 }
 
-/*!
+/*
  * Read node set distribution factor
- * \sa ex_get_partial_set_dist_fact()
  */
 void F2C(exgnnsd, EXGNNSD)(int *idne, entity_id *ns_id, void_int *start, void_int *count,
                            real *ns_df, int *ierr)
@@ -3159,9 +3082,8 @@ void F2C(exgnnsd, EXGNNSD)(int *idne, entity_id *ns_id, void_int *start, void_in
   }
 }
 
-/*!
+/*
  * Write node set distribution factor
- * \sa ex_put_partial_set_dist_fact()
  */
 void F2C(expnnsd, EXPNNSD)(int *idne, entity_id *ns_id, void_int *start, void_int *count,
                            real *ns_df, int *ierr)
@@ -3184,9 +3106,8 @@ void F2C(expnnsd, EXPNNSD)(int *idne, entity_id *ns_id, void_int *start, void_in
   }
 }
 
-/*!
+/*
  * Read coordinates of the nodes
- * \sa ex_get_partial_coord()
  */
 void F2C(exgncor, EXGNCOR)(int *idne, void_int *start, void_int *count, real *x_coor, real *y_coor,
                            real *z_coor, int *ierr)
@@ -3209,9 +3130,8 @@ void F2C(exgncor, EXGNCOR)(int *idne, void_int *start, void_int *count, real *x_
   }
 }
 
-/*!
+/*
  * Write coordinates of the nodes
- * \sa ex_put_partial_coord()
  */
 void F2C(expncor, EXPNCOR)(int *idne, void_int *start, void_int *count, real *x_coor, real *y_coor,
                            real *z_coor, int *ierr)
@@ -3234,9 +3154,8 @@ void F2C(expncor, EXPNCOR)(int *idne, void_int *start, void_int *count, real *x_
   }
 }
 
-/*!
+/*
  * Read an element block's connectivity list
- * \sa ex_get_partial_conn()
  */
 void F2C(exgnec, EXGNEC)(int *idne, entity_id *elem_blk_id, void_int *start, void_int *count,
                          void_int *connect, int *ierr)
@@ -3260,9 +3179,8 @@ void F2C(exgnec, EXGNEC)(int *idne, entity_id *elem_blk_id, void_int *start, voi
   }
 }
 
-/*!
+/*
  * Write an element block's connectivity list
- * \sa ex_put_partial_conn()
  */
 void F2C(expnec, EXPNEC)(int *idne, entity_id *elem_blk_id, void_int *start, void_int *count,
                          void_int *connect, int *ierr)
@@ -3286,9 +3204,8 @@ void F2C(expnec, EXPNEC)(int *idne, entity_id *elem_blk_id, void_int *start, voi
   }
 }
 
-/*!
+/*
  * Read an element block's attributes
- * \sa ex_get_partial_attr()
  */
 void F2C(exgneat, EXGNEAT)(int *idne, entity_id *elem_blk_id, void_int *start, void_int *count,
                            real *attrib, int *ierr)
@@ -3311,9 +3228,8 @@ void F2C(exgneat, EXGNEAT)(int *idne, entity_id *elem_blk_id, void_int *start, v
   }
 }
 
-/*!
+/*
  * Write an element block's attributes
- * \sa ex_put_partial_attr()
  */
 void F2C(expneat, EXPNEAT)(int *idne, entity_id *elem_blk_id, void_int *start, void_int *count,
                            real *attrib, int *ierr)
@@ -3336,17 +3252,18 @@ void F2C(expneat, EXPNEAT)(int *idne, entity_id *elem_blk_id, void_int *start, v
   }
 }
 
-/*!
+/*
  * Read the element type for a specific element block
- * \sa ex_get_elem_type()
  */
 void F2C(exgelt, EXGELT)(int *idne, entity_id *elem_blk_id, char *elem_type, int *ierr,
                          size_t elem_typelen)
 {
+  size_t slen = MAX_STR_LENGTH;
+  char * etype;
+
   /* WARNING: ftypelen SHOULD be MAX_STR_LENGTH, but may not be depending
               on how the Fortran programmer passed it. It is best at
               this time to hard code it per NEMESIS spec. */
-  size_t slen = MAX_STR_LENGTH;
   if (elem_typelen != MAX_STR_LENGTH) {
 #if defined(EXODUS_STRING_LENGTH_WARNING)
     char errmsg[MAX_ERR_LENGTH];
@@ -3357,7 +3274,7 @@ void F2C(exgelt, EXGELT)(int *idne, entity_id *elem_blk_id, char *elem_type, int
     slen = elem_typelen;
   }
 
-  char *etype = (char *)malloc((slen + 1) * sizeof(char));
+  etype = (char *)malloc((slen + 1) * sizeof(char));
 
   if ((*ierr = ex_get_elem_type(*idne, *elem_blk_id, etype)) != 0) {
     char errmsg[MAX_ERR_LENGTH];
@@ -3373,9 +3290,8 @@ void F2C(exgelt, EXGELT)(int *idne, entity_id *elem_blk_id, char *elem_type, int
   free(etype);
 }
 
-/*!
+/*
  * Read a variable for an element block
- * \sa ex_get_partial_var()
  */
 void F2C(exgnev, EXGNEV)(int *idne, int *time_step, int *elem_var_index, entity_id *elem_blk_id,
                          void_int *num_elem_this_blk, void_int *start, void_int *count,
@@ -3398,11 +3314,11 @@ void F2C(exgnev, EXGNEV)(int *idne, int *time_step, int *elem_var_index, entity_
              *idne);
     ex_err_fn(*idne, __func__, errmsg, EX_MSG);
   }
+  EX_UNUSED(num_elem_this_blk);
 }
 
-/*!
+/*
  * Write a variable slab for an element block
- * \sa ex_put_partial_var()
  */
 void F2C(expevs, EXPEVS)(int *idne, int *time_step, int *elem_var_index, entity_id *elem_blk_id,
                          void_int *start, void_int *count, real *elem_var_vals, int *ierr)
@@ -3426,9 +3342,8 @@ void F2C(expevs, EXPEVS)(int *idne, int *time_step, int *elem_var_index, entity_
   }
 }
 
-/*!
+/*
  * Read the values of a single nodal variable for a single time step
- * \sa ex_get_partial_var()
  */
 void F2C(exgnnv, EXGNNV)(int *idne, int *time_step, int *nodal_var_index, void_int *start,
                          void_int *count, real *nodal_vars, int *ierr)
@@ -3451,9 +3366,8 @@ void F2C(exgnnv, EXGNNV)(int *idne, int *time_step, int *nodal_var_index, void_i
   }
 }
 
-/*!
+/*
  * Write nodal variable slab
- * \sa ex_put_partial_var()
  */
 void F2C(expnvs, EXPNVS)(int *idne, int *time_step, int *nodal_var_index, void_int *start,
                          void_int *count, real *nodal_var_vals, int *ierr)
@@ -3477,9 +3391,8 @@ void F2C(expnvs, EXPNVS)(int *idne, int *time_step, int *nodal_var_index, void_i
   }
 }
 
-/*!
+/*
  * Read the element numbering map
- * \sa ex_get_partial_id_map()
  */
 void F2C(exgnenm, EXGNENM)(int *idne, void_int *starte, void_int *num_ent, void_int *elem_map,
                            int *ierr)
@@ -3502,9 +3415,8 @@ void F2C(exgnenm, EXGNENM)(int *idne, void_int *starte, void_int *num_ent, void_
   }
 }
 
-/*!
+/*
  * Write the element numbering map
- * \sa ex_put_partial_id_map()
  */
 void F2C(expnenm, EXPNENM)(int *idne, void_int *starte, void_int *num_ent, void_int *elem_map,
                            int *ierr)
@@ -3527,9 +3439,8 @@ void F2C(expnenm, EXPNENM)(int *idne, void_int *starte, void_int *num_ent, void_
   }
 }
 
-/*!
+/*
  * Read the node numbering map
- * \sa ex_get_partial_id_map()
  */
 void F2C(exgnnnm, EXGNNNM)(int *idne, void_int *startn, void_int *num_ent, void_int *node_map,
                            int *ierr)
@@ -3552,9 +3463,8 @@ void F2C(exgnnnm, EXGNNNM)(int *idne, void_int *startn, void_int *num_ent, void_
   }
 }
 
-/*!
+/*
  * Write the node numbering map
- * \sa ex_put_partial_id_map()
  */
 void F2C(expnnnm, EXPNNNM)(int *idne, void_int *startn, void_int *num_ent, void_int *node_map,
                            int *ierr)
@@ -3577,9 +3487,8 @@ void F2C(expnnnm, EXPNNNM)(int *idne, void_int *startn, void_int *num_ent, void_
   }
 }
 
-/*!
+/*
  * Read the node map for a processor
- * \sa ex_get_processor_node_maps()
  */
 void F2C(exgnmp, EXGNMP)(int *idne, void_int *node_mapi, void_int *node_mapb, void_int *node_mape,
                          int *processor, int *ierr)
@@ -3593,9 +3502,8 @@ void F2C(exgnmp, EXGNMP)(int *idne, void_int *node_mapi, void_int *node_mapb, vo
   }
 }
 
-/*!
+/*
  * Write a node map for a processor
- * \sa ex_put_processor_node_maps()
  */
 void F2C(expnmp, EXPNMP)(int *idne, void_int *node_mapi, void_int *node_mapb, void_int *node_mape,
                          int *processor, int *ierr)
@@ -3609,9 +3517,8 @@ void F2C(expnmp, EXPNMP)(int *idne, void_int *node_mapi, void_int *node_mapb, vo
   }
 }
 
-/*!
+/*
  * Read the element map for a processor
- * \sa ex_get_processor_elem_maps()
  */
 void F2C(exgemp, EXGEMP)(int *idne, void_int *elem_mapi, void_int *elem_mapb, int *processor,
                          int *ierr)
@@ -3624,9 +3531,8 @@ void F2C(exgemp, EXGEMP)(int *idne, void_int *elem_mapi, void_int *elem_mapb, in
   }
 }
 
-/*!
+/*
  * Write the element map for a processor
- * \sa ex_put_processor_elem_maps()
  */
 void F2C(expemp, EXPEMP)(int *idne, void_int *elem_mapi, void_int *elem_mapb, int *processor,
                          int *ierr)
@@ -3639,9 +3545,8 @@ void F2C(expemp, EXPEMP)(int *idne, void_int *elem_mapi, void_int *elem_mapb, in
   }
 }
 
-/*!
+/*
  * Read the communications map parameters for a single processor
- * \sa ex_get_cmap_params()
  */
 void F2C(exgcmp, EXGCMP)(int *idne, void_int *ncmap_ids, void_int *ncmap_node_cnts,
                          void_int *ecmap_ids, void_int *ecmap_elem_cnts, int *processor, int *ierr)
@@ -3655,9 +3560,8 @@ void F2C(exgcmp, EXGCMP)(int *idne, void_int *ncmap_ids, void_int *ncmap_node_cn
   }
 }
 
-/*!
+/*
  * Write the communications map parameters for a single processor
- * \sa ex_put_cmap_params()
  */
 void F2C(expcmp, EXPCMP)(int *idne, void_int *nmap_ids, void_int *nmap_node_cnts,
                          void_int *emap_ids, void_int *emap_elem_cnts, int *processor, int *ierr)
@@ -3671,9 +3575,8 @@ void F2C(expcmp, EXPCMP)(int *idne, void_int *nmap_ids, void_int *nmap_node_cnts
   }
 }
 
-/*!
+/*
  * Write the communications map parameters for all processors
- * \sa ex_put_cmap_params_cc()
  */
 void F2C(expcmpc, EXPCMPC)(int *idne, void_int *nmap_ids, void_int *nmap_node_cnts,
                            void_int *nproc_ptrs, void_int *emap_ids, void_int *emap_elem_cnts,
@@ -3688,9 +3591,8 @@ void F2C(expcmpc, EXPCMPC)(int *idne, void_int *nmap_ids, void_int *nmap_node_cn
   }
 }
 
-/*!
+/*
  * Read the nodal communications map for a single processor
- * \sa ex_get_node_cmap()
  */
 void F2C(exgncm, EXGNCM)(int *idne, entity_id *map_id, void_int *node_ids, void_int *proc_ids,
                          int *processor, int *ierr)
@@ -3703,9 +3605,8 @@ void F2C(exgncm, EXGNCM)(int *idne, entity_id *map_id, void_int *node_ids, void_
   }
 }
 
-/*!
+/*
  * Write the nodal communications map for a single processor
- * \sa ex_put_node_cmap()
  */
 void F2C(expncm, EXPNCM)(int *idne, entity_id *map_id, void_int *node_ids, void_int *proc_ids,
                          int *processor, int *ierr)
@@ -3718,9 +3619,8 @@ void F2C(expncm, EXPNCM)(int *idne, entity_id *map_id, void_int *node_ids, void_
   }
 }
 
-/*!
+/*
  * Read the elemental communications map for a single processor
- * \sa ex_get_elem_cmap()
  */
 void F2C(exgecm, EXGECM)(int *idne, entity_id *map_id, void_int *elem_ids, void_int *side_ids,
                          void_int *proc_ids, int *processor, int *ierr)
@@ -3733,9 +3633,8 @@ void F2C(exgecm, EXGECM)(int *idne, entity_id *map_id, void_int *elem_ids, void_
   }
 }
 
-/*!
+/*
  * Write the elemental communications map for a single processor
- * \sa ex_put_elem_cmap()
  */
 void F2C(expecm, EXPECM)(int *idne, entity_id *map_id, void_int *elem_ids, void_int *side_ids,
                          void_int *proc_ids, int *processor, int *ierr)

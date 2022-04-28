@@ -346,13 +346,13 @@ namespace Xpetra {
     virtual global_size_t getGlobalNumCols() const =0;
 
     //! Returns the number of matrix rows owned on the calling node.
-    virtual size_t getLocalNumRows() const =0;
+    virtual size_t getNodeNumRows() const =0;
 
     //! Returns the global number of entries in this matrix.
     virtual global_size_t getGlobalNumEntries() const =0;
 
     //! Returns the local number of entries in this matrix.
-    virtual size_t getLocalNumEntries() const =0;
+    virtual size_t getNodeNumEntries() const =0;
 
     //! Returns the current number of entries on this node in the specified local row.
     /*! Returns OrdinalTraits<size_t>::invalid() if the specified local row is not valid for this matrix. */
@@ -370,25 +370,7 @@ namespace Xpetra {
     //! \brief Returns the maximum number of entries across all rows/columns on this node.
     /** Undefined if isFillActive().
      */
-    virtual size_t getLocalMaxNumRowEntries() const =0;
-
-#ifdef XPETRA_ENABLE_DEPRECATED_CODE
-    XPETRA_DEPRECATED
-    size_t getNodeNumRows() const {
-      return getLocalNumRows();
-    }
-
-    XPETRA_DEPRECATED
-    size_t getNodeNumEntries() const {
-      return getLocalNumEntries();
-    }
-
-    XPETRA_DEPRECATED
-    size_t getNodeMaxNumRowEntries() const {
-      return getLocalMaxNumRowEntries();
-    }
-#endif
-
+    virtual size_t getNodeMaxNumRowEntries() const =0;
 
     //! \brief If matrix indices are in the local range, this function returns true. Otherwise, this function returns false. */
     virtual bool isLocallyIndexed() const =0;
@@ -557,14 +539,14 @@ namespace Xpetra {
                                               offset
                                               );
 
-      if(IsFixedBlockSizeSet()) RemoveView("stridedMaps");
+      if(IsView("stridedMaps") == true) RemoveView("stridedMaps");
       CreateView("stridedMaps", stridedRangeMap, stridedDomainMap);
     }
 
     //==========================================================================
 
     LocalOrdinal GetFixedBlockSize() const {
-      if(IsFixedBlockSizeSet()) {
+      if(IsView("stridedMaps")==true) {
         Teuchos::RCP<const StridedMap<LocalOrdinal, GlobalOrdinal, Node> > rangeMap = Teuchos::rcp_dynamic_cast<const StridedMap<LocalOrdinal, GlobalOrdinal, Node> >(getRowMap("stridedMaps"));
         Teuchos::RCP<const StridedMap<LocalOrdinal, GlobalOrdinal, Node> > domainMap = Teuchos::rcp_dynamic_cast<const StridedMap<LocalOrdinal, GlobalOrdinal, Node> >(getColMap("stridedMaps"));
         TEUCHOS_TEST_FOR_EXCEPTION(rangeMap  == Teuchos::null, Exceptions::BadCast, "Xpetra::Matrix::GetFixedBlockSize(): rangeMap is not of type StridedMap");
@@ -575,11 +557,6 @@ namespace Xpetra {
         //TEUCHOS_TEST_FOR_EXCEPTION(false, Exceptions::RuntimeError, "Xpetra::Matrix::GetFixedBlockSize(): no strided maps available."); // TODO remove this
         return 1;
     }; //TODO: why LocalOrdinal?
-
-    //! Returns true, if `SetFixedBlockSize` has been called before.
-    bool IsFixedBlockSizeSet() const {
-      return IsView("stridedMaps");
-    };
 
     // ----------------------------------------------------------------------------------
 

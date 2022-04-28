@@ -1,4 +1,4 @@
-tribits_add_executable_and_test(
+TRIBITS_ADD_EXECUTABLE_AND_TEST(
   HelloWorldTests
   SOURCES
     SimpleCxx_HelloWorld_Tests.cpp
@@ -6,7 +6,7 @@ tribits_add_executable_and_test(
   STANDARD_PASS_OUTPUT
   )
 
-tribits_add_test(simplecxx-helloworld  NOEXEPREFIX  NOEXESUFFIX
+TRIBITS_ADD_TEST(simplecxx-helloworld  NOEXEPREFIX  NOEXESUFFIX
   NAME HelloWorldProg
   DIRECTORY ${PACKAGE_BINARY_DIR}/src
   NUM_MPI_PROCS 1

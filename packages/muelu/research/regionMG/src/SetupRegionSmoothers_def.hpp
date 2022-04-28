@@ -191,7 +191,7 @@ void GSIterate(RCP<Teuchos::ParameterList> smootherParams,
 
   RCP<Vector> regRes = VectorFactory::Build(revisedRowMap, true);
 
-  const size_t numRows = regionMats->getLocalNumRows();
+  const size_t numRows = regionMats->getNodeNumRows();
 
   // GS iteration loop
   for (int iter = 0; iter < maxIter; ++iter) {

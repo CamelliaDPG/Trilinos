@@ -1,11 +1,12 @@
 /*
- * Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
  * See packages/seacas/LICENSE for details
  */
-#pragma once
+#ifndef Ioss_io_info_h
+#define Ioss_io_info_h
 
 #include "info_interface.h"
 
@@ -62,3 +63,5 @@ namespace Ioss {
   void io_info_set_db_properties(const Info::Interface &interFace, Ioss::DatabaseIO *dbi);
   void io_info_file_info(const Info::Interface &interFace, Ioss::Region &region);
 } // namespace Ioss
+
+#endif

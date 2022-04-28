@@ -158,12 +158,12 @@ namespace MueLu {
   template <class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
   void AmalgamationFactory<Scalar, LocalOrdinal, GlobalOrdinal, Node>::AmalgamateMap(const Map& sourceMap, const Matrix& A, RCP<const Map>& amalgamatedMap, Array<LO>& translation) {
     typedef typename ArrayView<const GO>::size_type size_type;
-    typedef std::unordered_map<GO,size_type> container;
+    typedef std::map<GO,size_type> container;
 
     GO                      indexBase = sourceMap.getIndexBase();
-    ArrayView<const GO>     elementAList = sourceMap.getLocalElementList();
+    ArrayView<const GO>     elementAList = sourceMap.getNodeElementList();
     size_type               numElements  = elementAList.size();
-    container               filter;
+    container               filter; // TODO:  replace std::set with an object having faster lookup/insert, hashtable for instance
 
     GO offset = 0;
     LO blkSize = A.GetFixedBlockSize();

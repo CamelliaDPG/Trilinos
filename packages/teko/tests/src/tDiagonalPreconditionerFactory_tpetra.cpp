@@ -128,7 +128,7 @@ void tDiagonalPreconditionerFactory_tpetra::buildParameterList(int blocksize){
     delete [] block_gids;
 
     // Allocs
-    LO Nr=F->getLocalNumRows();
+    LO Nr=F->getNodeNumRows();
     int Nb=(int)ceil(((double)Nr)/((double)blocksize));
     block_starts=new GO[Nb+1];
     block_gids=new GO[Nr];

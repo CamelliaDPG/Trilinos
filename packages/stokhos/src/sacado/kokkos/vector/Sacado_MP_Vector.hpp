@@ -59,7 +59,6 @@
 #include "Stokhos_mpl_for_each.hpp"
 #include "Stokhos_MemoryTraits.hpp"
 #include "Stokhos_Is_Constant.hpp"
-#include "Stokhos_ViewStorage.hpp"
 
 #include "Kokkos_View_Utils.hpp"
 

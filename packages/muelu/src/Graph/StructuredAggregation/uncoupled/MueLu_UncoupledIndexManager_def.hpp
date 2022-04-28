@@ -118,7 +118,7 @@ namespace MueLu {
     coarseNodeFineGIDs.resize(this->getNumLocalCoarseNodes());
 
     // Load all the GIDs on the fine mesh
-    ArrayView<const GO> fineNodeGIDs = fineCoordinatesMap->getLocalElementList();
+    ArrayView<const GO> fineNodeGIDs = fineCoordinatesMap->getNodeElementList();
 
     // Extract the fine LIDs of the coarse nodes and store the corresponding GIDs
     LO fineLID;

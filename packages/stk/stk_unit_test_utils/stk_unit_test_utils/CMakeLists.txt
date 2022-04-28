@@ -12,11 +12,6 @@ SET(HEADERS_NEED_IO
   GeneratedMeshToFile.hpp
   ReadWriteSidesetTester.hpp
   StkMeshFromGeneratedMesh.hpp
-  TextMeshFixture.hpp
-  TextMeshStkTopologyMapping.hpp
-  TextMeshToFile.hpp
-  TextMeshUtils.hpp
-  TextMesh.hpp
   ioUtils.hpp
   )
 SET(SOURCES_NEED_IO
@@ -26,8 +21,6 @@ SET(SOURCES_NEED_IO
   GenerateALefRAMesh.cpp
   GeneratedMeshToFile.cpp
   ReadWriteSidesetTester.cpp
-  TextMeshFixture.cpp
-  TextMeshToFile.cpp
   TextMesh.cpp
   ioUtils.cpp
   meshCreationHelpers.cpp
@@ -37,7 +30,6 @@ SET(HEADERS_NEED_MESH_BUT_NOT_IO
   BucketTester.hpp
   MeshFixture.hpp
   MeshFileFixture.hpp
-  MeshUtilsForBoundingVolumes.hpp
   ParticleUtils.hpp
   WriteSelectedEntities.hpp
   unittestMeshUtils.hpp

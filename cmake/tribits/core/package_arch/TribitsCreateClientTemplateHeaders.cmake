@@ -38,8 +38,8 @@
 # @HEADER
 
 
-include(CMakeParseArguments)
-include(PrintVar)
+INCLUDE(CMakeParseArguments)
+INCLUDE(PrintVar)
 
 
 #
@@ -49,7 +49,7 @@ include(PrintVar)
 #
 # Usage:
 #
-#    tribits_create_client_template_headers(
+#    TRIBITS_CREATE_CLIENT_TEMPLATE_HEADERS(
 #      BASE_DIR
 #      [ADDITIONAL_OUTPUT_DIRS ABSDIR1 ABSDIR2 ...]
 #      )
@@ -65,7 +65,7 @@ include(PrintVar)
 #  ADDITIONAL_OUTPUT_DIRS
 #
 #    If set, then the files will be copied to an additional output
-#    directories as well.  These must be absolute paths.
+#    directories as well.  These must be abolute paths.
 #
 # The default file extensions are:
 #
@@ -73,15 +73,15 @@ include(PrintVar)
 #    ${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT = "_def.hpp"
 #
 
-function(tribits_create_client_template_headers BASE_DIR)
+FUNCTION(TRIBITS_CREATE_CLIENT_TEMPLATE_HEADERS BASE_DIR)
 
-  #print_var(BASE_DIR)
+  #PRINT_VAR(BASE_DIR)
 
   #
   # A) Parse the input arguments
   #
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #options
@@ -93,87 +93,87 @@ function(tribits_create_client_template_headers BASE_DIR)
     ${ARGN}
     )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
   #
   # B) Get the names of the extensions
   #
 
-  if (NOT ${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT)
-    set(${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT "_decl.hpp")
-  endif()
+  IF (NOT ${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT)
+    SET(${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT "_decl.hpp")
+  ENDIF()
 
-  if (NOT ${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT)
-    set(${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT "_def.hpp")
-  endif()
+  IF (NOT ${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT)
+    SET(${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT "_def.hpp")
+  ENDIF()
 
   #
   # C) Glob the names of all the X_decl.hpp files
   #
 
-  file(GLOB DECL_HEADERS_LIST "${BASE_DIR}/*${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}")
-  #print_var(DECL_HEADERS_LIST)
+  FILE(GLOB DECL_HEADERS_LIST "${BASE_DIR}/*${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}")
+  #PRINT_VAR(DECL_HEADERS_LIST)
 
   #
   # D) Write the client header files for each globed decl file
   #
 
-  assert_defined(HAVE_${PARENT_PACKAGE_NAME_UC}_EXPLICIT_INSTANTIATION)
+  ASSERT_DEFINED(HAVE_${PARENT_PACKAGE_NAME_UC}_EXPLICIT_INSTANTIATION)
 
-  foreach(DECL_HEADER ${DECL_HEADERS_LIST})
+  FOREACH(DECL_HEADER ${DECL_HEADERS_LIST})
 
     # Get the base file names (without _decl.hpp)
-    string(REGEX REPLACE ".*/(.+)${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}" "\\1"  DECL_HEADER_BASE ${DECL_HEADER})
-    #print_var(DECL_HEADER_BASE)
+    STRING(REGEX REPLACE ".*/(.+)${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}" "\\1"  DECL_HEADER_BASE ${DECL_HEADER})
+    #PRINT_VAR(DECL_HEADER_BASE)
 
     # Create the client header file
-    set(CLIENT_HEADER_STR "")
-    append_string_var(CLIENT_HEADER_STR
+    SET(CLIENT_HEADER_STR "")
+    APPEND_STRING_VAR(CLIENT_HEADER_STR
       "#include \"${DECL_HEADER_BASE}${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}\"\n"
        )
-    if (HAVE_${PARENT_PACKAGE_NAME_UC}_EXPLICIT_INSTANTIATION)
-        set(TEMPLATE_INSTANT_TYPE_NAME "explicit instantiation")
-    else()
-      set(TEMPLATE_INSTANT_TYPE_NAME "implicit instantiation")
-       append_string_var(CLIENT_HEADER_STR
+    IF (HAVE_${PARENT_PACKAGE_NAME_UC}_EXPLICIT_INSTANTIATION)
+        SET(TEMPLATE_INSTANT_TYPE_NAME "explicit instantiation")
+    ELSE()
+      SET(TEMPLATE_INSTANT_TYPE_NAME "implicit instantiation")
+       APPEND_STRING_VAR(CLIENT_HEADER_STR
         "#include \"${DECL_HEADER_BASE}${${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT}\"\n"
          )
-    endif()
-    set(BIN_HEADER_FILE "${CMAKE_CURRENT_BINARY_DIR}/${DECL_HEADER_BASE}.hpp")
-    set(WRITE_NEW_HEADER_FILE TRUE)
-    if (EXISTS "${BIN_HEADER_FILE}")
+    ENDIF()
+    SET(BIN_HEADER_FILE "${CMAKE_CURRENT_BINARY_DIR}/${DECL_HEADER_BASE}.hpp")
+    SET(WRITE_NEW_HEADER_FILE TRUE)
+    IF (EXISTS "${BIN_HEADER_FILE}")
       # See if the file is the same and if it is, skip writing it again to avoid
-      # unnecessarily rebuilding object code.
-      file(READ "${BIN_HEADER_FILE}" EXISTING_BIN_HEADER_STR)
-      if (CLIENT_HEADER_STR STREQUAL EXISTING_BIN_HEADER_STR)
-        set(WRITE_NEW_HEADER_FILE FALSE)
-      endif()
-    endif()
+      # unecessarily rebuilding object code.
+      FILE(READ "${BIN_HEADER_FILE}" EXISTING_BIN_HEADER_STR)
+      IF (CLIENT_HEADER_STR STREQUAL EXISTING_BIN_HEADER_STR)
+        SET(WRITE_NEW_HEADER_FILE FALSE)
+      ENDIF()
+    ENDIF()
 
     # Write the header file
-    if (WRITE_NEW_HEADER_FILE)
-      if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-        message("Writing ${TEMPLATE_INSTANT_TYPE_NAME} header ${BIN_HEADER_FILE}")
-      endif()
-      file(WRITE "${BIN_HEADER_FILE}" "${CLIENT_HEADER_STR}")
-    endif()
+    IF (WRITE_NEW_HEADER_FILE)
+      IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+        MESSAGE("Writing ${TEMPLATE_INSTANT_TYPE_NAME} header ${BIN_HEADER_FILE}")
+      ENDIF()
+      FILE(WRITE "${BIN_HEADER_FILE}" "${CLIENT_HEADER_STR}")
+    ENDIF()
 
     # Create the SIERRA BJAM version of the header file
-    foreach(OUTPUT_DIR ${PARSE_ADDITIONAL_OUTPUT_DIRS})
-      set(EXTERNAL_CLIENT_HEADER_STR "")
-      append_string_var(EXTERNAL_CLIENT_HEADER_STR
+    FOREACH(OUTPUT_DIR ${PARSE_ADDITIONAL_OUTPUT_DIRS})
+      SET(EXTERNAL_CLIENT_HEADER_STR "")
+      APPEND_STRING_VAR(EXTERNAL_CLIENT_HEADER_STR
         "#include \"${DECL_HEADER_BASE}${${PARENT_PACKAGE_NAME}_TEMPLATE_DECL_EXT}\"\n"
         "#ifndef HAVE_${PARENT_PACKAGE_NAME_UC}_EXPLICIT_INSTANTIATION\n"
         "#  include \"${DECL_HEADER_BASE}${${PARENT_PACKAGE_NAME}_TEMPLATE_DEF_EXT}\"\n"
         "#endif\n"
          )
-      set(EXTERNAL_HEADER "${OUTPUT_DIR}/${DECL_HEADER_BASE}.hpp")
-      if (NOT EXISTS "${EXTERNAL_HEADER}")
-        file(WRITE "${EXTERNAL_HEADER}" "${EXTERNAL_CLIENT_HEADER_STR}")
-      endif()
-    endforeach()
+      SET(EXTERNAL_HEADER "${OUTPUT_DIR}/${DECL_HEADER_BASE}.hpp")
+      IF (NOT EXISTS "${EXTERNAL_HEADER}")
+        FILE(WRITE "${EXTERNAL_HEADER}" "${EXTERNAL_CLIENT_HEADER_STR}")
+      ENDIF()
+    ENDFOREACH()
 
-  endforeach()
+  ENDFOREACH()
 
-endfunction()
+ENDFUNCTION()
 

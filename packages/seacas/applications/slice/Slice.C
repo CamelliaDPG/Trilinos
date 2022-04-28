@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -9,7 +9,6 @@
 
 #include <Ioss_CodeTypes.h>
 #include <Ioss_CopyDatabase.h>
-#include <Ioss_DatabaseIO.h>
 #include <Ioss_FileInfo.h>
 #include <Ioss_MeshCopyOptions.h>
 #include <Ioss_Region.h>
@@ -17,6 +16,7 @@
 #include <Ioss_SurfaceSplit.h>
 #include <Ioss_Utils.h>
 #include <cassert>
+#include <exodus/Ioex_DatabaseIO.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <init/Ionit_Initializer.h>
@@ -24,7 +24,6 @@
 #include <exodusII.h>
 
 #include <algorithm>
-#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdlib>
@@ -42,6 +41,7 @@
 using idx_t = int;
 #endif
 
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #ifdef SEACAS_HAVE_MPI
@@ -96,7 +96,7 @@ namespace {
   void populate_proc_node(size_t count, size_t offset, size_t element_nodes,
                           const std::vector<int> &elem_to_proc, const std::vector<INT> &glob_conn,
                           std::vector<std::vector<int>> &proc_node,
-                          std::vector<size_t>           &on_proc_count)
+                          std::vector<size_t> &          on_proc_count)
   {
     // Determine which processor(s) each node is present on.
     // Also count number of nodes on each processor.
@@ -122,8 +122,8 @@ namespace {
     if ((debug_level & 1) != 0) {
       auto                          now  = std::chrono::steady_clock::now();
       std::chrono::duration<double> diff = now - start;
-      fmt::print(stderr, " [{:.2f} - {}]\t{}\n", diff.count(),
-                 fmt::group_digits(Ioss::Utils::get_memory_info()), output);
+      fmt::print(stderr, " [{:.2f} - {:L}]\t{}\n", diff.count(), Ioss::Utils::get_memory_info(),
+                 output);
     }
   }
 
@@ -217,7 +217,11 @@ int main(int argc, char *argv[])
     Ioss::FileInfo output_path(path);
     if (!output_path.exists()) {
       // Try to create the directory...
-      Ioss::FileInfo::create_path(path);
+      if (mkdir(path.c_str(), 0777) == -1) {
+        fmt::print(stderr, "ERROR: Could not create path '{}' for output of decomposed files.\n",
+                   path);
+        exit(EXIT_FAILURE);
+      }
     }
     else if (!output_path.is_dir()) {
       fmt::print(stderr, "ERROR: Path '{}' is not a directory.\n", path);
@@ -244,9 +248,8 @@ int main(int argc, char *argv[])
   // INPUT ...
   // NOTE: The "READ_RESTART" mode ensures that the node and element ids will be mapped.
   //========================================================================
-  Ioss::DatabaseIO *dbi =
-      Ioss::IOFactory::create(interFace.inputFormat_, interFace.inputFile_, Ioss::READ_RESTART,
-                              Ioss::ParallelUtils::comm_world());
+  Ioss::DatabaseIO *dbi = Ioss::IOFactory::create(interFace.inputFormat_, interFace.inputFile_,
+                                                  Ioss::READ_RESTART, (MPI_Comm)MPI_COMM_WORLD);
   if (dbi == nullptr || !dbi->ok(true)) {
     std::exit(EXIT_FAILURE);
   }
@@ -275,8 +278,7 @@ int main(int argc, char *argv[])
 #ifdef SEACAS_HAVE_MPI
   MPI_Finalize();
 #endif
-  fmt::print(stderr, "High-Water Memory Use: {} bytes\n",
-             fmt::group_digits(Ioss::Utils::get_hwm_memory_info()));
+  fmt::print(stderr, "High-Water Memory Use: {:L} bytes\n", Ioss::Utils::get_hwm_memory_info());
   fmt::print(stderr, "Total execution time = {:.5}\n", seacas_timer() - begin);
   fmt::print(stderr, "\nSlice execution successful.\n");
   return EXIT_SUCCESS;
@@ -293,7 +295,7 @@ namespace {
     // Size of adjacency list is sum of nodes-per-element for each element.
     size_t sum   = 0;
     size_t count = 0;
-    auto  &ebs   = region.get_element_blocks();
+    auto & ebs   = region.get_element_blocks();
     for (const auto &eb : ebs) {
       size_t element_count = eb->entity_count();
       size_t element_nodes = eb->topology()->number_nodes();
@@ -303,8 +305,7 @@ namespace {
 
     pointer.reserve(count + 1);
     adjacency.reserve(sum);
-    fmt::print(stderr, "\tAdjacency Size = {} for {} elements.\n", fmt::group_digits(sum),
-               fmt::group_digits(count));
+    fmt::print(stderr, "\tAdjacency Size = {:L} for {:L} elements.\n", sum, count);
 
     // Now, iterate the blocks again, get connectivity and build adjacency structure.
     std::vector<INT> connectivity;
@@ -340,9 +341,8 @@ namespace {
 
     elem_to_proc.reserve(element_count);
 
-    fmt::print(stderr, "Decomposing {} elements across {} processors using method '{}'.\n\n",
-               fmt::group_digits(element_count), fmt::group_digits(interFace.processor_count()),
-               interFace.decomposition_method());
+    fmt::print(stderr, "Decomposing {:L} elements across {:L} processors using method '{}'.\n\n",
+               element_count, interFace.processor_count(), interFace.decomposition_method());
 
     if (interFace.decomposition_method() == "linear") {
       size_t elem_beg = 0;
@@ -499,7 +499,8 @@ namespace {
       map_name = map_name.substr(0, pos);
 
       Ioss::DatabaseIO *db    = region.get_database();
-      int               exoid = db->get_file_pointer();
+      auto *            ex_db = dynamic_cast<Ioex::DatabaseIO *>(db);
+      int               exoid = ex_db != nullptr ? ex_db->get_file_pointer() : 0;
 
       bool map_read  = false;
       int  map_count = ex_inquire_int(exoid, EX_INQ_ELEM_MAP);
@@ -611,24 +612,22 @@ namespace {
           proc  = std::stoi(tokens[1]);
         }
         if (proc > interFace.processor_count()) {
-          fmt::print(stderr,
-                     "\nERROR: Invalid processor {} specified on line {} of decomposition file.\n"
-                     "\tValid range is 0..{}\n",
-                     fmt::group_digits(proc), fmt::group_digits(line_num),
-                     fmt::group_digits(interFace.processor_count() - 1));
+          fmt::print(
+              stderr,
+              "\nERROR: Invalid processor {:L} specified on line {:L} of decomposition file.\n"
+              "\tValid range is 0..{:L}\n",
+              proc, line_num, interFace.processor_count() - 1);
           exit(EXIT_FAILURE);
         }
 
         if (elem_to_proc.size() + count > element_count) {
           fmt::print(stderr,
-                     "\nERROR: The processor specification on line {}"
+                     "\nERROR: The processor specification on line {:L}"
                      " of the decomposition file results in too many elements being specified.\n"
-                     "\tThe total number of elements in the model is {}\n"
-                     "\tPrior to this line, {} elements were specified.\n"
-                     "\tIncluding this line, {} elements will be specified.\n",
-                     fmt::group_digits(line_num), fmt::group_digits(element_count),
-                     fmt::group_digits(elem_to_proc.size()),
-                     fmt::group_digits(elem_to_proc.size() + count));
+                     "\tThe total number of elements in the model is {:L}\n"
+                     "\tPrior to this line, {:L} elements were specified.\n"
+                     "\tIncluding this line, {:L} elements will be specified.\n",
+                     line_num, element_count, elem_to_proc.size(), elem_to_proc.size() + count);
           exit(EXIT_FAILURE);
         }
 
@@ -668,7 +667,7 @@ namespace {
     // and defines corresponding sidesets on each processor...
     size_t proc_count = proc_region.size();
 
-    auto  &ss        = region.get_sidesets();
+    auto & ss        = region.get_sidesets();
     size_t set_count = ss.size();
 
     for (size_t s = 0; s < set_count; s++) {
@@ -682,7 +681,7 @@ namespace {
       }
 
       auto &side_blocks = gss->get_side_blocks();
-      for (auto &gsb : side_blocks) {
+      for (auto gsb : side_blocks) {
         std::vector<INT> ss_elems;
         gsb->get_field_data("element_side_raw", ss_elems);
 
@@ -716,7 +715,7 @@ namespace {
     // and outputs the sidesets on each processor...
     size_t proc_count = proc_region.size();
 
-    auto  &ss        = region.get_sidesets();
+    auto & ss        = region.get_sidesets();
     size_t set_count = ss.size();
 
     for (size_t s = 0; s < set_count; s++) {
@@ -724,7 +723,7 @@ namespace {
         progress("\tSideset " + std::to_string(s + 1));
       }
       Ioss::SideSet *gss     = ss[s];
-      auto          &ss_name = gss->name();
+      auto &         ss_name = gss->name();
 
       std::vector<Ioss::SideSet *> proc_ss(proc_count);
       for (size_t p = proc_begin; p < proc_begin + proc_size; p++) {
@@ -732,7 +731,7 @@ namespace {
       }
 
       auto &side_blocks = gss->get_side_blocks();
-      for (auto &gsb : side_blocks) {
+      for (auto gsb : side_blocks) {
         auto &sb_name = gsb->name();
 
         std::vector<Ioss::SideBlock *> proc_sb(proc_count);
@@ -770,9 +769,9 @@ namespace {
   }
 
   template <typename INT>
-  void output_communication_map(const Ioss::Region          &global_region,
+  void output_communication_map(const Ioss::Region &         global_region,
                                 std::vector<Ioss::Region *> &proc_region,
-                                const std::vector<int>      &node_to_proc,
+                                const std::vector<int> &     node_to_proc,
                                 const std::vector<INT> &node_to_proc_pointer, size_t proc_begin,
                                 size_t proc_size)
   {
@@ -817,10 +816,10 @@ namespace {
   }
 
   template <typename INT>
-  void define_communication_data(const Ioss::Region          &global_region,
+  void define_communication_data(const Ioss::Region &         global_region,
                                  std::vector<Ioss::Region *> &proc_region,
-                                 const std::vector<int>      &node_to_proc,
-                                 const std::vector<INT>      &node_to_proc_pointer)
+                                 const std::vector<int> &     node_to_proc,
+                                 const std::vector<INT> &     node_to_proc_pointer)
   {
     progress(__func__);
     // This routine categorizes the nodes on a processor as interior
@@ -911,12 +910,12 @@ namespace {
     // and defines corresponding nodesets on each processor...
     size_t proc_count = proc_region.size();
 
-    auto  &ns        = region.get_nodesets();
+    auto & ns        = region.get_nodesets();
     size_t set_count = ns.size();
 
     for (size_t s = 0; s < set_count; s++) {
       std::vector<INT> pns(proc_count);
-      Ioss::NodeSet   *gns = ns[s];
+      Ioss::NodeSet *  gns = ns[s];
 
       std::vector<INT> ns_nodes;
       gns->get_field_data("ids_raw", ns_nodes);
@@ -959,7 +958,7 @@ namespace {
     // and defines corresponding nodesets on each processor...
     size_t proc_count = proc_region.size();
 
-    auto  &ns        = region.get_nodesets();
+    auto & ns        = region.get_nodesets();
     size_t set_count = ns.size();
 
     for (size_t s = 0; s < set_count; s++) {
@@ -1096,7 +1095,7 @@ namespace {
     // map[p][b] = map for block b on processor p
     size_t proc_count = proc_region.size();
 
-    auto  &ebs         = region.get_element_blocks();
+    auto & ebs         = region.get_element_blocks();
     size_t block_count = ebs.size();
 
     size_t offset = 0;
@@ -1111,7 +1110,7 @@ namespace {
 
       std::vector<std::vector<INT>> map(proc_count);
       for (size_t p = proc_begin; p < proc_begin + proc_size; p++) {
-        auto  &proc_ebs           = proc_region[p]->get_element_blocks();
+        auto & proc_ebs           = proc_region[p]->get_element_blocks();
         size_t proc_element_count = proc_ebs[b]->entity_count();
         map[p].reserve(proc_element_count);
       }
@@ -1149,7 +1148,7 @@ namespace {
     std::vector<double> glob_coord_x;
     std::vector<double> glob_coord_y;
     std::vector<double> glob_coord_z;
-    Ioss::NodeBlock    *gnb = region.get_node_blocks()[0];
+    Ioss::NodeBlock *   gnb = region.get_node_blocks()[0];
 
     // Distribute nodal coordinates to each processor...
     // coordinates[p][i] = x,y,z coordinates on processor p
@@ -1165,12 +1164,13 @@ namespace {
     }
     progress("\tReserve processor coordinate vectors");
 
-    Ioss::DatabaseIO *db = region.get_database();
+    Ioss::DatabaseIO *db    = region.get_database();
+    auto *            ex_db = dynamic_cast<Ioex::DatabaseIO *>(db);
 
     size_t node_count = region.get_property("node_count").get_int();
 
-    if (node_count > partial_count) {
-      int exoid = db->get_file_pointer();
+    if (ex_db != nullptr && node_count > partial_count) {
+      int exoid = ex_db->get_file_pointer();
 
       glob_coord_x.resize(partial_count);
       glob_coord_y.resize(partial_count);
@@ -1243,7 +1243,7 @@ namespace {
   {
     progress(__func__);
     std::vector<double> glob_coord;
-    Ioss::NodeBlock    *gnb = region.get_node_blocks()[0];
+    Ioss::NodeBlock *   gnb = region.get_node_blocks()[0];
 
     std::array<std::string, 3> field_name{"mesh_model_coordinates_x", "mesh_model_coordinates_y",
                                           "mesh_model_coordinates_z"};
@@ -1252,7 +1252,8 @@ namespace {
     size_t                           processor_count = proc_region.size();
     std::vector<std::vector<double>> coordinates(processor_count);
 
-    Ioss::DatabaseIO *db = region.get_database();
+    Ioss::DatabaseIO *db    = region.get_database();
+    auto *            ex_db = dynamic_cast<Ioex::DatabaseIO *>(db);
 
     size_t node_count = region.get_property("node_count").get_int();
 
@@ -1267,8 +1268,8 @@ namespace {
         coordinates[p].resize(0);
       }
 
-      if (node_count > partial_count) {
-        int exoid = db->get_file_pointer();
+      if (ex_db != nullptr && node_count > partial_count) {
+        int exoid = ex_db->get_file_pointer();
 
         glob_coord.resize(partial_count);
         for (size_t beg = 1; beg <= node_count; beg += partial_count) {
@@ -1339,12 +1340,13 @@ namespace {
     // connectvity[p][b] = connectivity for block b on processor p
 
     progress(__func__);
-    auto  &ebs         = region.get_element_blocks();
+    auto & ebs         = region.get_element_blocks();
     size_t block_count = ebs.size();
 
     size_t processor_count = proc_region.size();
 
-    Ioss::DatabaseIO *db = region.get_database();
+    Ioss::DatabaseIO *db    = region.get_database();
+    auto *            ex_db = dynamic_cast<Ioex::DatabaseIO *>(db);
 
     std::vector<INT> glob_conn;
     size_t           offset = 0;
@@ -1363,8 +1365,8 @@ namespace {
       }
 
       // Do a 'partial_count' elements at a time...
-      if (element_count >= partial_count) {
-        int exoid = db->get_file_pointer();
+      if (ex_db != nullptr && element_count >= partial_count) {
+        int exoid = ex_db->get_file_pointer();
 
         glob_conn.resize(partial_count * element_nodes);
         for (size_t beg = 1; beg <= element_count; beg += partial_count) {
@@ -1375,8 +1377,7 @@ namespace {
 
           ex_get_partial_conn(exoid, EX_ELEM_BLOCK, block_id, beg, count, glob_conn.data(), nullptr,
                               nullptr);
-          progress(fmt::format("\tpartial_conn-- start: {}\tcount: {}", fmt::group_digits(beg),
-                               fmt::group_digits(count)));
+          progress(fmt::format("\tpartial_conn-- start: {:L}\tcount: {:L}", beg, count));
 
           size_t el = 0;
           for (size_t j = 0; j < count; j++) {
@@ -1412,7 +1413,7 @@ namespace {
       }
 
       for (size_t p = proc_begin; p < proc_begin + proc_size; p++) {
-        auto               &proc_ebs = proc_region[p]->get_element_blocks();
+        auto &              proc_ebs = proc_region[p]->get_element_blocks();
         Ioss::ElementBlock *eb       = proc_ebs[b];
         eb->put_field_data("connectivity", connectivity[p]);
       }
@@ -1424,7 +1425,7 @@ namespace {
                                  std::vector<std::vector<INT>> &proc_elem_block_cnt)
   {
     progress(__func__);
-    auto  &ebs         = region.get_element_blocks();
+    auto & ebs         = region.get_element_blocks();
     size_t block_count = ebs.size();
     size_t begin       = 0;
     for (size_t i = 0; i < block_count; i++) {
@@ -1444,8 +1445,7 @@ namespace {
       }
       proc_elem_block_cnt[block_count][i] = sum;
       if (debug_level & 2) {
-        fmt::print(stderr, "\tProcessor {} has {} elements.\n", fmt::group_digits(i),
-                   fmt::group_digits(sum));
+        fmt::print(stderr, "\tProcessor {:L} has {:L} elements.\n", i, sum);
       }
     }
   }
@@ -1482,8 +1482,9 @@ namespace {
 
     size_t            sum_on_proc_count = 0;
     Ioss::DatabaseIO *db                = region.get_database();
+    auto *            ex_db             = dynamic_cast<Ioex::DatabaseIO *>(db);
 
-    auto  &ebs         = region.get_element_blocks();
+    auto & ebs         = region.get_element_blocks();
     size_t block_count = ebs.size();
     size_t offset      = 0;
 
@@ -1495,8 +1496,8 @@ namespace {
       size_t           block_id      = ebs[b]->get_property("id").get_int();
 
       // Do a 'partial_count' elements at a time...
-      if (element_count >= partial_count) {
-        int exoid = db->get_file_pointer();
+      if (ex_db != nullptr && element_count >= partial_count) {
+        int exoid = ex_db->get_file_pointer();
 
         glob_conn.resize(partial_count * element_nodes);
         for (size_t beg = 1; beg <= element_count; beg += partial_count) {
@@ -1507,8 +1508,7 @@ namespace {
 
           ex_get_partial_conn(exoid, EX_ELEM_BLOCK, block_id, beg, count, glob_conn.data(), nullptr,
                               nullptr);
-          progress(fmt::format("\tpartial_conn-- start: {}\tcount: {}", fmt::group_digits(beg),
-                               fmt::group_digits(count)));
+          progress(fmt::format("\tpartial_conn-- start: {:L}\tcount: {:L}", beg, count));
           populate_proc_node(count, offset, element_nodes, elem_to_proc, glob_conn, proc_node,
                              on_proc_count);
           offset += count;
@@ -1526,8 +1526,7 @@ namespace {
           new Ioss::NodeBlock(proc_region[p]->get_database(), "node_block1", on_proc_count[p], 3);
       proc_region[p]->add(nb);
       if (debug_level & 2) {
-        fmt::print(stderr, "\tProcessor {} has {} nodes.\n", fmt::group_digits(p),
-                   fmt::group_digits(on_proc_count[p]));
+        fmt::print(stderr, "\tProcessor {:L} has {:L} nodes.\n", p, on_proc_count[p]);
       }
       sum_on_proc_count += on_proc_count[p];
     }
@@ -1543,8 +1542,7 @@ namespace {
     for (size_t i = 0; i < node_count; i++) {
       size_t num_procs = proc_node[i].size();
       if (num_procs == 0) {
-        fmt::print(stderr, "WARNING: Node {} is not connected to any elements.\n",
-                   fmt::group_digits(i + 1));
+        fmt::print(stderr, "WARNING: Node {:L} is not connected to any elements.\n", i + 1);
       }
       else if (num_procs < proc_histo.size()) {
         proc_histo[num_procs]++;
@@ -1560,15 +1558,13 @@ namespace {
     fmt::print(stderr, "Processor count per node histogram:\n");
     for (size_t i = 1; i < proc_histo.size(); i++) {
       if (proc_histo[i] > 0) {
-        fmt::print(stderr, "\tNodes on {:2} processors = {:12}\t({:2})%\n", fmt::group_digits(i),
-                   fmt::group_digits(proc_histo[i]),
+        fmt::print(stderr, "\tNodes on {:2L} processors = {:12L}\t({:2})%\n", i, proc_histo[i],
                    (proc_histo[i] * 100 + node_count / 2) / node_count);
       }
     }
     if (proc_histo[0] > 0) {
-      fmt::print(stderr, "\tNodes on {} or more processors = {}\t({:2})%\n",
-                 fmt::group_digits(proc_histo.size()), fmt::group_digits(proc_histo[0]),
-                 (proc_histo[0] * 100 + node_count / 2) / node_count);
+      fmt::print(stderr, "\tNodes on {:L} or more processors = {:L}\t({:2})%\n", proc_histo.size(),
+                 proc_histo[0], (proc_histo[0] * 100 + node_count / 2) / node_count);
     }
     fmt::print(stderr, "\n");
 
@@ -1577,7 +1573,7 @@ namespace {
     progress("\tNode_to_proc reserved");
     assert(sum_on_proc_count == node_to_proc_pointer_size);
 
-    for (auto &pn : proc_node) {
+    for (auto pn : proc_node) {
       size_t num_procs = pn.size();
       for (size_t p = 0; p < num_procs; p++) {
         node_to_proc.push_back(pn[p]);
@@ -1624,8 +1620,8 @@ namespace {
     bool close_files = interFace.processor_count() + 1 > interFace.max_files();
     for (size_t i = 0; i < interFace.processor_count(); i++) {
       std::string outfile   = Ioss::Utils::decode_filename(nemfile, i, interFace.processor_count());
-      Ioss::DatabaseIO *dbo = Ioss::IOFactory::create(
-          "exodus", outfile, Ioss::WRITE_RESTART, Ioss::ParallelUtils::comm_world(), properties);
+      Ioss::DatabaseIO *dbo = Ioss::IOFactory::create("exodus", outfile, Ioss::WRITE_RESTART,
+                                                      (MPI_Comm)MPI_COMM_WORLD, properties);
       if (ints64) {
         dbo->set_int_byte_size_api(Ioss::USE_INT64_API);
       }
@@ -1659,7 +1655,7 @@ namespace {
 
     // Create element blocks for each processor...
     for (size_t p = 0; p < interFace.processor_count(); p++) {
-      auto  &ebs = region.get_element_blocks();
+      auto & ebs = region.get_element_blocks();
       size_t bc  = ebs.size();
       for (size_t b = 0; b < bc; b++) {
         std::string type = ebs[b]->topology()->name();
@@ -1716,8 +1712,8 @@ namespace {
       if (proc_begin + proc_size > proc_count) {
         proc_size = proc_count - proc_begin;
       }
-      fmt::print(stderr, "\nProcessor range {} to {}\n", fmt::group_digits(proc_begin),
-                 fmt::group_digits(proc_begin + proc_size - 1));
+      fmt::print(stderr, "\nProcessor range {:L} to {:L}\n", proc_begin,
+                 proc_begin + proc_size - 1);
 
       for (size_t p = proc_begin; p < proc_begin + proc_size; p++) {
         Ioss::transfer_coordinate_frames(region, *proc_region[p]);

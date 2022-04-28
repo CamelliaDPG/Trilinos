@@ -278,10 +278,10 @@ namespace Xpetra {
     global_size_t getGlobalNumCols() const;
 
     //! Returns the number of graph rows owned on the calling node.
-    size_t getLocalNumRows() const;
+    size_t getNodeNumRows() const;
 
     //! Returns the number of columns connected to the locally owned rows of this graph.
-    size_t getLocalNumCols() const;
+    size_t getNodeNumCols() const;
 
     //! Returns the index base for global indices for this graph.
     GlobalOrdinal getIndexBase() const;
@@ -290,7 +290,7 @@ namespace Xpetra {
     global_size_t getGlobalNumEntries() const;
 
     //! Returns the local number of entries in the graph.
-    size_t getLocalNumEntries() const;
+    size_t getNodeNumEntries() const;
 
     //! Returns the current number of entries on this node in the specified global row.
     size_t getNumEntriesInGlobalRow(GlobalOrdinal globalRow) const;
@@ -308,7 +308,7 @@ namespace Xpetra {
     size_t getGlobalMaxNumRowEntries() const;
 
     //! Maximum number of entries in all rows owned by the calling process.
-    size_t getLocalMaxNumRowEntries() const;
+    size_t getNodeMaxNumRowEntries() const;
 
     //! Whether the graph has a column Map.
     bool hasColMap() const;

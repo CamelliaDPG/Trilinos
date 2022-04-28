@@ -37,7 +37,7 @@
 # ************************************************************************
 # @HEADER
 
-tribits_package_define_dependencies(
+TRIBITS_PACKAGE_DEFINE_DEPENDENCIES(
   LIB_REQUIRED_PACKAGES Teuchos Epetra
   LIB_OPTIONAL_PACKAGES Tpetra
   TEST_OPTIONAL_PACKAGES Triutils EpetraExt Ifpack ML

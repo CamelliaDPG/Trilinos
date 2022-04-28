@@ -74,7 +74,7 @@ namespace Test {
       *outStream << "-------------------------------------------------------------------------------" << "\n\n"; \
     }
 
-template<typename ValueType, typename DeviceType>
+template<typename ValueType, typename DeviceSpaceType>
 int HGRAD_TRI_Cn_FEM_ORTH_Test01(const bool verbose) {
 
   Teuchos::RCP<std::ostream> outStream;
@@ -87,6 +87,13 @@ int HGRAD_TRI_Cn_FEM_ORTH_Test01(const bool verbose) {
 
   Teuchos::oblackholestream oldFormatState;
   oldFormatState.copyfmt(std::cout);
+
+  typedef typename Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType;
+
+  *outStream << "DeviceSpace::  ";
+  DeviceSpaceType::print_configuration(*outStream, false);
+  *outStream << "HostSpace::    ";
+  HostSpaceType::print_configuration(*outStream, false);
 
   *outStream
   << "===============================================================================\n"
@@ -106,7 +113,7 @@ int HGRAD_TRI_Cn_FEM_ORTH_Test01(const bool verbose) {
   << "|                                                                             |\n"
   << "===============================================================================\n";
 
-  typedef Kokkos::DynRankView<ValueType, DeviceType> DynRankView;
+  typedef Kokkos::DynRankView<ValueType, DeviceSpaceType> DynRankView;
 #define ConstructWithLabel(obj, ...) obj(#obj, __VA_ARGS__)
 
   const ValueType tol = tolerence();
@@ -116,9 +123,9 @@ int HGRAD_TRI_Cn_FEM_ORTH_Test01(const bool verbose) {
   typedef ValueType outputValueType;
   typedef ValueType pointValueType;
   typedef ValueType weightValueType;
-  typedef Basis_HGRAD_TRI_Cn_FEM_ORTH<DeviceType, outputValueType,
+  typedef Basis_HGRAD_TRI_Cn_FEM_ORTH<DeviceSpaceType, outputValueType,
       pointValueType> triBasisType;
-  typedef CubatureDirectTriDefault<DeviceType, pointValueType,
+  typedef CubatureDirectTriDefault<DeviceSpaceType, pointValueType,
       weightValueType> cubatureTriType;
   *outStream << "\n"
       << "===============================================================================\n"

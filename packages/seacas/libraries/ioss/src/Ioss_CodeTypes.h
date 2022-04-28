@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2021 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_code_types_h
+#define IOSS_code_types_h
 
 #include <array>
 #include <cstddef>
@@ -12,9 +13,12 @@
 #include <string>
 #include <vector>
 
-#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32) || defined(_MSC_VER) ||                \
-    defined(__MINGW32__) || defined(_WIN64) || defined(__MINGW64__)
-#define __IOSS_WINDOWS__ 1
+#if defined(_MSC_VER)
+#ifdef _WIN64
+#define ssize_t __int64
+#else
+#define ssize_t long
+#endif
 #endif
 
 namespace Ioss {
@@ -48,13 +52,19 @@ inline const std::string IOSS_SYM_TENSOR() { return std::string("sym_tensor_33")
 #if defined(SEACAS_HAVE_MPI)
 #include <mpi.h>
 #define PAR_UNUSED(x)
-using Ioss_MPI_Comm = MPI_Comm;
 #else
 #define PAR_UNUSED(x)                                                                              \
   do {                                                                                             \
     (void)(x);                                                                                     \
   } while (0)
-using Ioss_MPI_Comm  = int;
+
+#ifndef MPI_COMM_SELF
+#define MPI_COMM_SELF 0
+#endif
+#ifndef MPI_COMM_WORLD
+#define MPI_COMM_WORLD 0
+using MPI_Comm       = int;
+#endif
 #endif
 
 #ifdef SEACAS_HAVE_KOKKOS
@@ -75,6 +85,7 @@ using Kokkos_Complex = Kokkos::complex<float>;
 using Complex        = std::complex<double>;
 #ifdef SEACAS_HAVE_KOKKOS
 using Kokkos_Complex = Kokkos::complex<double>;
+#endif
 #endif
 #endif
 

@@ -248,8 +248,6 @@ namespace Xpetra {
     //! Set multi-vector values to random numbers.
     void randomize(bool bUseXpetraImplementation = false);
 
-    void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = false);
-
     //{@
     // Implements DistObject interface
 

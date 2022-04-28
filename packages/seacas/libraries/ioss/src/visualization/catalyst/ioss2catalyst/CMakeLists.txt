@@ -13,12 +13,11 @@ TARGET_INCLUDE_DIRECTORIES(catalystiossapp
         ${CMAKE_CURRENT_BINARY_DIR})
 
 TARGET_LINK_LIBRARIES(catalystiossapp
-    PUBLIC
+    PRIVATE
         -L${SEACAS_INSTALL_DIR}/lib
         Ionit
         Ioss
         MPI::MPI_C
-    PRIVATE
         ${Python3_LIBRARY})
 
 ADD_EXECUTABLE(ioss2catalyst main.cxx)

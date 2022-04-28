@@ -148,9 +148,7 @@ public:
     else {
       // No need to initialize, if we're going to copy into it anyway.
       outView_nc = nc_output_view_type (view_alloc (std::string (label), WithoutInitializing), inSize);
-      // DEEP_COPY REVIEW - HOST-TO-DEVICE
-      using execution_space = typename nc_output_view_type::execution_space;
-      Kokkos::deep_copy (execution_space(), outView_nc, inView);
+      Kokkos::deep_copy (outView_nc, inView);
     }
     return outView_nc; // this casts back to const
   }
@@ -172,7 +170,6 @@ public:
         const char label[] = "")
   {
     typedef typename OutputDeviceType::memory_space out_mem_space;
-    typedef typename OutputDeviceType::execution_space out_exec_space;
     static_assert (! std::is_const<ValueType>::value, "ValueType must not be "
                    "const in order to use this specialization.  Please report "
                    "this bug to the Tpetra developers.");
@@ -184,8 +181,7 @@ public:
     output_view_type outView =
       Kokkos::create_mirror_view (out_mem_space (), inView);
     if (copy) {
-      // DEEP_COPY REVIEW - DEVICE-TO-HOSTMIRROR
-      Kokkos::deep_copy (out_exec_space(), outView, inView);
+      Kokkos::deep_copy (outView, inView);
     }
     return outView;
   }

@@ -241,9 +241,6 @@ namespace Xpetra {
     //! Set multi-vector values to random numbers.
     void randomize(bool bUseXpetraImplementation = false) { }
 
-    //! Set multi-vector values to random numbers.
-    void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = false) { }
-
     //! Implements DistObject interface
     //{@
 
@@ -336,7 +333,7 @@ namespace Xpetra {
   #ifdef HAVE_XPETRA_DEBUG
       // This cannot be tested by Epetra itself
       {
-        size_t localLength = map->getLocalNumElements();
+        size_t localLength = map->getNodeNumElements();
         for(int j=0; j<ArrayOfPtrs.size(); j++) {
           TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC(Teuchos::as<size_t>(ArrayOfPtrs[j].size()) != localLength, std::runtime_error,
                                                 ": ArrayOfPtrs[" << j << "].size() (== " << ArrayOfPtrs[j].size() <<
@@ -527,28 +524,6 @@ namespace Xpetra {
         vec_->Random();
     }
 
-    //! Set multi-vector values to random numbers.
-    void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = false) {
-      XPETRA_MONITOR("EpetraMultiVectorT::randomize");
-
-      if (bUseXpetraImplementation)
-        Xpetra::MultiVector< Scalar, LocalOrdinal, GlobalOrdinal, Node >::Xpetra_randomize(minVal, maxVal);
-      else {
-        vec_->Random();
-        const size_t numVectors = getNumVectors();
-        for(size_t i = 0; i < numVectors; i++)
-          {
-            Teuchos::ArrayRCP<Scalar> datai = getDataNonConst(i);
-
-            const size_t myLength = getLocalLength();
-            for(size_t j = 0; j < myLength; j++)
-              {
-                datai[ j ] = 0.5*(maxVal-minVal)*datai[ j ]+0.5*(maxVal+minVal);
-              }
-          }
-      }
-    }
-
     //! Implements DistObject interface
     //{@
 
@@ -670,7 +645,13 @@ namespace Xpetra {
       return ret;
     }
 
-    typename dual_view_type::t_dev_um getDeviceLocalView(Access::ReadWriteStruct) const override { return getHostLocalView(Access::ReadWrite); }
+    typename dual_view_type::t_dev_um getDeviceLocalView(Access::ReadWriteStruct) const override {
+      throw std::runtime_error("Epetra does not support device views! in "+std::string(__FILE__)+":"+std::to_string(__LINE__));
+#ifndef __NVCC__ //prevent nvcc warning
+      typename dual_view_type::t_dev_um ret;
+#endif
+      TEUCHOS_UNREACHABLE_RETURN(ret);
+    }
 
 #endif
 
@@ -753,7 +734,7 @@ namespace Xpetra {
   #ifdef HAVE_XPETRA_DEBUG
       // This cannot be tested by Epetra itself
       {
-        size_t localLength = map->getLocalNumElements();
+        size_t localLength = map->getNodeNumElements();
         for(int j=0; j<ArrayOfPtrs.size(); j++) {
           TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC(Teuchos::as<size_t>(ArrayOfPtrs[j].size()) != localLength, std::runtime_error,
                                                 ": ArrayOfPtrs[" << j << "].size() (== " << ArrayOfPtrs[j].size() <<
@@ -942,28 +923,6 @@ namespace Xpetra {
         Xpetra::MultiVector< Scalar, LocalOrdinal, GlobalOrdinal, Node >::Xpetra_randomize();
       else
         vec_->Random();
-    }
-
-    //! Set multi-vector values to random numbers.
-    void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = false) {
-      XPETRA_MONITOR("EpetraMultiVectorT::randomize");
-
-      if (bUseXpetraImplementation)
-        Xpetra::MultiVector< Scalar, LocalOrdinal, GlobalOrdinal, Node >::Xpetra_randomize(minVal, maxVal);
-      else {
-        vec_->Random();
-        const size_t numVectors = getNumVectors();
-        for(size_t i = 0; i < numVectors; i++)
-          {
-            Teuchos::ArrayRCP<Scalar> datai = getDataNonConst(i);
-
-            const size_t myLength = getLocalLength();
-            for(size_t j = 0; j < myLength; j++)
-              {
-                datai[ j ] = 0.5*(maxVal-minVal)*datai[ j ]+0.5*(maxVal+minVal);
-              }
-          }
-      }
     }
 
     //! Implements DistObject interface

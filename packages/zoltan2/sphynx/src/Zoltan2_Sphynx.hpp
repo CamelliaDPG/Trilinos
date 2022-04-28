@@ -123,11 +123,10 @@ namespace Zoltan2 {
 
     // Takes the graph from the input adapter and computes the Laplacian matrix
     Sphynx(const RCP<const Environment> &env,
-              const RCP<Teuchos::ParameterList> &params,
-              const RCP<Teuchos::ParameterList> &sphynxParams,
-              const RCP<const Comm<int> > &comm,
+	      const RCP<Teuchos::ParameterList> &params,
+	      const RCP<const Comm<int> > &comm,
 	      const RCP<const XpetraCrsGraphAdapter<graph_t> > &adapter) :
-      env_(env), params_(params), sphynxParams_(sphynxParams), comm_(comm), adapter_(adapter)
+      env_(env), params_(params), comm_(comm), adapter_(adapter)
     { 
 
       // Don't compute the Laplacian if the number of requested parts is 1
@@ -138,12 +137,12 @@ namespace Zoltan2 {
 	Teuchos::TimeMonitor t(*Teuchos::TimeMonitor::getNewTimer("Sphynx::Laplacian"));
 
 	// The verbosity is common throughout the algorithm, better to check and set now
-        pe = sphynxParams_->getEntryPtr("sphynx_verbosity");
+	pe = params_->getEntryPtr("sphynx_verbosity");
 	if (pe)
 	  verbosity_ = pe->getValue<int>(&verbosity_);
 
 	// Do we need to pre-process the input?
-        pe = sphynxParams_->getEntryPtr("sphynx_skip_preprocessing");
+	pe = params_->getEntryPtr("sphynx_skip_preprocessing");
 	if (pe)
 	  skipPrep_ = pe->getValue<bool>(&skipPrep_);
 
@@ -225,7 +224,7 @@ namespace Zoltan2 {
 
       // Get size information 
       const size_t numGlobalEntries = graph_->getGlobalNumEntries();
-      const size_t numLocalRows = graph_->getLocalNumRows();
+      const size_t numLocalRows = graph_->getNodeNumRows();
       const size_t numGlobalRows = graph_->getGlobalNumRows();
 
       // Compute local maximum degree 
@@ -280,7 +279,7 @@ namespace Zoltan2 {
 #endif
 
       // Override the preconditioner type with the user's preference
-      const Teuchos::ParameterEntry *pe = sphynxParams_->getEntryPtr("sphynx_preconditioner_type");
+      const Teuchos::ParameterEntry *pe = params_->getEntryPtr("sphynx_preconditioner_type");
       if (pe) {
 	precType_ = pe->getValue<std::string>(&precType_);
 	if(precType_ != "muelu" && precType_ != "jacobi" && precType_ != "polynomial")
@@ -298,7 +297,7 @@ namespace Zoltan2 {
       }
 
       // Override the problem type with the user's preference
-      pe = sphynxParams_->getEntryPtr("sphynx_problem_type");
+      pe = params_->getEntryPtr("sphynx_problem_type");
       if (pe) {
 	std::string probType = "";
 	probType = pe->getValue<std::string>(&probType);
@@ -322,7 +321,7 @@ namespace Zoltan2 {
 
 
       // Override the tolerance with the user's preference
-      pe = sphynxParams_->getEntryPtr("sphynx_tolerance");
+      pe = params_->getEntryPtr("sphynx_tolerance");
       if (pe)
 	tolerance_ = pe->getValue<scalar_t>(&tolerance_);
 
@@ -333,7 +332,7 @@ namespace Zoltan2 {
 	randomInit_ = false;
       
       // Override the initialization method with the user's preference
-      pe = sphynxParams_->getEntryPtr("sphynx_initial_guess");
+      pe = params_->getEntryPtr("sphynx_initial_guess");
       if (pe) {
 	std::string initialGuess = "";
 	initialGuess = pe->getValue<std::string>(&initialGuess);
@@ -369,16 +368,18 @@ namespace Zoltan2 {
     {
 
 	// Get the row pointers in the host
-	auto rowOffsets = graph_->getLocalGraphHost().row_map;
+	auto rowOffsets = graph_->getLocalGraphDevice().row_map;
+	auto rowOffsets_h = Kokkos::create_mirror_view(rowOffsets);
+	Kokkos::deep_copy(rowOffsets_h, rowOffsets);
 
 	// Create the degree matrix with max row size set to 1
  	Teuchos::RCP<matrix_t> degMat(new matrix_t (graph_->getRowMap(), 
 						    graph_->getRowMap(), 
-						    1));
+						    1, Tpetra::StaticProfile));
 
 	scalar_t *val = new scalar_t[1];
 	lno_t *ind = new lno_t[1];
-	lno_t numRows = static_cast<lno_t>(graph_->getLocalNumRows());
+	lno_t numRows = static_cast<lno_t>(graph_->getNodeNumRows());
 
 	// Insert the diagonal entries as the degrees
 	for (lno_t i = 0; i < numRows; ++i) {
@@ -406,8 +407,8 @@ namespace Zoltan2 {
       using values_view_t = Kokkos::View<scalar_t*, typename node_t::device_type>;
       using offset_view_t = Kokkos::View<size_t*, typename node_t::device_type>;
   
-      const size_t numEnt = graph_->getLocalNumEntries();
-      const size_t numRows = graph_->getLocalNumRows();
+      const size_t numEnt = graph_->getNodeNumEntries();
+      const size_t numRows = graph_->getNodeNumRows();
 
       // Create new values for the Laplacian, initialize to -1 
       values_view_t newVal (Kokkos::view_alloc("CombLapl::val", Kokkos::WithoutInitializing), numEnt);
@@ -452,8 +453,8 @@ namespace Zoltan2 {
       using dual_view_t = typename vector_t::dual_view_type;
       using KAT = Kokkos::Details::ArithTraits<scalar_t>;
 
-      const size_t numEnt = graph_->getLocalNumEntries();
-      const size_t numRows = graph_->getLocalNumRows();
+      const size_t numEnt = graph_->getNodeNumEntries();
+      const size_t numRows = graph_->getNodeNumRows();
 
       // Create new values for the Laplacian, initialize to -1 
       values_view_t newVal (Kokkos::view_alloc("NormLapl::val", Kokkos::WithoutInitializing), numEnt);
@@ -502,7 +503,6 @@ namespace Zoltan2 {
     // User-provided members 
     const Teuchos::RCP<const Environment> env_;
     Teuchos::RCP<Teuchos::ParameterList> params_;
-    Teuchos::RCP<Teuchos::ParameterList> sphynxParams_;
     const Teuchos::RCP<const Teuchos::Comm<int> > comm_;
     const Teuchos::RCP<const Adapter> adapter_;
     
@@ -540,7 +540,7 @@ namespace Zoltan2 {
     // Return a trivial solution if only one part is requested
     if(numGlobalParts_ == 1) {
 
-      size_t numRows =adapter_->getUserGraph()->getLocalNumRows();
+      size_t numRows =adapter_->getUserGraph()->getNodeNumRows();
       Teuchos::ArrayRCP<part_t> parts(numRows,0);
       solution->setParts(parts);
       
@@ -604,11 +604,11 @@ namespace Zoltan2 {
     // Get the user values for the parameters
     const Teuchos::ParameterEntry *pe;
 
-    pe = sphynxParams_->getEntryPtr("sphynx_maxiterations");
+    pe = params_->getEntryPtr("sphynx_maxiterations");
     if (pe)
       maxIterations = pe->getValue<int>(&maxIterations);
 
-    pe = sphynxParams_->getEntryPtr("sphynx_use_full_ortho");
+    pe = params_->getEntryPtr("sphynx_use_full_ortho");
     if (pe)
       useFullOrtho = pe->getValue<bool>(&useFullOrtho);
 

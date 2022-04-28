@@ -16,7 +16,7 @@ namespace Iovs_cgns {
   {
   public:
     DatabaseIO(Ioss::Region *region, const std::string &filename, Ioss::DatabaseUsage db_usage,
-               Ioss_MPI_Comm communicator, const Ioss::PropertyManager &props);
+               MPI_Comm communicator, const Ioss::PropertyManager &props);
 
     ~DatabaseIO() override;
 

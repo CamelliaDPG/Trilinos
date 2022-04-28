@@ -78,6 +78,11 @@ template<class T> class ArrayView;
 
 namespace Tpetra {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration of Distributor
+class Distributor;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
 //
 // Users must never rely on anything in the Details namespace.
 //
@@ -128,6 +133,7 @@ unpackCrsMatrixAndCombine (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                            const Teuchos::ArrayView<const size_t>& numPacketsPerLID,
                            const Teuchos::ArrayView<const LO>& importLIDs,
                            size_t constantNumPackets,
+                           Distributor & distor,
                            CombineMode combineMode);
 
 template<typename ST, typename LO, typename GO, typename NT>
@@ -141,6 +147,7 @@ unpackCrsMatrixAndCombineNew(
   const Kokkos::DualView<const LO*,
     typename DistObject<char, LO, GO, NT>::buffer_device_type>& importLIDs,
   const size_t constantNumPackets,
+  Distributor& distor,
   const CombineMode combineMode);
 
 /// \brief Special version of Tpetra::Details::unpackCrsMatrixAndCombine
@@ -206,6 +213,7 @@ unpackAndCombineWithOwningPIDsCount (
     const Teuchos::ArrayView<const char> &imports,
     const Teuchos::ArrayView<const size_t>& numPacketsPerLID,
     size_t constantNumPackets,
+    Distributor &distor,
     CombineMode combineMode,
     size_t numSameIDs,
     const Teuchos::ArrayView<const LocalOrdinal>& permuteToLIDs,
@@ -233,6 +241,7 @@ unpackAndCombineIntoCrsArrays (
     const Teuchos::ArrayView<const char>& imports,
     const Teuchos::ArrayView<const size_t>& numPacketsPerLID,
     const size_t constantNumPackets,
+    Distributor& distor,
     const CombineMode combineMode,
     const size_t numSameIDs,
     const Teuchos::ArrayView<const LocalOrdinal>& permuteToLIDs,

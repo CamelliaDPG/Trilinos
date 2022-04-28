@@ -1,4 +1,4 @@
-tribits_repository_define_tpls(
+TRIBITS_REPOSITORY_DEFINE_TPLS(
   ExtraTPL1    cmake/    ST
   ExtraTPL2    cmake/    PT
   )

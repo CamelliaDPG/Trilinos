@@ -1,5 +1,4 @@
 #include <Kokkos_Core.hpp>
-#include <cstddef>
 
 namespace Test {
 
@@ -63,7 +62,7 @@ struct TestDeepCopy {
     reset_a_copy_and_b(a_char_copy, b_char);
 
     {
-      size_t check = compare_equal(a_char_copy, a_char);
+      int check = compare_equal(a_char_copy, a_char);
       ASSERT_EQ(check, a_char.extent(0));
     }
 
@@ -297,7 +296,7 @@ struct TestDeepCopyScalarConversion {
 
     int64_t errors = 0;
     Kokkos::deep_copy(errors, error_count);
-    ASSERT_EQ(errors, 0);
+    ASSERT_TRUE(errors == 0);
 
     Kokkos::deep_copy(view_s1_1d, static_cast<Scalar1>(0));
     Kokkos::deep_copy(view_s1_2d, static_cast<Scalar1>(0));
@@ -307,7 +306,7 @@ struct TestDeepCopyScalarConversion {
                                              Kokkos::IndexType<int64_t>>(0, N0),
                          *this);
     Kokkos::deep_copy(errors, error_count);
-    ASSERT_GT(errors, 0);
+    ASSERT_TRUE(errors > 0);
 
     Kokkos::deep_copy(error_count, 0);
     Kokkos::deep_copy(TEST_EXECSPACE(), view_s1_1d, view_s2_1d);
@@ -319,7 +318,7 @@ struct TestDeepCopyScalarConversion {
                          *this);
 
     Kokkos::deep_copy(errors, error_count);
-    ASSERT_EQ(errors, 0);
+    ASSERT_TRUE(errors == 0);
   }
 };
 }  // namespace Impl

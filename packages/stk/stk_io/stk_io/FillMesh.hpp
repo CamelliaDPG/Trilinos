@@ -34,14 +34,11 @@
 #ifndef PACKAGES_STK_STK_IO_STK_IO_FILLMESH_HPP_
 #define PACKAGES_STK_STK_IO_STK_IO_FILLMESH_HPP_
 
-// #######################  Start Clang Header Tool Managed Headers ########################
-// clang-format off
-#include <string>                      // for string
-#include "stk_io/DatabasePurpose.hpp"  // for READ_MESH, DatabasePurpose
+#include <string>
+#include "stk_io/DatabasePurpose.hpp"  // for DatabasePurpose::READ_MESH
+
+namespace stk { namespace mesh { class BulkData; }}
 namespace stk { namespace io { class StkMeshIoBroker; } }
-namespace stk { namespace mesh { class BulkData; } }
-// clang-format on
-// #######################   End Clang Header Tool Managed Headers  ########################
 
 namespace stk
 {

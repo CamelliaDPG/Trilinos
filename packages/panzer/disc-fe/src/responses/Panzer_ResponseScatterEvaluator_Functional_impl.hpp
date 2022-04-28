@@ -136,10 +136,8 @@ template<typename EvalT, typename Traits>
 void ResponseScatterEvaluator_Functional<EvalT,Traits>::
 evaluateFields(typename Traits::EvalData d)
 {
-  auto cellIntegral_h = Kokkos::create_mirror_view ( cellIntegral_.get_static_view());
-  Kokkos::deep_copy(cellIntegral_h, cellIntegral_.get_static_view());
   for(index_t i=0;i<d.num_cells;i++) {
-    responseObj_->value += cellIntegral_h(i);
+    responseObj_->value += cellIntegral_(i);
   }
 }
 

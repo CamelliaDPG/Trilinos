@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 
   float version;
 
-  char *cdum = NULL;
+  char *cdum = 0;
 
   ex_opts(EX_VERBOSE | EX_ABORT);
 

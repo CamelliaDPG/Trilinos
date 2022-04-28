@@ -1,28 +1,28 @@
 #
 # A) Define the package
 #
-tribits_package( SimpleCxx  ENABLE_SHADOWING_WARNINGS  CLEANED )
+TRIBITS_PACKAGE( SimpleCxx  ENABLE_SHADOWING_WARNINGS  CLEANED )
 
 #
 # B) Platform-specific checks
 #
-include(CheckFor__int64)
-check_for___int64(HAVE_SIMPLECXX___INT64)
+INCLUDE(CheckFor__int64)
+CHECK_FOR___INT64(HAVE_SIMPLECXX___INT64)
 
 #
 # C) Set up package-specific options
 #
-tribits_add_debug_option()
-tribits_add_show_deprecated_warnings_option()
+TRIBITS_ADD_DEBUG_OPTION()
+TRIBITS_ADD_SHOW_DEPRECATED_WARNINGS_OPTION()
 
 #
 # D) Add the libraries, tests, and examples
 #
-add_subdirectory(src)
-tribits_add_test_directories(test)
-#tribits_add_example_directories(example)
+ADD_SUBDIRECTORY(src)
+TRIBITS_ADD_TEST_DIRECTORIES(test)
+#TRIBITS_ADD_EXAMPLE_DIRECTORIES(example)
 
 #
 # E) Do standard post processing
 #
-tribits_package_postprocess()
+TRIBITS_PACKAGE_POSTPROCESS()

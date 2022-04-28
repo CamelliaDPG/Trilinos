@@ -181,8 +181,6 @@ namespace MueLu {
       typedef typename graph_type::entries_type         cols_type;
       typedef typename MatrixType::values_type          vals_type;
       typedef          Kokkos::ArithTraits<SC>          ATS;
-      typedef typename ATS::val_type                    impl_Scalar;
-      typedef Kokkos::ArithTraits<impl_Scalar>          impl_ATS;
       typedef typename ATS::magnitudeType               magnitudeType;
 
     public:
@@ -190,8 +188,7 @@ namespace MueLu {
                     typename rows_type::non_const_type rows_,
                     typename cols_type::non_const_type colsAux_,
                     typename vals_type::non_const_type valsAux_,
-                    bool reuseGraph_, bool lumping_, SC /* threshold_ */,
-                    bool aggregationMayCreateDirichlet_ ) :
+                    bool reuseGraph_, bool lumping_, SC /* threshold_ */) :
           A(A_),
           bndNodes(bndNodes_),
           dropFunctor(dropFunctor_),
@@ -199,11 +196,10 @@ namespace MueLu {
           colsAux(colsAux_),
           valsAux(valsAux_),
           reuseGraph(reuseGraph_),
-          lumping(lumping_),
-          aggregationMayCreateDirichlet(aggregationMayCreateDirichlet_)
+          lumping(lumping_)
       {
         rowsA = A.graph.row_map;
-        zero = impl_ATS::zero();
+        zero = ATS::zero();
       }
 
       KOKKOS_INLINE_FUNCTION
@@ -212,12 +208,12 @@ namespace MueLu {
         auto length  = rowView.length;
         auto offset  = rowsA(row);
 
-        impl_Scalar diag = zero;
+        SC diag = zero;
         LO rownnz = 0;
         LO diagID = -1;
         for (decltype(length) colID = 0; colID < length; colID++) {
           LO col = rowView.colidx(colID);
-          impl_Scalar val = rowView.value (colID);
+          SC val = rowView.value (colID);
 
           if (!dropFunctor(row, col, rowView.value(colID)) || row == col) {
             colsAux(offset+rownnz) = col;
@@ -254,7 +250,7 @@ namespace MueLu {
         //        boundaryNodes[row] = true;
         // We do not do it this way now because there is no framework for distinguishing isolated
         // and boundary nodes in the aggregation algorithms
-        bndNodes(row) = (rownnz == 1 && aggregationMayCreateDirichlet);
+        bndNodes(row) = (rownnz == 1);
 
         nnz += rownnz;
       }
@@ -272,8 +268,7 @@ namespace MueLu {
 
       bool                                  reuseGraph;
       bool                                  lumping;
-      bool                                  aggregationMayCreateDirichlet;
-      impl_Scalar                           zero;
+      SC                                    zero;
     };
 
     // collect number nonzeros of blkSize rows in nnz_(row+1)
@@ -458,7 +453,6 @@ namespace MueLu {
     SET_VALID_ENTRY("aggregation: drop tol");
     SET_VALID_ENTRY("aggregation: Dirichlet threshold");
     SET_VALID_ENTRY("aggregation: drop scheme");
-    SET_VALID_ENTRY("aggregation: dropping may create Dirichlet");
     SET_VALID_ENTRY("filtered matrix: use lumping");
     SET_VALID_ENTRY("filtered matrix: reuse graph");
     SET_VALID_ENTRY("filtered matrix: reuse eigenvalue");
@@ -495,8 +489,7 @@ namespace MueLu {
     FactoryMonitor m(*this, "Build", currentLevel);
 
     typedef Teuchos::ScalarTraits<SC> STS;
-    typedef typename STS::magnitudeType MT;
-    const MT zero = Teuchos::ScalarTraits<MT>::zero();
+    const SC zero    = STS::zero();
 
     auto A         = Get< RCP<Matrix> >(currentLevel, "A");
     LO   blkSize   = A->GetFixedBlockSize();
@@ -536,9 +529,9 @@ namespace MueLu {
 
       // Trivial LWGraph construction
       graph = rcp(new LWGraph_kokkos(A->getLocalMatrixDevice().graph, A->getRowMap(), A->getColMap(), "graph of A"));
-      graph->getLocalLWGraph().SetBoundaryNodeMap(boundaryNodes);
+      graph->SetBoundaryNodeMap(boundaryNodes);
 
-      numTotal = A->getLocalNumEntries();
+      numTotal = A->getNodeNumEntries();
       dofsPerNode = 1;
 
       filteredA = A;
@@ -552,22 +545,18 @@ namespace MueLu {
       typedef typename kokkos_graph_type::entries_type::non_const_type    cols_type;
       typedef typename local_matrix_type::values_type::non_const_type     vals_type;
 
-      LO   numRows      = A->getLocalNumRows();
+      LO   numRows      = A->getNodeNumRows();
       local_matrix_type kokkosMatrix = A->getLocalMatrixDevice();
       auto nnzA  = kokkosMatrix.nnz();
       auto rowsA = kokkosMatrix.graph.row_map;
 
 
-      typedef Kokkos::ArithTraits<SC>          ATS;
-      typedef typename ATS::val_type           impl_Scalar;
-      typedef Kokkos::ArithTraits<impl_Scalar> impl_ATS;
+      typedef Kokkos::ArithTraits<SC>     ATS;
 
       bool reuseGraph = pL.get<bool>("filtered matrix: reuse graph");
       bool lumping    = pL.get<bool>("filtered matrix: use lumping");
       if (lumping)
         GetOStream(Runtime0) << "Lumping dropped entries" << std::endl;
-
-      const bool aggregationMayCreateDirichlet = pL.get<bool>("aggregation: dropping may create Dirichlet");
 
       // FIXME_KOKKOS: replace by ViewAllocateWithoutInitializing + setting a single value
       rows_type rows   ("FA_rows",     numRows+1);
@@ -600,10 +589,10 @@ namespace MueLu {
           // Construct overlapped matrix diagonal
           RCP<Vector> ghostedDiag;
           {
-            kokkosMatrix = local_matrix_type();
+	    kokkosMatrix = local_matrix_type();
             SubFactoryMonitor m2(*this, "Ghosted diag construction", currentLevel);
             ghostedDiag     = Utilities_kokkos::GetMatrixOverlappedDiagonal(*A);
-            kokkosMatrix=A->getLocalMatrixDevice();
+	    kokkosMatrix=A->getLocalMatrixDevice();
           }
 
           // Filter out entries
@@ -614,7 +603,7 @@ namespace MueLu {
 
             CoalesceDrop_Kokkos_Details::ClassicalDropFunctor<LO, decltype(ghostedDiagView)> dropFunctor(ghostedDiagView, threshold);
             CoalesceDrop_Kokkos_Details::ScalarFunctor<typename ATS::val_type, LO, local_matrix_type, decltype(bndNodes), decltype(dropFunctor)>
-              scalarFunctor(kokkosMatrix, bndNodes, dropFunctor, rows, colsAux, valsAux, reuseGraph, lumping, threshold, aggregationMayCreateDirichlet);
+	      scalarFunctor(kokkosMatrix, bndNodes, dropFunctor, rows, colsAux, valsAux, reuseGraph, lumping, threshold);
 
             Kokkos::parallel_reduce("MueLu:CoalesceDropF:Build:scalar_filter:main_loop", range_type(0,numRows),
                                     scalarFunctor, nnzFA);
@@ -658,11 +647,11 @@ namespace MueLu {
                 auto rowView = kokkosGraph.rowConst(row);
                 auto length  = rowView.length;
 
-                impl_Scalar d = impl_ATS::zero();
+                SC d = ATS::zero();
                 for (decltype(length) colID = 0; colID < length; colID++) {
                   auto col = rowView(colID);
                   if (row != col)
-                    d += impl_ATS::one()/distFunctor.distance2(row, col);
+                    d += ATS::one()/distFunctor.distance2(row, col);
                 }
                 localLaplDiagView(row,0) = d;
               });
@@ -685,7 +674,7 @@ namespace MueLu {
             CoalesceDrop_Kokkos_Details::DistanceLaplacianDropFunctor<LO, decltype(ghostedLaplDiagView), decltype(distFunctor)>
                 dropFunctor(ghostedLaplDiagView, distFunctor, threshold);
             CoalesceDrop_Kokkos_Details::ScalarFunctor<SC, LO, local_matrix_type, decltype(bndNodes), decltype(dropFunctor)>
-                scalarFunctor(kokkosMatrix, bndNodes, dropFunctor, rows, colsAux, valsAux, reuseGraph, lumping, threshold, true);
+                scalarFunctor(kokkosMatrix, bndNodes, dropFunctor, rows, colsAux, valsAux, reuseGraph, lumping, threshold);
 
             Kokkos::parallel_reduce("MueLu:CoalesceDropF:Build:scalar_filter:main_loop", range_type(0,numRows),
                                     scalarFunctor, nnzFA);
@@ -717,7 +706,6 @@ namespace MueLu {
       cols_type cols(Kokkos::ViewAllocateWithoutInitializing("FA_cols"), nnzFA);
       vals_type vals;
       if (reuseGraph) {
-        GetOStream(Runtime1) << "reuse matrix graph for filtering (compress matrix columns only)" << std::endl;
         // Only compress cols
         SubFactoryMonitor m2(*this, "CompressColsAndVals", currentLevel);
 
@@ -732,7 +720,6 @@ namespace MueLu {
           });
       } else {
         // Compress cols and vals
-        GetOStream(Runtime1) << "new matrix graph for filtering (compress matrix columns and values)" << std::endl;
         SubFactoryMonitor m2(*this, "CompressColsAndVals", currentLevel);
 
         vals = vals_type(Kokkos::ViewAllocateWithoutInitializing("FA_vals"), nnzFA);
@@ -744,7 +731,7 @@ namespace MueLu {
             size_t rownnz = rows(i+1) - rows(i);
             for (size_t j = 0; j < rownnz; j++) {
               cols(rowStart+j) = colsAux(rowAStart+j);
-              vals(rowStart+j) = valsAux(rowAStart+j);
+              vals(rowStart+j) = colsAux(rowAStart+j);
             }
           });
       }
@@ -755,10 +742,10 @@ namespace MueLu {
         SubFactoryMonitor m2(*this, "LWGraph construction", currentLevel);
 
         graph = rcp(new LWGraph_kokkos(kokkosGraph, A->getRowMap(), A->getColMap(), "filtered graph of A"));
-        graph->getLocalLWGraph().SetBoundaryNodeMap(boundaryNodes);
+        graph->SetBoundaryNodeMap(boundaryNodes);
       }
 
-      numTotal = A->getLocalNumEntries();
+      numTotal = A->getNodeNumEntries();
 
       dofsPerNode = 1;
 
@@ -766,8 +753,13 @@ namespace MueLu {
         SubFactoryMonitor m2(*this, "LocalMatrix+FillComplete", currentLevel);
 
         local_matrix_type localFA = local_matrix_type("A", numRows, A->getLocalMatrixDevice().numCols(), nnzFA, vals, rows, cols);
-        auto filteredACrs = CrsMatrixFactory::Build(localFA, A->getRowMap(), A->getColMap(), A->getDomainMap(), A->getRangeMap(),
-                                                    A->getCrsGraph()->getImporter(), A->getCrsGraph()->getExporter());
+#if 1
+        // FIXME: this should be gone once Xpetra propagate "local matrix + 4 maps" constructor
+        // FIXME: we don't need to rebuild importers/exporters. We should reuse A's
+        auto filteredACrs = CrsMatrixFactory::Build(A->getRowMap(), A->getColMap(), localFA);
+        filteredACrs->resumeFill();  // we need that for rectangular matrices
+        filteredACrs->expertStaticFillComplete(A->getDomainMap(), A->getRangeMap());
+#endif
         filteredA = rcp(new CrsMatrixWrap(filteredACrs));
       }
 
@@ -790,7 +782,7 @@ namespace MueLu {
       // a very simple thing: merge rows and produce nodal graph. But the code
       // seems very complicated. Can we do better?
 
-      TEUCHOS_TEST_FOR_EXCEPTION(A->getRowMap()->getLocalNumElements() % blkSize != 0, MueLu::Exceptions::RuntimeError, "MueLu::CoalesceDropFactory: Number of local elements is " << A->getRowMap()->getLocalNumElements() << " but should be a multiply of " << blkSize);
+      TEUCHOS_TEST_FOR_EXCEPTION(A->getRowMap()->getNodeNumElements() % blkSize != 0, MueLu::Exceptions::RuntimeError, "MueLu::CoalesceDropFactory: Number of local elements is " << A->getRowMap()->getNodeNumElements() << " but should be a multiply of " << blkSize);
 
       const RCP<const Map> rowMap = A->getRowMap();
       const RCP<const Map> colMap = A->getColMap();
@@ -805,19 +797,19 @@ namespace MueLu {
       Array<LO> rowTranslationArray = *(amalInfo->getRowTranslation()); // TAW should be transform that into a View?
       Array<LO> colTranslationArray = *(amalInfo->getColTranslation());
 
-      Kokkos::View<LO*, Kokkos::MemoryUnmanaged>
-        rowTranslationView(rowTranslationArray.getRawPtr(),rowTranslationArray.size() );
-      Kokkos::View<LO*, Kokkos::MemoryUnmanaged>
-        colTranslationView(colTranslationArray.getRawPtr(),colTranslationArray.size() );
+      Kokkos::View<LO*, Kokkos::MemoryUnmanaged> 
+	rowTranslationView(rowTranslationArray.getRawPtr(),rowTranslationArray.size() ); 
+      Kokkos::View<LO*, Kokkos::MemoryUnmanaged> 
+	colTranslationView(colTranslationArray.getRawPtr(),colTranslationArray.size() ); 
 
       // get number of local nodes
-      LO numNodes = Teuchos::as<LocalOrdinal>(uniqueMap->getLocalNumElements());
+      LO numNodes = Teuchos::as<LocalOrdinal>(uniqueMap->getNodeNumElements());
       typedef typename Kokkos::View<LocalOrdinal*, DeviceType> id_translation_type;
       id_translation_type rowTranslation("dofId2nodeId",rowTranslationArray.size());
       id_translation_type colTranslation("ov_dofId2nodeId",colTranslationArray.size());
       Kokkos::deep_copy(rowTranslation, rowTranslationView);
       Kokkos::deep_copy(colTranslation, colTranslationView);
-
+								     
       // extract striding information
       blkSize = A->GetFixedBlockSize();  //< the full block size (number of dofs per node in strided map)
       LocalOrdinal blkId   = -1;         //< the block id within a strided map or -1 if it is a full block map
@@ -875,8 +867,8 @@ namespace MueLu {
       graph = rcp(new LWGraph_kokkos(kokkosGraph, uniqueMap, nonUniqueMap, "amalgamated graph of A"));
 
       boundaryNodes = bndNodes;
-      graph->getLocalLWGraph().SetBoundaryNodeMap(boundaryNodes);
-      numTotal = A->getLocalNumEntries();
+      graph->SetBoundaryNodeMap(boundaryNodes);
+      numTotal = A->getNodeNumEntries();
 
       dofsPerNode = blkSize;
 

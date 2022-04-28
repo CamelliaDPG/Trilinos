@@ -1,6 +1,3 @@
-#ifndef TEST_CUDA_HPP
-#define TEST_CUDA_HPP
-
 #include <gtest/gtest.h>
 #include <Kokkos_Core.hpp>
 #include <KokkosKernels_config.h>
@@ -10,13 +7,15 @@
 #endif
 
 class cuda : public ::testing::Test {
- protected:
-  static void SetUpTestCase() {}
+protected:
+  static void SetUpTestCase()
+  {
+  }
 
-  static void TearDownTestCase() {}
+  static void TearDownTestCase()
+  {
+  }
 };
 
 #define TestCategory cuda
 #define TestExecSpace Kokkos::Cuda
-
-#endif  // TEST_CUDA_HPP

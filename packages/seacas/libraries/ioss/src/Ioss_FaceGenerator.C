@@ -1,11 +1,10 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
 #include <Ioss_CodeTypes.h>
-
 #include <Ioss_CommSet.h>
 #include <Ioss_DBUsage.h>
 #include <Ioss_DatabaseIO.h>
@@ -81,7 +80,7 @@ namespace {
     std::vector<INT> elem_ids;
     if (local_ids) {
       elem_ids.resize(eb->entity_count());
-      std::iota(elem_ids.begin(), elem_ids.end(), static_cast<INT>(eb->get_offset() + 1));
+      std::iota(elem_ids.begin(), elem_ids.end(), eb->get_offset() + 1);
     }
     else {
       eb->get_field_data("ids", elem_ids);
@@ -304,7 +303,7 @@ namespace {
 namespace Ioss {
   Face::Face(std::array<size_t, 4> conn) : connectivity_(conn)
   {
-    for (auto &node : connectivity_) {
+    for (auto node : connectivity_) {
       hashId_ += Ioss::FaceGenerator::id_hash(node);
     }
   }
@@ -354,7 +353,7 @@ namespace Ioss {
   template <typename INT> void FaceGenerator::hash_node_ids(const std::vector<INT> &node_ids)
   {
     hashIds_.reserve(node_ids.size());
-    for (auto &id : node_ids) {
+    for (auto id : node_ids) {
       hashIds_.push_back(id_hash(id));
     }
   }
@@ -380,8 +379,8 @@ namespace Ioss {
     auto endh = std::chrono::steady_clock::now();
 #endif
 
-    const auto &ebs = region_.get_element_blocks();
-    for (auto &eb : ebs) {
+    const Ioss::ElementBlockContainer &ebs = region_.get_element_blocks();
+    for (auto eb : ebs) {
       const std::string &name    = eb->name();
       size_t             numel   = eb->entity_count();
       size_t             reserve = 3.2 * numel;
@@ -393,7 +392,7 @@ namespace Ioss {
     auto endf = std::chrono::steady_clock::now();
 #endif
     size_t face_count = 0;
-    for (auto &eb : ebs) {
+    for (auto eb : ebs) {
       resolve_parallel_faces(region_, faces_[eb->name()], hashIds_, (INT)0);
       face_count += faces_[eb->name()].size();
     }
@@ -401,24 +400,23 @@ namespace Ioss {
     auto endp  = std::chrono::steady_clock::now();
     auto diffh = endh - starth;
     auto difff = endf - endh;
-    fmt::print(
-        "Node ID hash time:   \t{:.6} ms\t{:12} nodes/second\n"
-        "Face generation time:\t{:.6} ms\t{:12} faces/second\n",
-        std::chrono::duration<double, std::milli>(diffh).count(),
-        fmt::group_digits(INT(hashIds_.size() / std::chrono::duration<double>(diffh).count())),
-        std::chrono::duration<double, std::milli>(difff).count(),
-        fmt::group_digits(INT(face_count / std::chrono::duration<double>(difff).count())));
+    fmt::print("Node ID hash time:   \t{:.6L} ms\t{:12L} nodes/second\n"
+               "Face generation time:\t{:.6L} ms\t{:12L} faces/second\n",
+               std::chrono::duration<double, std::milli>(diffh).count(),
+               INT(hashIds_.size() / std::chrono::duration<double>(diffh).count()),
+               std::chrono::duration<double, std::milli>(difff).count(),
+               INT(face_count / std::chrono::duration<double>(difff).count()));
 #ifdef SEACAS_HAVE_MPI
     auto   diffp      = endp - endf;
     size_t proc_count = region_.get_database()->util().parallel_size();
 
     if (proc_count > 1) {
-      fmt::print("Parallel time:       \t{:.6} ms\t{:12} faces/second.\n",
+      fmt::print("Parallel time:       \t{:.6L} ms\t{:12L} faces/second.\n",
                  std::chrono::duration<double, std::milli>(diffp).count(),
-                 fmt::group_digits(INT(face_count / std::chrono::duration<double>(diffp).count())));
+                 INT(face_count / std::chrono::duration<double>(diffp).count()));
     }
 #endif
-    fmt::print("Total time:          \t{:.6} ms\n\n",
+    fmt::print("Total time:          \t{:.6L} ms\n\n",
                std::chrono::duration<double, std::milli>(endp - starth).count());
 #endif
   }
@@ -444,13 +442,13 @@ namespace Ioss {
     auto endh = std::chrono::steady_clock::now();
 #endif
 
-    auto  &my_faces = faces_["ALL"];
+    auto & my_faces = faces_["ALL"];
     size_t numel    = region_.get_property("element_count").get_int();
 
     size_t reserve = 3.2 * numel;
     my_faces.reserve(reserve);
-    const auto &ebs = region_.get_element_blocks();
-    for (auto &eb : ebs) {
+    const Ioss::ElementBlockContainer &ebs = region_.get_element_blocks();
+    for (auto eb : ebs) {
       internal_generate_faces(eb, my_faces, ids, hashIds_, local_ids, (INT)0);
     }
 

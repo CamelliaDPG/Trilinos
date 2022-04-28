@@ -45,7 +45,6 @@
 #include "Sacado_MP_Vector.hpp"
 #include "Kokkos_View_MP_Vector.hpp"
 #include "KokkosSparse_CrsMatrix.hpp"
-#include "Kokkos_ArithTraits_MP_Vector.hpp"
 #include "KokkosSparse_spmv.hpp"
 #include "Kokkos_Blas1_MP_Vector.hpp" // for some utilities
 

@@ -37,18 +37,18 @@
 # ************************************************************************
 # @HEADER
 
-include(CMakeParseArguments)
+INCLUDE(CMakeParseArguments)
 
 
 #
-# @FUNCTION: tribits_find_most_recent_file_timestamp()
+# @FUNCTION: TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP()
 #
 # Find the most modified file in a set of base directories and return its
 # timestamp.
 #
 # Usage::
 #
-#   tribits_find_most_recent_file_timestamp(
+#   TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP(
 #     BASE_DIRS <dir0> <dir1> ...
 #     [BASE_BASE_DIR <dir>]
 #     [EXCLUDE_REGEXES "<re0>" "<re1>" ...
@@ -121,17 +121,17 @@ include(CMakeParseArguments)
 # ``<mostRecentTimestamp>``, ``<mostRecentFilepathBaseDir>``, and
 # ``<mostRecentRelativeFilePath>``.
 #
-function(tribits_find_most_recent_file_timestamp)
+FUNCTION(TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP)
 
-    if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-      message("\nSearching for most modified files in base dirs:")
-    endif()
+    IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+      MESSAGE("\nSearching for most modified files in base dirs:")
+    ENDIF()
 
   #
   # A) Parse the input arguments
   #
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -143,39 +143,39 @@ function(tribits_find_most_recent_file_timestamp)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  if (PARSE_SHOW_MOST_RECENT_FILES)
-    set(PARSE_SHOW_OVERALL_MOST_RECENT_FILE ON)
-  endif()
+  IF (PARSE_SHOW_MOST_RECENT_FILES)
+    SET(PARSE_SHOW_OVERALL_MOST_RECENT_FILE ON)
+  ENDIF()
 
   #
   # B) Loop over each directory and find the most modified file
   #
 
-  set(OVERALL_MOST_RECENT_TIMESTAMP "0000000000.0000000000")
-  set(OVERALL_MOST_RECENT_FILEPATH "")
-  set(OVERALL_MOST_RECENT_FILEPATH_DIR "")
-  set(OVERALL_MOST_RECENT_RELATEIVE_FILEPATH_DIR "")
-  set(OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE "")
+  SET(OVERALL_MOST_RECENT_TIMESTAMP "0000000000.0000000000")
+  SET(OVERALL_MOST_RECENT_FILEPATH "")
+  SET(OVERALL_MOST_RECENT_FILEPATH_DIR "")
+  SET(OVERALL_MOST_RECENT_RELATEIVE_FILEPATH_DIR "")
+  SET(OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE "")
 
-  foreach(BASE_DIR ${PARSE_BASE_DIRS})
+  FOREACH(BASE_DIR ${PARSE_BASE_DIRS})
 
-    if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-      message("\nSearching '${BASE_DIR}' ...")
-    endif()
+    IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+      MESSAGE("\nSearching '${BASE_DIR}' ...")
+    ENDIF()
 
-    if (IS_DIRECTORY "${BASE_DIR}")
+    IF (IS_DIRECTORY "${BASE_DIR}")
 
       # Build up commands for grep -v
-      set(GREP_V_COMMANDS)
-      foreach(EXCLUDE_REGEX ${PARSE_EXCLUDE_REGEXES})
-        append_set(GREP_V_COMMANDS COMMAND grep -v "${EXCLUDE_REGEX}")
-      endforeach()
+      SET(GREP_V_COMMANDS)
+      FOREACH(EXCLUDE_REGEX ${PARSE_EXCLUDE_REGEXES})
+        APPEND_SET(GREP_V_COMMANDS COMMAND grep -v "${EXCLUDE_REGEX}")
+      ENDFOREACH()
 
       # Get the time stamp and the file name of the most recently modified file
-      # in current directory.
-      execute_process(
+      # in currnet directory.
+      EXECUTE_PROCESS(
         WORKING_DIRECTORY "${BASE_DIR}"
         COMMAND find . -type f -printf "%T@ %p\n"
         ${GREP_V_COMMANDS}
@@ -191,118 +191,118 @@ function(tribits_find_most_recent_file_timestamp)
        #
        #     1407353359.5651538200 ./<relative-dir>/<some-file-name>
 
-      if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-        print_var(MOST_RECENT_TIMESTAMP_AND_FILE)
-      endif()
+      IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+        PRINT_VAR(MOST_RECENT_TIMESTAMP_AND_FILE)
+      ENDIF()
 
-      if (MOST_RECENT_TIMESTAMP_AND_FILE)
+      IF (MOST_RECENT_TIMESTAMP_AND_FILE)
 
-        split("${MOST_RECENT_TIMESTAMP_AND_FILE}" " "
+        SPLIT("${MOST_RECENT_TIMESTAMP_AND_FILE}" " "
           MOST_RECENT_TIMESTAMP_AND_FILE_SPLIT)
 
         # Get the time stamp part
-        list(GET MOST_RECENT_TIMESTAMP_AND_FILE_SPLIT 0
+        LIST(GET MOST_RECENT_TIMESTAMP_AND_FILE_SPLIT 0
           CURRENT_TIMESTAMP)
 
         # Get the relative file path
-        list(GET MOST_RECENT_TIMESTAMP_AND_FILE_SPLIT 1
+        LIST(GET MOST_RECENT_TIMESTAMP_AND_FILE_SPLIT 1
           CURRENT_FILEPATH)
 
         # Get the directory relative to the base base dir
-        string(REPLACE "${PARSE_BASE_BASE_DIR}/" "./"  RELATIVE_FILEPATH_DIR
+        STRING(REPLACE "${PARSE_BASE_BASE_DIR}/" "./"  RELATIVE_FILEPATH_DIR
           "${BASE_DIR}")
 
-        if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-          print_var(CURRENT_TIMESTAMP)
-          print_var(CURRENT_FILEPATH)
-        endif()
+        IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+          PRINT_VAR(CURRENT_TIMESTAMP)
+          PRINT_VAR(CURRENT_FILEPATH)
+        ENDIF()
 
-        if (PARSE_SHOW_MOST_RECENT_FILES)
-          tribits_get_human_readable_file_and_timestamp(
+        IF (PARSE_SHOW_MOST_RECENT_FILES)
+          TRIBITS_GET_HUMAN_READABLE_FILE_AND_TIMESTAMP(
             "${BASE_DIR}"  "${CURRENT_FILEPATH}"
             HUMAN_READABLE_FILE_AND_TIMESTAMP
             )
-          message("-- " "Most recent file in ${RELATIVE_FILEPATH_DIR}/"
+          MESSAGE("-- " "Most recent file in ${RELATIVE_FILEPATH_DIR}/"
             " is ${CURRENT_FILEPATH}\n"
             "    ${HUMAN_READABLE_FILE_AND_TIMESTAMP}")
-        endif()
+        ENDIF()
 
-        if ("${CURRENT_TIMESTAMP}" GREATER "${OVERALL_MOST_RECENT_TIMESTAMP}")
-          if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-            message("    New most recent file path!")
-          endif()
-          set(OVERALL_MOST_RECENT_TIMESTAMP "${CURRENT_TIMESTAMP}")
-          set(OVERALL_MOST_RECENT_RELATIVE_FILEPATH "${CURRENT_FILEPATH}")
-          set(OVERALL_MOST_RECENT_FILEPATH_DIR "${BASE_DIR}")
-          set(OVERALL_MOST_RECENT_RELATEIVE_FILEPATH_DIR "${RELATIVE_FILEPATH_DIR}")
-          if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-            set(OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE
+        IF ("${CURRENT_TIMESTAMP}" GREATER "${OVERALL_MOST_RECENT_TIMESTAMP}")
+          IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+            MESSAGE("    New most recent file path!")
+          ENDIF()
+          SET(OVERALL_MOST_RECENT_TIMESTAMP "${CURRENT_TIMESTAMP}")
+          SET(OVERALL_MOST_RECENT_RELATIVE_FILEPATH "${CURRENT_FILEPATH}")
+          SET(OVERALL_MOST_RECENT_FILEPATH_DIR "${BASE_DIR}")
+          SET(OVERALL_MOST_RECENT_RELATEIVE_FILEPATH_DIR "${RELATIVE_FILEPATH_DIR}")
+          IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+            SET(OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE
               "${HUMAN_READABLE_FILE_AND_TIMESTAMP}")
-          endif()
-        endif()
+          ENDIF()
+        ENDIF()
 
-      endif()
+      ENDIF()
 
-    else()
+    ELSE()
 
-      if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-        message("Directory does not exist, skipping ...")
-      endif()
+      IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+        MESSAGE("Directory does not exist, skipping ...")
+      ENDIF()
 
-    endif()
+    ENDIF()
 
-  endforeach()
+  ENDFOREACH()
 
-  if (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
-    print_var(OVERALL_MOST_RECENT_TIMESTAMP)
-    print_var(OVERALL_MOST_RECENT_RELATIVE_FILEPATH)
-  endif()
+  IF (TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP_DEBUG_DUMP)
+    PRINT_VAR(OVERALL_MOST_RECENT_TIMESTAMP)
+    PRINT_VAR(OVERALL_MOST_RECENT_RELATIVE_FILEPATH)
+  ENDIF()
 
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    if (OVERALL_MOST_RECENT_FILEPATH_DIR)
-      if (NOT OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE)
-        tribits_get_human_readable_file_and_timestamp(
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    IF (OVERALL_MOST_RECENT_FILEPATH_DIR)
+      IF (NOT OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE)
+        TRIBITS_GET_HUMAN_READABLE_FILE_AND_TIMESTAMP(
           "${OVERALL_MOST_RECENT_FILEPATH_DIR}"
           "${OVERALL_MOST_RECENT_RELATIVE_FILEPATH}"
           OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE
         )
-      endif()
-      message("-- " "Overall most recent modified file is in"
+      ENDIF()
+      MESSAGE("-- " "Overall most recent modified file is in"
         " ${OVERALL_MOST_RECENT_RELATEIVE_FILEPATH_DIR}/ and is ${OVERALL_MOST_RECENT_RELATIVE_FILEPATH}\n"
         "    ${OVERALL_MOST_RECENT_FILEPATH_TIMESTAMP_HUMAN_READABLE}")
-    else()
-      message("-- There are no unfiltered files!")
-    endif()
-  endif()
+    ELSE()
+      MESSAGE("-- There are no unfiltered files!")
+    ENDIF()
+  ENDIF()
 
-  set(${PARSE_MOST_RECENT_TIMESTAMP_OUT}
+  SET(${PARSE_MOST_RECENT_TIMESTAMP_OUT}
     ${OVERALL_MOST_RECENT_TIMESTAMP}
     PARENT_SCOPE)
 
-  if (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
-    set(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT}
+  IF (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
+    SET(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT}
       ${OVERALL_MOST_RECENT_FILEPATH_DIR}
       PARENT_SCOPE)
-  endif()
+  ENDIF()
 
-  if (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
-    set(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT}
+  IF (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
+    SET(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT}
       ${OVERALL_MOST_RECENT_RELATIVE_FILEPATH}
       PARENT_SCOPE )
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_find_most_recent_source_file_timestamp()
+# @FUNCTION: TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP()
 #
 # Find the most modified source file in a set of base directories and return
 # its timestamp.
 #
 # Usage::
 #
-#   tribits_find_most_recent_source_file_timestamp(
+#   TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP(
 #     SOURCE_BASE_DIRS <dir0> <dir1> ...
 #     [SOURCE_BASE_BASE_DIR <dir>]
 #     [SHOW_MOST_RECENT_FILES]
@@ -312,18 +312,18 @@ endfunction()
 #     [MOST_RECENT_RELATIVE_FILEPATH_OUT <mostRecentRelativeFilePath>]
 #     )
 #
-# This function just calls `tribits_find_most_recent_file_timestamp()`_
+# This function just calls `TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP()`_
 # passing in a set of basic exclude regexes like ``[.]git/``, ``[.]svn/``,
 # etc.  These types of version control files can not possibly directly impact
 # the source code.
 #
-function(tribits_find_most_recent_source_file_timestamp)
+FUNCTION(TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP)
 
   #
   # A) Parse the input arguments
   #
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -335,26 +335,26 @@ function(tribits_find_most_recent_source_file_timestamp)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
   #
-  # B) Call the function tribits_find_most_recent_file_timestamp()
+  # B) Call the function TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP()
   #
 
-  set(FILTER_OUT_SOURCE_FILE_REGEXS
+  SET(FILTER_OUT_SOURCE_FILE_REGEXS
     "/[.]git/"
     )
 
-  set(VARIABLE_ARGS)
-  if (PARSE_SHOW_MOST_RECENT_FILES)
-    append_set(VARIABLE_ARGS SHOW_MOST_RECENT_FILES)
-  endif()
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    append_set(VARIABLE_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
-  endif()
+  SET(VARIABLE_ARGS)
+  IF (PARSE_SHOW_MOST_RECENT_FILES)
+    APPEND_SET(VARIABLE_ARGS SHOW_MOST_RECENT_FILES)
+  ENDIF()
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    APPEND_SET(VARIABLE_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
+  ENDIF()
 
-  #print_var(VARIABLE_ARGS)
-  tribits_find_most_recent_file_timestamp(
+  #PRINT_VAR(VARIABLE_ARGS)
+  TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP(
     BASE_DIRS ${PARSE_SOURCE_BASE_DIRS}
     BASE_BASE_DIR ${PARSE_SOURCE_BASE_BASE_DIR}
     EXCLUDE_REGEXES ${FILTER_OUT_SOURCE_FILE_REGEXS}
@@ -363,33 +363,33 @@ function(tribits_find_most_recent_source_file_timestamp)
     MOST_RECENT_RELATIVE_FILEPATH_OUT  MOST_RECENT_RELATIVE_FILEPATH
     ${VARIABLE_ARGS}
     )
-  #print_var(MOST_RECENT_TIMESTAMP)
+  #PRINT_VAR(MOST_RECENT_TIMESTAMP)
 
-  set(${PARSE_MOST_RECENT_TIMESTAMP_OUT} ${MOST_RECENT_TIMESTAMP}
+  SET(${PARSE_MOST_RECENT_TIMESTAMP_OUT} ${MOST_RECENT_TIMESTAMP}
     PARENT_SCOPE)
 
-  if (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
-    set(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT} ${MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP}
+  IF (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
+    SET(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT} ${MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP}
       PARENT_SCOPE)
-  endif()
+  ENDIF()
 
-  if (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
-    set(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT} ${MOST_RECENT_RELATIVE_FILEPATH}
+  IF (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
+    SET(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT} ${MOST_RECENT_RELATIVE_FILEPATH}
       PARENT_SCOPE )
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_find_most_recent_binary_file_timestamp()
+# @FUNCTION: TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP()
 #
 # Find the most modified binary file in a set of base directories and return
 # its timestamp.
 #
 # Usage::
 #
-#   tribits_find_most_recent_binary_file_timestamp(
+#   TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP(
 #     BINARY_BASE_DIRS <dir0> <dir1> ...
 #     [BINARY_BASE_BASE_DIR <dir>]
 #     [MOST_RECENT_TIMESTAMP_OUT  <mostRecentTimestamp>]
@@ -399,18 +399,18 @@ endfunction()
 #     [SHOW_OVERALL_MOST_RECENT_FILE]
 #     )
 #
-# This function just calls `tribits_find_most_recent_file_timestamp()`_
+# This function just calls `TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP()`_
 # passing in a set of basic exclude regexes like ``CMakeFiles/``,
 # ``[.]cmake$``, and ``/Makefile$``, etc.  These types of files usually don't
 # impact the build of downstream software in CMake projects.
 #
-function(tribits_find_most_recent_binary_file_timestamp)
+FUNCTION(TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP)
 
   #
   # A) Parse the input arguments
   #
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -422,30 +422,30 @@ function(tribits_find_most_recent_binary_file_timestamp)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
   #
   # B) Define filters for binary files we know are not significant
   #
 
-  set(FILTER_OUT_BINARY_FILE_REGEXS
+  SET(FILTER_OUT_BINARY_FILE_REGEXS
     "CMakeFiles/" "[.]cmake$" "/Makefile$"
     )
 
   #
-  # C) Call the function tribits_find_most_recent_file_timestamp()
+  # C) Call the function TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP()
   #
 
-  set(VARIABLE_ARGS)
-  if (PARSE_SHOW_MOST_RECENT_FILES)
-    append_set(VARIABLE_ARGS SHOW_MOST_RECENT_FILES)
-  endif()
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    append_set(VARIABLE_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
-  endif()
+  SET(VARIABLE_ARGS)
+  IF (PARSE_SHOW_MOST_RECENT_FILES)
+    APPEND_SET(VARIABLE_ARGS SHOW_MOST_RECENT_FILES)
+  ENDIF()
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    APPEND_SET(VARIABLE_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
+  ENDIF()
 
-  #print_var(VARIABLE_ARGS)
-  tribits_find_most_recent_file_timestamp(
+  #PRINT_VAR(VARIABLE_ARGS)
+  TRIBITS_FIND_MOST_RECENT_FILE_TIMESTAMP(
     BASE_DIRS ${PARSE_BINARY_BASE_DIRS}
     BASE_BASE_DIR ${PARSE_BINARY_BASE_BASE_DIR}
     EXCLUDE_REGEXES ${FILTER_OUT_BINARY_FILE_REGEXS}
@@ -453,33 +453,33 @@ function(tribits_find_most_recent_binary_file_timestamp)
     MOST_RECENT_RELATIVE_FILEPATH_OUT  MOST_RECENT_RELATIVE_FILEPATH
     ${VARIABLE_ARGS}
     )
-  #print_var(MOST_RECENT_TIMESTAMP)
+  #PRINT_VAR(MOST_RECENT_TIMESTAMP)
 
-  set(${PARSE_MOST_RECENT_TIMESTAMP_OUT} ${MOST_RECENT_TIMESTAMP}
+  SET(${PARSE_MOST_RECENT_TIMESTAMP_OUT} ${MOST_RECENT_TIMESTAMP}
     PARENT_SCOPE)
 
-  if (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
-    set(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT} ${MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP}
+  IF (PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT)
+    SET(${PARSE_MOST_RECENT_FILEPATH_BASE_DIR_OUT} ${MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP}
       PARENT_SCOPE)
-  endif()
+  ENDIF()
 
-  if (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
-    set(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT} ${MOST_RECENT_RELATIVE_FILEPATH}
+  IF (PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT)
+    SET(${PARSE_MOST_RECENT_RELATIVE_FILEPATH_OUT} ${MOST_RECENT_RELATIVE_FILEPATH}
       PARENT_SCOPE )
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_determine_if_current_package_needs_rebuilt()
+# @FUNCTION: TRIBITS_DETERMINE_IF_CURRENT_PACKAGE_NEEDS_REBUILT()
 #
 # Determine at configure time if any of the upstream dependencies for a
 # package require the current package to be rebuilt.
 #
 # Usage::
 #
-#   tribits_determine_if_current_package_needs_rebuilt(
+#   TRIBITS_DETERMINE_IF_CURRENT_PACKAGE_NEEDS_REBUILT(
 #     [SHOW_MOST_RECENT_FILES]
 #     [SHOW_OVERALL_MOST_RECENT_FILES]
 #     CURRENT_PACKAGE_OUT_OF_DATE_OUT <currentPackageOutOfDate>
@@ -514,8 +514,8 @@ endfunction()
 # piece of software (that generates libraries) and wrap it as a TriBITS
 # package or subpackage.  This function uses the lower-level functions:
 #
-# * `tribits_find_most_recent_source_file_timestamp()`_
-# * `tribits_find_most_recent_binary_file_timestamp()`_
+# * `TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP()`_
+# * `TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP()`_
 #
 # to determine the most recent modified files in the upstream TriBITS SE
 # packages' source and binary directories as well as the most recent source
@@ -533,15 +533,18 @@ endfunction()
 # See the demonstration of the usage of this function in the ``WrapExternal``
 # package in `TribitsExampleProject`_.
 #
-function(tribits_determine_if_current_package_needs_rebuilt)
+FUNCTION(TRIBITS_DETERMINE_IF_CURRENT_PACKAGE_NEEDS_REBUILT)
 
-  tribits_config_code_start_timer(TIMER_START_SECONDS)
+  IF (${PROJECT_NAME}_ENABLE_CONFIGURE_TIMING)
+    TIMER_GET_RAW_SECONDS(TIMER_START_SECONDS)
+  ENDIF()
+
 
   #
   # A) Parse the input arguments
   #
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -553,90 +556,90 @@ function(tribits_determine_if_current_package_needs_rebuilt)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
   # Get pass through print level options
-  set(SHOW_MOST_RECENT_FILES_ARGS)
-  if (PARSE_SHOW_MOST_RECENT_FILES)
-    append_set(SHOW_MOST_RECENT_FILES_ARGS SHOW_MOST_RECENT_FILES)
-  endif()
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    append_set(SHOW_MOST_RECENT_FILES_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
-  endif()
-  #print_var(SHOW_MOST_RECENT_FILES_ARGS)
+  SET(SHOW_MOST_RECENT_FILES_ARGS)
+  IF (PARSE_SHOW_MOST_RECENT_FILES)
+    APPEND_SET(SHOW_MOST_RECENT_FILES_ARGS SHOW_MOST_RECENT_FILES)
+  ENDIF()
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    APPEND_SET(SHOW_MOST_RECENT_FILES_ARGS SHOW_OVERALL_MOST_RECENT_FILES)
+  ENDIF()
+  #PRINT_VAR(SHOW_MOST_RECENT_FILES_ARGS)
 
-  if (PARSE_SHOW_MOST_RECENT_FILES)
-    set(PARSE_SHOW_OVERALL_MOST_RECENT_FILES TRUE)
-  endif()
+  IF (PARSE_SHOW_MOST_RECENT_FILES)
+    SET(PARSE_SHOW_OVERALL_MOST_RECENT_FILES TRUE)
+  ENDIF()
 
   #
   # B) Get the list of enabled upstream packages
   #
 
   # Only search parent packages to cut down on dirs searched
-  set(ENABLED_UPSTREAM_PACKAGES)
-  set(CURRENT_PARENT_PACKAGE)
-  foreach(UPSTREAM_SE_PACKAGE ${${PACKAGE_NAME}_FULL_ENABLED_DEP_PACKAGES})
+  SET(ENABLED_UPSTREAM_PACKAGES)
+  SET(CURRENT_PARENT_PACKAGE)
+  FOREACH(UPSTREAM_SE_PACKAGE ${${PACKAGE_NAME}_FULL_ENABLED_DEP_PACKAGES})
     # Assume we will append
-    set(APPEND_PACKAGE ${UPSTREAM_SE_PACKAGE})
+    SET(APPEND_PACKAGE ${UPSTREAM_SE_PACKAGE})
     # If is a subpackage we only append the parent packages
-    set(PARENT_PACKAGE ${${UPSTREAM_SE_PACKAGE}_PARENT_PACKAGE})
-    if (PARENT_PACKAGE)
-      set(APPEND_PACKAGE ${PARENT_PACKAGE})
-    endif()
+    SET(PARENT_PACKAGE ${${UPSTREAM_SE_PACKAGE}_PARENT_PACKAGE})
+    IF (PARENT_PACKAGE)
+      SET(APPEND_PACKAGE ${PARENT_PACKAGE})
+    ENDIF()
     # Append
-    append_set(ENABLED_UPSTREAM_PACKAGES ${APPEND_PACKAGE})
-  endforeach()
-  list(REMOVE_DUPLICATES ENABLED_UPSTREAM_PACKAGES)
-  #print_var(ENABLED_UPSTREAM_PACKAGES)
+    APPEND_SET(ENABLED_UPSTREAM_PACKAGES ${APPEND_PACKAGE})
+  ENDFOREACH()
+  LIST(REMOVE_DUPLICATES ENABLED_UPSTREAM_PACKAGES)
+  #PRINT_VAR(ENABLED_UPSTREAM_PACKAGES)
 
   #
   # C) Determine the most recent files on the upstream SE packages
   #
 
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    message("\nDetermining most recent source file in upstream SE packages"
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    MESSAGE("\nDetermining most recent source file in upstream SE packages"
       " from ${PACKAGE_NAME}:")
-  endif()
-  set(UPSTREAM_SOURCE_BASE_DIRS)
-  foreach(UPSTREAM_PACKAGE ${ENABLED_UPSTREAM_PACKAGES})
-    append_set(UPSTREAM_SOURCE_BASE_DIRS "${${UPSTREAM_PACKAGE}_SOURCE_DIR}")
-  endforeach()
-  tribits_find_most_recent_source_file_timestamp(
+  ENDIF()
+  SET(UPSTREAM_SOURCE_BASE_DIRS)
+  FOREACH(UPSTREAM_PACKAGE ${ENABLED_UPSTREAM_PACKAGES})
+    APPEND_SET(UPSTREAM_SOURCE_BASE_DIRS "${${UPSTREAM_PACKAGE}_SOURCE_DIR}")
+  ENDFOREACH()
+  TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP(
     SOURCE_BASE_DIRS ${UPSTREAM_SOURCE_BASE_DIRS}
     SOURCE_BASE_BASE_DIR "${PROJECT_SOURCE_DIR}"
     ${SHOW_MOST_RECENT_FILES_ARGS}
     MOST_RECENT_TIMESTAMP_OUT  MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP
     MOST_RECENT_RELATIVE_FILEPATH_OUT MOST_RECENT_UPSTREAM_SOURCE_FILEPATH
     )
-  #print_var(MOST_RECENT_UPSTREAM_SOURCE_FILEPATH)
+  #PRINT_VAR(MOST_RECENT_UPSTREAM_SOURCE_FILEPATH)
 
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    message("\nDetermining most recent binary file in upstream SE packages"
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    MESSAGE("\nDetermining most recent binary file in upstream SE packages"
       " from ${PACKAGE_NAME}:")
-  endif()
-  set(UPSTREAM_BINARY_BASE_DIRS)
-  foreach(UPSTREAM_PACKAGE ${ENABLED_UPSTREAM_PACKAGES})
-    append_set(UPSTREAM_BINARY_BASE_DIRS "${${UPSTREAM_PACKAGE}_BINARY_DIR}")
-  endforeach()
-  tribits_find_most_recent_binary_file_timestamp(
+  ENDIF()
+  SET(UPSTREAM_BINARY_BASE_DIRS)
+  FOREACH(UPSTREAM_PACKAGE ${ENABLED_UPSTREAM_PACKAGES})
+    APPEND_SET(UPSTREAM_BINARY_BASE_DIRS "${${UPSTREAM_PACKAGE}_BINARY_DIR}")
+  ENDFOREACH()
+  TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP(
     BINARY_BASE_DIRS ${UPSTREAM_BINARY_BASE_DIRS}
     BINARY_BASE_BASE_DIR "${PROJECT_BINARY_DIR}"
     ${SHOW_MOST_RECENT_FILES_ARGS}
     MOST_RECENT_TIMESTAMP_OUT  MOST_RECENT_UPSTREAM_BINARY_TIMESTAMP
     MOST_RECENT_RELATIVE_FILEPATH_OUT MOST_RECENT_UPSTREAM_BINARY_FILEPATH
     )
-  #print_var(MOST_RECENT_UPSTREAM_BINARY_FILEPATH)
+  #PRINT_VAR(MOST_RECENT_UPSTREAM_BINARY_FILEPATH)
 
   #
   # D) Determine the most recent files for the current package
   #
 
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    message("\nDetermining most recent source file for current"
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    MESSAGE("\nDetermining most recent source file for current"
       " package ${PACKAGE_NAME}:")
-  endif()
-  tribits_find_most_recent_source_file_timestamp(
+  ENDIF()
+  TRIBITS_FIND_MOST_RECENT_SOURCE_FILE_TIMESTAMP(
     SOURCE_BASE_DIRS ${${PACKAGE_NAME}_SOURCE_DIR}
     SOURCE_BASE_BASE_DIR "${PROJECT_SOURCE_DIR}"
     ${SHOW_MOST_RECENT_FILES_ARGS}
@@ -644,11 +647,11 @@ function(tribits_determine_if_current_package_needs_rebuilt)
     MOST_RECENT_RELATIVE_FILEPATH_OUT MOST_RECENT_THIS_SOURCE_FILEPATH
     )
 
-  if (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
-    message("\nDetermining most recent binary file for current"
+  IF (PARSE_SHOW_OVERALL_MOST_RECENT_FILES)
+    MESSAGE("\nDetermining most recent binary file for current"
       " package ${PACKAGE_NAME}:")
-  endif()
-  tribits_find_most_recent_binary_file_timestamp(
+  ENDIF()
+  TRIBITS_FIND_MOST_RECENT_BINARY_FILE_TIMESTAMP(
     BINARY_BASE_DIRS  ${${PACKAGE_NAME}_BINARY_DIR}
     BINARY_BASE_BASE_DIR "${PROJECT_BINARY_DIR}"
     ${SHOW_MOST_RECENT_FILES_ARGS}
@@ -660,50 +663,53 @@ function(tribits_determine_if_current_package_needs_rebuilt)
   # E) Compare most recent file time stamps to determine if a rebuild is needed
   #
 
-  set(CURRENT_PACKAGE_OUT_OF_DATE_OUT FALSE)
+  SET(CURRENT_PACKAGE_OUT_OF_DATE_OUT FALSE)
 
-  message("\nComparing timestamps of recently updated files:")
+  MESSAGE("\nComparing timestamps of recently updated files:")
 
-  if (MOST_RECENT_THIS_BINARY_FILEPATH)
+  IF (MOST_RECENT_THIS_BINARY_FILEPATH)
 
-    tribits_update_package_out_of_date(
+    TRIBITS_UPDATE_PACKAGE_OUT_OF_DATE(
       "upstream SE package source" ${MOST_RECENT_UPSTREAM_SOURCE_TIMESTAMP}
          "${MOST_RECENT_UPSTREAM_SOURCE_FILEPATH}"
       ${MOST_RECENT_THIS_PACKAGE_BINARY_TIMESTAMP} "${MOST_RECENT_THIS_BINARY_FILEPATH}"
       CURRENT_PACKAGE_OUT_OF_DATE_OUT )
 
-    tribits_update_package_out_of_date(
+    TRIBITS_UPDATE_PACKAGE_OUT_OF_DATE(
       "upstream SE package binary" ${MOST_RECENT_UPSTREAM_BINARY_TIMESTAMP}
          "${MOST_RECENT_UPSTREAM_BINARY_FILEPATH}"
       ${MOST_RECENT_THIS_PACKAGE_BINARY_TIMESTAMP} "${MOST_RECENT_THIS_BINARY_FILEPATH}"
       CURRENT_PACKAGE_OUT_OF_DATE_OUT )
 
-    tribits_update_package_out_of_date(
+    TRIBITS_UPDATE_PACKAGE_OUT_OF_DATE(
       "this package's source" ${MOST_RECENT_THIS_PACKAGE_SOURCE_TIMESTAMP}
          "${MOST_RECENT_THIS_SOURCE_FILEPATH}"
       ${MOST_RECENT_THIS_PACKAGE_BINARY_TIMESTAMP} "${MOST_RECENT_THIS_BINARY_FILEPATH}"
       CURRENT_PACKAGE_OUT_OF_DATE_OUT )
 
-    if (NOT CURRENT_PACKAGE_OUT_OF_DATE_OUT)
-      message("-- This package's most recent binary file"
+    IF (NOT CURRENT_PACKAGE_OUT_OF_DATE_OUT)
+      MESSAGE("-- This package's most recent binary file"
         " ${MOST_RECENT_THIS_BINARY_FILEPATH}"
         " is more recent than its upstream SE package source or binary files"
         " or this package's source files!")
-    endif()
+    ENDIF()
 
-  else()
+  ELSE()
 
-    message("-- This package has no unfiltered binary files so consider out of date!")
+    MESSAGE("-- This package has no unfiltered binary files so consider out of date!")
 
-  endif()
+  ENDIF()
 
-  set(${PARSE_CURRENT_PACKAGE_OUT_OF_DATE_OUT} ${CURRENT_PACKAGE_OUT_OF_DATE_OUT}
+  SET(${PARSE_CURRENT_PACKAGE_OUT_OF_DATE_OUT} ${CURRENT_PACKAGE_OUT_OF_DATE_OUT}
     PARENT_SCOPE)
 
-  tribits_config_code_stop_timer(TIMER_START_SECONDS
-    "\nTotal time to check for most recent modified files")
+  IF (${PROJECT_NAME}_ENABLE_CONFIGURE_TIMING)
+    TIMER_GET_RAW_SECONDS(TIMER_STOP_SECONDS)
+    TIMER_PRINT_REL_TIME(${TIMER_START_SECONDS} ${TIMER_STOP_SECONDS}
+      "\nTotal time to check for most recent modified files")
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
@@ -711,33 +717,33 @@ endfunction()
 #
 
 
-function(tribits_update_package_out_of_date
+FUNCTION(TRIBITS_UPDATE_PACKAGE_OUT_OF_DATE
   DEPENDENCY_TYPE_STRING  DEP_FILE_TIMESTAMP  DEP_FILEPATH
   THIS_BINARY_FILE_TIMESTAMP  THIS_BINARY_FILEPATH
   CURRENT_PACKAGE_IS_OUT_OF_DATE_INOUT
   )
-  if ("${DEP_FILE_TIMESTAMP}" GREATER "${THIS_BINARY_FILE_TIMESTAMP}")
-    message("-- The ${DEPENDENCY_TYPE_STRING} file ${DEP_FILEPATH} is more recent than"
+  IF ("${DEP_FILE_TIMESTAMP}" GREATER "${THIS_BINARY_FILE_TIMESTAMP}")
+    MESSAGE("-- The ${DEPENDENCY_TYPE_STRING} file ${DEP_FILEPATH} is more recent than"
       " this package's binary file ${THIS_BINARY_FILEPATH}!")
-    set(${CURRENT_PACKAGE_IS_OUT_OF_DATE_INOUT} TRUE PARENT_SCOPE)
-  endif()
-endfunction()
+    SET(${CURRENT_PACKAGE_IS_OUT_OF_DATE_INOUT} TRUE PARENT_SCOPE)
+  ENDIF()
+ENDFUNCTION()
 
 
-function(tribits_get_human_readable_file_and_timestamp
+FUNCTION(TRIBITS_GET_HUMAN_READABLE_FILE_AND_TIMESTAMP
   BASE_DIR   CURRENT_FILEPATH
   HUMAN_READABLE_FILE_AND_TIMESTAMP_OUT
   )
-  execute_process(
+  EXECUTE_PROCESS(
     WORKING_DIRECTORY "${BASE_DIR}"
     COMMAND ls --full-time "${CURRENT_FILEPATH}"
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE  HUMAN_READABLE_FILE_AND_TIMESTAMP
     )
-  set(${HUMAN_READABLE_FILE_AND_TIMESTAMP_OUT}
+  SET(${HUMAN_READABLE_FILE_AND_TIMESTAMP_OUT}
     ${HUMAN_READABLE_FILE_AND_TIMESTAMP}
     PARENT_SCOPE)
-endfunction()
+ENDFUNCTION()
 
 
 

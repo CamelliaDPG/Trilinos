@@ -207,24 +207,9 @@ int main(int argc, char *argv[])
        << "    my_col  " << my_col << std::endl;
 
   // Adelus example using the Kokkos Views
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
-  int gpu_count;
 #ifdef KOKKOS_ENABLE_CUDA
+  int gpu_count;
   cudaGetDeviceCount ( &gpu_count );
-#else
-  hipGetDeviceCount ( &gpu_count );
-#endif
-  if (nptile > gpu_count) {
-    if( rank == 0 ) {
-      std::cout << "Request more GPUs than the number of GPUs available "
-                << "to MPI processes (requested: " << nptile 
-                << " vs. available: " << gpu_count 
-                << "). Exit without test." << std::endl;
-    }
-    MPI_Finalize() ;
-    return 0;
-  }
-
   Kokkos::InitArguments args;
   args.num_threads = 0;
   args.num_numa    = 0;
@@ -239,10 +224,8 @@ int main(int argc, char *argv[])
   //  Local size -- myrows  * (mycols + myrhs)
   
   typedef Kokkos::LayoutLeft Layout;
-#if defined(KOKKOS_ENABLE_CUDA)
+#ifdef KOKKOS_ENABLE_CUDA
   typedef Kokkos::CudaSpace TestSpace;
-#elif defined(KOKKOS_ENABLE_HIP)
-  typedef Kokkos::Experimental::HIPSpace TestSpace;
 #else
   typedef Kokkos::HostSpace TestSpace;
 #endif

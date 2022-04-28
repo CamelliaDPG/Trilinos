@@ -90,10 +90,10 @@ createMatrix (const Teuchos::RCP<const typename CrsMatrixType::map_type>& map)
   const scalar_type negOne = static_cast<scalar_type> (-1.0);
 
   const GST numGlobalIndices = map->getGlobalNumElements ();
-  // const size_t numMyElements = map->getLocalNumElements ();
+  // const size_t numMyElements = map->getNodeNumElements ();
 
   // The list of global elements owned by this MPI process.
-  ArrayView<const GO> myGlobalElements = map->getLocalElementList ();
+  ArrayView<const GO> myGlobalElements = map->getNodeElementList ();
 
   typedef typename ArrayView<const GO>::const_iterator iter_type;
   for (iter_type it = myGlobalElements.begin(); it != myGlobalElements.end(); ++it) {

@@ -87,8 +87,6 @@
 // TrilinosCouplings includes
 #include "TrilinosCouplings_config.h"
 #include "TrilinosCouplings_Pamgen_Utils.hpp"
-#include "TrilinosCouplings_IntrepidPoissonExampleHelpers.hpp"
-
 
 // Intrepid includes
 #include "Intrepid_FunctionSpaceTools.hpp"
@@ -413,11 +411,9 @@ void evaluateExactSolutionGrad(ArrayOut &       exactSolutionGradValues,
 template<class FC1, class FC2>
 void CopyFieldContainer2D(const FC1 & c1, FC2 & c2) {
   Kokkos::resize(c2,c1.dimension(0),c1.dimension(1));
-  auto c2_h = Kokkos::create_mirror_view(c2);
   for(size_t i=0; i<(size_t)c1.dimension(0); i++)
     for(size_t j=0; j<(size_t)c1.dimension(1); j++)
-      c2_h(i,j) = c1(i,j);
-  Kokkos::deep_copy(c2, c2_h);
+      c2(i,j) = c1(i,j);
 }
 
 
@@ -471,25 +467,6 @@ int main(int argc, char *argv[]) {
   clp.setOption ("seed", &randomSeed, "Random Seed.");
   
   
-  // Material diffusion strength and rotation (in 3D)
-  // We'll get the 2D version of this later
-  std::vector<double> diff_rotation_angle {0.0, 0.0, 0.0};
-  std::vector<double> diff_strength {1.0, 1.0, 1.0};
-  for(int i=0; i<3; i++) {
-    char letter[4] = "xyz";
-    char str1[80], str2[80];
-    // Rotation
-    sprintf(str1,"rot_%c_angle",letter[i]);
-    sprintf(str2,"Rotation around %c axis, in degrees",letter[i]);
-    clp.setOption(str1,&diff_rotation_angle[i],str2);
-      
-    // Strength
-    sprintf(str1,"strength_%c",letter[i]);
-    sprintf(str2,"Strength of pre-rotation %c-diffusion",letter[i]);
-    clp.setOption(str1,&diff_strength[i],str2);
-  }
-  
-
   switch (clp.parse(argc, argv)) {
     case Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED:        return EXIT_SUCCESS;
     case Teuchos::CommandLineProcessor::PARSE_ERROR:
@@ -517,15 +494,6 @@ int main(int argc, char *argv[]) {
       << "|  Trilinos website:     http://trilinos.sandia.gov                           |\n" \
       << "|                                                                             |\n" \
       << "===============================================================================\n";
-  }
-
-
-  // Diffusion Tensor
-  ::TrilinosCouplings::IntrepidPoissonExample::setDiffusionRotationAndStrength(diff_rotation_angle, diff_strength);
-  if(MyPID == 0) {
-    const std::vector<double> & A = ::TrilinosCouplings::IntrepidPoissonExample::getDiffusionMatrix2D();
-    std::cout<<"[ "<<A[0]<<" "<<A[1]<<" ]\n"
-	     <<"[ "<<A[2]<<" "<<A[3]<<" ]"<<std::endl;
   }
 
 
@@ -1435,7 +1403,7 @@ int main(int argc, char *argv[]) {
   // Zero out rows and columns of stiffness matrix corresponding to Dirichlet edges
   //  and add one to diagonal.
   std::cout << "numBCNodes = " << numBCNodes << std::endl;
-  std::cout << "globalMapG #elts = " << globalMapG->getLocalNumElements() << std::endl;
+  std::cout << "globalMapG #elts = " << globalMapG->getNodeNumElements() << std::endl;
   Apply_Dirichlet_BCs(BCNodes,StiffMatrix_aux,*rhsVector_aux,*rhsVector_aux,v);
 
   tm = Teuchos::null;
@@ -1878,18 +1846,14 @@ const Scalar exactSolution(const Scalar& x, const Scalar& y) {
 }
 
 
-// Stored diffusion tensor
-std::vector<double> diffusion_tensor;
-
 template<typename Scalar>
 void materialTensor(Scalar material[][2], const Scalar& x, const Scalar& y) {
-  if(diffusion_tensor.size() == 0) 
-    diffusion_tensor = ::TrilinosCouplings::IntrepidPoissonExample::getDiffusionMatrix2D();
-  material[0][0] = (Scalar)diffusion_tensor[0];
-  material[0][1] = (Scalar)diffusion_tensor[1];
+
+  material[0][0] = 1.;
+  material[0][1] = 0.;
   //
-  material[1][0] = (Scalar)diffusion_tensor[2];
-  material[1][1] = (Scalar)diffusion_tensor[3];
+  material[1][0] = 0.;
+  material[1][1] = 1.;
 }
 
 /**********************************************************************************/
@@ -2106,10 +2070,9 @@ int TestMultiLevelPreconditionerLaplace(char ProblemType[],
     ParameterList belosList;
     belosList.set("Maximum Iterations",    maxIts); // Maximum number of iterations allowed
     belosList.set("Convergence Tolerance", tol);    // Relative convergence tolerance requested
-    //    belosList.set("Verbosity",             Belos::Errors + Belos::Warnings + Belos::StatusTestDetails);
+    belosList.set("Verbosity",             Belos::Errors + Belos::Warnings + Belos::StatusTestDetails);
     belosList.set("Output Frequency",      1);
-    belosList.set("Output Style",          1);
-    belosList.set ("Verbosity", 33);
+    belosList.set("Output Style",          Belos::Brief);
     bool scaleResidualHist = true;
     if (!scaleResidualHist)
       belosList.set("Implicit Residual Scaling", "None");
@@ -2143,7 +2106,7 @@ int TestMultiLevelPreconditionerLaplace(char ProblemType[],
   // compute difference between exact solution and ML one //
   // ==================================================== //
   double d = 0.0, d_tot = 0.0 , s =0.0, s_tot=0.0;
-  for( size_t i=0 ; i<lhs->getMap()->getLocalNumElements() ; ++i ) {
+  for( size_t i=0 ; i<lhs->getMap()->getNodeNumElements() ; ++i ) {
     d += (lhsdata[i] - xexactdata[i]) * (lhsdata[i] - xexactdata[i]);
     s +=  xexactdata[i]* xexactdata[i];
   }
@@ -2874,14 +2837,14 @@ void CreateLinearSystem(int numWorksets,
   }
 
   vector_type laplDiagOwned(rowMap, true);
-  typename crs_matrix_type::local_inds_host_view_type indices;
-  typename crs_matrix_type::values_host_view_type values;
-  size_t numOwnedRows = rowMap->getLocalNumElements();
+  Teuchos::ArrayView<const local_ordinal_type> indices;
+  Teuchos::ArrayView<const scalar_type> values;
+  size_t numOwnedRows = rowMap->getNodeNumElements();
   for (size_t row=0; row<numOwnedRows; row++) {
     StiffMatrix.getLocalRowView(row, indices, values);
     size_t numIndices = indices.size();
     for (size_t j=0; j<numIndices; j++) {
-      size_t col = indices(j);
+      size_t col = indices[j];
       if (row == col) continue;
       laplDiagOwned.sumIntoLocalValue(row, 1/myDistance2(*coordsOwnedPlusShared, row, col));
     }
@@ -2985,14 +2948,14 @@ void Apply_Dirichlet_BCs(std::vector<int> &BCNodes, crs_matrix_type & A, multive
     xdata[lrid]=bdata[lrid] = solndata[lrid];
 
     size_t numEntriesInRow = A.getNumEntriesInLocalRow(lrid);
-    typename crs_matrix_type::nonconst_local_inds_host_view_type cols("cols", numEntriesInRow);
-    typename crs_matrix_type::nonconst_values_host_view_type vals("vals", numEntriesInRow);
-    A.getLocalRowCopy(lrid, cols, vals, numEntriesInRow);
+    Array<local_ordinal_type> cols(numEntriesInRow);
+    Array<scalar_type> vals(numEntriesInRow);
+    A.getLocalRowCopy(lrid, cols(), vals(), numEntriesInRow);
     
-    for(size_t j=0; j<vals.extent(0); j++)
-      vals(j) = (cols(j) == lrid) ? 1.0 : 0.0;
+    for(int j=0; j<vals.size(); j++)
+      vals[j] = (cols[j] == lrid) ? 1.0 : 0.0;
 
-    A.replaceLocalValues(lrid, cols, vals);
+    A.replaceLocalValues(lrid, cols(), vals());
   }
 
   A.fillComplete();

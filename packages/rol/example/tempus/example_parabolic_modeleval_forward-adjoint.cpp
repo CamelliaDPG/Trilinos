@@ -66,7 +66,7 @@
 
 #include "Teuchos_GlobalMPISession.hpp"
 
-#include "Tempus_IntegratorBasic.hpp"
+#include "Tempus_IntegratorBasicOld.hpp"
 
 #include "ROL_Stream.hpp"
 #include "ROL_ParameterList.hpp"
@@ -118,11 +118,11 @@ int main(int argc, char *argv[]) {
 
     // Create FORWARD Tempus Integrator from ModelEvaluator.
     ROL::Ptr<Tempus::Integrator<RealT>> forward_integrator =
-      Tempus::createIntegratorBasic<RealT>(ROL::makePtrFromRef(pl_tempus), forward_meval);
+      ROL::makePtr<Tempus::IntegratorBasicOld<RealT>>(ROL::makePtrFromRef(pl_tempus), forward_meval);
 
     // Create ADJOINT Tempus Integrator from ModelEvaluator.
     ROL::Ptr<Tempus::Integrator<RealT>> adjoint_integrator =
-      Tempus::createIntegratorBasic<RealT>(ROL::makePtrFromRef(pl_tempus), adjoint_meval);
+      ROL::makePtr<Tempus::IntegratorBasicOld<RealT>>(ROL::makePtrFromRef(pl_tempus), adjoint_meval);
 
     // Initialize objective function.
     ROL::Ptr<ROL::DynamicObjective<RealT>> dyn_obj =

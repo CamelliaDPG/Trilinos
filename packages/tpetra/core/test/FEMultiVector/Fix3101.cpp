@@ -81,14 +81,14 @@ FEMultiVectorTest::FEMultiVectorTest(
   // Print the entries of each map
   std::cout << me << " MAP WITH COPIES ("
                   << mapWithCopies->getGlobalNumElements() << "):  ";
-  lno_t nlocal = lno_t(mapWithCopies->getLocalNumElements());
+  lno_t nlocal = lno_t(mapWithCopies->getNodeNumElements());
   for (lno_t i = 0; i < nlocal; i++)
     std::cout << mapWithCopies->getGlobalElement(i) << " ";
   std::cout << std::endl;
 
   std::cout << me << " ONE TO ONE MAP  ("
                   << mapOwned->getGlobalNumElements() << "):  ";
-  nlocal = lno_t(mapOwned->getLocalNumElements());
+  nlocal = lno_t(mapOwned->getNodeNumElements());
   for (lno_t i = 0; i < nlocal; i++)
     std::cout << mapOwned->getGlobalElement(i) << " ";
   std::cout << std::endl;

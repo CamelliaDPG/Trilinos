@@ -257,10 +257,7 @@ private:
   Teuchos::RCP<const BlockedTpetraLinearObjContainer<RealType,LO,GO,NodeT> > blockedContainer_;
 
   //! Local indices for unknowns
-  Kokkos::View<LO**, Kokkos::LayoutRight, PHX::Device> worksetLIDs_;
-
-  //! Scratch space for local values.
-  Kokkos::View<typename Sacado::ScalarType<ScalarT>::type**, Kokkos::LayoutRight, PHX::Device> workset_vals_;
+  PHX::View<LO**> worksetLIDs_;
 
   //! Offset into the cell lids for each field. Size of number of fields to scatter.
   std::vector<PHX::View<int*>> fieldOffsets_;

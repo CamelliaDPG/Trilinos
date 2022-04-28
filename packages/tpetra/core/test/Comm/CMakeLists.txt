@@ -2,7 +2,7 @@
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   iallreduce
   SOURCES
-    iallreduce.cpp
+    iallreduce
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   NUM_MPI_PROCS 1-4
   COMM serial mpi
@@ -11,7 +11,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   extractMpiCommFromTeuchos
   SOURCES
-    extractMpiCommFromTeuchos.cpp
+    extractMpiCommFromTeuchos
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   NUM_MPI_PROCS 1-4
   COMM mpi
@@ -21,7 +21,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   isInterComm
   SOURCES
-    isInterComm.cpp
+    isInterComm
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   NUM_MPI_PROCS 2-4
   COMM serial mpi
@@ -30,7 +30,7 @@ TRIBITS_ADD_EXECUTABLE_AND_TEST(
 TRIBITS_ADD_EXECUTABLE(
   idot
   SOURCES
-    idot.cpp
+    idot
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi)
 
@@ -88,7 +88,7 @@ IF (Tpetra_ENABLE_CUDA AND Tpetra_INST_CUDA)
   TRIBITS_ADD_EXECUTABLE_AND_TEST(
     cudaAwareMpi
     SOURCES
-      cudaAwareMpi.cpp
+      cudaAwareMpi
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
     NUM_MPI_PROCS 2
     COMM mpi
@@ -97,7 +97,7 @@ IF (Tpetra_ENABLE_CUDA AND Tpetra_INST_CUDA)
   TRIBITS_ADD_EXECUTABLE_AND_TEST(
     cudaMpi_CanaryTest
     SOURCES
-      cudaMpi_CanaryTest.cpp
+      cudaMpi_CanaryTest
     NUM_MPI_PROCS 2
     COMM mpi
     )

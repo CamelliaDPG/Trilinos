@@ -14,7 +14,7 @@ namespace { // (anonymous)
 
 struct CommandLineOptions {
   std::string solverName {"TPETRA GMRES"};
-  Tpetra::MultiVector<>::scalar_type offDiagDiff = 1.0 / 8.0;
+  double offDiagDiff = 1.0 / 8.0;
   // mfh 14 Aug 2018: GMRES takes 20 iterations on this problem (with
   // offDiagDiff = 1/8).  We add 10 iterations to allow for rounding
   // error and differences in the algorithm.
@@ -94,10 +94,10 @@ createNonsymmTridiagMatrix (const Teuchos::RCP<const Tpetra::Map<> >& rowMap,
   //using mag_type = typename Tpetra::CrsMatrix<SC>::mag_type;
 
   const LO lclNumRows = rowMap.is_null () ? LO (0) :
-    LO (rowMap->getLocalNumElements ());
+    LO (rowMap->getNodeNumElements ());
   const GO gblMinGblInd = rowMap->getMinAllGlobalIndex ();
   const GO gblMaxGblInd = rowMap->getMaxAllGlobalIndex ();
-  auto A = rcp (new crs_matrix_type (rowMap, 3));
+  auto A = rcp (new crs_matrix_type (rowMap, 3, Tpetra::StaticProfile));
 
   const SC ONE = STS::one ();
   const SC TWO = ONE + ONE;
@@ -241,7 +241,7 @@ testSolver (Teuchos::FancyOStream& out,
     params->set ("CholeskyQR",  commandLineOptions.useCholQR);
     params->set ("CholeskyQR2", commandLineOptions.useCholQR2);
   }
-  if (solverName == "TPETRA GMRES S-STEP" || solverName == "TPETRA GMRES SINGLE REDUCE" || solverName == "TPETRA GMRES PIPELINE") {
+  if (solverName == "TPETRA GMRES S-STEP" || solverName == "TPETRA GMRES SINGLE REDUCE") {
     params->set ("Compute Ritz Values", commandLineOptions.computeRitzValues);
   }
   try {

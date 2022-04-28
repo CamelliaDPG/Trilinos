@@ -136,7 +136,7 @@ class MagmaSparse_SpmV_Pack<double,LocalOrdinal,GlobalOrdinal,Kokkos::Compat::Ko
   typedef typename Kokkos::Compat::KokkosCudaWrapperNode Node;
   typedef Tpetra::CrsMatrix<Scalar,LocalOrdinal,GlobalOrdinal,Node> crs_matrix_type;
   typedef Tpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,Node> vector_type;
-  typedef typename crs_matrix_type::local_matrix_host_type    KCRS;
+  typedef typename crs_matrix_type::local_matrix_type    KCRS;
   typedef typename KCRS::StaticCrsGraphType              graph_t;
   typedef typename graph_t::row_map_type::non_const_type lno_view_t;
   typedef typename graph_t::row_map_type::const_type     c_lno_view_t;
@@ -155,7 +155,7 @@ public:
                                vector_type& Y)
   {
     // data access common to other TPLs
-    const KCRS & Amat = A.getLocalMatrixHost();
+    const KCRS & Amat = A.getLocalMatrix();
     c_lno_view_t Arowptr = Amat.graph.row_map;
     c_lno_nnz_view_t Acolind = Amat.graph.entries;
     const scalar_view_t Avals = Amat.values;
@@ -166,8 +166,8 @@ public:
     copy_view(Arowptr,Arowptr_int);
 
 
-    m   = static_cast<int>(A.getLocalNumRows());
-    n   = static_cast<int>(A.getLocalNumCols());
+    m   = static_cast<int>(A.getNodeNumRows());
+    n   = static_cast<int>(A.getNodeNumCols());
     nnz = static_cast<int>(Acolind.extent(0));
     vals   = reinterpret_cast<Scalar*>(Avals.data());
     cols   = const_cast<int*>(reinterpret_cast<const int*>(Acolind.data()));
@@ -245,26 +245,6 @@ private:
 // CuSparse Testing
 // =========================================================================
 #if defined(HAVE_MUELU_CUSPARSE) && defined(HAVE_MUELU_TPETRA)
-
-#define CHECK_CUDA(func)                                                       \
-{                                                                              \
-    cudaError_t status = (func);                                               \
-    if (status != cudaSuccess) {                                               \
-        printf("CUDA API failed at line %d with error: %s (%d)\n",             \
-               __LINE__, cudaGetErrorString(status), status);                  \
-    }                                                                          \
-}
-
-#define CHECK_CUSPARSE(func)                                                   \
-{                                                                              \
-    cusparseStatus_t status = (func);                                          \
-    if (status != CUSPARSE_STATUS_SUCCESS) {                                   \
-        printf("CUSPARSE API failed at line %d with error: %s (%d)\n",         \
-               __LINE__, cusparseGetErrorString(status), status);              \
-    }                                                                          \
-}
-
-
 template<typename Scalar, typename LocalOrdinal, typename GlobalOrdinal, typename Node>
 class CuSparse_SpmV_Pack {
   typedef Tpetra::CrsMatrix<Scalar,LocalOrdinal,GlobalOrdinal,Node> crs_matrix_type;
@@ -288,7 +268,7 @@ class CuSparse_SpmV_Pack<double,LocalOrdinal,GlobalOrdinal,Kokkos::Compat::Kokko
   typedef typename Kokkos::Compat::KokkosCudaWrapperNode Node;
   typedef Tpetra::CrsMatrix<Scalar,LocalOrdinal,GlobalOrdinal,Node> crs_matrix_type;
   typedef Tpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,Node> vector_type;
-  typedef typename crs_matrix_type::local_matrix_device_type    KCRS;
+  typedef typename crs_matrix_type::local_matrix_type    KCRS;
   typedef typename KCRS::StaticCrsGraphType              graph_t;
   typedef typename graph_t::row_map_type::non_const_type lno_view_t;
   typedef typename graph_t::row_map_type::const_type     c_lno_view_t;
@@ -306,7 +286,7 @@ public:
                             vector_type& Y)
   {
     // data access common to other TPLs
-    const KCRS & Amat = A.getLocalMatrixDevice();
+    const KCRS & Amat = A.getLocalMatrix();
     c_lno_view_t Arowptr = Amat.graph.row_map;
     c_lno_nnz_view_t Acolind = Amat.graph.entries;
     const scalar_view_t Avals = Amat.values;
@@ -319,78 +299,78 @@ public:
     copy_view(Acolind,Acolind_cusparse);
 
 
-    m   = static_cast<int>(A.getLocalNumRows());
-    n   = static_cast<int>(A.getLocalNumCols());
+    m   = static_cast<int>(A.getNodeNumRows());
+    n   = static_cast<int>(A.getNodeNumCols());
     nnz = static_cast<int>(Acolind_cusparse.extent(0));
     vals   = reinterpret_cast<Scalar*>(Avals.data());
     cols   = reinterpret_cast<int*>(Acolind_cusparse.data());
     rowptr = reinterpret_cast<int*>(Arowptr_cusparse.data());
 
-    auto X_lcl = X.getLocalViewDevice(Tpetra::Access::ReadOnly);
-    auto Y_lcl = Y.getLocalViewDevice(Tpetra::Access::ReadWrite);
-    x = const_cast<Scalar*>(reinterpret_cast<const Scalar*>(X_lcl.data()));
+    auto X_lcl = X.template getLocalView<device_type> ();
+    auto Y_lcl = Y.template getLocalView<device_type> ();
+    x = reinterpret_cast<Scalar*>(X_lcl.data());
     y = reinterpret_cast<Scalar*>(Y_lcl.data());
 
     /* Get handle to the CUBLAS context */
-    cublasCreate(&cublasHandle);
+    cublasStatus_t cublasStatus;
+    cublasStatus = cublasCreate(&cublasHandle);
+
+    //checkCudaErrors(cublasStatus);
+
     /* Get handle to the CUSPARSE context */
-    cusparseCreate(&cusparseHandle);
+    cusparseStatus_t cusparseStatus;
+    cusparseStatus = cusparseCreate(&cusparseHandle);
 
-    CHECK_CUSPARSE(cusparseCreateCsr(&descrA, m, n, nnz,
-                                      rowptr, cols, vals,
-                                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+    //checkCudaErrors(cusparseStatus);
+    cusparseStatus = cusparseCreateMatDescr(&descrA);
 
-    CHECK_CUSPARSE(cusparseCreateDnVec(&vecY, m, y, CUDA_R_64F));
-    CHECK_CUSPARSE(cusparseCreateDnVec(&vecX, n, x, CUDA_R_64F));
+    //checkCudaErrors(cusparseStatus);
+
+    cusparseSetMatType(descrA,CUSPARSE_MATRIX_TYPE_GENERAL);
+    cusparseSetMatIndexBase(descrA,CUSPARSE_INDEX_BASE_ZERO);
   }
 
   ~CuSparse_SpmV_Pack () {
-    CHECK_CUSPARSE( cusparseDestroySpMat(descrA) );
-    CHECK_CUSPARSE( cusparseDestroyDnVec(vecX) );
-    CHECK_CUSPARSE( cusparseDestroyDnVec(vecY) );
     cusparseDestroy(cusparseHandle);
     cublasDestroy(cublasHandle);
   }
 
   cusparseStatus_t spmv(const Scalar alpha, const Scalar beta) {
     // compute: y = alpha*Ax + beta*y
-
-    size_t bufferSize;
-    CHECK_CUSPARSE(cusparseSpMV_bufferSize(cusparseHandle,
-                                           transA,
-                                           &alpha,
-                                           descrA,
-                                           vecX,
-                                           &beta,
-                                           vecY,
-                                           CUDA_R_64F,
-                                           CUSPARSE_MV_ALG_DEFAULT,
-                                           &bufferSize));
-
-    void* dBuffer = NULL;
-    CHECK_CUDA(cudaMalloc(&dBuffer, bufferSize));
-
-    cusparseStatus_t rc = cusparseSpMV(cusparseHandle,
-                                       transA,
-                                       &alpha,
-                                       descrA,
-                                       vecX,
-                                       &beta,
-                                       vecY,
-                                       CUDA_R_64F,
-                                       CUSPARSE_MV_ALG_DEFAULT,
-                                       dBuffer);
-
-    CHECK_CUDA(cudaFree(dBuffer));
+    //cusparseDcsrmv(cusparseHandle_t handle,
+    //               cusparseOperation_t transA,
+    //               int m,
+    //               int n,
+    //               int nnz,
+    //               const double *alpha,
+    //               // CUSPARSE_MATRIX_TYPE_GENERAL
+    //               const cusparseMatDescr_t descrA,
+    //               const double *csrValA,
+    //               const int    *csrRowPtrA,
+    //               const int    *csrColIndA,
+    //               const double *x,
+    //               const double *beta,
+    //                     double *y)
+    cusparseStatus_t rc;
+    rc = cusparseDcsrmv(
+        cusparseHandle,
+        transA,
+        m, n, nnz,
+        &alpha,
+        descrA,
+        vals,
+        rowptr,
+        cols,
+        x,
+        &beta,
+        y);
 
     return (rc);
   }
 private:
   cublasHandle_t     cublasHandle   = 0;
   cusparseHandle_t   cusparseHandle = 0;
-  cusparseSpMatDescr_t descrA         = 0;
-  cusparseDnVecDescr_t vecX = 0, vecY = 0;
+  cusparseMatDescr_t descrA         = 0;
 
   // CUSPARSE_OPERATION_NON_TRANSPOSE
   // CUSPARSE_OPERATION_TRANSPOSE
@@ -691,7 +671,7 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib& lib, int ar
   #endif
   #if defined(HAVE_MUELU_MKL)
     // typedefs shared among other TPLs
-    typedef typename crs_matrix_type::local_matrix_host_type    KCRS;
+    typedef typename crs_matrix_type::local_matrix_type    KCRS;
     typedef typename KCRS::StaticCrsGraphType              graph_t;
     typedef typename graph_t::row_map_type::non_const_type lno_view_t;
     typedef typename graph_t::row_map_type::const_type     c_lno_view_t;
@@ -701,7 +681,7 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib& lib, int ar
     typedef typename Node::device_type device_type;
 
     // data access common to other TPLs
-    const KCRS & Amat = At->getLocalMatrixHost();
+    const KCRS & Amat = At->getLocalMatrix();
     c_lno_view_t Arowptr = Amat.graph.row_map;
     c_lno_nnz_view_t Acolind = Amat.graph.entries;
     const scalar_view_t Avals = Amat.values;
@@ -721,8 +701,8 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib& lib, int ar
     if(std::is_same<Scalar,double>::value) {
       mkl_sparse_d_create_csr(&mkl_A,
                               SPARSE_INDEX_BASE_ZERO,
-                              At->getLocalNumRows(),
-                              At->getLocalNumCols(),
+                              At->getNodeNumRows(),
+                              At->getNodeNumCols(),
                               ArowptrMKL.data(),
                               ArowptrMKL.data()+1,
                               AcolindMKL.data(),
@@ -816,7 +796,7 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib& lib, int ar
         #endif
 
         #ifdef HAVE_MUELU_CUSPARSE
-        // CUSPARSE
+        // MKL
         case Experiments::CUSPARSE:
         {
            const Scalar alpha = 1.0;

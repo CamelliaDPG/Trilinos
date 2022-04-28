@@ -166,11 +166,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
             typename Enabled = void>
   class PackArraySingleColumnWithBoundsCheck {
   private:
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 1,
                    "DstView must be a rank-1 Kokkos::View.");
@@ -245,8 +245,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // array.  Performance doesn't matter since we are already in
         // an error state, so we can do this sequentially, on host.
         auto idx_h = Kokkos::create_mirror_view (idx);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (idx_h, idx);
 
         std::vector<index_type> badIndices;
@@ -289,11 +287,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
                             const size_t col,
                             const bool debug = true)
   {
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 1,
                    "DstView must be a rank-1 Kokkos::View.");
@@ -423,8 +421,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // array.  Performance doesn't matter since we are already in
         // an error state, so we can do this sequentially, on host.
         auto idx_h = Kokkos::create_mirror_view (idx);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (idx_h, idx);
 
         std::vector<index_type> badIndices;
@@ -469,11 +465,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
                            const size_t numCols,
                            const bool debug = true)
   {
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 1,
                    "DstView must be a rank-1 Kokkos::View.");
@@ -627,8 +623,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // row indices.  Performance doesn't matter since we are already
         // in an error state, so we can do this sequentially, on host.
         auto idx_h = Kokkos::create_mirror_view (idx);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (idx_h, idx);
 
         std::vector<row_index_type> badRows;
@@ -663,8 +657,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // Go back and find any out-of-bounds entries in the array
         // of column indices.
         auto col_h = Kokkos::create_mirror_view (col);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (col_h, col);
 
         std::vector<col_index_type> badCols;
@@ -720,13 +712,13 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
                                            const size_t numCols,
                                            const bool debug = true)
   {
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<ColView>::value,
+    static_assert (Kokkos::Impl::is_view<ColView>::value,
                    "ColView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 1,
                    "DstView must be a rank-1 Kokkos::View.");
@@ -819,11 +811,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
             typename Enabled = void>
   class UnpackArrayMultiColumn {
   private:
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");
@@ -910,11 +902,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
             typename Enabled = void>
   class UnpackArrayMultiColumnWithBoundsCheck {
   private:
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");
@@ -1029,8 +1021,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // array.  Performance doesn't matter since we are already in
         // an error state, so we can do this sequentially, on host.
         auto idx_h = Kokkos::create_mirror_view (idx);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (idx_h, idx);
 
         std::vector<index_type> badIndices;
@@ -1081,11 +1071,11 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
                              const bool use_atomic_updates,
                              const bool debug)
   {
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");
@@ -1117,13 +1107,13 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
             typename Enabled = void>
   class UnpackArrayMultiColumnVariableStride {
   private:
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<ColView>::value,
+    static_assert (Kokkos::Impl::is_view<ColView>::value,
                    "ColView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");
@@ -1219,13 +1209,13 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
             typename Enabled = void>
   class UnpackArrayMultiColumnVariableStrideWithBoundsCheck {
   private:
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<ColView>::value,
+    static_assert (Kokkos::Impl::is_view<ColView>::value,
                    "ColView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");
@@ -1360,8 +1350,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // already in an error state, so we can do this sequentially,
         // on host.
         auto idx_h = Kokkos::create_mirror_view (idx);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (idx_h, idx);
 
         std::vector<row_index_type> badRows;
@@ -1397,8 +1385,6 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
         // Go back and find any out-of-bounds entries in the array
         // of column indices.
         auto col_h = Kokkos::create_mirror_view (col);
-
-        // DEEP_COPY REVIEW - NOT TESTED
         Kokkos::deep_copy (col_h, col);
 
         std::vector<col_index_type> badCols;
@@ -1459,13 +1445,13 @@ outOfBounds (const IntegerType x, const IntegerType exclusiveUpperBound)
                                              const bool use_atomic_updates,
                                              const bool debug)
   {
-    static_assert (Kokkos::is_view<DstView>::value,
+    static_assert (Kokkos::Impl::is_view<DstView>::value,
                    "DstView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<SrcView>::value,
+    static_assert (Kokkos::Impl::is_view<SrcView>::value,
                    "SrcView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<IdxView>::value,
+    static_assert (Kokkos::Impl::is_view<IdxView>::value,
                    "IdxView must be a Kokkos::View.");
-    static_assert (Kokkos::is_view<ColView>::value,
+    static_assert (Kokkos::Impl::is_view<ColView>::value,
                    "ColView must be a Kokkos::View.");
     static_assert (static_cast<int> (DstView::rank) == 2,
                    "DstView must be a rank-2 Kokkos::View.");

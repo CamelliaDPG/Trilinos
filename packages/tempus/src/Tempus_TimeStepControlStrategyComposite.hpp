@@ -193,7 +193,8 @@ createTimeStepControlStrategyComposite(
   std::vector<std::string> tscsList;
 
   TEUCHOS_TEST_FOR_EXCEPTION(
-    pList->get<std::string>("Strategy Type") != "Composite", std::logic_error,
+    pList->get<std::string>("Strategy Type", "Composite") !=
+      "Composite", std::logic_error,
     "Error - Strategy Type != 'Composite'.  (='"
     +pList->get<std::string>("Strategy Type")+"')\n");
 
@@ -226,7 +227,7 @@ createTimeStepControlStrategyComposite(
   // For each sublist name tokenized, add the TSCS
   for ( auto tscsName: tscsList) {
     RCP<ParameterList> pl =
-      Teuchos::rcp(new ParameterList(pList->sublist(tscsName, true)));
+      Teuchos::rcp(new ParameterList(pList->sublist(tscsName)));
 
     auto strategyType = pl->get<std::string>("Strategy Type", "Unknown");
     if (strategyType == "Constant") {
@@ -278,7 +279,7 @@ template<class Scalar>
 Teuchos::RCP<Teuchos::ParameterList> getTimeStepControlStrategyCompositePL()
 {
   auto t = rcp(new Tempus::TimeStepControlStrategyComposite<Scalar>());
-  auto tscs = rcp(new Tempus::TimeStepControlStrategyConstant<Scalar>());
+  auto tscs = rcp(new Tempus::TimeStepControlStrategyConstant<double>());
   t->addStrategy(tscs);
   return Teuchos::rcp_const_cast<Teuchos::ParameterList> (t->getValidParameters());
 }

@@ -316,7 +316,7 @@ void Amesos2Wrapper<MatrixType>::initialize ()
       A_local_crs_ = rcp_dynamic_cast<const crs_matrix_type> (A_local);
 
       if (A_local_crs_.is_null ()) {
-        local_ordinal_type numRows = A_local->getLocalNumRows();
+        local_ordinal_type numRows = A_local->getNodeNumRows();
         Array<size_t> entriesPerRow(numRows);
         for(local_ordinal_type i = 0; i < numRows; i++)
         {
@@ -327,8 +327,8 @@ void Amesos2Wrapper<MatrixType>::initialize ()
                                     A_local->getColMap (),
                                     entriesPerRow()));
         // copy entries into A_local_crs
-	typename crs_matrix_type::nonconst_local_inds_host_view_type indices("Indices",A_local->getLocalMaxNumRowEntries() );
-	typename crs_matrix_type::nonconst_values_host_view_type values("Values", A_local->getLocalMaxNumRowEntries());
+	typename crs_matrix_type::nonconst_local_inds_host_view_type indices("Indices",A_local->getNodeMaxNumRowEntries() );
+	typename crs_matrix_type::nonconst_values_host_view_type values("Values", A_local->getNodeMaxNumRowEntries());
         for(local_ordinal_type i = 0; i < numRows; i++)
         {
           size_t numEntries = 0;

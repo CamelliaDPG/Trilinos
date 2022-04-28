@@ -153,17 +153,17 @@ global_size_t OverlappingRowGraph<GraphType>::getGlobalNumCols () const
   
 
 template<class GraphType>
-size_t OverlappingRowGraph<GraphType>::getLocalNumRows () const
+size_t OverlappingRowGraph<GraphType>::getNodeNumRows () const
 {
-  return nonoverlappingGraph_->getLocalNumRows () + 
-    overlappingGraph_->getLocalNumRows ();
+  return nonoverlappingGraph_->getNodeNumRows () + 
+    overlappingGraph_->getNodeNumRows ();
 }
   
 
 template<class GraphType>
-size_t OverlappingRowGraph<GraphType>::getLocalNumCols () const
+size_t OverlappingRowGraph<GraphType>::getNodeNumCols () const
 {
-  return this->getLocalNumRows ();
+  return this->getNodeNumRows ();
 }
   
 
@@ -183,10 +183,10 @@ Tpetra::global_size_t OverlappingRowGraph<GraphType>::getGlobalNumEntries () con
   
 
 template<class GraphType>
-size_t OverlappingRowGraph<GraphType>::getLocalNumEntries () const
+size_t OverlappingRowGraph<GraphType>::getNodeNumEntries () const
 {
-  return nonoverlappingGraph_->getLocalNumEntries () + 
-    overlappingGraph_->getLocalNumEntries ();
+  return nonoverlappingGraph_->getNodeNumEntries () + 
+    overlappingGraph_->getNodeNumEntries ();
 }
   
 
@@ -210,7 +210,7 @@ OverlappingRowGraph<GraphType>::
 getNumEntriesInLocalRow (local_ordinal_type localRow) const
 {
   using Teuchos::as;
-  const size_t numMyRowsA = nonoverlappingGraph_->getLocalNumRows ();
+  const size_t numMyRowsA = nonoverlappingGraph_->getNodeNumRows ();
   if (as<size_t> (localRow) < numMyRowsA) {
     return nonoverlappingGraph_->getNumEntriesInLocalRow (localRow);
   } else {
@@ -227,7 +227,7 @@ size_t OverlappingRowGraph<GraphType>::getGlobalMaxNumRowEntries () const
   
 
 template<class GraphType>
-size_t OverlappingRowGraph<GraphType>::getLocalMaxNumRowEntries () const
+size_t OverlappingRowGraph<GraphType>::getNodeMaxNumRowEntries () const
 {
   return maxNumEntries_;
 }
@@ -271,7 +271,7 @@ OverlappingRowGraph<GraphType>::
   if (localRow == Teuchos::OrdinalTraits<local_ordinal_type>::invalid ()) {
     numIndices = Teuchos::OrdinalTraits<size_t>::invalid ();
   } else {
-    if (Teuchos::as<size_t> (localRow) < nonoverlappingGraph_->getLocalNumRows ()) {
+    if (Teuchos::as<size_t> (localRow) < nonoverlappingGraph_->getNodeNumRows ()) {
       nonoverlappingGraph_->getGlobalRowCopy (globalRow, indices, numIndices);
     } else {
       overlappingGraph_->getGlobalRowCopy (globalRow, indices, numIndices);
@@ -291,7 +291,7 @@ getGlobalRowCopy (global_ordinal_type globalRow,
   if (localRow == Teuchos::OrdinalTraits<local_ordinal_type>::invalid ()) {
     numIndices = Teuchos::OrdinalTraits<size_t>::invalid ();
   } else {
-    if (Teuchos::as<size_t> (localRow) < nonoverlappingGraph_->getLocalNumRows ()) {
+    if (Teuchos::as<size_t> (localRow) < nonoverlappingGraph_->getNodeNumRows ()) {
       nonoverlappingGraph_->getGlobalRowCopy (globalRow, indices, numIndices);
     } else {
       overlappingGraph_->getGlobalRowCopy (globalRow, indices, numIndices);
@@ -308,7 +308,7 @@ getLocalRowCopy (local_ordinal_type localRow,
                  size_t& numIndices) const
 {
   using Teuchos::as;
-  const size_t numMyRowsA = nonoverlappingGraph_->getLocalNumRows ();
+  const size_t numMyRowsA = nonoverlappingGraph_->getNodeNumRows ();
   if (as<size_t> (localRow) < numMyRowsA) {
     nonoverlappingGraph_->getLocalRowCopy (localRow, indices, numIndices);
   } else {
@@ -328,7 +328,7 @@ getLocalRowCopy (local_ordinal_type localRow,
                  size_t& numIndices) const
 {
   using Teuchos::as;
-  const size_t numMyRowsA = nonoverlappingGraph_->getLocalNumRows ();
+  const size_t numMyRowsA = nonoverlappingGraph_->getNodeNumRows ();
   if (as<size_t> (localRow) < numMyRowsA) {
     nonoverlappingGraph_->getLocalRowCopy (localRow, indices, numIndices);
   } else {
@@ -348,7 +348,7 @@ getGlobalRowView (global_ordinal_type GlobalRow,
   if (LocalRow == Teuchos::OrdinalTraits<local_ordinal_type>::invalid())  {
     indices = global_inds_host_view_type();
   } else {
-    if (Teuchos::as<size_t> (LocalRow) < nonoverlappingGraph_->getLocalNumRows ()) {
+    if (Teuchos::as<size_t> (LocalRow) < nonoverlappingGraph_->getNodeNumRows ()) {
       nonoverlappingGraph_->getGlobalRowView (GlobalRow, indices);
     } else {
       overlappingGraph_->getGlobalRowView (GlobalRow, indices);
@@ -367,7 +367,7 @@ getGlobalRowView (global_ordinal_type GlobalRow,
   if (LocalRow == Teuchos::OrdinalTraits<local_ordinal_type>::invalid())  {
     indices = Teuchos::null;
   } else {
-    if (Teuchos::as<size_t> (LocalRow) < nonoverlappingGraph_->getLocalNumRows ()) {
+    if (Teuchos::as<size_t> (LocalRow) < nonoverlappingGraph_->getNodeNumRows ()) {
       nonoverlappingGraph_->getGlobalRowView (GlobalRow, indices);
     } else {
       overlappingGraph_->getGlobalRowView (GlobalRow, indices);
@@ -383,7 +383,7 @@ OverlappingRowGraph<GraphType>::
   getLocalRowView (local_ordinal_type LocalRow,
                    local_inds_host_view_type & indices) const {
   using Teuchos::as;
-  const size_t numMyRowsA = nonoverlappingGraph_->getLocalNumRows ();
+  const size_t numMyRowsA = nonoverlappingGraph_->getNodeNumRows ();
   if (as<size_t> (LocalRow) < numMyRowsA) {
     nonoverlappingGraph_->getLocalRowView (LocalRow, indices);
   } else {
@@ -401,7 +401,7 @@ getLocalRowView (local_ordinal_type LocalRow,
                  Teuchos::ArrayView<const local_ordinal_type>& indices) const
 {
   using Teuchos::as;
-  const size_t numMyRowsA = nonoverlappingGraph_->getLocalNumRows ();
+  const size_t numMyRowsA = nonoverlappingGraph_->getNodeNumRows ();
   if (as<size_t> (LocalRow) < numMyRowsA) {
     nonoverlappingGraph_->getLocalRowView (LocalRow, indices);
   } else {

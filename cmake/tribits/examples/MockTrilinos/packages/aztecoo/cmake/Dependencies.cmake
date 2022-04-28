@@ -37,7 +37,7 @@
 # ************************************************************************
 # @HEADER
 
-tribits_package_define_dependencies(
+TRIBITS_PACKAGE_DEFINE_DEPENDENCIES(
   LIB_REQUIRED_PACKAGES Epetra Triutils
   LIB_OPTIONAL_PACKAGES Teuchos
   LIB_OPTIONAL_TPLS y12m

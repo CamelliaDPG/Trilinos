@@ -38,7 +38,7 @@
 # @HEADER
 
 
-message(
+MESSAGE(
  "\n***"
  "\n*** TribitsDriverDashboard.cmake"
  "\n***\n"
@@ -49,25 +49,25 @@ message(
 get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 # Get the Tribits base directory
-set(TRIBITS_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
-get_filename_component(TRIBITS_ROOT "${TRIBITS_ROOT}" ABSOLUTE)
-message("TRIBITS_ROOT = '${TRIBITS_ROOT}'")
+SET(TRIBITS_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
+GET_FILENAME_COMPONENT(TRIBITS_ROOT "${TRIBITS_ROOT}" ABSOLUTE)
+MESSAGE("TRIBITS_ROOT = '${TRIBITS_ROOT}'")
 
 # Get the directory containing the TriBITS CMake utilities using this
 # script's location as the reference point.
-set(TRIBITS_CMAKE_UTILS_DIR "${TRIBITS_ROOT}/core/utils")
-message("TRIBITS_CMAKE_UTILS_DIR = '${TRIBITS_CMAKE_UTILS_DIR}'")
+SET(TRIBITS_CMAKE_UTILS_DIR "${TRIBITS_ROOT}/core/utils")
+MESSAGE("TRIBITS_CMAKE_UTILS_DIR = '${TRIBITS_CMAKE_UTILS_DIR}'")
 
-set( CMAKE_MODULE_PATH
+SET( CMAKE_MODULE_PATH
   "${TRIBITS_CMAKE_UTILS_DIR}"
    )
 
-#message("CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
+#MESSAGE("CMAKE_MODULE_PATH = ${CMAKE_MODULE_PATH}")
 
-include(PrintVar)
-include(SetDefaultAndFromEnv)
+INCLUDE(PrintVar)
+INCLUDE(SetDefaultAndFromEnv)
 
-include(${CMAKE_CURRENT_LIST_DIR}/../ctest_driver/TribitsCTestDriverCoreHelpers.cmake)
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/../ctest_driver/TribitsCTestDriverCoreHelpers.cmake)
 
 
 #
@@ -75,56 +75,56 @@ include(${CMAKE_CURRENT_LIST_DIR}/../ctest_driver/TribitsCTestDriverCoreHelpers.
 # submissions and track them as queued errors.
 #
 
-macro(tdd_ctest_submit)
+MACRO(TDD_CTEST_SUBMIT)
 
   # Cache the original CTEST_DROP_SITE and CTEST_DROP_LOCATION
-  if ("${TDD_CTEST_DROP_SITE_ORIG}" STREQUAL "")
-    set(TDD_CTEST_DROP_SITE_ORIG ${CTEST_DROP_SITE})
-    if (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
-      print_var(TDD_CTEST_DROP_SITE_ORIG)
-    endif()
-  endif()
-  if ("${TDD_CTEST_DROP_LOCATION_ORIG}" STREQUAL "")
-    set(TDD_CTEST_DROP_LOCATION_ORIG ${CTEST_DROP_LOCATION})
-    if (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
-      print_var(TDD_CTEST_DROP_LOCATION_ORIG)
-    endif()
-  endif()
+  IF ("${TDD_CTEST_DROP_SITE_ORIG}" STREQUAL "")
+    SET(TDD_CTEST_DROP_SITE_ORIG ${CTEST_DROP_SITE})
+    IF (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
+      PRINT_VAR(TDD_CTEST_DROP_SITE_ORIG)
+    ENDIF()
+  ENDIF()
+  IF ("${TDD_CTEST_DROP_LOCATION_ORIG}" STREQUAL "")
+    SET(TDD_CTEST_DROP_LOCATION_ORIG ${CTEST_DROP_LOCATION})
+    IF (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
+      PRINT_VAR(TDD_CTEST_DROP_LOCATION_ORIG)
+    ENDIF()
+  ENDIF()
 
   # Do the first submit
-  set(CTEST_DROP_SITE ${TDD_CTEST_DROP_SITE_ORIG})
-  set(CTEST_DROP_LOCATION ${TDD_CTEST_DROP_LOCATION_ORIG})
-  if (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
-    print_var(CTEST_DROP_SITE)
-    print_var(CTEST_DROP_LOCATION)
-  endif()
+  SET(CTEST_DROP_SITE ${TDD_CTEST_DROP_SITE_ORIG})
+  SET(CTEST_DROP_LOCATION ${TDD_CTEST_DROP_LOCATION_ORIG})
+  IF (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
+    PRINT_VAR(CTEST_DROP_SITE)
+    PRINT_VAR(CTEST_DROP_LOCATION)
+  ENDIF()
 
-  ctest_submit(${ARGN})
+  CTEST_SUBMIT(${ARGN})
 
   # Do the second submit if requested!
-  if (TDD_2ND_CTEST_DROP_SITE OR TDD_2ND_CTEST_DROP_LOCATION)
+  IF (TDD_2ND_CTEST_DROP_SITE OR TDD_2ND_CTEST_DROP_LOCATION)
 
-    message("\nDoing submit to second CDash site ...\n")
+    MESSAGE("\nDoing submit to second CDash site ...\n")
 
-    if (NOT "${TDD_2ND_CTEST_DROP_SITE}" STREQUAL "")
-      if (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
-        print_var(TDD_2ND_CTEST_DROP_SITE)
-      endif()
-      set(CTEST_DROP_SITE ${TDD_2ND_CTEST_DROP_SITE})
-    endif()
+    IF (NOT "${TDD_2ND_CTEST_DROP_SITE}" STREQUAL "")
+      IF (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
+        PRINT_VAR(TDD_2ND_CTEST_DROP_SITE)
+      ENDIF()
+      SET(CTEST_DROP_SITE ${TDD_2ND_CTEST_DROP_SITE})
+    ENDIF()
 
-    if (NOT "${TDD_2ND_CTEST_DROP_LOCATION}" STREQUAL "")
-      if (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
-        print_var(TDD_2ND_CTEST_DROP_LOCATION)
-      endif()
-      set(CTEST_DROP_LOCATION ${TDD_2ND_CTEST_DROP_LOCATION})
-    endif()
+    IF (NOT "${TDD_2ND_CTEST_DROP_LOCATION}" STREQUAL "")
+      IF (TRIBITS_CTEST_SUBMIT_DEBUG_DUMP)
+        PRINT_VAR(TDD_2ND_CTEST_DROP_LOCATION)
+      ENDIF()
+      SET(CTEST_DROP_LOCATION ${TDD_2ND_CTEST_DROP_LOCATION})
+    ENDIF()
 
-    ctest_submit(${ARGN})
+    CTEST_SUBMIT(${ARGN})
 
-  endif()
+  ENDIF()
 
-endmacro()
+ENDMACRO()
 
 #
 # A) Set up the environment get options
@@ -148,7 +148,7 @@ endif()
 #
 # Set CTEST_BUILD_NAME from TDD_BUILD_NAME in env or set default.
 #
-# NOTE: CTEST_BUILD_NAME is a built-in CTest variable and therefore it
+# NOTE: CTEST_BUILD_NAME is a built-in CTest varaible and therefore it
 # should not be set from the environment since it will give crosstalk
 # with TribitsCTestDriverCore.cmake.
 #
@@ -175,7 +175,7 @@ if("${CTEST_CMAKE_GENERATOR}" STREQUAL "")
 endif()
 
 # Extra directories to pull updates from
-set_default_and_from_env( TDD_EXTRA_GIT_PULL_DIRS "" )
+SET_DEFAULT_AND_FROM_ENV( TDD_EXTRA_GIT_PULL_DIRS "" )
 
 set(CTEST_TEST_TIMEOUT "$ENV{CTEST_TEST_TIMEOUT}")
 if("${CTEST_TEST_TIMEOUT}" STREQUAL "")
@@ -183,13 +183,13 @@ if("${CTEST_TEST_TIMEOUT}" STREQUAL "")
 endif()
 
 # Submit the results to the dashboard or not
-set_default_and_from_env( TDD_DO_SUBMIT TRUE )
+SET_DEFAULT_AND_FROM_ENV( TDD_DO_SUBMIT TRUE )
 
 # Dashboard model : Nightly, Experimental, Continuous
-set_default_and_from_env( TDD_CTEST_TEST_TYPE Experimental )
+SET_DEFAULT_AND_FROM_ENV( TDD_CTEST_TEST_TYPE Experimental )
 
 # set this to ON if you need to test something before committing.
-set_default_and_from_env( TDD_IN_TESTING_MODE OFF )
+SET_DEFAULT_AND_FROM_ENV( TDD_IN_TESTING_MODE OFF )
 
 #
 # Allow environment variables to override default values for the
@@ -198,17 +198,17 @@ set_default_and_from_env( TDD_IN_TESTING_MODE OFF )
 
 get_filename_component(CTEST_SOURCE_DIRECTORY
   "${CTEST_SCRIPT_DIRECTORY}" ABSOLUTE)
-set_default_and_from_env(CTEST_SOURCE_DIRECTORY ${CTEST_SOURCE_DIRECTORY})
+SET_DEFAULT_AND_FROM_ENV(CTEST_SOURCE_DIRECTORY ${CTEST_SOURCE_DIRECTORY})
 
 get_filename_component(CTEST_UPDATE_DIRECTORY
   "${CTEST_SCRIPT_DIRECTORY}/../../../.." ABSOLUTE)
-set_default_and_from_env(CTEST_UPDATE_DIRECTORY ${CTEST_UPDATE_DIRECTORY})
+SET_DEFAULT_AND_FROM_ENV(CTEST_UPDATE_DIRECTORY ${CTEST_UPDATE_DIRECTORY})
 
 get_filename_component(CTEST_BINARY_DIRECTORY
   "${CTEST_SCRIPT_DIRECTORY}/../../../../../TDD_BUILD" ABSOLUTE)
-set_default_and_from_env(CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY})
+SET_DEFAULT_AND_FROM_ENV(CTEST_BINARY_DIRECTORY ${CTEST_BINARY_DIRECTORY})
 
-set(CTEST_NOTES_FILES)
+SET(CTEST_NOTES_FILES)
 if(NOT "$ENV{TDD_CRON_DRIVER_LOGFILE}" STREQUAL "")
   set(CTEST_NOTES_FILES ${CTEST_NOTES_FILES} "$ENV{TDD_CRON_DRIVER_LOGFILE}")
 endif()
@@ -249,11 +249,11 @@ if (NOT TDD_IN_TESTING_MODE)
   ctest_update(SOURCE "${CTEST_UPDATE_DIRECTORY}")
 
   foreach(EXTRA_PULL_DIR ${TDD_EXTRA_GIT_PULL_DIRS})
-    set(EXTRA_PULL_DIR_ABS "${CTEST_UPDATE_DIRECTORY}/${EXTRA_PULL_DIR}")
-    set(PULL_OUT_FILE "${CTEST_BINARY_DIRECTORY}/${EXTRA_PULL_DIR}.pull.out")
+    SET(EXTRA_PULL_DIR_ABS "${CTEST_UPDATE_DIRECTORY}/${EXTRA_PULL_DIR}")
+    SET(PULL_OUT_FILE "${CTEST_BINARY_DIRECTORY}/${EXTRA_PULL_DIR}.pull.out")
     set(CTEST_NOTES_FILES ${CTEST_NOTES_FILES} ${PULL_OUT_FILE})
-    message("Pull extra updates in '${EXTRA_PULL_DIR_ABS}' ...")
-    tribits_update_git_extrarepo("${git_exe}" "${EXTRA_PULL_DIR_ABS}")
+    MESSAGE("Pull extra updates in '${EXTRA_PULL_DIR_ABS}' ...")
+    TRIBITS_UPDATE_GIT_EXTRAREPO("${git_exe}" "${EXTRA_PULL_DIR_ABS}")
   endforeach()
 
 else()
@@ -278,7 +278,7 @@ if (TDD_DO_SUBMIT)
   if(NOT "$ENV{TDD_CTEST_DROP_LOCATION}" STREQUAL "")
     set(CTEST_DROP_LOCATION "$ENV{TDD_CTEST_DROP_LOCATION}")
   endif()
-  tdd_ctest_submit(PARTS update configure notes build)
+  TDD_CTEST_SUBMIT(PARTS update configure notes build)
 else()
   message("\nSkipping submit on request!")
 endif()
@@ -288,11 +288,11 @@ ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" PARALLEL_LEVEL ${parallel_level})
 
 message("\nG) Submitting Test ...")
 if (TDD_DO_SUBMIT)
-  tdd_ctest_submit(PARTS Test)
+  TDD_CTEST_SUBMIT(PARTS Test)
 else()
   message("\nSkipping submit on request!")
 endif()
 
-message(
+MESSAGE(
  "\n*** Finished TribitsDriverDashboard.cmake ***\n"
  )

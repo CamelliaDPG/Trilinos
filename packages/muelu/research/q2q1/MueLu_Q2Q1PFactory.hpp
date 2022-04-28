@@ -149,7 +149,7 @@ namespace MueLu {
     TEUCHOS_TEST_FOR_EXCEPTION(C*(nc-1)+1 != n, Exceptions::InvalidArgument, "Incorrect dim size: " << n);
 
 
-    ArrayView<const GO> elementList = rowMap->getLocalElementList();
+    ArrayView<const GO> elementList = rowMap->getNodeElementList();
     GO indexBase = rowMap->getIndexBase();
 
     // Calculate offsets

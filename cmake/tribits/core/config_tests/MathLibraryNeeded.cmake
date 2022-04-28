@@ -38,13 +38,13 @@
 # @HEADER
 
 
-include(CheckCSourceCompiles)
+INCLUDE(CheckCSourceCompiles)
 
-if (NOT MATH_LIBRARY_IS_SUPPLIED AND NOT MATH_LIBRARY_IS_SET)
+IF (NOT MATH_LIBRARY_IS_SUPPLIED AND NOT MATH_LIBRARY_IS_SET)
 
-  set(CMAKE_REQUIRED_LIBRARIES ${${PROJECT_NAME}_EXTRA_LINK_FLAGS})
+  SET(CMAKE_REQUIRED_LIBRARIES ${${PROJECT_NAME}_EXTRA_LINK_FLAGS})
 
-  check_c_source_compiles(
+  CHECK_C_SOURCE_COMPILES(
     "
 #include <math.h>
 int main()
@@ -58,36 +58,36 @@ int main()
     MATH_LIBRARY_IS_SUPPLIED
     )
 
-  set(CMAKE_REQUIRED_LIBRARIES)
+  SET(CMAKE_REQUIRED_LIBRARIES)
 
-  if (NOT MATH_LIBRARY_IS_SUPPLIED)
+  IF (NOT MATH_LIBRARY_IS_SUPPLIED)
 
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      message(STATUS "Searching for -lm ...")
-    endif()
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      MESSAGE(STATUS "Searching for -lm ...")
+    ENDIF()
 
-    set(MATH_LIBRARY NOTFOUND)
-    find_library(MATH_LIBRARY m)
+    SET(MATH_LIBRARY NOTFOUND)
+    FIND_LIBRARY(MATH_LIBRARY m)
 
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      message(STATUS "MATH_LIBRARY = ${MATH_LIBRARY}")
-    endif()
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      MESSAGE(STATUS "MATH_LIBRARY = ${MATH_LIBRARY}")
+    ENDIF()
 
-    if (MATH_LIBRARY)
-      if (NOT MATH_LIBRARY_IS_SET)
-        message(STATUS "Appending math library ${MATH_LIBRARY} to link line ...")
-        set(${PROJECT_NAME}_EXTRA_LINK_FLAGS ${${PROJECT_NAME}_EXTRA_LINK_FLAGS} ${MATH_LIBRARY}
+    IF (MATH_LIBRARY)
+      IF (NOT MATH_LIBRARY_IS_SET)
+        MESSAGE(STATUS "Appending math library ${MATH_LIBRARY} to link line ...")
+        SET(${PROJECT_NAME}_EXTRA_LINK_FLAGS ${${PROJECT_NAME}_EXTRA_LINK_FLAGS} ${MATH_LIBRARY}
           CACHE STRING ""  FORCE)
-        global_set(MATH_LIBRARY_IS_SET ON)
+        GLOBAL_SET(MATH_LIBRARY_IS_SET ON)
         # NOTE: Only do this once and not over and over or you will relink
         # everything after each configure!
-      endif()
-    else()
-      message(SEND_ERROR
+      ENDIF()
+    ELSE()
+      MESSAGE(SEND_ERROR
         "Error, the math library for C programs could not be found!"
         )
-    endif()
+    ENDIF()
 
-  endif()
+  ENDIF()
 
-endif()
+ENDIF()

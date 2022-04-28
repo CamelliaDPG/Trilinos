@@ -53,9 +53,7 @@
 namespace Kokkos {
 namespace Impl {
 
-// The two keywords below are not contradictory. `noinline` is a
-// directive to the optimizer.
-[[noreturn]] __device__ __attribute__((noinline)) inline void hip_abort(
+[[noreturn]] __device__ __attribute__((noinline)) void hip_abort(
     char const *msg) {
 #ifdef NDEBUG
   (void)msg;

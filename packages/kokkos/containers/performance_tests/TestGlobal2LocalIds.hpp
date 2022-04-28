@@ -48,7 +48,7 @@
 #include <vector>
 #include <algorithm>
 
-#include <Kokkos_Timer.hpp>
+#include <impl/Kokkos_Timer.hpp>
 
 // This test will simulate global ids
 

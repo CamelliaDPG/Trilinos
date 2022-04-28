@@ -723,6 +723,17 @@ namespace Belos {
     // the solver is initialized
     initialized_ = true;
       
+      /*
+	if (om_->isVerbosity( Debug ) ) {
+      // Check almost everything here
+      CheckList chk;
+      chk.checkV = true;
+      chk.checkArn = true;
+      chk.checkAux = true;
+      om_->print( Debug, accuracyCheck(chk, ": after initialize()") );
+    }
+    */
+
   }
 
 
@@ -839,6 +850,22 @@ namespace Belos {
       //
       curDim_ += 1;
       //        
+      /*      
+      // When required, monitor some orthogonalities
+      if (om_->isVerbosity( Debug ) ) {
+      // Check almost everything here
+      CheckList chk;
+      chk.checkV = true;
+      chk.checkArn = true;
+      om_->print( Debug, accuracyCheck(chk, ": after local update") );
+      }
+      else if (om_->isVerbosity( OrthoDetails ) ) {
+        CheckList chk;
+        chk.checkV = true;
+        om_->print( OrthoDetails, accuracyCheck(chk, ": after local update") );
+      }
+      */ 
+      
     } // end while (statusTest == false)
    
   }

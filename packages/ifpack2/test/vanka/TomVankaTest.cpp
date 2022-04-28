@@ -192,7 +192,7 @@ main (int argc, char *argv[])
 
 
   // Start building a CrsMatrix using this Map
-  ArrayView<const GO> myGIDs = myMap->getLocalElementList();
+  ArrayView<const GO> myGIDs = myMap->getNodeElementList();
 
   // Create a CrsMatrix using the map
   RCP< crs_matrix_type > A = rcp(new crs_matrix_type(myMap,4));

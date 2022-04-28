@@ -39,7 +39,6 @@
 // Eric C. Cyr (eccyr@sandia.gov)
 // ***********************************************************************
 // @HEADER
-#include "Kokkos_View_Fad.hpp"
 
 #include "PanzerDiscFE_config.hpp"
 

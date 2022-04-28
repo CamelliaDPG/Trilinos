@@ -107,39 +107,40 @@ norm_1(Tensor<T, N> const & A)
 
   switch (dimension) {
 
-  default:
+    default:
 
-    for (Index i = 0; i < dimension; ++i) {
-      T t = 0.0;
-      for (Index j = 0; j < dimension; ++j) {
-        t += minitensor::abs(A(j, i));
+      for (Index i = 0; i < dimension; ++i) {
+        T t = 0.0;
+        for (Index j = 0; j < dimension; ++j) {
+          t += std::abs(A(j, i));
+        }
+        v(i) = t;
       }
-      v(i) = t;
-    }
 
-    for (Index i = 0; i < dimension; ++i) {
-      s = max(s, v(i));
-    }
-    break;
+      for (Index i = 0; i < dimension; ++i) {
+        s = std::max(s, v(i));
+      }
+      break;
 
-  case 3:
-    v(0) = minitensor::abs(A(0, 0)) + minitensor::abs(A(1, 0)) + minitensor::abs(A(2, 0));
-    v(1) = minitensor::abs(A(0, 1)) + minitensor::abs(A(1, 1)) + minitensor::abs(A(2, 1));
-    v(2) = minitensor::abs(A(0, 2)) + minitensor::abs(A(1, 2)) + minitensor::abs(A(2, 2));
+    case 3:
+      v(0) = std::abs(A(0,0)) + std::abs(A(1,0)) + std::abs(A(2,0));
+      v(1) = std::abs(A(0,1)) + std::abs(A(1,1)) + std::abs(A(2,1));
+      v(2) = std::abs(A(0,2)) + std::abs(A(1,2)) + std::abs(A(2,2));
 
-    s = max(max(v(0), v(1)), v(2));
-    break;
+      s = std::max(std::max(v(0),v(1)),v(2));
+      break;
 
-  case 2:
-    v(0) = minitensor::abs(A(0, 0)) + minitensor::abs(A(1, 0));
-    v(1) = minitensor::abs(A(0, 1)) + minitensor::abs(A(1, 1));
+    case 2:
+      v(0) = std::abs(A(0,0)) + std::abs(A(1,0));
+      v(1) = std::abs(A(0,1)) + std::abs(A(1,1));
 
-    s = max(v(0), v(1));
-    break;
+      s = std::max(v(0),v(1));
+      break;
 
-  case 1:
-    s = minitensor::abs(A(0, 0));
-    break;
+    case 1:
+      s = std::abs(A(0,0));
+      break;
+
   }
 
   return s;
@@ -168,33 +169,33 @@ norm_infinity(Tensor<T, N> const & A)
       for (Index i = 0; i < dimension; ++i) {
         T t = 0.0;
         for (Index j = 0; j < dimension; ++j) {
-          t += minitensor::abs(A(i, j));
+          t += std::abs(A(i, j));
         }
         v(i) = t;
       }
 
       for (Index i = 0; i < dimension; ++i) {
-        s = max(s, v(i));
+        s = std::max(s, v(i));
       }
       break;
 
     case 3:
-      v(0) = minitensor::abs(A(0, 0)) + minitensor::abs(A(0, 1)) + minitensor::abs(A(0, 2));
-      v(1) = minitensor::abs(A(1, 0)) + minitensor::abs(A(1, 1)) + minitensor::abs(A(1, 2));
-      v(2) = minitensor::abs(A(2, 0)) + minitensor::abs(A(2, 1)) + minitensor::abs(A(2, 2));
+      v(0) = std::abs(A(0,0)) + std::abs(A(0,1)) + std::abs(A(0,2));
+      v(1) = std::abs(A(1,0)) + std::abs(A(1,1)) + std::abs(A(1,2));
+      v(2) = std::abs(A(2,0)) + std::abs(A(2,1)) + std::abs(A(2,2));
 
-      s = max(max(v(0), v(1)), v(2));
+      s = std::max(std::max(v(0),v(1)),v(2));
       break;
 
     case 2:
-      v(0) = minitensor::abs(A(0, 0)) + minitensor::abs(A(0, 1));
-      v(1) = minitensor::abs(A(1, 0)) + minitensor::abs(A(1, 1));
+      v(0) = std::abs(A(0,0)) + std::abs(A(0,1));
+      v(1) = std::abs(A(1,0)) + std::abs(A(1,1));
 
-      s = max(v(0), v(1));
+      s = std::max(v(0),v(1));
       break;
 
     case 1:
-      s = minitensor::abs(A(0, 0));
+      s = std::abs(A(0,0));
       break;
 
   }
@@ -374,11 +375,10 @@ I2(Tensor<T, N> const & A)
     default:
 #ifdef KOKKOS_ENABLE_CUDA
       Kokkos::abort("I2 for N > 3 not implemented.");
-      return T();
 #else
       std::cerr << "I2 for N > 3 not implemented." << std::endl;
-      exit(1);
 #endif
+      exit(1);
       break;
 
     case 3:
@@ -420,11 +420,10 @@ I3(Tensor<T, N> const & A)
     default:
 #ifdef KOKKOS_ENABLE_CUDA
       Kokkos::abort("I3 for N > 3 not implemented.");
-      return T();
-#else
+#else 
       std::cerr << "I3 for N > 3 not implemented." << std::endl;
-      exit(1);
 #endif
+      exit(1);
       break;
 
     case 3:
@@ -447,11 +446,16 @@ I3(Tensor<T, N> const & A)
 //
 // Condition number.
 //
-template <typename T, Index N> T cond(Tensor<T, N> const &A) {
+template<typename T, Index N>
+KOKKOS_INLINE_FUNCTION
+T
+cond(Tensor<T, N> const & A)
+{
   Index const
   dimension = A.get_dimension();
 
-  Tensor<T, N> const S = std::get<1>(svd(A));
+  Tensor<T, N> const
+  S = boost::get<1>(svd(A));
 
   T const
   k = S(0, 0) / S(dimension - 1, dimension - 1);
@@ -462,11 +466,16 @@ template <typename T, Index N> T cond(Tensor<T, N> const &A) {
 //
 // Reciprocal condition number.
 //
-template <typename T, Index N> T inv_cond(Tensor<T, N> const &A) {
+template<typename T, Index N>
+KOKKOS_INLINE_FUNCTION
+T
+inv_cond(Tensor<T, N> const & A)
+{
   Index const
   dimension = A.get_dimension();
 
-  Tensor<T, N> const S = std::get<1>(svd(A));
+  Tensor<T, N> const
+  S = boost::get<1>(svd(A));
 
   T const
   k = S(dimension - 1, dimension - 1) / S(0, 0);
@@ -478,8 +487,11 @@ template <typename T, Index N> T inv_cond(Tensor<T, N> const &A) {
 // Sort and index in descending order. Useful for ordering singular values
 // and eigenvalues and corresponding vectors in the respective decompositions.
 //
-template <typename T, Index N>
-std::pair<Vector<T, N>, Tensor<T, N>> sort_permutation(Vector<T, N> const &u) {
+template<typename T, Index N>
+KOKKOS_INLINE_FUNCTION
+std::pair<Vector<T, N>, Tensor<T, N>>
+sort_permutation(Vector<T, N> const & u)
+{
 
   Index const
   dimension = u.get_dimension();
@@ -505,6 +517,7 @@ std::pair<Vector<T, N>, Tensor<T, N>> sort_permutation(Vector<T, N> const &u) {
   }
 
   return std::make_pair(v, P);
+
 }
 
 } // namespace minitensor

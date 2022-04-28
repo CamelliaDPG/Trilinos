@@ -130,16 +130,15 @@ bool all_passed = true;
                  solver_name.c_str(), problem_name.c_str(), constraint_name.c_str(),
                  2 /*manifold order*/);
     my_GMLS.setProblemData(neighbor_lists, source_coords, target_coords, epsilon);
-    my_GMLS.setWeightingParameter(10);
+    my_GMLS.setWeightingPower(10);
 
-    std::vector<TargetOperation> lro(3);
+    std::vector<TargetOperation> lro(5);
     lro[0] = ScalarPointEvaluation;
     lro[1] = LaplacianOfScalarPointEvaluation;
     lro[2] = GradientOfScalarPointEvaluation;
+    lro[3] = DivergenceOfVectorPointEvaluation;
+    lro[4] = CurlOfVectorPointEvaluation;
     my_GMLS.addTargets(lro);
-    // add two more targets individually to test addTargets(...) function
-    my_GMLS.addTargets(DivergenceOfVectorPointEvaluation);
-    my_GMLS.addTargets(CurlOfVectorPointEvaluation);
     my_GMLS.generateAlphas();
 
     double instantiation_time = timer.seconds();

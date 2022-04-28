@@ -192,9 +192,6 @@ class MemoryPool {
     if (!accessible) {
       Kokkos::Impl::DeepCopy<Kokkos::HostSpace, base_memory_space>(
           sb_state_array, m_sb_state_array, alloc_size);
-      Kokkos::fence(
-          "MemoryPool::get_usage_statistics(): fence after copying state "
-          "array to HostSpace");
     }
 
     stats.superblock_bytes     = (1LU << m_sb_size_lg2);
@@ -243,9 +240,6 @@ class MemoryPool {
     if (!accessible) {
       Kokkos::Impl::DeepCopy<Kokkos::HostSpace, base_memory_space>(
           sb_state_array, m_sb_state_array, alloc_size);
-      Kokkos::fence(
-          "MemoryPool::print_state(): fence after copying state array to "
-          "HostSpace");
     }
 
     Impl::_print_memory_pool_state(s, sb_state_array, m_sb_count, m_sb_size_lg2,
@@ -455,9 +449,6 @@ class MemoryPool {
     if (!accessible) {
       Kokkos::Impl::DeepCopy<base_memory_space, Kokkos::HostSpace>(
           m_sb_state_array, sb_state_array, header_size);
-      Kokkos::fence(
-          "MemoryPool::MemoryPool(): fence after copying state array from "
-          "HostSpace");
 
       host.deallocate(sb_state_array, header_size);
     } else {
@@ -533,12 +524,12 @@ class MemoryPool {
     // Fast query clock register 'tic' to pseudo-randomize
     // the guess for which block within a superblock should
     // be claimed.  If not available then a search occurs.
-#if defined(KOKKOS_ENABLE_SYCL) && !defined(KOKKOS_ARCH_INTEL_GPU)
+#if defined(KOKKOS_ENABLE_SYCL) && !defined(KOKKOS_ARCH_INTEL_GEN)
     const uint32_t block_id_hint = alloc_size;
 #else
     const uint32_t block_id_hint =
         (uint32_t)(Kokkos::Impl::clock_tic()
-#ifdef __CUDA_ARCH__  // FIXME_CUDA
+#if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_CUDA)
                    // Spread out potentially concurrent access
                    // by threads within a warp or thread block.
                    + (threadIdx.x + blockDim.x * threadIdx.y)
@@ -593,6 +584,19 @@ class MemoryPool {
           p = ((char *)(m_sb_state_array + m_data_offset)) +
               (uint64_t(sb_id) << m_sb_size_lg2)       // superblock memory
               + (uint64_t(result.first) << size_lg2);  // block memory
+
+#if 0
+  printf( "  MemoryPool(0x%lx) pointer(0x%lx) allocate(%lu) sb_id(%d) sb_state(0x%x) block_size(%d) block_capacity(%d) block_id(%d) block_claimed(%d)\n"
+        , (uintptr_t)m_sb_state_array
+        , (uintptr_t)p
+        , alloc_size
+        , sb_id
+        , sb_state 
+        , (1u << size_lg2)
+        , (1u << count_lg2)
+        , result.first 
+        , result.second );
+#endif
 
           break;  // Success
         }
@@ -736,8 +740,7 @@ class MemoryPool {
 
     // Determine which superblock and block
     const ptrdiff_t d =
-        static_cast<char *>(p) -
-        reinterpret_cast<char *>(m_sb_state_array + m_data_offset);
+        ((char *)p) - ((char *)(m_sb_state_array + m_data_offset));
 
     // Verify contained within the memory pool's superblocks:
     const int ok_contains =
@@ -769,10 +772,29 @@ class MemoryPool {
         const int result = CB::release(sb_state_array, bit, block_state);
 
         ok_dealloc_once = 0 <= result;
+
+#if 0
+  printf( "  MemoryPool(0x%lx) pointer(0x%lx) deallocate sb_id(%d) block_size(%d) block_capacity(%d) block_id(%d) block_claimed(%d)\n"
+        , (uintptr_t)m_sb_state_array
+        , (uintptr_t)p
+        , sb_id
+        , (1u << block_size_lg2)
+        , (1u << (m_sb_size_lg2 - block_size_lg2))
+        , bit
+        , result );
+#endif
       }
     }
 
     if (!ok_contains || !ok_block_aligned || !ok_dealloc_once) {
+#if 0
+  printf( "  MemoryPool(0x%lx) pointer(0x%lx) deallocate ok_contains(%d) ok_block_aligned(%d) ok_dealloc_once(%d)\n"
+        , (uintptr_t)m_sb_state_array
+        , (uintptr_t)p
+        , int(ok_contains)
+        , int(ok_block_aligned)
+        , int(ok_dealloc_once) );
+#endif
       Kokkos::abort("Kokkos MemoryPool::deallocate given erroneous pointer");
     }
   }
@@ -789,16 +811,9 @@ class MemoryPool {
     block_count_capacity = 0;
     block_count_used     = 0;
 
-    bool can_access_state_array = []() {
-      KOKKOS_IF_ON_HOST(
-          (return SpaceAccessibility<DefaultHostExecutionSpace,
-                                     base_memory_space>::accessible;))
-      KOKKOS_IF_ON_DEVICE(
-          (return SpaceAccessibility<DefaultExecutionSpace,
-                                     base_memory_space>::accessible;))
-    }();
-
-    if (can_access_state_array) {
+    if (Kokkos::Impl::MemorySpaceAccess<
+            Kokkos::Impl::ActiveExecutionMemorySpace,
+            base_memory_space>::accessible) {
       // Can access the state array
 
       const uint32_t state =

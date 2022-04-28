@@ -37,18 +37,18 @@
 # ************************************************************************
 # @HEADER
 
-include(CMakeParseArguments)
+INCLUDE(CMakeParseArguments)
 
 
 #
-# @MACRO: tribits_include_directories()
+# @MACRO: TRIBITS_INCLUDE_DIRECTORIES()
 #
 # This function is to override the standard behavior of the built-in CMake
-# ``include_directories()`` command.
+# ``INCLUDE_DIRECTORIES()`` command.
 #
 # Usage::
 #
-#   tribits_include_directories(
+#   TRIBITS_INCLUDE_DIRECTORIES(
 #     [REQUIRED_DURING_INSTALLATION_TESTING] <dir0> <dir1> ...
 #     )
 #
@@ -56,7 +56,7 @@ include(CMakeParseArguments)
 # in the argument list.
 #
 # This function allows overriding the default behavior of
-# ``include_directories()`` for installation testing, to ensure that include
+# ``INCLUDE_DIRECTORIES()`` for installation testing, to ensure that include
 # directories will not be inadvertently added to the build lines for tests
 # during installation testing (see `Installation and Backward Compatibility
 # Testing`_). Normally we want the include directories to be handled as cmake
@@ -67,9 +67,9 @@ include(CMakeParseArguments)
 # needed.  For that case ``REQUIRED_DURING_INSTALLATION_TESTING`` must be
 # passed in to ensure the include paths are added for installation testing.
 #
-macro(tribits_include_directories)
+MACRO(TRIBITS_INCLUDE_DIRECTORIES)
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #options
@@ -81,16 +81,16 @@ macro(tribits_include_directories)
     ${ARGN}
     )
 
-  if(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
-    _include_directories(${PARSE_UNPARSED_ARGUMENTS})
-  endif()
-endmacro()
+  IF(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
+    _INCLUDE_DIRECTORIES(${PARSE_UNPARSED_ARGUMENTS})
+  ENDIF()
+ENDMACRO()
 
 
-# Deprecated.  Use tribits_include_directories() instead!
-macro(include_directories)
+# Deprecated.  Use TRIBITS_INCLUDE_DIRECTORIES() instead!
+MACRO(INCLUDE_DIRECTORIES)
 
- cmake_parse_arguments(
+ CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #options
@@ -102,12 +102,12 @@ macro(include_directories)
     ${ARGN}
     )
 
-#  if (PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
-#    message(WARNING "Warning: the override include_directories() is deprecated,"
-#    " use tribits_include_directories() instead!")
-#  endif()
+#  IF (PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
+#    MESSAGE(WARNING "Warning: the override INCLUDE_DIRECTORIES() is deprecated,"
+#    " use TRIBITS_INCLUDE_DIRECTORIES() instead!")
+#  ENDIF()
 
-  if(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
-    _include_directories(${PARSE_UNPARSED_ARGUMENTS})
-  endif()
-endmacro()
+  IF(NOT ${PROJECT_NAME}_ENABLE_INSTALLATION_TESTING OR PARSE_REQUIRED_DURING_INSTALLATION_TESTING)
+    _INCLUDE_DIRECTORIES(${PARSE_UNPARSED_ARGUMENTS})
+  ENDIF()
+ENDMACRO()

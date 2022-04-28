@@ -1286,7 +1286,7 @@ namespace MueLu {
     std::string indent = "      ";
     fout << "        <DataArray type=\"Int32\" Name=\"Node\" format=\"ascii\">" << std::endl;
     indent = "          ";
-    bool localIsGlobal = GlobalOrdinal(nodeMap->getGlobalNumElements()) == GlobalOrdinal(nodeMap->getLocalNumElements());
+    bool localIsGlobal = GlobalOrdinal(nodeMap->getGlobalNumElements()) == GlobalOrdinal(nodeMap->getNodeNumElements());
     for(size_t i = 0; i < uniqueFine.size(); i++)
     {
       if(localIsGlobal)

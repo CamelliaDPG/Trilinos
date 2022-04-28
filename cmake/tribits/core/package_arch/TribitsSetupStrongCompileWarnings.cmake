@@ -37,8 +37,8 @@
 # ************************************************************************
 # @HEADER
 
-include(TribitsDefineStandardCompileVars)
-include(DualScopePrependCmndlineArgs)
+INCLUDE(TribitsDefineStandardCompileVars)
+INCLUDE(DualScopePrependCmndlineArgs)
 
 
 #
@@ -46,63 +46,63 @@ include(DualScopePrependCmndlineArgs)
 #
 
 
-macro(tribits_set_language_strong_warning_flags LANG)
+MACRO(TRIBITS_SET_LANGUAGE_STRONG_WARNING_FLAGS LANG)
 
-  #message("Entering tribits_set_language_strong_warning_flags(${LANG})")
-  #print_var(${PROJECT_NAME}_ENABLE_STRONG_${LANG}_COMPILE_WARNINGS)
+  #MESSAGE("Entering TRIBITS_SET_LANGUAGE_STRONG_WARNING_FLAGS(${LANG})")
+  #PRINT_VAR(${PROJECT_NAME}_ENABLE_STRONG_${LANG}_COMPILE_WARNINGS)
 
-  dual_scope_prepend_cmndline_args(CMAKE_${LANG}_FLAGS
+  DUAL_SCOPE_PREPEND_CMNDLINE_ARGS(CMAKE_${LANG}_FLAGS
     "${${LANG}_STRONG_COMPILE_WARNING_FLAGS}")
 
-  if(${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    message(STATUS "Adding strong ${LANG} warning flags \"${${LANG}_STRONG_COMPILE_WARNING_FLAGS}\"")
-    print_var(CMAKE_${LANG}_FLAGS)
-  endif()
+  IF(${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    MESSAGE(STATUS "Adding strong ${LANG} warning flags \"${${LANG}_STRONG_COMPILE_WARNING_FLAGS}\"")
+    PRINT_VAR(CMAKE_${LANG}_FLAGS)
+  ENDIF()
 
-endmacro()
+ENDMACRO()
 
 
-function(tribits_setup_strong_compile_warnings  ENABLE_SHADOWING_WARNINGS)
+FUNCTION(TRIBITS_SETUP_STRONG_COMPILE_WARNINGS  ENABLE_SHADOWING_WARNINGS)
 
-  #message("Entering tribits_setup_strong_compile_warnings(${ENABLE_SHADOWING_WARNINGS})")
+  #MESSAGE("Entering TRIBITS_SETUP_STRONG_COMPILE_WARNINGS(${ENABLE_SHADOWING_WARNINGS})")
 
   #
   # Setup and general flags
   #
 
-  tribits_define_standard_compile_flags_vars(${ENABLE_SHADOWING_WARNINGS})
+  TRIBITS_DEFINE_STANDARD_COMPILE_FLAGS_VARS(${ENABLE_SHADOWING_WARNINGS})
 
   #
   # C compiler options
   #
 
-  assert_defined(${PROJECT_NAME}_ENABLE_C CMAKE_C_COMPILER_ID)
-  if (${PROJECT_NAME}_ENABLE_C
+  ASSERT_DEFINED(${PROJECT_NAME}_ENABLE_C CMAKE_C_COMPILER_ID)
+  IF (${PROJECT_NAME}_ENABLE_C
     AND CMAKE_C_COMPILER_ID STREQUAL "GNU"
     AND ${PROJECT_NAME}_ENABLE_STRONG_C_COMPILE_WARNINGS
     )
-    tribits_set_language_strong_warning_flags(C)
-  endif()
+    TRIBITS_SET_LANGUAGE_STRONG_WARNING_FLAGS(C)
+  ENDIF()
 
   #
   # C++ compiler options
   #
 
-  assert_defined(${PROJECT_NAME}_ENABLE_CXX CMAKE_CXX_COMPILER_ID)
-  if (${PROJECT_NAME}_ENABLE_CXX
+  ASSERT_DEFINED(${PROJECT_NAME}_ENABLE_CXX CMAKE_CXX_COMPILER_ID)
+  IF (${PROJECT_NAME}_ENABLE_CXX
     AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
     AND ${PROJECT_NAME}_ENABLE_STRONG_CXX_COMPILE_WARNINGS
     )
-    tribits_set_language_strong_warning_flags(CXX)
-  endif()
+    TRIBITS_SET_LANGUAGE_STRONG_WARNING_FLAGS(CXX)
+  ENDIF()
 
   #
   # Fortran compiler options
   #
 
-  assert_defined(${PROJECT_NAME}_ENABLE_Fortran)
-  if (${PROJECT_NAME}_ENABLE_Fortran AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  ASSERT_DEFINED(${PROJECT_NAME}_ENABLE_Fortran)
+  IF (${PROJECT_NAME}_ENABLE_Fortran AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # ToDo: Add Fortran warnings?
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()

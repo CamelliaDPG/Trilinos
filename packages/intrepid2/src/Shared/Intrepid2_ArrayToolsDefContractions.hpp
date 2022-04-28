@@ -84,11 +84,15 @@ namespace Intrepid2 {
         const ordinal_type iend = _leftFields.extent(3);
         const ordinal_type jend = _leftFields.extent(4);
 
-        _outputFields( cl, lbf, rbf ) *= (_sumInto ? 1 : 0); 
+        value_type tmp(0);        
         for (size_type qp = 0; qp < npts; ++qp) 
           for (ordinal_type i = 0; i < iend; ++i) 
             for (ordinal_type j = 0; j < jend; ++j) 
-              _outputFields( cl, lbf, rbf ) += _leftFields(cl, lbf, qp, i, j)*_rightFields(cl, rbf, qp, i, j);
+              tmp += _leftFields(cl, lbf, qp, i, j)*_rightFields(cl, rbf, qp, i, j);
+        if (_sumInto)
+          _outputFields( cl, lbf, rbf ) = _outputFields( cl, lbf, rbf ) + tmp;
+        else
+          _outputFields( cl, lbf, rbf ) = tmp;
       }
     };
     } //end namespace
@@ -154,18 +158,23 @@ namespace Intrepid2 {
         const ordinal_type iend = field.extent(1);
         const ordinal_type jend = field.extent(2);
 
-        result() *= (_sumInto ? 1 : 0); 
+        value_type tmp(0);        
 
         if(_inputData.extent(1) != 1)
           for (size_type qp = 0; qp < npts; ++qp)
             for (ordinal_type i = 0; i < iend; ++i)
               for (ordinal_type j = 0; j < jend; ++j)
-                result() += field(qp, i, j) * data(qp, i, j);
+                tmp += field(qp, i, j) * data(qp, i, j);
         else
           for (size_type qp = 0; qp < npts; ++qp)
             for (ordinal_type i = 0; i < iend; ++i)
               for (ordinal_type j = 0; j < jend; ++j)
-                result() += field(qp, i, j) * data(0, i, j);
+                tmp += field(qp, i, j) * data(0, i, j);
+
+        if (_sumInto)
+          result() = result() + tmp;
+        else
+          result() = tmp;
       }
     };
     } //namespace
@@ -226,11 +235,16 @@ namespace Intrepid2 {
         ordinal_type iend = left.extent(1);
         ordinal_type jend = left.extent(2);
 
-        result() *= (_sumInto ? 1 : 0); 
+        value_type tmp(0);        
         for (size_type qp = 0; qp < npts; ++qp) 
           for (ordinal_type i = 0; i < iend; ++i) 
             for (ordinal_type j = 0; j < jend; ++j) 
-              result() += left(qp, i, j)*right(qp, i, j);
+              tmp += left(qp, i, j)*right(qp, i, j);
+
+        if (_sumInto)
+          result() = result() + tmp;
+        else
+          result() = tmp;
       }
     };
     } //namespace

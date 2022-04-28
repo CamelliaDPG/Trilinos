@@ -54,7 +54,7 @@
 # @HEADER
 
 
-tribits_tpl_find_include_dirs_and_libraries( Boost
+TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES( Boost
   REQUIRED_HEADERS boost/version.hpp boost/mpl/at.hpp
   )
 

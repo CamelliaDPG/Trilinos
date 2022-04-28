@@ -6,7 +6,6 @@
  * or TRILINOS_KLU_analyze_given.
  */
 
-#include "TrilinosSS_config.h"
 #include "trilinos_klu_internal.h"
 
 /* ========================================================================== */
@@ -398,7 +397,7 @@ TRILINOS_KLU_numeric *TRILINOS_KLU_factor		/* returns NULL if error, or a valid
     Int *R ;
     TRILINOS_KLU_numeric *Numeric ;
     size_t n1, nzoff1, s, b6, n3 ;
-#ifdef TRILINOSSS_HAVE_OMP 
+#ifdef KLU_ENABLE_OPENMP
     int num_threads;
 #endif
 
@@ -501,7 +500,7 @@ TRILINOS_KLU_numeric *TRILINOS_KLU_factor		/* returns NULL if error, or a valid
      *
      * If OpenMP is enabled the solve uses an Xwork of size num_threads * 4n.
      */
-#ifdef TRILINOSSS_HAVE_OMP
+#ifdef KLU_ENABLE_OPENMP
 #pragma omp parallel
     num_threads = omp_get_num_threads();
     s = TRILINOS_KLU_mult_size_t (n, num_threads * sizeof (Entry), &ok) ;

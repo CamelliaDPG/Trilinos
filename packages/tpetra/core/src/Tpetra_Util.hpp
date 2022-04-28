@@ -206,6 +206,20 @@
       msg << " Failure on at least one process, including process " << gbl_throw-1 << "." << std::endl); \
 }
 
+#ifdef HAVE_TEUCHOS_DEBUG
+//! If TEUCHOS_DEBUG is defined, then it calls SHARED_TEST_FOR_EXCEPTION. Otherwise, it calls TEUCHOS_TEST_FOR_EXCEPTION
+#define SWITCHED_TEST_FOR_EXCEPTION(throw_exception_test,Exception,msg,comm) \
+{ \
+    SHARED_TEST_FOR_EXCEPTION(throw_exception_test,Exception,msg,comm); \
+}
+#else
+//! If TEUCHOS_DEBUG is defined, then it calls SHARED_TEST_FOR_EXCEPTION. Otherwise, it calls TEUCHOS_TEST_FOR_EXCEPTION
+#define SWITCHED_TEST_FOR_EXCEPTION(throw_exception_test,Exception,msg,comm) \
+{ \
+    TEUCHOS_TEST_FOR_EXCEPTION(throw_exception_test,Exception,msg); \
+}
+#endif
+
 namespace Tpetra {
 
   /// \brief Efficiently insert or replace an entry in an std::map.
@@ -971,7 +985,6 @@ namespace Tpetra {
     {
       using Kokkos::MemoryUnmanaged;
       typedef typename DT::memory_space DMS;
-      typedef typename DT::execution_space execution_space;
       typedef Kokkos::HostSpace HMS;
 
       const size_t len = static_cast<size_t> (x_av.size ());
@@ -979,13 +992,11 @@ namespace Tpetra {
       Kokkos::DualView<T*, DT> x_out (label, len);
       if (leaveOnHost) {
         x_out.modify_host ();
-        // DEEP_COPY REVIEW - NOT TESTED FOR CUDA BUILD
         Kokkos::deep_copy (x_out.view_host (), x_in);
       }
       else {
         x_out.template modify<DMS> ();
-        // DEEP_COPY REVIEW - HOST-TO-DEVICE
-        Kokkos::deep_copy (execution_space(), x_out.template view<DMS> (), x_in);
+        Kokkos::deep_copy (x_out.template view<DMS> (), x_in);
       }
       return x_out;
     }

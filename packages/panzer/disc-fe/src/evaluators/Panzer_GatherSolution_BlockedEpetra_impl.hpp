@@ -202,7 +202,7 @@ preEvaluate(
     xBvRoGed_ = rcp_dynamic_cast<BVROGED>(ged, true);
     return;
   } // end of the refactored ReadOnly way
-
+  
   // Now try the old path.
   {
     ged = d.gedc->getDataObject(globalDataKey_);
@@ -255,53 +255,70 @@ evaluateFields(
   const vector<size_t>& localCellIds = this->wda(workset).cell_local_ids;
   int numFields(gatherFields_.size()), numCells(localCellIds.size());
 
-  // Loop over the fields to be gathered.
-  for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
+  if (x_.is_null())
   {
-    MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
-    auto field_h = Kokkos::create_mirror_view(field.get_static_view());
+    // Loop over the fields to be gathered.
+    for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
+    {
+      MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
+      int indexerId(indexerIds_[fieldInd]),
+        subFieldNum(subFieldIds_[fieldInd]);
 
-    int indexerId(indexerIds_[fieldInd]),
-      subFieldNum(subFieldIds_[fieldInd]);
+      // Grab the local data for inputing.
+      auto xEvRoGed = xBvRoGed_->getGEDBlock(indexerId);
+      auto subRowIndexer = indexers_[indexerId];
+      const vector<int>& elmtOffset =
+        subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
+      int numBases(elmtOffset.size());
 
-    // Grab the local data for inputing.
-    ArrayRCP<const double> x;
-    Teuchos::RCP<const ReadOnlyVector_GlobalEvaluationData> xEvRoGed;
+      // Gather operation for each cell in the workset.
+      for (int cell(0); cell < numCells; ++cell)
+      {
+        LO cellLocalId = localCellIds[cell];
+        auto LIDs = subRowIndexer->getElementLIDs(cellLocalId);
 
-    if(not x_.is_null()) {
+        // Loop over the basis functions and fill the fields.
+        for (int basis(0); basis < numBases; ++basis)
+        {
+          int offset(elmtOffset[basis]), lid(LIDs[offset]);
+          field(cell, basis) = (*xEvRoGed)[lid];
+        } // end loop over the basis functions
+      } // end loop over localCellIds
+    } // end loop over the fields to be gathered
+  }
+  else // if (not x_.is_null())
+  {
+    // Loop over the fields to be gathered.
+    for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
+    {
+      MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
+      int indexerId(indexerIds_[fieldInd]),
+        subFieldNum(subFieldIds_[fieldInd]);
+
+      // Grab the local data for inputing.
+      ArrayRCP<const double> x;
       rcp_dynamic_cast<SpmdVectorBase<double>>(x_->
         getNonconstVectorBlock(indexerId))->getLocalData(ptrFromRef(x));
-    }
-    else {
-      xEvRoGed = xBvRoGed_->getGEDBlock(indexerId);
-    }
+      auto subRowIndexer = indexers_[indexerId];
+      const vector<int>& elmtOffset =
+        subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
+      int numBases(elmtOffset.size());
 
-    auto subRowIndexer = indexers_[indexerId];
-    const vector<int>& elmtOffset =
-      subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
-    int numBases(elmtOffset.size());
-
-    auto LIDs = subRowIndexer->getLIDs();
-    auto LIDs_h = Kokkos::create_mirror_view(LIDs);
-    Kokkos::deep_copy(LIDs_h, LIDs);
-
-    // Gather operation for each cell in the workset.
-    for (int cell(0); cell < numCells; ++cell)
-    {
-      LO cellLocalId = localCellIds[cell];
-
-      // Loop over the basis functions and fill the fields.
-      for (int basis(0); basis < numBases; ++basis)
+      // Gather operation for each cell in the workset.
+      for (int cell(0); cell < numCells; ++cell)
       {
-        int offset(elmtOffset[basis]), lid(LIDs_h(cellLocalId, offset));
-        if(x_.is_null())
-          field_h(cell, basis) = (*xEvRoGed)[lid];
-        else
-          field_h(cell, basis) = x[lid];
-      } // end loop over the basis functions
-    } // end loop over localCellIds
-    Kokkos::deep_copy(field.get_static_view(), field_h);
-  } // end loop over the fields to be gathered
+        LO cellLocalId = localCellIds[cell];
+        auto LIDs = subRowIndexer->getElementLIDs(cellLocalId);
+
+        // Loop over the basis functions and fill the fields.
+        for (int basis(0); basis < numBases; ++basis)
+        {
+          int offset(elmtOffset[basis]), lid(LIDs[offset]);
+          field(cell, basis) = x[lid];
+        } // end loop over the basis functions
+      } // end loop over localCellIds
+    } // end loop over the fields to be gathered
+  } // end if (x_.is_null()) or not
 } // end of evaluateFields() (Residual Specialization)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -434,7 +451,7 @@ preEvaluate(
     xBvRoGed_ = rcp_dynamic_cast<BVROGED>(ged, true);
     return;
   } // end of the refactored ReadOnly way
-
+  
   // Now try the old path.
   {
     ged = d.gedc->getDataObject(globalDataKey_);
@@ -704,7 +721,7 @@ preEvaluate(
     xBvRoGed_ = rcp_dynamic_cast<BVROGED>(ged, true);
     return;
   } // end of the refactored ReadOnly way
-
+  
   // Now try the old path.
   {
     ged = d.gedc->getDataObject(globalDataKey_);
@@ -782,53 +799,74 @@ evaluateFields(
   // NOTE:  A reordering of these loops will likely improve performance.  The
   //        "getGIDFieldOffsets may be expensive.  However the "getElementGIDs"
   //        can be cheaper.  However the lookup for LIDs may be more expensive!
-
-   // Loop over the fields to be gathered.
-  for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
+  if (x_.is_null())
   {
-    MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
-    auto field_h = Kokkos::create_mirror_view(field.get_view());
-
-    int indexerId(indexerIds_[fieldInd]), subFieldNum(subFieldIds_[fieldInd]);
-
-    // Grab the local data for inputing.
-    ArrayRCP<const double> x;
-    Teuchos::RCP<const ReadOnlyVector_GlobalEvaluationData> xEvRoGed;
-    if(not x_.is_null()) {
-      rcp_dynamic_cast<SpmdVectorBase<double>>(x_->getNonconstVectorBlock(indexerId))->getLocalData(ptrFromRef(x));
-    }else {
-      xEvRoGed = xBvRoGed_->getGEDBlock(indexerId);
-    }
-
-    auto subRowIndexer = indexers_[indexerId];
-    const vector<int>& elmtOffset =
-      subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
-    int startBlkOffset(blockOffsets[indexerId]), numBases(elmtOffset.size());
-
-    auto LIDs = subRowIndexer->getLIDs();
-    auto LIDs_h = Kokkos::create_mirror_view(LIDs);
-    Kokkos::deep_copy(LIDs_h, LIDs);
-
-    // Gather operation for each cell in the workset.
-    for (int cell(0); cell < numCells; ++cell)
+    // Loop over the fields to be gathered.
+    for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
     {
-      LO cellLocalId = localCellIds[cell];
+      MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
+      int indexerId(indexerIds_[fieldInd]),
+        subFieldNum(subFieldIds_[fieldInd]);
 
-      // Loop over the basis functions and fill the fields.
-      for (int basis(0); basis < numBases; ++basis)
+      // Grab the local data for inputing.
+      auto xEvRoGed = xBvRoGed_->getGEDBlock(indexerId);
+      auto subRowIndexer = indexers_[indexerId];
+      const vector<int>& elmtOffset =
+        subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
+      int startBlkOffset(blockOffsets[indexerId]), numBases(elmtOffset.size());
+
+      // Gather operation for each cell in the workset.
+      for (int cell(0); cell < numCells; ++cell)
       {
-        // Set the value and seed the FAD object.
-        int offset(elmtOffset[basis]), lid(LIDs_h(cellLocalId, offset));
-        if(x_.is_null())
-          field_h(cell, basis) = ScalarT(numDerivs, (*xEvRoGed)[lid]);
-        else
-          field_h(cell, basis) = ScalarT(numDerivs, x[lid]);
+        LO cellLocalId = localCellIds[cell];
+        auto LIDs = subRowIndexer->getElementLIDs(cellLocalId);
 
-        field_h(cell, basis).fastAccessDx(startBlkOffset + offset) = seedValue;
-      } // end loop over the basis functions
-    } // end loop over localCellIds
-    Kokkos::deep_copy(field.get_static_view(), field_h);
-  } // end loop over the fields to be gathered
+        // Loop over the basis functions and fill the fields.
+        for (int basis(0); basis < numBases; ++basis)
+        {
+          // Set the value and seed the FAD object.
+          int offset(elmtOffset[basis]), lid(LIDs[offset]);
+          field(cell, basis) = ScalarT(numDerivs, (*xEvRoGed)[lid]);
+          field(cell, basis).fastAccessDx(startBlkOffset + offset) = seedValue;
+        } // end loop over the basis functions
+      } // end loop over localCellIds
+    } // end loop over the fields to be gathered
+  }
+  else // if (not x_.is_null())
+  {
+    // Loop over the fields to be gathered.
+    for (int fieldInd(0); fieldInd < numFields; ++fieldInd)
+    {
+      MDField<ScalarT, Cell, NODE>& field = gatherFields_[fieldInd];
+      int indexerId(indexerIds_[fieldInd]),
+        subFieldNum(subFieldIds_[fieldInd]);
+
+      // Grab the local data for inputing.
+      ArrayRCP<const double> x;
+      rcp_dynamic_cast<SpmdVectorBase<double>>(x_->
+        getNonconstVectorBlock(indexerId))->getLocalData(ptrFromRef(x));
+      auto subRowIndexer = indexers_[indexerId];
+      const vector<int>& elmtOffset =
+        subRowIndexer->getGIDFieldOffsets(blockId, subFieldNum);
+      int startBlkOffset(blockOffsets[indexerId]), numBases(elmtOffset.size());
+
+      // Gather operation for each cell in the workset.
+      for (int cell(0); cell < numCells; ++cell)
+      {
+        LO cellLocalId = localCellIds[cell];
+        auto LIDs = subRowIndexer->getElementLIDs(cellLocalId);
+
+        // Loop over the basis functions and fill the fields.
+        for (int basis(0); basis < numBases; ++basis)
+        {
+          // Set the value and seed the FAD object.
+          int offset(elmtOffset[basis]), lid(LIDs[offset]);
+          field(cell, basis) = ScalarT(numDerivs, x[lid]);
+          field(cell, basis).fastAccessDx(startBlkOffset + offset) = seedValue;
+        } // end loop over the basis functions
+      } // end loop over localCellIds
+    } // end loop over the fields to be gathered
+  } // end if (x_.is_null()) or not
 } // end of evaluateFields() (Jacobian Specialization)
 
 #endif // __Panzer_GatherSolution_BlockedEpetra_impl_hpp__

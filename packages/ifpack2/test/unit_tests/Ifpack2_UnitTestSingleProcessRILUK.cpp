@@ -87,14 +87,12 @@ void remove_diags_and_scale(const MatrixType& L, const MatrixType& U,
   typedef Kokkos::TeamPolicy<execution_space> team_policy;
   typedef typename Kokkos::TeamPolicy<execution_space>::member_type member_type;
 
-  auto lclL = L.getLocalMatrixDevice();
-  auto L_rowmap  = lclL.graph.row_map;
-  auto L_entries = lclL.graph.entries;
-  auto L_values  = lclL.values;
-  auto lclU = U.getLocalMatrixDevice();
-  auto U_rowmap  = lclU.graph.row_map;
-  auto U_entries = lclU.graph.entries;
-  auto U_values  = lclU.values;
+  auto L_rowmap  = L.getLocalMatrixDevice().graph.row_map;
+  auto L_entries = L.getLocalMatrixDevice().graph.entries;
+  auto L_values  = L.getLocalValuesView();
+  auto U_rowmap  = U.getLocalMatrixDevice().graph.row_map;
+  auto U_entries = U.getLocalMatrixDevice().graph.entries;
+  auto U_values  = U.getLocalValuesView();
 
   rowmap_type  Ln_rowmap ("Ln_rowmap",  L_rowmap.extent(0));
   entries_type Ln_entries("Ln_entries", L_entries.extent(0) - (L_rowmap.extent(0) - 1));
@@ -718,7 +716,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_3_DECL(Ifpack2RILUKSingleProcess, IgnoreRowMapGIDs, S
 
   //Create a permuted row map.  The first entry is the same as the original row map,
   //the remainder are in descending order.
-  Teuchos::ArrayView<const GO> GIDs = rowMap->getLocalElementList();
+  Teuchos::ArrayView<const GO> GIDs = rowMap->getNodeElementList();
   Teuchos::Array<GO> permutedGIDs(GIDs.size());
   Teuchos::Array<GO> origToPerm(GIDs.size());
   permutedGIDs[0] = GIDs[0];
@@ -886,7 +884,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_3_DECL(Ifpack2RILUKSingleProcess, TestGIDConsistency,
   // Create a column Map with the same GIDs at the row Map, but in
   // permuted order.  The first entry is the same as the row Map, the
   // remainder are in descending order.
-  Teuchos::ArrayView<const GO> rowGIDs = rowMap->getLocalElementList ();
+  Teuchos::ArrayView<const GO> rowGIDs = rowMap->getNodeElementList ();
   Teuchos::Array<GO> colElements (rowGIDs.size ());
   colElements[0] = rowGIDs[0];
   for (GO i = 1; i < rowGIDs.size (); ++i) {
@@ -903,7 +901,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_3_DECL(Ifpack2RILUKSingleProcess, TestGIDConsistency,
   const Scalar two = one + one;
   Teuchos::Array<GO> col (3);
   Teuchos::Array<Scalar> val (3);
-  size_t numLocalElts = rowMap->getLocalNumElements ();
+  size_t numLocalElts = rowMap->getNodeNumElements ();
   for (LO l_row = 0; static_cast<size_t> (l_row) < numLocalElts; ++l_row) {
     const GO g_row = rowMap->getGlobalElement (l_row);
     size_t i = 0;

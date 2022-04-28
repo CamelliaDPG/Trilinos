@@ -125,7 +125,6 @@ local installed-developer-files =
   Utst_ioel
   Utst_superelement
   Utst_database_io
-  Utst_textmesh
   Utst_sort
   Utst_map
   Utst_structured_decomp
@@ -158,9 +157,7 @@ alias install-user-include : install-user-include0
                              install-user-include3
                              install-user-include4
                              install-user-include5
-                             install-user-include6
-                             install-user-include7
-                             install-user-include8 ;
+                             install-user-include6 ;
 
 # This rule copies all headers it finds in the include directory of the
 # source to the include directory of the install-root.
@@ -225,21 +222,6 @@ install install-user-include6
   : <location>$(install-root)/io_system/include
   ;
 
-
-explicit install-user-include7 ;
-install install-user-include7
-  : [ glob $(seacas-root)/libraries/aprepro_lib/*.h ]
-  : <location>$(install-root)/seacas/include
-  ;
-
-
-explicit install-user-include8 ;
-install install-user-include8
-  : [ glob $(seacas-root)/libraries/suplib_cpp/fmt/*.h ]
-  : <location>$(install-root)/io_system/include/fmt
-  ;
-
-
 explicit install-user-env ;
 alias install-user-env : install-user-jamfile
                           install-user-bin install-user-include install-user-lib ;
@@ -279,7 +261,6 @@ install install-user-lib
     ioinit
     ioss
     iotr
-    iotm
     iovs
   : <location>$(install-root)/seacas/lib
   ;
@@ -418,22 +399,6 @@ lib iogn
         <file>$(seacas-root)/lib/libiogn.a
     ]
   ;
-lib iotm
-  :
-    [ ifdevbuild
-    # Any parameters within this 'ifdevbuild' block apply to development
-    # builds only and will not be present for user builds.
-        [ glob $(seacas-root)/libraries/ioss/src/text_mesh/*.C ]
-    ]
-    ioss
-    /mpi//mpi
-  :
-    [ ifuserbuild
-    # Any parameters within this 'ifuserbuild' block apply to user
-    # builds only and will not be present for developer builds.
-        <file>$(seacas-root)/lib/libiotm.a
-    ]
-  ;
 
 lib iogs
   :
@@ -465,7 +430,6 @@ lib ioinit
     iohb
     iogn
     iogs
-    iotm
     iotr
     iovs
     /mpi//mpi
@@ -548,7 +512,6 @@ obj blot_main : $(seacas-root)/applications/blot/blot.f
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -564,7 +527,6 @@ obj fastq_main : $(seacas-root)/applications/fastq/fastq.f
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -621,7 +583,6 @@ obj addrwrap : $(seacas-root)/libraries/exodus_for/src/addrwrap.F
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -656,7 +617,6 @@ lib exodus_for
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -679,7 +639,6 @@ lib exodus_for
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -786,7 +745,6 @@ lib suplib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -809,7 +767,6 @@ lib suplib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -907,7 +864,6 @@ lib plt
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -930,7 +886,6 @@ lib plt
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -964,7 +919,6 @@ lib svdi_cdr
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -987,7 +941,6 @@ lib svdi_cdr
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1031,7 +984,6 @@ lib svdi_cgi
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1054,7 +1006,6 @@ lib svdi_cgi
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1085,7 +1036,6 @@ obj vdx11cps : $(seacas-root)/libraries/svdi/vdi_drivers/vdx11cps.F
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1100,7 +1050,6 @@ obj vdicps_dual : $(seacas-root)/libraries/svdi/vdi_drivers/vdicps_dual.f
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1115,7 +1064,6 @@ obj svdi_cgi_cps : $(seacas-root)/libraries/svdi/vdi_drivers/vdicps.f
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1147,7 +1095,6 @@ lib blotlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1165,7 +1112,6 @@ lib blotlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1197,7 +1143,6 @@ lib fastqlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1215,7 +1160,6 @@ lib fastqlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1249,7 +1193,6 @@ lib mapvarlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1272,7 +1215,6 @@ lib mapvarlib
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1306,7 +1248,6 @@ lib supes
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1329,7 +1270,6 @@ lib supes
     <toolset>armhpc,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>nvidia,<address-model>64:<fflags>"-fdefault-real-8 -fdefault-integer-8"
     <toolset>intel,<address-model>64:<fflags>"-r8 -i8"
-    <toolset>oneapi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pgi,<address-model>64:<fflags>"-r8 -i8"
     <toolset>pathscale,<address-model>64:<fflags>"-r8 -i8"
     <toolset>open64,<address-model>64:<fflags>"-r8 -i8"
@@ -1532,7 +1472,6 @@ exe exo_format
 exe exo2mat
   :
   $(seacas-root)/applications/exo2mat/exo2mat.C
-    suplib_cpp
     suplib_c
     exodus
     /tpl/matio//matio
@@ -1824,24 +1763,13 @@ exe Utst_superelement
 
 exe Utst_database_io
   :
-  [ glob $(seacas-root)/libraries/ioss/src/utest/Utst_IofxDatabaseIO.C ]
+  [ glob $(seacas-root)/libraries/ioss/src/unit_tests/*.C ]
     ioinit
     /tpl/netcdf-c//netcdf
     /tpl/gtest//gtest
   : <tag>@utility-exec-tag
   ;
 
-exe Utst_textmesh
-  :
-  [ glob $(seacas-root)/libraries/ioss/src/unit_tests/*.C ]
-    ioinit
-    iotm
-    /tpl/netcdf-c//netcdf
-    /tpl/gtest//gtest
-    /mpi//mpi
-  : <tag>@sierra-exec-tag
-  ;
-  
 rule xcb-for_cray-rule ( properties * )
 {
   if $(cray-system) = "yes"

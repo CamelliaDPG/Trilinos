@@ -42,8 +42,6 @@
 
 #include "PanzerAdaptersSTK_config.hpp"
 
-#ifdef PANZER_HAVE_EPETRA
-
 #include "Panzer_STK_Utilities.hpp"
 #include "Panzer_GlobalIndexer.hpp"
 
@@ -97,9 +95,10 @@ void write_solution_data(const panzer::GlobalIndexer& dofMngr,panzer_stk::STK_In
    build_local_ids(mesh,localIds);
 
    // loop over all element blocks
-   for(const auto & itr : localIds) {
-      const auto blockId = itr.first;
-      const auto & localCellIds = *(itr.second);
+   std::map<std::string,Teuchos::RCP<std::vector<std::size_t> > >::const_iterator itr;
+   for(itr=localIds.begin();itr!=localIds.end();++itr) {
+      std::string blockId = itr->first;
+      const std::vector<std::size_t> & localCellIds = *(itr->second);
 
       std::map<std::string,FieldContainer> data;
 
@@ -107,8 +106,9 @@ void write_solution_data(const panzer::GlobalIndexer& dofMngr,panzer_stk::STK_In
       gather_in_block(blockId,dofMngr,x,localCellIds,data);
 
       // write out to stk mesh
-      for(const auto & dataItr : data)
-         mesh.setSolutionFieldData(prefix+dataItr.first+postfix,blockId,localCellIds,dataItr.second);
+      std::map<std::string,FieldContainer>::iterator dataItr;
+      for(dataItr=data.begin();dataItr!=data.end();++dataItr) 
+         mesh.setSolutionFieldData(prefix+dataItr->first+postfix,blockId,localCellIds,dataItr->second);
    }
 }
 
@@ -125,30 +125,27 @@ void gather_in_block(const std::string & blockId, const panzer::GlobalIndexer& d
       // grab the field
       const std::vector<int> & elmtOffset = dofMngr.getGIDFieldOffsets(blockId,fieldNum);
       fc[fieldStr] = Kokkos::DynRankView<double,PHX::Device>("fc",localCellIds.size(),elmtOffset.size());
-      auto field = Kokkos::create_mirror_view(fc[fieldStr]);
-
 
       // gather operation for each cell in workset
       for(std::size_t worksetCellIndex=0;worksetCellIndex<localCellIds.size();++worksetCellIndex) {
          std::vector<panzer::GlobalOrdinal> GIDs;
          std::vector<int> LIDs;
          std::size_t cellLocalId = localCellIds[worksetCellIndex];
-
+      
          dofMngr.getElementGIDs(cellLocalId,GIDs);
-
+      
          // caculate the local IDs for this element
          LIDs.resize(GIDs.size());
          for(std::size_t i=0;i<GIDs.size();i++)
             LIDs[i] = x.Map().LID(GIDs[i]);
-
+   
          // loop over basis functions and fill the fields
          for(std::size_t basis=0;basis<elmtOffset.size();basis++) {
             int offset = elmtOffset[basis];
             int lid = LIDs[offset];
-            field(worksetCellIndex,basis) = x[lid];
+            fc[fieldStr](worksetCellIndex,basis) = x[lid];
          }
       }
-      Kokkos::deep_copy(fc[fieldStr], field);
    }
 }
 
@@ -179,5 +176,3 @@ void build_local_ids(const panzer_stk::STK_Interface & mesh,
 }
 
 }
-
-#endif // PANZER_HAVE_EPETRA

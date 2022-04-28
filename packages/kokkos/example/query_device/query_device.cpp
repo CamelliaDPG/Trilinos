@@ -47,8 +47,7 @@
 
 #include <Kokkos_Macros.hpp>
 
-//#define USE_MPI
-#if defined(USE_MPI)
+#if defined(KOKKOS_ENABLE_MPI)
 #include <mpi.h>
 #endif
 
@@ -62,7 +61,7 @@ int main(int argc, char** argv) {
 
   (void)argc;
   (void)argv;
-#if defined(USE_MPI)
+#if defined(KOKKOS_ENABLE_MPI)
 
   MPI_Init(&argc, &argv);
 
@@ -73,7 +72,7 @@ int main(int argc, char** argv) {
   msg << "MPI rank(" << mpi_rank << ") ";
 
 #endif
-  Kokkos::initialize(argc, argv);
+
   msg << "{" << std::endl;
 
   if (Kokkos::hwloc::available()) {
@@ -83,13 +82,15 @@ int main(int argc, char** argv) {
         << std::endl;
   }
 
-  Kokkos::print_configuration(msg);
+#if defined(KOKKOS_ENABLE_CUDA)
+  Kokkos::Cuda::print_configuration(msg);
+#endif
 
   msg << "}" << std::endl;
 
   std::cout << msg.str();
-  Kokkos::finalize();
-#if defined(USE_MPI)
+
+#if defined(KOKKOS_ENABLE_MPI)
 
   MPI_Finalize();
 

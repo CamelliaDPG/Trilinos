@@ -126,7 +126,6 @@
 #include "Teuchos_XMLParameterListHelpers.hpp"
 #include "Teuchos_Comm.hpp"
 #include "Teuchos_OrdinalTraits.hpp"
-#include "Teuchos_StackedTimer.hpp"
 
 // Shards includes
 #include "Shards_CellTopology.hpp"
@@ -158,12 +157,9 @@
 #include "pamgen_extras.h"
 
 
-#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS
+#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS0
 #include "Stratimikos_DefaultLinearSolverBuilder.hpp"
 #include <Stratimikos_MueLuHelpers.hpp>
-#ifdef HAVE_TRILINOSCOUPLINGS_IFPACK2
-#include <Thyra_Ifpack2PreconditionerFactory.hpp>
-#endif
 #endif
 
 //#include "TrilinosCouplings_IntrepidPoissonExampleHelpers.hpp"
@@ -280,7 +276,7 @@ RCP<Xpetra_Operator> BuildPreconditioner_MueLu(char ProblemType[],
                                                RCP<Tpetra_CrsMatrix>   & M1,
                                                RCP<Tpetra_MultiVector> & coords);
 
-#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS
+#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS0
 
 /** \brief  Stratimikos Preconditioner
     \param  ProblemType        [in]    problem type
@@ -292,16 +288,14 @@ RCP<Xpetra_Operator> BuildPreconditioner_MueLu(char ProblemType[],
     \param  M1                 [in]    H(curl) mass matrix w/o sigma
 */
 
-void TestPreconditioner_Stratimikos(char ProblemType[],
-                                    Teuchos::ParameterList   & SList,
-                                    RCP<Tpetra_CrsMatrix>   & CurlCurl,
-                                    RCP<Tpetra_CrsMatrix>   & D0clean,
-                                    RCP<Tpetra_CrsMatrix>   & M0inv,
-                                    RCP<Tpetra_CrsMatrix>   & Ms,
-                                    RCP<Tpetra_CrsMatrix>   & M1,
-                                    RCP<Tpetra_MultiVector> & coords,
-                                    RCP<Tpetra_MultiVector> & x,
-                                    RCP<Tpetra_MultiVector> & b);
+RCP<Tpetra_Operator> BuildPreconditioner_Stratimikos(char ProblemType[],
+                                                       Teuchos::ParameterList   & MLList,
+                                                       RCP<Tpetra_CrsMatrix>   & CurlCurl,
+                                                       RCP<Tpetra_CrsMatrix>   & D0clean,
+                                                       RCP<Tpetra_CrsMatrix>   & M0inv,
+                                                       RCP<Tpetra_CrsMatrix>   & Ms,
+                                                       RCP<Tpetra_CrsMatrix>   & M1,
+                                                       RCP<Tpetra_MultiVector> & coords);
 
 #endif
 
@@ -408,7 +402,6 @@ int body(int argc, char *argv[]) {
   bool verbose, debug, jiggle, dump;
   std::string solverName;
   double scaling = 1.0;
-  bool use_stacked_timer;
 
   // Set default values of command-line arguments.
   nx = 10;
@@ -421,7 +414,6 @@ int body(int argc, char *argv[]) {
   debug = false;
   jiggle = false;
   dump = false;
-  use_stacked_timer = false;
   // Parse and validate command-line arguments.
   Teuchos::CommandLineProcessor cmdp (false, true);
   cmdp.setOption ("nx", &nx, "Number of cells along the x dimension");
@@ -446,8 +438,6 @@ int body(int argc, char *argv[]) {
                   "Whether to randomly perturb the mesh.");
   cmdp.setOption ("dump", "nodump", &dump,
                   "Whether to dump data.");
-  cmdp.setOption ("stacked-timer", "no-stacked-timer", &use_stacked_timer,
-                  "Run with or without stacked timer output");
 
   if (MyPID == 0) {
     std::cout                                                           \
@@ -490,14 +480,6 @@ int body(int argc, char *argv[]) {
     // with command-line arguments.  We printed help already, so quit
     // with a happy return code.
     return EXIT_SUCCESS;
-  }
-
-  Teuchos::RCP<Teuchos::StackedTimer> stacked_timer;
-  if (use_stacked_timer) {
-    stacked_timer = rcp(new Teuchos::StackedTimer("TC Maxwell Tpetra"));
-    Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::rcp(new Teuchos::FancyOStream(Teuchos::rcpFromRef(std::cout)));
-    stacked_timer->setVerboseOstream(out);
-    Teuchos::TimeMonitor::setStackedTimer(stacked_timer);
   }
 
   long long *  node_comm_proc_ids   = NULL;
@@ -2070,8 +2052,8 @@ int body(int argc, char *argv[]) {
   Tpetra_Vector DiagG(MassMatrixG.getRowMap());
   {
     DiagG.putScalar(1.0);
-    MassMatrixG.apply(DiagG,DiagG);
     auto d_data = DiagG.getDataNonConst(0);
+    MassMatrixG.apply(DiagG,DiagG);
     for(int i=0;i<(int)d_data.size();i++) {
       d_data[i]=1.0/d_data[i];
     }
@@ -2080,7 +2062,7 @@ int body(int argc, char *argv[]) {
   Tpetra_CrsMatrix MassMatrixGinv(MassMatrixG.getRowMap(),MassMatrixG.getRowMap(),1);
   {
     auto d_data = DiagG.getData(0);
-    for(int i=0;i<(int)MassMatrixGinv.getRowMap()->getLocalNumElements();i++) {
+    for(int i=0;i<(int)MassMatrixGinv.getRowMap()->getNodeNumElements();i++) {
       GO GCID=MassMatrixG.getColMap()->getGlobalElement(i);
       GO GRID=MassMatrixG.getRowMap()->getGlobalElement(i);
       MassMatrixGinv.insertGlobalValues(GRID,1,&(d_data[i]),&GCID);
@@ -2253,15 +2235,16 @@ int body(int argc, char *argv[]) {
 
   }
 
-  #ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS
+  #ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS0
   if (solverName == "Stratimikos") {
-    if(MyPID==0) {std::cout << "\n\nStratimikos solve \n" << xmlStratimikos << std::endl;}
+    if(MyPID==0) {std::cout << "\n\nStratimikos solve \n";}
     Teuchos::ParameterList SList;
     Teuchos::updateParametersFromXmlFile(xmlStratimikos,Teuchos::ptr (&SList));
-    TestPreconditioner_Stratimikos(probType,SList,SystemMatrix_r,
-                                   DGrad_r,MassMatrixGinv_r,MassMatrixC_r,MassMatrixC1_r,
-                                   nCoord_r,
-                                   xh_r, rhsVector_r);
+    TestPreconditioner_Stratimikos(probType,SList,StiffMatrixC,
+                                   DGrad,MassMatrixGinv,MassMatrixC,MassMatrixC1,
+                                   nCoord,Nx,Ny,Nz,
+                                   xh,rhsVector,
+                                   TotalErrorResidual, TotalErrorExactSol);
   }
   #endif
 
@@ -2471,14 +2454,7 @@ int body(int argc, char *argv[]) {
   }
 
   // Summarize timings
-  if (use_stacked_timer) {
-    Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::rcp(new Teuchos::FancyOStream(Teuchos::rcpFromRef(std::cout)));
-    stacked_timer->stop("TC Maxwell Tpetra");
-    Teuchos::StackedTimer::OutputOptions options;
-    options.output_fraction = options.output_histogram = options.output_minmax = true;
-    stacked_timer->report(*out, comm, options);
-  } else
-    Teuchos::TimeMonitor::report (comm.ptr(), std::cout);
+  Teuchos::TimeMonitor::report (comm.ptr(), std::cout);
 
   return 0;
 }
@@ -2511,7 +2487,7 @@ void solution_test(string msg, const Tpetra_Operator &A,const Tpetra_MultiVector
   double d = 0.0, d_tot = 0.0;
   auto lhs_data    = lhs.getData(0);
   auto xexact_data = xexact.getData(0);
-  for(LO i=0 ; i<(LO)lhs.getMap()->getLocalNumElements() ; ++i )
+  for(LO i=0 ; i<(LO)lhs.getMap()->getNodeNumElements() ; ++i )
     d += (lhs_data[i] - xexact_data[i]) * (lhs_data[i] - xexact_data[i]);
 
   TC_sumAll(comm,d,d_tot);
@@ -2567,22 +2543,21 @@ RCP<Xpetra_Operator> BuildPreconditioner_MueLu(char ProblemType[],
 
 
 
-#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS
+#ifdef HAVE_TRILINOSCOUPLINGS_STRATIMIKOS0
 /*************************************************************************************/
 /********************* Straitmikos PRECONDITIONER*************************************/
 /*************************************************************************************/
-void TestPreconditioner_Stratimikos(char ProblemType[],
-                                    Teuchos::ParameterList   & SList,
-                                    RCP<Tpetra_CrsMatrix>   & CurlCurl,
-                                    RCP<Tpetra_CrsMatrix>   & D0clean,
-                                    RCP<Tpetra_CrsMatrix>   & M0inv,
-                                    RCP<Tpetra_CrsMatrix>   & Ms,
-                                    RCP<Tpetra_CrsMatrix>   & M1,
-                                    RCP<Tpetra_MultiVector> & coords,
-                                    RCP<Tpetra_MultiVector> & x,
-                                    RCP<Tpetra_MultiVector> & b) {
+RCP<Tpetra_Operator> BuildPreconditioner_Stratimikos(char ProblemType[],
+                                               Teuchos::ParameterList   & MLList,
+                                               RCP<Tpetra_CrsMatrix>   & CurlCurl,
+                                               RCP<Tpetra_CrsMatrix>   & D0clean,
+                                               RCP<Tpetra_CrsMatrix>   & M0inv,
+                                               RCP<Tpetra_CrsMatrix>   & Ms,
+                                               RCP<Tpetra_CrsMatrix>   & M1,
+                                               RCP<Tpetra_MultiVector> & coords){
 
   /* Build the rest of the Stratimikos list */
+  Teuchos::ParameterList SList;
   SList.sublist("Preconditioner Types").sublist("ML").set("Base Method Defaults","refmaxwell");
 
   SList.sublist("Preconditioner Types").sublist("ML").sublist("ML Settings").set("D0","substitute const D0");
@@ -2642,52 +2617,43 @@ void TestPreconditioner_Stratimikos(char ProblemType[],
         sublist->set(*key_it, rcp((const Tpetra_CrsMatrix*) &*Ms,false));
       else if (value == "const Coordinates")
         sublist->set(*key_it, rcp((const Tpetra_MultiVector*) &*coords,false));
-      // else if (value == "x-coordinates")
-      //   sublist->set(*key_it, &Nx[0]);
-      // else if (value == "y-coordinates")
-      //   sublist->set(*key_it, &Ny[0]);
-      // else if (value == "z-coordinates")
-      //   sublist->set(*key_it, &Nz[0]);
+      else if (value == "x-coordinates")
+        sublist->set(*key_it, &Nx[0]);
+      else if (value == "y-coordinates")
+        sublist->set(*key_it, &Ny[0]);
+      else if (value == "z-coordinates")
+        sublist->set(*key_it, &Nz[0]);
     }
   }
 
   //  Tpetra_Time Time(CurlCurl.Comm());
 
   /* Thyra Wrappers */
-  // Tpetra_MultiVector x(xh);
-  x->putScalar(0.0);
+  Tpetra_MultiVector x(xh);
+  x.putScalar(0.0);
 
-  Teuchos::RCP<const Tpetra::RowMatrix<SC,LO,GO,NO> > tpRowMat   = Teuchos::rcp_dynamic_cast<const Tpetra::RowMatrix<SC,LO,GO,NO> >(CurlCurl);
-  TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(tpRowMat));
-  Teuchos::RCP<const Tpetra::Operator <SC,LO,GO,NO> > tpOperator = Teuchos::rcp_dynamic_cast<const Tpetra::Operator<SC,LO,GO,NO> >(tpRowMat);
-  TEUCHOS_TEST_FOR_EXCEPT(Teuchos::is_null(tpOperator));
-
-  RCP<const Thyra::LinearOpBase<SC> > At = Thyra::createConstLinearOp(tpOperator);
-
-  auto thyTpMap = Thyra::tpetraVectorSpace<SC,LO,GO,NO>(x->getMap());
-  auto thyDomMap = Thyra::tpetraVectorSpace<SC,LO,GO,NO>(Tpetra::createLocalMapWithNode<LO,GO,NO>(x->getNumVectors(), x->getMap()->getComm()));
-  auto xt = rcp(new Thyra::TpetraMultiVector<SC,LO,GO,NO>());
-  xt->initialize(thyTpMap, thyDomMap, x);
-  auto bt = rcp(new Thyra::TpetraMultiVector<SC,LO,GO,NO>());
-  bt->initialize(thyTpMap, thyDomMap, b);
+  RCP<const Thyra::LinearOpBase<double> > At = Thyra::epetraLinearOp( rcp(&CurlCurl,false) );
+  RCP<Thyra::MultiVectorBase<double> > xt         = Thyra::create_MultiVector( rcp(&x,false), At->domain() );
+  RCP<const Thyra::MultiVectorBase<double> > bt   = Thyra::create_MultiVector( rcp(&b,false), At->range() );
 
   /* Stratimikos setup */
   Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
   Stratimikos::enableMueLuRefMaxwell<LO,GO,Node>(linearSolverBuilder);                // Register MueLu as a Stratimikos preconditioner strategy.
-#ifdef HAVE_TRILINOSCOUPLINGS_IFPACK2
-  // Register Ifpack2 as a Stratimikos preconditioner strategy.
-  typedef Thyra::PreconditionerFactoryBase<double>                                   Base;
-  typedef Thyra::Ifpack2PreconditionerFactory<Tpetra::CrsMatrix<double,LO,GO,Node> > Impl;
-  linearSolverBuilder.setPreconditioningStrategyFactory(Teuchos::abstractFactoryStd<Base, Impl>(), "Ifpack2");
-#endif
 
   linearSolverBuilder.setParameterList(rcp(&SList,false));
-  RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsFactory = createLinearSolveStrategy(linearSolverBuilder);
-  RCP<Thyra::LinearOpWithSolveBase<SC> > lows = Thyra::linearOpWithSolve<SC>(*lowsFactory,At);
+  RCP<Thyra::LinearOpWithSolveFactoryBase<double> > lowsFactory = createLinearSolveStrategy(linearSolverBuilder);
+  RCP<Thyra::LinearOpWithSolveBase<double> > lows = Thyra::linearOpWithSolve<double>(*lowsFactory,At);
 
   /* Solve */
-  Thyra::SolveStatus<SC> status = Thyra::solve<SC>(*lows, Thyra::NOTRANS, *bt, xt.ptr());
+  Thyra::SolveStatus<double> status = Thyra::solve<double>(*lows, Thyra::NOTRANS, *bt, xt.ptr());
 
+  // accuracy check
+  Tpetra_MultiVector xexact(xh);
+  xexact.putScalar(0.0);
+  string msg = ProblemType;
+  solution_test(msg,CurlCurl,x,b,xexact,TotalErrorExactSol,TotalErrorResidual);
+
+  xh = x;
 }
 
 #endif  // HAVE_TRILINOSCOUPLINGS_STRATIMIKOS

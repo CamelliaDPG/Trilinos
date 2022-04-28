@@ -51,6 +51,10 @@
     !defined(KOKKOS_ATOMIC_COMPARE_EXCHANGE_STRONG_HPP)
 #define KOKKOS_ATOMIC_COMPARE_EXCHANGE_STRONG_HPP
 
+#if defined(KOKKOS_ENABLE_CUDA)
+#include <Cuda/Kokkos_Cuda_Version_9_8_Compatibility.hpp>
+#endif
+
 #include <impl/Kokkos_Atomic_Memory_Order.hpp>
 #include <impl/Kokkos_Memory_Fence.hpp>
 
@@ -111,9 +115,13 @@ __inline__ __device__ T atomic_compare_exchange(
                             const T>::type& val) {
   T return_val;
   // This is a way to (hopefully) avoid dead lock in a warp
-  int done                 = 0;
-  unsigned int mask        = __activemask();
-  unsigned int active      = __ballot_sync(mask, 1);
+  int done = 0;
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+  unsigned int mask   = KOKKOS_IMPL_CUDA_ACTIVEMASK;
+  unsigned int active = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, 1);
+#else
+  unsigned int active = KOKKOS_IMPL_CUDA_BALLOT(1);
+#endif
   unsigned int done_active = 0;
   while (active != done_active) {
     if (!done) {
@@ -126,7 +134,11 @@ __inline__ __device__ T atomic_compare_exchange(
         done = 1;
       }
     }
-    done_active = __ballot_sync(mask, done);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+    done_active = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, done);
+#else
+    done_active = KOKKOS_IMPL_CUDA_BALLOT(done);
+#endif
   }
   return return_val;
 }

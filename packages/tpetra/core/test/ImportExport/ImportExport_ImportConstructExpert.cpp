@@ -103,7 +103,8 @@ namespace {
     const GO gblNumCols = static_cast<GO> (rowMap->getGlobalNumElements ());
 
     RCP<graph_type> G =
-      rcp (new graph_type (rowMap, numEntPerRow));
+      rcp (new graph_type (rowMap, numEntPerRow,
+                           Tpetra::StaticProfile));
 
     Teuchos::Array<GO> gblColInds (numEntPerRow);
     for (LO lclRow = 0; lclRow < NumRows; ++lclRow) {
@@ -122,7 +123,7 @@ namespace {
     // columns, or asking the column Map for the number of entries,
     // won't give the correct number of columns in the graph.
     // const GO gblNumCols = graph->getDomainMap ()->getGlobalNumElements ();
-    const LO lclNumRows = meshRowMap.getLocalNumElements ();
+    const LO lclNumRows = meshRowMap.getNodeNumElements ();
     const LO blkSize = 16;
 
     RCP<matrix_type> A = rcp (new matrix_type (*G, blkSize));

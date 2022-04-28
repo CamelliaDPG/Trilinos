@@ -44,7 +44,6 @@
 #include "Tpetra_TestingUtilities.hpp"
 #include "Tpetra_CrsMatrix.hpp"
 #include "Tpetra_Core.hpp"
-#include "Tpetra_Vector.hpp"
 #include "Tpetra_Map.hpp"
 #include "Tpetra_Details_Behavior.hpp"
 #include "Teuchos_CommHelpers.hpp"
@@ -63,11 +62,10 @@ TEUCHOS_UNIT_TEST( CrsMatrix, sumIntoStaticProfileExtraSpace )
   using crs_matrix_type = Tpetra::CrsMatrix<>;
   using LO = map_type::local_ordinal_type;
   using GO = map_type::global_ordinal_type;
-  using SC = Tpetra::Vector<>::scalar_type;
   int lclSuccess = 1;
   int gblSuccess = 0;
 
-  out << "CrsMatrix: Test sumIntoLocalValues, "
+  out << "CrsMatrix: Test sumIntoLocalValues, StaticProfile, "
     "not yet fill complete, extra space in each row" << endl;
   Teuchos::OSTab tab1 (out);
 
@@ -85,7 +83,8 @@ TEUCHOS_UNIT_TEST( CrsMatrix, sumIntoStaticProfileExtraSpace )
     (new map_type (gblNumInds, lclNumInds, indexBase, comm));
 
   constexpr size_t maxNumEntPerRow = 5;
-  crs_matrix_type A (rowAndColMap, rowAndColMap, maxNumEntPerRow);
+  crs_matrix_type A (rowAndColMap, rowAndColMap, maxNumEntPerRow,
+                     Tpetra::StaticProfile);
 
   for (LO lclRow = 0; lclRow < lclNumInds; ++lclRow) {
     const size_t numEnt = A.getNumEntriesInLocalRow (lclRow);
@@ -104,7 +103,7 @@ TEUCHOS_UNIT_TEST( CrsMatrix, sumIntoStaticProfileExtraSpace )
     out << "Insert local column indices 1,2 into each row" << endl;
     Teuchos::OSTab tab2 (out);
 
-    const SC vals[2] = { 5.0, 6.0 };
+    const double vals[2] = { 5.0, 6.0 };
     const LO inds[2] = { LO (1), LO (2) };
     const LO numToInsert = 2;
 
@@ -137,7 +136,7 @@ TEUCHOS_UNIT_TEST( CrsMatrix, sumIntoStaticProfileExtraSpace )
     out << "Try to sumInto a local index that should not exist" << endl;
     Teuchos::OSTab tab2 (out);
 
-    const SC vals[2] = { 20.0 };
+    const double vals[2] = { 20.0 };
     const LO inds[2] = { LO (0) }; // not in graph/matrix yet
     const LO numToInsert = 1;
 

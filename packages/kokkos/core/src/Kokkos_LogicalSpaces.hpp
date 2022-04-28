@@ -257,8 +257,7 @@ class SharedAllocationRecord<Kokkos::Experimental::LogicalMemorySpace<
 #endif
             Impl::checked_allocation_with_header(arg_space, arg_label,
                                                  arg_alloc_size),
-            sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc,
-            arg_label),
+            sizeof(SharedAllocationHeader) + arg_alloc_size, arg_dealloc),
         m_space(arg_space) {
     // Fill in the Header information
     RecordBase::m_alloc_ptr->m_record =
@@ -278,10 +277,14 @@ class SharedAllocationRecord<Kokkos::Experimental::LogicalMemorySpace<
   KOKKOS_INLINE_FUNCTION static SharedAllocationRecord* allocate(
       const SpaceType& arg_space, const std::string& arg_label,
       const size_t arg_alloc_size) {
-    KOKKOS_IF_ON_HOST((return new SharedAllocationRecord(arg_space, arg_label,
-                                                         arg_alloc_size);))
-    KOKKOS_IF_ON_DEVICE(((void)arg_space; (void)arg_label; (void)arg_alloc_size;
-                         return nullptr;))
+#if defined(KOKKOS_ACTIVE_EXECUTION_MEMORY_SPACE_HOST)
+    return new SharedAllocationRecord(arg_space, arg_label, arg_alloc_size);
+#else
+    (void)arg_space;
+    (void)arg_label;
+    (void)arg_alloc_size;
+    return (SharedAllocationRecord*)nullptr;
+#endif
   }
 
   /**\brief  Allocate tracked memory in the space */
@@ -307,9 +310,6 @@ class SharedAllocationRecord<Kokkos::Experimental::LogicalMemorySpace<
 
     Kokkos::Impl::DeepCopy<SpaceType, SpaceType>(
         r_new->data(), r_old->data(), std::min(r_old->size(), r_new->size()));
-    Kokkos::fence(
-        "SharedAllocationRecord<Kokkos::Experimental::LogicalMemorySpace, "
-        "void>::reallocate_tracked: fence after copying data");
 
     RecordBase::increment(r_new);
     RecordBase::decrement(r_old);

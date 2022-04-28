@@ -117,8 +117,7 @@ namespace panzer {
 
     const int num_cells = 20;
     const int base_cell_dimension = 2;
-    const int cell_local_side_id = 1;
-    const panzer::CellData cell_data(num_cells,cell_local_side_id,topo);
+    const panzer::CellData cell_data(num_cells,topo);
     std::string cv_type = "side";
     
     panzer::IntegrationRule int_rule(cell_data,cv_type);

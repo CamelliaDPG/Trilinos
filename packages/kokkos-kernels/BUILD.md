@@ -149,9 +149,6 @@ endif()
 * KokkosKernels_ENABLE_TESTS: BOOL
   * Whether to build tests.
   * Default: OFF
-* KokkosKernels_ENABLE_DOCS: BOOL
-  * Whether to build docs.
-  * Default: OFF
 * KokkosKernels_ENABLE_TPL_BLAS: BOOL
   * Whether to enable BLAS
   * Default: OFF

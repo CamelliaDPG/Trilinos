@@ -1,11 +1,12 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
 // -*- Mode: c++ -*-
-#pragma once
+#ifndef IOSS_Ioss_Wedge6_h
+#define IOSS_Ioss_Wedge6_h
 
 #include <Ioss_CodeTypes.h>       // for IntVector
 #include <Ioss_ElementTopology.h> // for ElementTopology
@@ -20,7 +21,7 @@ namespace Ioss {
     static const char *name;
 
     static void factory();
-    ~Wedge6() override = default;
+    ~Wedge6() override;
 
     int  spatial_dimension() const override;
     int  parametric_dimension() const override;
@@ -56,3 +57,4 @@ namespace Ioss {
     Wedge6(const Wedge6 &) = delete;
   };
 } // namespace Ioss
+#endif

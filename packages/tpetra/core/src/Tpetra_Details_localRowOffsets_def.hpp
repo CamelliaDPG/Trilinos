@@ -44,15 +44,11 @@
 /// \brief Definition of function for getting local row offsets from a
 ///   Tpetra::RowGraph.
 
-#include "TpetraCore_config.h"
 #include "Tpetra_CrsGraph.hpp"
 #include "Tpetra_RowGraph.hpp"
 #include "Tpetra_Details_computeOffsets.hpp"
 #include "Tpetra_Details_getEntryOnHost.hpp"
 #include "Kokkos_Core.hpp"
-
-#ifdef TPETRA_ENABLE_DEPRECATED_CODE
-// This file can be deleted when deprecated code is removed
 
 namespace Tpetra {
 namespace Details {
@@ -66,7 +62,7 @@ localRowCounts (const RowGraph<LO, GO, NT>& G)
   using offsets_type = typename result_type::offsets_type;
   using offset_type = typename result_type::offset_type;
 
-  const LO lclNumRows (G.getLocalNumRows ());
+  const LO lclNumRows (G.getNodeNumRows ());
   offsets_type entPerRow;
   if (lclNumRows != 0) {
     using Kokkos::view_alloc;
@@ -78,7 +74,7 @@ localRowCounts (const RowGraph<LO, GO, NT>& G)
   using host = Kokkos::DefaultHostExecutionSpace;
   auto entPerRow_h = Kokkos::create_mirror_view (host (), entPerRow);
 
-  // Don't trust G.getLocalMaxNumRowEntries() unless G is fillComplete.
+  // Don't trust G.getNodeMaxNumRowEntries() unless G is fillComplete.
   // Even then, I would rather this method didn't exist (since it adds
   // state and imposes overhead on fillComplete), and it's easy to
   // compute ourselves here.
@@ -88,9 +84,7 @@ localRowCounts (const RowGraph<LO, GO, NT>& G)
     entPerRow_h[i] = offset_type (lclNumEnt);
     maxNumEnt = maxNumEnt < lclNumEnt ? lclNumEnt : maxNumEnt;
   }
-  // DEEP_COPY REVIEW - HOSTMIRROR-TO-DEVICE
-  using execution_space = typename NT::execution_space;
-  Kokkos::deep_copy (execution_space(), entPerRow, entPerRow_h);
+  Kokkos::deep_copy (entPerRow, entPerRow_h);
   return {entPerRow, maxNumEnt};
 }
 
@@ -110,7 +104,7 @@ localRowOffsetsFromRowGraph (const RowGraph<LO, GO, NT>& G)
     maxNumEnt = result.second;
   }
 
-  const LO lclNumRows (G.getLocalNumRows ());
+  const LO lclNumRows (G.getNodeNumRows ());
   offsets_type ptr;
   offset_type nnz = 0;
   if (lclNumRows != 0) {
@@ -137,11 +131,10 @@ localRowOffsetsFromFillCompleteCrsGraph (const CrsGraph<LO, GO, NT>& G)
   auto G_lcl = G.getLocalGraphDevice ();
   offsets_type ptr (view_alloc ("ptr", WithoutInitializing),
                     G_lcl.row_map.extent (0));
-  // DEEP_COPY REVIEW - NOT TESTED
   Kokkos::deep_copy (ptr, G_lcl.row_map);
 
-  const offset_type nnz = G.getLocalNumEntries ();
-  const size_t maxNumEnt = G.getLocalMaxNumRowEntries ();
+  const offset_type nnz = G.getNodeNumEntries ();
+  const size_t maxNumEnt = G.getNodeMaxNumRowEntries ();
   return {ptr, nnz, maxNumEnt};
 }
 
@@ -170,7 +163,6 @@ localRowOffsets (const RowGraph<LO, GO, NT>& G)
 //
 // Must be expanded from within the Tpetra namespace!
 //
-
 #define TPETRA_DETAILS_LOCALROWOFFSETS_INSTANT(LO, GO, NT) \
 namespace Details { \
 namespace Impl { \
@@ -189,7 +181,5 @@ localRowOffsetsFromFillCompleteCrsGraph (const CrsGraph<LO, GO, NT>& G); \
 template LocalRowOffsetsResult<NT> \
 localRowOffsets (const RowGraph<LO, GO, NT>& A); \
 }
-
-#endif // TPETRA_ENABLE_DEPRECATED_CODE
 
 #endif // TPETRA_DETAILS_LOCALROWOFFSETS_DEF_HPP

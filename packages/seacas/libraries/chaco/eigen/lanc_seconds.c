@@ -10,7 +10,7 @@
 double lanc_seconds(void)
 {
   extern int LANCZOS_TIME; /* perform detailed timing on Lanczos_SO? */
-  double     seconds(void);
+  double     seconds();
 
   if (LANCZOS_TIME) {
     return (seconds());

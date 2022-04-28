@@ -9,7 +9,6 @@ class ColorerTest {
 public:
   using map_t = Tpetra::Map<>;
   using gno_t = typename map_t::global_ordinal_type;
-  using graph_t = Tpetra::CrsGraph<>;
   using matrix_t = Tpetra::CrsMatrix<zscalar_t>;
   using multivector_t = Tpetra::MultiVector<zscalar_t>;
   using execution_space_t = typename matrix_t::device_type::execution_space;
@@ -74,32 +73,23 @@ public:
 
     // Fill JBlock with random numbers for a better test.
     JBlock->resumeFill();
+    auto local_matrix = JBlock->getLocalMatrixHost();
+    auto local_graph = JBlock->getCrsGraph()->getLocalGraphHost();
 
     using IST = typename Kokkos::Details::ArithTraits<zscalar_t>::val_type;
     using pool_type = 
           Kokkos::Random_XorShift64_Pool<execution_space_t>;
     pool_type rand_pool(static_cast<uint64_t>(me));
 
-    Kokkos::fill_random(JBlock->getLocalMatrixDevice().values, rand_pool, 
+    Kokkos::fill_random(local_matrix.values, rand_pool, 
                         static_cast<IST>(1.), static_cast<IST>(9999.));
     JBlock->fillComplete();
 
-
     // Make JCyclic:  same matrix with different Domain and Range maps
-    RCP<const graph_t> block_graph = JBlock->getCrsGraph();
-    RCP<graph_t> cyclic_graph = rcp(new graph_t(*block_graph));
-    cyclic_graph->resumeFill();
-    cyclic_graph->fillComplete(vMapCyclic, wMapCyclic);
-    JCyclic = rcp(new matrix_t(cyclic_graph));
-    JCyclic->resumeFill();
-    TEUCHOS_ASSERT(block_graph->getLocalNumRows() == cyclic_graph->getLocalNumRows());
-    {
-      auto val_s = JBlock->getLocalMatrixHost().values;
-      auto val_d = JCyclic->getLocalMatrixHost().values;
-      TEUCHOS_ASSERT(val_s.extent(0) == val_d.extent(0));
-      Kokkos::deep_copy(val_d, val_s);
-    }
-    JCyclic->fillComplete();
+    auto lclMatrix = JBlock->getLocalMatrixHost();
+    JCyclic = rcp(new matrix_t(JBlock->getLocalMatrixHost(),
+                               JBlock->getRowMap(), JBlock->getColMap(),
+                               vMapCyclic, wMapCyclic));
   }
 
   ////////////////////////////////////////////////////////////////
@@ -137,6 +127,7 @@ public:
 
     // Create a colorer
     Zoltan2::TpetraCrsColorer<matrix_t> colorer(J);
+
     colorer.computeColoring(params);
 
     // Check coloring
@@ -166,14 +157,16 @@ public:
 
     // Reconstruct matrix from compression vector
     Teuchos::RCP<matrix_t> Jp = rcp(new matrix_t(*J, Teuchos::Copy));
+    Jp->resumeFill();
     Jp->setAllToScalar(static_cast<zscalar_t>(-1.));
+    Jp->fillComplete();
 
     colorer.reconstructMatrix(W, *Jp);
 
     // Check that values of J = values of Jp
-    auto J_local_matrix = J->getLocalMatrixDevice();
-    auto Jp_local_matrix = Jp->getLocalMatrixDevice();
-    const size_t num_local_nz = J->getLocalNumEntries();
+    auto J_local_matrix = J->getLocalMatrixHost();
+    auto Jp_local_matrix = Jp->getLocalMatrixHost();
+    const size_t num_local_nz = J->getNodeNumEntries();
 
     Kokkos::parallel_reduce(
       "TpetraCrsColorer::testReconstructedMatrix()",
@@ -189,10 +182,12 @@ public:
    
 
     if (ierr > 0) {
-      std::cout << testname << " FAILED on rank " << me << " with "
-                << (useBlock ? "Block maps" : "Cyclic maps")
-                << std::endl;
-      params.print();
+      if (me == 0) {
+        std::cout << testname << " FAILED with "
+                  << (useBlock ? "Block maps" : "Cyclic maps")
+                  << std::endl;
+        params.print();
+      }
     }
 
     return (ierr == 0);
@@ -250,7 +245,7 @@ int main(int narg, char **arg)
     coloring_params.set("MatrixType", matrixType);
     coloring_params.set("symmetrize", symmetrize);
 
-    ok = testColorer.run("Test One", coloring_params);
+    testColorer.run("Test One", coloring_params);
     if (!ok) ierr++;
   }
 
@@ -262,7 +257,7 @@ int main(int narg, char **arg)
     coloring_params.set("MatrixType", matrixType);
     coloring_params.set("symmetrize", symmetrize);
 
-    ok = testColorer.run("Test Two", coloring_params);
+    testColorer.run("Test Two", coloring_params);
     if (!ok) ierr++;
   }
 
@@ -272,18 +267,12 @@ int main(int narg, char **arg)
 
     coloring_params.set("MatrixType", matrixType);
 
-    ok = testColorer.run("Test Three", coloring_params);
+    testColorer.run("Test Three", coloring_params);
     if (!ok) ierr++;
   }
 
-  int gerr;
-  Teuchos::reduceAll<int, int>(*comm, Teuchos::REDUCE_SUM, 1, &ierr, &gerr);
-  if (comm->getRank() == 0) { 
-    if (gerr == 0)
-      std::cout << "TEST PASSED" << std::endl;
-    else
-      std::cout << "TEST FAILED" << std::endl;
-  }
+  if (ierr == 0)
+    std::cout << "TEST PASSED" << std::endl;
 
 //Through cmake...
 //Test cases -- UserInputForTests can generate Galeri or read files:

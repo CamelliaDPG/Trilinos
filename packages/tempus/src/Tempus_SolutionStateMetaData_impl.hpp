@@ -20,8 +20,6 @@ SolutionStateMetaData<Scalar>::SolutionStateMetaData()
    dt_            (0.0),
    errorAbs_      (0.0),
    errorRel_      (0.0),
-   errorRelNm1_   (0.0),
-   errorRelNm2_   (0.0),
    order_         (1),
    nFailures_     (0),
    nRunningFailures_(0),
@@ -47,8 +45,6 @@ SolutionStateMetaData<Scalar>::SolutionStateMetaData(
   const Scalar dt,
   const Scalar errorAbs,
   const Scalar errorRel,
-  const Scalar errorRelNm1,
-  const Scalar errorRelNm2,
   const int    order,
   const int    nFailures,
   const int    nRunningFailures,
@@ -70,8 +66,6 @@ SolutionStateMetaData<Scalar>::SolutionStateMetaData(
    dt_            (dt),
    errorAbs_      (errorAbs),
    errorRel_      (errorRel),
-   errorRelNm1_   (errorRelNm1),
-   errorRelNm2_   (errorRelNm2),
    order_         (order),
    nFailures_     (nFailures),
    nRunningFailures_(nRunningFailures),
@@ -97,8 +91,6 @@ SolutionStateMetaData<Scalar>::SolutionStateMetaData(const SolutionStateMetaData
    dt_            (ssmd.dt_),
    errorAbs_      (ssmd.errorAbs_),
    errorRel_      (ssmd.errorRel_),
-   errorRelNm1_   (ssmd.errorRelNm1_),
-   errorRelNm2_   (ssmd.errorRelNm2_),
    order_         (ssmd.order_),
    nFailures_     (ssmd.nFailures_),
    nRunningFailures_(ssmd.nRunningFailures_),
@@ -127,8 +119,6 @@ Teuchos::RCP<SolutionStateMetaData<Scalar> > SolutionStateMetaData<Scalar>::clon
       dt_,
       errorAbs_,
       errorRel_,
-      errorRelNm1_,
-      errorRelNm2_,
       order_,
       nFailures_,
       nRunningFailures_,
@@ -159,8 +149,6 @@ copy(const Teuchos::RCP<const SolutionStateMetaData<Scalar> >& ssmd)
   dt_             = ssmd->dt_;
   errorAbs_       = ssmd->errorAbs_;
   errorRel_       = ssmd->errorRel_;
-  errorRelNm1_    = ssmd->errorRelNm1_;
-  errorRelNm2_    = ssmd->errorRelNm2_;
   order_          = ssmd->order_;
   nFailures_      = ssmd->nFailures_;
   nRunningFailures_= ssmd->nRunningFailures_;
@@ -205,8 +193,6 @@ void SolutionStateMetaData<Scalar>::describe(
            << "  dt             = " << dt_ << std::endl
            << "  errorAbs       = " << errorAbs_ << std::endl
            << "  errorRel       = " << errorRel_ << std::endl
-           << "  errorRelNm1    = " << errorRelNm1_ << std::endl
-           << "  errorRelNm2    = " << errorRelNm2_ << std::endl
            << "  order          = " << order_ << std::endl
            << "  nFailures      = " << nFailures_ << std::endl
            << "  nRunningFailures = " << nRunningFailures_<< std::endl

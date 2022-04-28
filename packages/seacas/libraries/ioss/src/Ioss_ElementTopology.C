@@ -143,18 +143,7 @@ unsigned int Ioss::ElementTopology::get_unique_id(const std::string &type)
 
 /** \brief Get the names of element topologies known to Ioss.
  *
- *  \returns The list of known element topology names.
- */
-Ioss::NameList Ioss::ElementTopology::describe()
-{
-  Ioss::NameList names;
-  describe(&names);
-  return names;
-}
-
-/** \brief Get the names of element topologies known to Ioss.
- *
- *  \param[out] names The list of known element topology names.
+ *  \param[out] names The list of known element topoloty names.
  *  \returns The number of known element topologies.
  */
 int Ioss::ElementTopology::describe(NameList *names)

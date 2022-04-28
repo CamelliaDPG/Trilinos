@@ -69,10 +69,6 @@ template class EpetraCrsMatrixT<int, Kokkos::Compat::KokkosOpenMPWrapperNode >;
 typedef Kokkos::Compat::KokkosCudaWrapperNode default_node_type;
 template class EpetraCrsMatrixT<int, default_node_type >;
 #endif
-#ifdef HAVE_TPETRA_INST_HIP
-typedef Kokkos::Compat::KokkosHIPWrapperNode default_node_type;
-template class EpetraCrsMatrixT<int, default_node_type >;
-#endif
 #else
 // Tpetra is disabled and Kokkos not available: use dummy node type
 typedef Xpetra::EpetraNode default_node_type;
@@ -99,10 +95,6 @@ template class EpetraCrsMatrixT<long long, Kokkos::Compat::KokkosOpenMPWrapperNo
 #endif
 #ifdef HAVE_TPETRA_INST_CUDA
 typedef Kokkos::Compat::KokkosCudaWrapperNode default_node_type;
-template class EpetraCrsMatrixT<long long, default_node_type >;
-#endif
-#ifdef HAVE_TPETRA_INST_HIP
-typedef Kokkos::Compat::KokkosHIPWrapperNode default_node_type;
 template class EpetraCrsMatrixT<long long, default_node_type >;
 #endif
 #else

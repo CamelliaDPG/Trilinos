@@ -42,9 +42,11 @@
 //@HEADER
 */
 
+
+
 #ifndef _KOKKOSKERNEL_CONTROLS_HPP
 #define _KOKKOSKERNEL_CONTROLS_HPP
-/// \file  KokkosKernels_Controls.hpp
+/// \file  KokkosKernels_Controls.hpp 
 /// \brief Mechanism to control internal behavior of kernels
 /// \author Luc Berger-Vergiat (lberge@sandia.gov)
 
@@ -61,107 +63,83 @@
 #include "cusparse.h"
 #endif
 
-#ifdef KOKKOSKERNELS_ENABLE_TPL_ROCSPARSE
-#include "rocsparse.h"
-#endif
+namespace KokkosKernels{
+namespace Experimental{
 
-namespace KokkosKernels {
-namespace Experimental {
+  // Declaration of Controls class
+  class Controls {
 
-// Declaration of Controls class
-class Controls {
- public:
-  // Constructor
-  Controls() = default;
+  public:
+    // Constructor
+    Controls() = default;
 
-  // set a new parameter
-  void setParameter(const std::string& name, const std::string& value) {
-    kernel_parameters[name] = value;
-  }
-
-  // check if a parameter is already set
-  bool isParameter(const std::string& name) const {
-    bool return_value = false;
-
-    auto search = kernel_parameters.find(name);
-    if (search != kernel_parameters.end()) {
-      return_value = true;
+    // set a new parameter
+    void setParameter(const std::string& name, const std::string& value) {
+      kernel_parameters[name] = value;
     }
 
-    return return_value;
-  }
+    // check if a parameter is already set
+    bool isParameter(const std::string& name) const {
+      bool return_value = false;
 
-  // retrieve the value associated with a parameter if it is already set
-  std::string getParameter(const std::string& name) const {
-    auto search = kernel_parameters.find(name);
-    std::string value;
-    if (search == kernel_parameters.end()) {
-      std::cout << "Parameter " << name
-                << " was not found in the list of parameters!" << std::endl;
-      value = "";
-    } else {
-      value = search->second;
+      auto search = kernel_parameters.find(name);
+      if(search != kernel_parameters.end()) { return_value = true; }
+
+      return return_value;
     }
-    return value;
-  }
+
+    // retrieve the value associated with a parameter if it is already set
+    std::string getParameter(const std::string& name) const {
+      auto search = kernel_parameters.find(name);
+      std::string value;
+      if(search == kernel_parameters.end()) {
+	std::cout << "Parameter " << name << " was not found in the list of parameters!" << std::endl;
+	value = "";
+      } else {
+	value = search->second;
+      }
+      return value;
+    }
 
 #ifdef KOKKOSKERNELS_ENABLE_TPL_CUBLAS
-  mutable cublasHandle_t cublasHandle = 0;
+    mutable cublasHandle_t cublasHandle = 0;
 
-  cublasHandle_t getCublasHandle() const {
-    if (cublasHandle == 0) {
-      KokkosBlas::Impl::CudaBlasSingleton& s =
-          KokkosBlas::Impl::CudaBlasSingleton::singleton();
-      cublasHandle = s.handle;
+    cublasHandle_t getCublasHandle() const {
+      if(cublasHandle == 0) {
+	KokkosBlas::Impl::CudaBlasSingleton & s = KokkosBlas::Impl::CudaBlasSingleton::singleton();
+	cublasHandle = s.handle;
+      }
+      return cublasHandle;
     }
-    return cublasHandle;
-  }
 
-  void setCublasHandle(const cublasHandle_t userCublasHandle) {
-    cublasHandle = userCublasHandle;
-  }
+    void setCublasHandle(const cublasHandle_t userCublasHandle) {
+      cublasHandle = userCublasHandle;
+    }
 #endif
 
 #ifdef KOKKOSKERNELS_ENABLE_TPL_CUSPARSE
-  mutable cusparseHandle_t cusparseHandle = 0;
+    mutable cusparseHandle_t cusparseHandle = 0;
 
-  cusparseHandle_t getCusparseHandle() const {
-    if (cusparseHandle == 0) {
-      KokkosKernels::Impl::CusparseSingleton& s =
-          KokkosKernels::Impl::CusparseSingleton::singleton();
-      cusparseHandle = s.cusparseHandle;
+    cusparseHandle_t getCusparseHandle() const {
+      if(cusparseHandle == 0) {
+	KokkosKernels::Impl::CusparseSingleton & s =
+	  KokkosKernels::Impl::CusparseSingleton::singleton();
+	cusparseHandle = s.cusparseHandle;
+      }
+      return cusparseHandle;
     }
-    return cusparseHandle;
-  }
 
-  void setCusparseHandle(const cusparseHandle_t userCusparseHandle) {
-    cusparseHandle = userCusparseHandle;
-  }
+    void setCusparseHandle(const cusparseHandle_t userCusparseHandle) {
+      cusparseHandle = userCusparseHandle;
+    }
 #endif
 
-#ifdef KOKKOSKERNELS_ENABLE_TPL_ROCSPARSE
-  mutable rocsparse_handle rocsparseHandle = 0;
+  private:
+    // storage for kernel parameters
+    std::unordered_map<std::string, std::string> kernel_parameters;
+  };
 
-  rocsparse_handle getRocsparseHandle() const {
-    if (rocsparseHandle == 0) {
-      KokkosKernels::Impl::RocsparseSingleton& s =
-          KokkosKernels::Impl::RocsparseSingleton::singleton();
-      rocsparseHandle = s.rocsparseHandle;
-    }
-    return rocsparseHandle;
-  }
+} // namespace Experimental
+} // namespace KokkosKernels
 
-  void setRocsparseHandle(const rocsparse_handle userRocsparseHandle) {
-    rocsparseHandle = userRocsparseHandle;
-  }
-#endif
-
- private:
-  // storage for kernel parameters
-  std::unordered_map<std::string, std::string> kernel_parameters;
-};
-
-}  // namespace Experimental
-}  // namespace KokkosKernels
-
-#endif  // _KOKKOSKERNEL_CONTROLS_HPP
+#endif // _KOKKOSKERNEL_CONTROLS_HPP

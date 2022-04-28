@@ -1,15 +1,15 @@
-include(SetDefaultAndFromEnv)
+INCLUDE(SetDefaultAndFromEnv)
 
-set(CTEST_NIGHTLY_START_TIME "04:00:00 UTC") # 10 PM MDT or 9 PM MST
+SET(CTEST_NIGHTLY_START_TIME "04:00:00 UTC") # 10 PM MDT or 9 PM MST
 
-if (NOT DEFINED CTEST_DROP_METHOD)
-  set_default_and_from_env(CTEST_DROP_METHOD "http")
-endif()
+IF (NOT DEFINED CTEST_DROP_METHOD)
+  SET_DEFAULT_AND_FROM_ENV(CTEST_DROP_METHOD "http")
+ENDIF()
 
-if (CTEST_DROP_METHOD STREQUAL "http")
-  set_default_and_from_env(CTEST_DROP_SITE "my.cdash.org")
-  set_default_and_from_env(CTEST_PROJECT_NAME "TribitsExampleProject")
-  set_default_and_from_env(CTEST_DROP_LOCATION "/submit.php?project=TribitsExampleProject")
-  set_default_and_from_env(CTEST_TRIGGER_SITE "")
-  set_default_and_from_env(CTEST_DROP_SITE_CDASH TRUE)
-endif()
+IF (CTEST_DROP_METHOD STREQUAL "http")
+  SET_DEFAULT_AND_FROM_ENV(CTEST_DROP_SITE "my.cdash.org")
+  SET_DEFAULT_AND_FROM_ENV(CTEST_PROJECT_NAME "TribitsExampleProject")
+  SET_DEFAULT_AND_FROM_ENV(CTEST_DROP_LOCATION "/submit.php?project=TribitsExampleProject")
+  SET_DEFAULT_AND_FROM_ENV(CTEST_TRIGGER_SITE "")
+  SET_DEFAULT_AND_FROM_ENV(CTEST_DROP_SITE_CDASH TRUE)
+ENDIF()

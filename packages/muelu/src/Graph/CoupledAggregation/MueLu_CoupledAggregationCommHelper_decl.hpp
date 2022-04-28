@@ -57,7 +57,6 @@
 
 #include "MueLu_Aggregates.hpp"
 
-
 namespace MueLu {
 
   /*!
@@ -71,8 +70,8 @@ namespace MueLu {
            class GlobalOrdinal = DefaultGlobalOrdinal,
            class Node = DefaultNode>
   class CoupledAggregationCommHelper : public BaseClass {
-    typedef DefaultScalar Scalar;
 
+    typedef double Scalar; // Scalar type only used for weight: always a double.
 #undef MUELU_COUPLEDAGGREGATIONCOMMHELPER_SHORT
 #include "MueLu_UseShortNames.hpp"
 

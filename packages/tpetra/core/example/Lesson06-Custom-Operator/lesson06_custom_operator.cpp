@@ -129,7 +129,7 @@ public:
     //
     // Get the local number of rows
     //
-    local_ordinal_type nlocal = opMap_->getLocalNumElements ();
+    local_ordinal_type nlocal = opMap_->getNodeNumElements ();
 
     //
     // Define the distribution that you need for the matvec.  When you

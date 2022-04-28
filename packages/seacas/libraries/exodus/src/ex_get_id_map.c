@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2021 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -28,7 +28,9 @@
 
 int ex_get_id_map(int exoid, ex_entity_type map_type, void_int *map)
 {
-  int         status;
+  int         dimid, mapid, status;
+  size_t      i;
+  size_t      num_entries;
   char        errmsg[MAX_ERR_LENGTH];
   const char *dnumentries;
   const char *vmap;
@@ -68,14 +70,11 @@ int ex_get_id_map(int exoid, ex_entity_type map_type, void_int *map)
   }
 
   /* See if any entries are stored in this file */
-  int dimid;
   if (nc_inq_dimid(exoid, dnumentries, &dimid) != NC_NOERR) {
     EX_FUNC_LEAVE(EX_NOERR);
   }
 
-  int mapid;
   if (nc_inq_varid(exoid, vmap, &mapid) != NC_NOERR) {
-    size_t num_entries;
     if ((status = nc_inq_dimlen(exoid, dimid, &num_entries)) != NC_NOERR) {
       snprintf(errmsg, MAX_ERR_LENGTH, "ERROR: failed to get number of %ss in file id %d", tname,
                exoid);
@@ -86,13 +85,13 @@ int ex_get_id_map(int exoid, ex_entity_type map_type, void_int *map)
     /* generate default map of 1..n, where n is num_entries */
     if (ex_int64_status(exoid) & EX_MAPS_INT64_API) {
       int64_t *lmap = (int64_t *)map;
-      for (size_t i = 0; i < num_entries; i++) {
+      for (i = 0; i < num_entries; i++) {
         lmap[i] = i + 1;
       }
     }
     else {
       int *lmap = (int *)map;
-      for (size_t i = 0; i < num_entries; i++) {
+      for (i = 0; i < num_entries; i++) {
         lmap[i] = i + 1;
       }
     }

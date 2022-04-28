@@ -54,41 +54,40 @@ struct EntityKey
     , INVALID = ~0ULL
   };
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   static bool is_valid_id( EntityId id )
   {
     return id > MIN_ID && id <=  EntityKey::MAX_ID;
   }
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   EntityKey()
     : m_value(INVALID)
   {}
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   EntityKey( entity_key_t value )
     : m_value(value)
   {}
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   EntityKey( EntityRank arg_rank, EntityId arg_id )
     : m_value( static_cast<entity_key_t>( static_cast<uint64_t>(arg_rank) << RANK_SHIFT | arg_id) )
   {
-    NGP_ThrowAssertMsg((arg_rank >= stk::topology::BEGIN_RANK) && (arg_rank < stk::topology::INVALID_RANK),
-                       "Error: given an out of range entity rank");
-    NGP_ThrowAssertMsg(arg_id <= MAX_ID, "Error: given an out of range entity id");
+    NGP_ThrowAssertMsg( arg_rank <= static_cast<EntityRank>(255), "Error: given an out of range entity rank");
+    NGP_ThrowAssertMsg( arg_id <= MAX_ID, "Error: given an out of range entity id");
   }
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   EntityId   id() const   { return m_value & ID_MASK; }
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   EntityRank rank() const { return static_cast<EntityRank>(m_value >> RANK_SHIFT); }
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   bool is_valid() const { return m_value != INVALID; }
 
-  KOKKOS_FUNCTION
+  STK_FUNCTION
   operator entity_key_t() const { return m_value; }
 
   entity_key_t m_value;
@@ -98,7 +97,7 @@ std::ostream & operator << ( std::ostream & out, EntityKey  key);
 
 struct HashValueForEntityKey
 {
-    KOKKOS_FUNCTION
+    STK_FUNCTION
     size_t operator()(EntityKey k) const
     {
       return static_cast<size_t>(k.m_value);

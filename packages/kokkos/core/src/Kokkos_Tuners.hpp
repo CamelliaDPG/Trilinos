@@ -306,11 +306,7 @@ class MultidimensionalSparseTuningProblem {
   static constexpr size_t max_space_dimension_size = MaxDimensionSize;
   static constexpr double tuning_min               = 0.0;
   static constexpr double tuning_max               = 0.999;
-
-  // Not declared as static constexpr to work around the following compiler bug
-  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96862
-  // where a floating-point expression cannot be constexpr under -frounding-math
-  double tuning_step = tuning_max / max_space_dimension_size;
+  static constexpr double tuning_step = tuning_max / max_space_dimension_size;
 
   using StoredProblemSpace =
       typename Impl::MapTypeConverter<ProblemSpaceInput>::type;
@@ -319,45 +315,17 @@ class MultidimensionalSparseTuningProblem {
 
   using ValueArray = std::array<Kokkos::Tools::Experimental::VariableValue,
                                 space_dimensionality>;
-  template <class Key, class Value>
-  using extended_map = std::map<Key, Value>;
-  template <typename Key>
-  using extended_problem =
-      MultidimensionalSparseTuningProblem<extended_map, MaxDimensionSize, Key,
-                                          ProblemSpaceInput>;
-  template <typename Key, typename Value>
-  using ExtendedProblemSpace =
-      typename Impl::MapTypeConverter<extended_map<Key, Value>>::type;
-
-  template <typename Key>
-  auto extend(const std::string& axis_name,
-              const std::vector<Key>& new_tuning_axis) const
-      -> extended_problem<Key> {
-    ExtendedProblemSpace<Key, ProblemSpaceInput> extended_space;
-    for (auto& key : new_tuning_axis) {
-      extended_space.add_root_value(key);
-      extended_space.add_sub_container(m_space);
-    }
-    std::vector<std::string> extended_names;
-    extended_names.reserve(m_variable_names.size() + 1);
-    extended_names.push_back(axis_name);
-    extended_names.insert(extended_names.end(), m_variable_names.begin(),
-                          m_variable_names.end());
-    return extended_problem<Key>(extended_space, extended_names);
-  }
 
  private:
   StoredProblemSpace m_space;
   std::array<size_t, space_dimensionality> variable_ids;
-  std::vector<std::string> m_variable_names;
   size_t context;
 
  public:
   MultidimensionalSparseTuningProblem() = default;
-
-  MultidimensionalSparseTuningProblem(StoredProblemSpace space,
+  MultidimensionalSparseTuningProblem(ProblemSpaceInput space,
                                       const std::vector<std::string>& names)
-      : m_space(std::move(space)), m_variable_names(names) {
+      : m_space(HierarchyConstructor::build(space)) {
     assert(names.size() == space_dimensionality);
     for (unsigned long x = 0; x < names.size(); ++x) {
       VariableInfo info;
@@ -372,20 +340,6 @@ class MultidimensionalSparseTuningProblem {
     }
   }
 
-  MultidimensionalSparseTuningProblem(ProblemSpaceInput space,
-                                      const std::vector<std::string>& names)
-      : MultidimensionalSparseTuningProblem(HierarchyConstructor::build(space),
-                                            names) {}
-
-  template <typename... Coordinates>
-  auto get_point(Coordinates... coordinates) {
-    using ArrayType = std::array<Kokkos::Tools::Experimental::VariableValue,
-                                 sizeof...(coordinates)>;
-    return Impl::get_point(
-        m_space, ArrayType({Kokkos::Tools::Experimental::make_variable_value(
-                     0, static_cast<double>(coordinates))...}));
-  }
-
   auto begin() {
     context = Kokkos::Tools::Experimental::get_new_context_id();
     ValueArray values;
@@ -395,26 +349,10 @@ class MultidimensionalSparseTuningProblem {
     }
     begin_context(context);
     request_output_values(context, space_dimensionality, values.data());
-    return Impl::get_point(m_space, values);
+    return get_point(m_space, values);
   }
 
   auto end() { end_context(context); }
-};
-
-template <typename Tuner>
-struct ExtendableTunerMixin {
-  template <typename Key>
-  auto combine(const std::string& axis_name,
-               const std::vector<Key>& new_axis) const {
-    const auto& sub_tuner = static_cast<const Tuner*>(this)->get_tuner();
-    return sub_tuner.extend(axis_name, new_axis);
-  }
-
-  template <typename... Coordinates>
-  auto get_point(Coordinates... coordinates) {
-    const auto& sub_tuner = static_cast<const Tuner*>(this)->get_tuner();
-    return sub_tuner.get_point(coordinates...);
-  }
 };
 
 template <size_t MaxDimensionSize = 100, template <class...> class Container,
@@ -424,8 +362,7 @@ auto make_multidimensional_sparse_tuning_problem(
   return MultidimensionalSparseTuningProblem<Container, MaxDimensionSize,
                                              TemplateArguments...>(in, names);
 }
-
-class TeamSizeTuner : public ExtendableTunerMixin<TeamSizeTuner> {
+class TeamSizeTuner {
  private:
   using SpaceDescription = std::map<int64_t, std::vector<int64_t>>;
   using TunerType = decltype(make_multidimensional_sparse_tuning_problem<20>(
@@ -544,7 +481,7 @@ class TeamSizeTuner : public ExtendableTunerMixin<TeamSizeTuner> {
     }
   }
 
-  TunerType get_tuner() const { return tuner; }
+ private:
 };
 
 namespace Impl {
@@ -564,7 +501,7 @@ void fill_tile(std::map<T, Mapped>& cont, int tile_size) {
 }  // namespace Impl
 
 template <int MDRangeRank>
-struct MDRangeTuner : public ExtendableTunerMixin<MDRangeTuner<MDRangeRank>> {
+struct MDRangeTuner {
  private:
   static constexpr int rank       = MDRangeRank;
   static constexpr int max_slices = 15;
@@ -611,44 +548,7 @@ struct MDRangeTuner : public ExtendableTunerMixin<MDRangeTuner<MDRangeRank>> {
       tuner.end();
     }
   }
-
-  TunerType get_tuner() const { return tuner; }
 };
-
-template <class Choice>
-struct CategoricalTuner {
-  using choice_list = std::vector<Choice>;
-  choice_list choices;
-  size_t context;
-  size_t tuning_variable_id;
-  CategoricalTuner(std::string name, choice_list m_choices)
-      : choices(m_choices) {
-    std::vector<int64_t> indices;
-    for (typename decltype(choices)::size_type x = 0; x < choices.size(); ++x) {
-      indices.push_back(x);
-    }
-    VariableInfo info;
-    info.category      = StatisticalCategory::kokkos_value_categorical;
-    info.valueQuantity = CandidateValueType::kokkos_value_set;
-    info.type          = ValueType::kokkos_value_int64;
-    info.candidates    = make_candidate_set(indices.size(), indices.data());
-    tuning_variable_id = declare_output_type(name, info);
-  }
-  const Choice& begin() {
-    context = get_new_context_id();
-    begin_context(context);
-    VariableValue value = make_variable_value(tuning_variable_id, int64_t(0));
-    request_output_values(context, 1, &value);
-    return choices[value.value.int_value];
-  }
-  void end() { end_context(context); }
-};
-
-template <typename Choice>
-auto make_categorical_tuner(std::string name, std::vector<Choice> choices)
-    -> CategoricalTuner<Choice> {
-  return CategoricalTuner<Choice>(name, choices);
-}
 
 }  // namespace Experimental
 }  // namespace Tools

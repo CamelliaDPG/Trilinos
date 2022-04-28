@@ -334,7 +334,7 @@ namespace mwm_order
     
     const Int k = 2;
     
-    if(qlen-1 == pos0)
+    if(qlen == pos0)
     {
       qlen--;
       return;
@@ -567,6 +567,7 @@ namespace mwm_order
       {
         i  = row_idx[k];
         ai = abs(val[k]);
+
         if(ai > d[i])
         {
           d[i] = ai;
@@ -983,7 +984,7 @@ L160:
 
     if(num!=n)
     {
-      //printf("Struct singluar\n");
+      printf("Struct singluar\n");
       for(j = 0; j < n; j++)
       {
         jperm[j] = -1;
@@ -1014,7 +1015,6 @@ L160:
       }
     }//if(n != num)
 
-    delete [] Q;
     return 0;
   }//end mwm_bn
 
@@ -1036,11 +1036,12 @@ L160:
    Int &num
   )
   {
-    double *d    = new double[n];
-    Int   *jperm = new Int[n];
-    Int   *iperm = new Int[n];
-    Int   *L     = new Int[n];
-    Int   *pr    = new Int[n];
+    //Entry *d          = new Entry[n];
+    double *d          = new double[n];
+    Int   *jperm      = new Int[n];
+    Int   *iperm      = new Int[n];
+    Int   *L          = new Int[n];
+    Int   *pr         = new Int[n];
 
     //Entry bv = 0;
     double bv = 0;
@@ -1058,9 +1059,9 @@ L160:
     #endif
 
     for(Int i = 0; i < n; i++)
-    {
-      perm[i] = iperm[i];
-    }
+	  {
+	    perm[i] = iperm[i];
+	  }
 
     #ifdef MATCH_DEBUG
     FILE *fp;
@@ -1077,11 +1078,6 @@ L160:
 
     if(num == n)
     {
-      delete [] d;
-      delete [] jperm;
-      delete [] iperm;
-      delete [] L;
-      delete [] pr;
       return 0;
     }
 
@@ -1111,11 +1107,6 @@ L160:
     printf("\n");
     #endif
 
-    delete [] d;
-    delete [] jperm;
-    delete [] iperm;
-    delete [] L;
-    delete [] pr;
     return 0;
   }//end mwm()
 
@@ -1184,13 +1175,6 @@ L160:
 
     if(num == n)
     {
-      delete [] U;
-      delete [] d;
-      delete [] jperm;
-      delete [] iperm;
-      delete [] L;
-      delete [] pr;
-      delete [] min_val;
       return 0;
     }
     
@@ -1213,13 +1197,6 @@ L160:
  
     if(num == n)
     {
-      delete [] U;
-      delete [] d;
-      delete [] jperm;
-      delete [] iperm;
-      delete [] L;
-      delete [] pr;
-      delete [] min_val;
       return 0;
     }
 
@@ -1253,13 +1230,6 @@ L160:
     printf("\n");
     #endif
 		  
-    delete [] U;
-    delete [] d;
-    delete [] jperm;
-    delete [] iperm;
-    delete [] L;
-    delete [] pr;
-    delete [] min_val;
     return 0;
   }//end mwm()
 
@@ -1572,13 +1542,14 @@ L160:
    Int &num
   )
   {
-    Int i, k;
+    Int i,j,jj,k;
     Int isp, jsp;
-    Int jord;
+    Int jord, jdum;
 
     Entry dnew;
 
     Int *Q = new Int[n+1]; //Q
+    //Int *L = new Int[n+1]; //Location in Q
     Int *out = new Int[n+1];
 
     //reinit varaibles
@@ -1607,7 +1578,7 @@ L160:
 
       //if(jperm[jord]==-1)
       {
-        Int j = jord;
+        j     = jord;
         pr[j] = -1; // the root for j
 
 
@@ -1623,8 +1594,6 @@ L160:
             printf("\n dnew < 0 \n");
             printf("j: %d i: %d k: %d val: %e U: %e dnew: %e \n", j, i, k, val[k], U[i], dnew);
 
-            delete [] Q;
-            delete [] out;
             return -1;
           }
 
@@ -1688,8 +1657,9 @@ L160:
           }//if-
 
           //updates augment tree
-          out[iperm[i]] = k;
-          pr [iperm[i]] = j;
+          jj  = iperm[i];
+          out[jj] = k;
+          pr[jj]  = j;
 
         }//for-kk all heap objects
 
@@ -1699,7 +1669,7 @@ L160:
             up, low);
         #endif
 
-        for(Int jdum = 0; jdum < num; jdum++)
+        for(jdum = 0; jdum < num; jdum++)
         { 
           //If top Q is empty, need to fill
           if(low == up)
@@ -1763,9 +1733,9 @@ L160:
               continue;
             }
             //update cost
-            Entry dnew_k = vj+ val[k]-U[i];
+            Entry dnew = vj+ val[k]-U[i];
             //if newcost is more continue
-            if(dnew_k >= csp)
+            if(dnew >= csp)
             {
               continue;
             }
@@ -1773,7 +1743,7 @@ L160:
             //if row is not already matched
             if(iperm[i] == -1)
             {
-              csp = dnew_k;
+              csp = dnew;
               isp = k;
               jsp = j;
             }
@@ -1782,7 +1752,7 @@ L160:
               //check if dnew is smaller
               Entry di = d[i];
               //if not smaller continue
-              if(di <= dnew_k)
+              if(di <= dnew)
               {
                 continue;
               }
@@ -1792,10 +1762,10 @@ L160:
               {
                 continue;
               }
-              d[i] = dnew_k;
+              d[i] = dnew;
               //if new value is less than min, 
               //needs to be moved to upper heap
-              if(dnew_k <= dmin)
+              if(dnew <= dmin)
               {
                 Int lpos = L[i];
                 //check that it really is in the heap
@@ -1819,8 +1789,9 @@ L160:
                 }
                 mwm_heap_down(i,n,Q,d,L);
               }
-              out[iperm[i]] = k;
-              pr [iperm[i]]  = j;
+              Int jj  = iperm[i];
+              out[jj] = k;
+              pr[jj]  = j;
             }//if(row is or isnot already matched)
           }//for--upated all connecting nodes
         }
@@ -1846,10 +1817,10 @@ L160:
             break;
           }
 
-          Int k_j   = out[j];
-          i         = row_idx[k_j];
+          Int k     = out[j];
+          i         = row_idx[k];
           iperm[i]  = jj;
-          jperm[jj] = k_j;
+          jperm[jj] = k;
           j         = jj;
         }//end for--jdum pathtrace
 
@@ -1881,7 +1852,7 @@ L160:
     }//for--outer most loop over column matches
 
     //set dual column variable in d(1:n)
-    for(Int j = 0; j < n; j++)
+    for( j = 0; j < n; j++)
     {
       k = jperm[j];
       if(k != -1)
@@ -1902,7 +1873,7 @@ L160:
     if(num != n)
     {
       //clear j for workspace
-      for(Int j = 0; j < n; j++)
+      for( j = 0; j < n; j++)
       {
         jperm[j] = -1;
       }//for- j, clear j for work space
@@ -1917,13 +1888,13 @@ L160:
         }
         else
         {
-          Int j = iperm[i];
+          j = iperm[i];
           jperm[j] = i;
         }
       }//for=i, find row not matched
 
       k = 0;
-      for(Int j=0; j <n ; j++)
+      for( j=0; j <n ; j++)
       {
         if(jperm[j] != -1)
         {
@@ -1936,8 +1907,6 @@ L160:
     }//if-num!=n, we where unsuccessful
 
     //Done!
-    delete [] Q;
-    delete [] out;
     return 0;
   }//end mwm_diag_prod()
 

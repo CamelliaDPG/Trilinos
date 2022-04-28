@@ -38,14 +38,14 @@
 # @HEADER
 
 
-macro(tribits_repository_setup_extra_options)
+MACRO(TRIBITS_REPOSITORY_SETUP_EXTRA_OPTIONS)
 
   # Needed for testing
-  set(TPL_ENABLE_MPI OFF CACHE BOOL "Enable MPI support.")
+  SET(TPL_ENABLE_MPI OFF CACHE BOOL "Enable MPI support.")
 
   # Just an example of a repo-wide option
-  advanced_set(Trilinos_DATA_DIR  NOTFOUND
+  ADVANCED_SET(Trilinos_DATA_DIR  NOTFOUND
     CACHE PATH
     "Path TrilinosData directory to find more tests and other stuff" )
 
-endmacro()
+ENDMACRO()

@@ -124,9 +124,9 @@ namespace {
     const size_t maxNumEntPerRow = 3;
     const SC two = static_cast<SC> (2.0);
     const SC minusOne = static_cast<SC> (-1.0);
-    RCP<MAT> A (new MAT (rowMap, maxNumEntPerRow));
+    RCP<MAT> A (new MAT (rowMap, maxNumEntPerRow, Tpetra::StaticProfile));
 
-    if (rowMap->getLocalNumElements () != 0) {
+    if (rowMap->getNodeNumElements () != 0) {
       for (LO lclRow = rowMap->getMinLocalIndex ();
            lclRow <= rowMap->getMaxLocalIndex (); ++lclRow) {
         const GO gblRow = rowMap->getGlobalElement(lclRow);

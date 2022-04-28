@@ -40,8 +40,6 @@
 // ***********************************************************************
 // @HEADER
 
-#ifdef PANZER_HAVE_EPETRA
-
 #ifndef __Panzer_STK_Utilities_hpp__
 #define __Panzer_STK_Utilities_hpp__
 
@@ -54,7 +52,7 @@ namespace panzer {
   class GlobalIndexer;
 }
 
-namespace panzer_stk {
+namespace panzer_stk { 
 
 /** Write a vector to the cell data of a STK mesh. This will look up
   * the cell field <code>prefix+fieldName+postfix</code>, which is assumed
@@ -72,18 +70,18 @@ void write_solution_data(const panzer::GlobalIndexer& dofMngr,panzer_stk::STK_In
 /** Using a container, compute the sorted permutation vector
   * do not modifiy the original container.
   *
-  * Motivated by this board on StackOverflow:
+  * Motivated by this board on StackOverflow: 
   * http://stackoverflow.com/questions/4523220/sorting-a-vector-of-double-precision-reals-and-obtain-their-order
-  */
+  */ 
 template <typename RAContainer,class Compare>
 void sorted_permutation(const RAContainer & cont,std::vector<std::size_t> & permutation,const Compare & comp);
 
 /** Using a container, compute the sorted permutation vector
   * do not modifiy the original container.
   *
-  * Motivated by this board on StackOverflow:
+  * Motivated by this board on StackOverflow: 
   * http://stackoverflow.com/questions/4523220/sorting-a-vector-of-double-precision-reals-and-obtain-their-order
-  */
+  */ 
 template <typename RAContainer>
 void sorted_permutation(const RAContainer & cont,std::vector<std::size_t> & permutation);
 
@@ -93,7 +91,7 @@ namespace panzer_stk {
 // utility class used by the sorted permutation objects
 template <typename RAContainer,typename Compare>
 struct PermFunctor {
-   PermFunctor(const RAContainer & cont,const Compare & comp)
+   PermFunctor(const RAContainer & cont,const Compare & comp) 
       : compare(comp), values(cont) {}
    PermFunctor(const PermFunctor & p)
       : compare(p.compare), values(p.values) {}
@@ -110,9 +108,9 @@ private:
 
 template <typename RAContainer>
 void sorted_permutation(const RAContainer & cont,std::vector<std::size_t> & permutation)
-{
+{ 
    std::less<typename RAContainer::value_type> comp;
-   sorted_permutation(cont,permutation,comp);
+   sorted_permutation(cont,permutation,comp); 
 }
 
 template <typename RAContainer,class Compare>
@@ -130,5 +128,3 @@ void sorted_permutation(const RAContainer & cont,std::vector<std::size_t> & perm
 }
 
 #endif
-
-#endif // PANZER_HAVE_EPETRA

@@ -29,7 +29,6 @@ Ioss::Initializer::Initializer()
   Ioss::ShellLine2D3::factory();
 
   Ioss::Hex8::factory();
-  Ioss::Hex9::factory();
   Ioss::Hex16::factory();
   Ioss::Hex20::factory();
   Ioss::Hex27::factory();

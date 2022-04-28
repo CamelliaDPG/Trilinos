@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Ioss_SideSet_h
+#define IOSS_Ioss_SideSet_h
 
 #include "Ioss_EntityType.h"     // for EntityType, etc
 #include <Ioss_GroupingEntity.h> // for GroupingEntity
@@ -37,7 +38,7 @@ namespace Ioss {
 
     bool                      add(SideBlock *side_block);
     const SideBlockContainer &get_side_blocks() const;
-    SideBlock                *get_side_block(const std::string &my_name) const;
+    SideBlock *               get_side_block(const std::string &my_name) const;
     size_t                    side_block_count() const { return sideBlocks.size(); }
 
     size_t     block_count() const { return sideBlocks.size(); }
@@ -70,3 +71,4 @@ namespace Ioss {
                                               // elements in this sideset belong to.
   };
 } // namespace Ioss
+#endif

@@ -1,4 +1,4 @@
-// Copyright(C) 2021, 2022 National Technology & Engineering Solutions
+// Copyright(C) 2021 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -7,12 +7,15 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#ifndef _MSC_VER
+#include <sys/times.h>
+#include <sys/utsname.h>
+#endif
 
 #include "add_to_log.h"
 #include "fmt/chrono.h"
 #include "fmt/color.h"
 #include "fmt/ostream.h"
-#include "time_stamp.h"
 #include "tokenize.h"
 
 #include <exodusII.h>
@@ -33,6 +36,8 @@
 
 namespace {
   Grid define_lattice(SystemInterface &interFace, Ioss::ParallelUtils &pu);
+
+  std::string time_stamp(const std::string &format);
 } // namespace
 
 std::string  tsFormat    = "[{:%H:%M:%S}]";
@@ -47,7 +52,7 @@ int main(int argc, char *argv[])
 
 #endif
 
-  Ioss::ParallelUtils pu{};
+  Ioss::ParallelUtils pu{MPI_COMM_WORLD};
   int                 my_rank = pu.parallel_rank();
 
   try {
@@ -104,7 +109,7 @@ int main(int argc, char *argv[])
 template <typename INT> double zellij(SystemInterface &interFace, INT /*dummy*/)
 {
   double              begin = Ioss::Utils::timer();
-  Ioss::ParallelUtils pu{};
+  Ioss::ParallelUtils pu{MPI_COMM_WORLD};
 
   if (debug_level & 1) {
     fmt::print(stderr, "{} Begin Execution\n", time_stamp(tsFormat));
@@ -135,13 +140,25 @@ template <typename INT> double zellij(SystemInterface &interFace, INT /*dummy*/)
   double end = Ioss::Utils::timer();
   double hwm = (double)Ioss::Utils::get_hwm_memory_info() / 1024.0 / 1024.0;
   if (pu.parallel_rank() == 0) {
-    fmt::print("\n Total Execution Time     = {:.5} seconds.\n", end - begin);
+    fmt::print("\n Total Execution time     = {:.5} seconds.\n", end - begin);
     fmt::print(" High-Water Memory Use    = {:.3} MiBytes.\n", hwm);
   }
   return (end - begin);
 }
 
 namespace {
+  std::string time_stamp(const std::string &format)
+  {
+    if (format == "") {
+      return std::string("");
+    }
+
+    time_t      calendar_time = std::time(nullptr);
+    struct tm * local_time    = std::localtime(&calendar_time);
+    std::string time_string   = fmt::format(format, *local_time);
+    return time_string;
+  }
+
   Grid define_lattice(SystemInterface &interFace, Ioss::ParallelUtils &pu)
   {
     int my_rank = pu.parallel_rank();
@@ -199,10 +216,7 @@ namespace {
     }
 
     if (!in_lattice) {
-      fmt::print(
-          stderr, fmt::fg(fmt::color::red),
-          "\nERROR: Reached end of input file without finding a 'BEGIN_LATTICE' command\n\n");
-      exit(EXIT_FAILURE);
+      // ERROR -- file ended before lattice definition...
     }
 
     // Tokenize line to get I J K size of lattice
@@ -233,14 +247,12 @@ namespace {
     grid.handle_file_count();
 
     if (my_rank == 0) {
-      fmt::print("\n Lattice:\tUnit Cells: {},\tGrid Size:  {} x {} x {}\n",
-                 fmt::group_digits(grid.unit_cells().size()), fmt::group_digits(II),
-                 fmt::group_digits(JJ), fmt::group_digits(KK));
+      fmt::print("\n Lattice:\tUnit Cells: {:L},\tGrid Size:  {:L} x {:L} x {:L}\n",
+                 grid.unit_cells().size(), II, JJ, KK);
     }
     if (interFace.ranks() > 1) {
-      fmt::print("         \t[{}] Ranks: {}, Outputting {} ranks starting at rank {}.\n", my_rank,
-                 fmt::group_digits(interFace.ranks()), fmt::group_digits(interFace.rank_count()),
-                 fmt::group_digits(interFace.start_rank()));
+      fmt::print("         \t[{}] Ranks: {:L}, Outputting {:L} ranks starting at rank {:L}.\n",
+                 my_rank, interFace.ranks(), interFace.rank_count(), interFace.start_rank());
     }
 
     // Now process the lattice portion of the lattice file...

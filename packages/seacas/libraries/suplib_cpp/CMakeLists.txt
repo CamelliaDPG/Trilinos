@@ -12,17 +12,12 @@ INCLUDE_DIRECTORIES(
   )
 
 SET(SOURCES
-  FileInfo.C
   GetLongOpt.C
-  SL_tokenize.C
-  copyright.C
-  format_time.C
-  hwm.C
-  iqsort.C
   smart_assert.C
-  sys_info.C
-  time_stamp.C
+  iqsort.C
   timer.C
+  copyright.C
+  SL_tokenize.C
   )
 
 TRIBITS_ADD_LIBRARY(

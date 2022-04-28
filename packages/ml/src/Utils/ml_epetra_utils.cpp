@@ -43,10 +43,6 @@
 #ifdef _MSC_VER
 # include "winprocess.h"
 #endif
-#include <unistd.h>
-#ifdef _WIN32
-#include <winsock2.h>
-#endif
 
 #ifdef HAVE_ML_TEUCHOS
 using namespace Teuchos;
@@ -55,6 +51,7 @@ using namespace Teuchos;
 #ifdef HAVE_ML_EPETRAEXT
 #include "EpetraExt_MatrixMatrix.h"
 #endif
+
 
 // ======================================================================
 

@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Iocgns_IOFactory_h
+#define IOSS_Iocgns_IOFactory_h
 
 #include "Ioss_DatabaseIO.h" // for DatabaseIO
 #include <Ioss_CodeTypes.h>
@@ -27,8 +28,9 @@ namespace Iocgns {
   private:
     IOFactory();
     Ioss::DatabaseIO *make_IO(const std::string &filename, Ioss::DatabaseUsage db_usage,
-                              Ioss_MPI_Comm                communicator,
+                              MPI_Comm                     communicator,
                               const Ioss::PropertyManager &properties) const override;
     std::string       show_config() const override;
   };
 } // namespace Iocgns
+#endif // IOSS_Iocgns_IOFactory_h

@@ -38,21 +38,21 @@
 # @HEADER
 
 #
-# @MACRO: global_null_set()
+# @MACRO: GLOBAL_NULL_SET()
 #
 # Set a variable as a null internal global (cache) variable (removes
 # boiler-plate code).
 #
 # Usage::
 #
-#   global_null_set(<varName>)
+#   GLOBAL_NULL_SET(<varName>)
 #
 # This just calls::
 #
-#   set(<varName> "" CACHE INTERNAL "")
+#   SET(<varName> "" CACHE INTERNAL "")
 #
 # This avoid problems with misspelling ``CACHE``.
 #
-macro(global_null_set VARNAME)
-  set(${VARNAME} "" CACHE INTERNAL "")
-endmacro()
+MACRO(GLOBAL_NULL_SET VARNAME)
+  SET(${VARNAME} "" CACHE INTERNAL "")
+ENDMACRO()

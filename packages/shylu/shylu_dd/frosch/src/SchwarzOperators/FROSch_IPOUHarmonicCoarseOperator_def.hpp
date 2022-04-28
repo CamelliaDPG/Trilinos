@@ -123,7 +123,7 @@ namespace FROSch {
         string blockIdString = blockIdStringstream.str();
         RCP<ParameterList> coarseSpaceList = sublist(sublist(this->ParameterList_,"Blocks"),blockIdString.c_str());
 
-        Teuchos::Array<GO> nodeEle = nodesMap->getLocalElementList();
+        Teuchos::Array<GO> nodeEle = nodesMap->getNodeElementList();
 
         Teuchos::Array<GO> dofEle(nodeEle.size()*dofsPerNode);
         Teuchos::Array<GO> dmapEle(nodeEle.size());
@@ -197,7 +197,7 @@ namespace FROSch {
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
 
         // Das könnte man noch ändern
-        // Todo: Check the lengths of the vectors against NumberOfBlocks_
+        // LÄNGEN NOCHMAL GEGEN NumberOfBlocks_ checken!!!
         this->GammaDofs_.resize(this->GammaDofs_.size()+1);
         this->IDofs_.resize(this->IDofs_.size()+1);
         this->InterfaceCoarseSpaces_.resize(this->InterfaceCoarseSpaces_.size()+1);
@@ -218,35 +218,16 @@ namespace FROSch {
                                                                   ConstXMultiVectorPtrVecPtr nodeListVec)
     {
         FROSCH_DETAILTIMER_START_LEVELID(buildCoarseSpaceTime,"IPOUHarmonicCoarseOperator::buildCoarseSpace");
-
-        this->NumberOfBlocks_ = repeatedNodesMapVec.size();
-
-        FROSCH_ASSERT(dofsPerNodeVec.size()==this->NumberOfBlocks_,"dofsPerNodeVec.size()!=this->NumberOfBlocks_");
-        FROSCH_ASSERT(repeatedDofMapsVec.size()==this->NumberOfBlocks_,"repeatedDofMapsVec.size()!=this->NumberOfBlocks_");
-        FROSCH_ASSERT(nullSpaceBasisVec.size()==this->NumberOfBlocks_,"nullSpaceBasisVec.size()!=this->NumberOfBlocks_");
-        FROSCH_ASSERT(dirichletBoundaryDofsVec.size()==this->NumberOfBlocks_,"dirichletBoundaryDofsVec.size()!=this->NumberOfBlocks_");
-        FROSCH_ASSERT(nodeListVec.size()==this->NumberOfBlocks_,"nodeListVec.size()!=this->NumberOfBlocks_");
-
-        // Todo: Move this to a function in HarmonicCoarseOperator at some point
-        for (UN i=0; i<this->NumberOfBlocks_; i++) {
-            FROSCH_ASSERT(!repeatedNodesMapVec[i].is_null(),"repeatedNodesMapVec[i].is_null()");
-            FROSCH_ASSERT(!repeatedDofMapsVec[i].is_null(),"repeatedDofMapsVec[i].is_null()");
-            FROSCH_ASSERT(!nullSpaceBasisVec[i].is_null(),"nullSpaceBasisVec[i].is_null()");
-
+        // Das könnte man noch ändern
+        // TODO: DAS SOLLTE ALLES IN EINE FUNKTION IN HARMONICCOARSEOPERATOR
+        for (UN i=0; i<repeatedNodesMapVec.size(); i++) {
             this->GammaDofs_.resize(this->GammaDofs_.size()+1);
             this->IDofs_.resize(this->IDofs_.size()+1);
             this->InterfaceCoarseSpaces_.resize(this->InterfaceCoarseSpaces_.size()+1);
             this->DofsMaps_.resize(this->DofsMaps_.size()+1);
             this->DofsPerNode_.resize(this->DofsPerNode_.size()+1);
-
-            resetCoarseSpaceBlock(i,
-                                  dimension,
-                                  dofsPerNodeVec[i],
-                                  repeatedNodesMapVec[i],
-                                  repeatedDofMapsVec[i],
-                                  nullSpaceBasisVec[i],
-                                  dirichletBoundaryDofsVec[i],
-                                  nodeListVec[i]);
+            this->NumberOfBlocks_++;
+            resetCoarseSpaceBlock(this->NumberOfBlocks_-1,dimension,dofsPerNodeVec[i],repeatedNodesMapVec[i],repeatedDofMapsVec[i],nullSpaceBasisVec[i],dirichletBoundaryDofsVec[i],nodeListVec[i]);
         }
         return 0;
     }
@@ -300,11 +281,11 @@ namespace FROSch {
                 << " | " << setw(41) << blockId
                 << " |"
                 << "\n" << setw(FROSCH_OUTPUT_INDENT) << " "
-                << "| " << left << setw(41) << "Spatial dimensions" << right
+                << "| " << left << setw(41) << "Numer of degrees of freedom per node" << right
                 << " | " << setw(41) << dimension
                 << " |"
                 << "\n" << setw(FROSCH_OUTPUT_INDENT) << " "
-                << "| " << left << setw(41) << "Number of degrees of freedom per node" << right
+                << "| " << left << setw(41) << "Numer of degrees of freedom per node" << right
                 << " | " << setw(41) << dofsPerNode
                 << " |"
                 << "\n" << setw(FROSCH_OUTPUT_INDENT) << " "
@@ -361,7 +342,7 @@ namespace FROSch {
                                                                                                   this->LevelID_,
                                                                                                   interfacePartitionOfUnity->getDDInterfaceNonConst()));
 
-                if (this->ParameterList_->get("Remove Dirichlet Nodes",true)) PartitionOfUnity_->removeDirichletNodes(dirichletBoundaryDofs());
+                PartitionOfUnity_->removeDirichletNodes(dirichletBoundaryDofs());
 
                 interface = interior;
 
@@ -376,7 +357,7 @@ namespace FROSch {
 
                 PartitionOfUnity_->computePartitionOfUnity(nodeList);
             } else {
-                if (this->ParameterList_->get("Remove Dirichlet Nodes",true)) interfacePartitionOfUnity->removeDirichletNodes(dirichletBoundaryDofs(),nodeList);
+                interfacePartitionOfUnity->removeDirichletNodes(dirichletBoundaryDofs(),nodeList);
                 interfacePartitionOfUnity->sortInterface(this->K_,nodeList);
 
                 // Construct Interface and Interior index sets

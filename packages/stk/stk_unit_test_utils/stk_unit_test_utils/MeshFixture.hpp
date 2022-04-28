@@ -129,7 +129,7 @@ protected:
         return *metaData;
     }
 
-    virtual stk::mesh::BulkData& get_bulk()
+    stk::mesh::BulkData& get_bulk()
     {
         ThrowRequireMsg(bulkData!=nullptr, "Unit test error. Trying to get bulk data before it has been initialized.");
         return *bulkData;

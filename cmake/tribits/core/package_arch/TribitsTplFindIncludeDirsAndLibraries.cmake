@@ -37,33 +37,33 @@
 # ************************************************************************
 # @HEADER
 
-if (TribitsTplFindIncludeDirsAndLibraries_INCLUDED)
-  return()
-else()
-  set(TribitsTplFindIncludeDirsAndLibraries_INCLUDED TRUE)
-endif()
+IF (TribitsTplFindIncludeDirsAndLibraries_INCLUDED)
+  RETURN()
+ELSE()
+  SET(TribitsTplFindIncludeDirsAndLibraries_INCLUDED TRUE)
+ENDIF()
 
-include(AdvancedSet)
-include(AppendSet)
-include(AssertDefined)
-include(DualScopeSet)
-include(GlobalNullSet)
-include(GlobalSet)
-include(MultilineSet)
-include(CMakeParseArguments)
-include(SetNotFound)
-include(Split)
+INCLUDE(AdvancedSet)
+INCLUDE(AppendSet)
+INCLUDE(AssertDefined)
+INCLUDE(DualScopeSet)
+INCLUDE(GlobalNullSet)
+INCLUDE(GlobalSet)
+INCLUDE(MultilineSet)
+INCLUDE(CMakeParseArguments)
+INCLUDE(SetNotFound)
+INCLUDE(Split)
 
 #
-# @FUNCTION: tribits_tpl_allow_pre_find_package()
+# @FUNCTION: TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE()
 #
 # Function that determines if a TriBITS find module file
-# ``FindTPL<tplName>.cmake`` is allowed to call ``find_package(<tplName>
-# ...)`` before calling `tribits_tpl_find_include_dirs_and_libraries()`_.
+# ``FindTPL<tplName>.cmake`` is allowed to call ``FIND_PACKAGE(<tplName>
+# ...)`` before calling `TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES()`_.
 #
 # Usage::
 #
-#   tribits_tpl_allow_pre_find_package( <tplName>
+#   TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE( <tplName>
 #     <allowPackagePrefindOut> )
 #
 # The required arguments are:
@@ -71,7 +71,7 @@ include(Split)
 #   ``<tplName>`` : The input name of the TriBITS TPL (e.g. ``HDF5``).
 #
 #   ``<allowPackagePrefindOut>`` : Name of a variable which will be set to
-#   ``TRUE`` on output if ``find_package(<tplName> ...)`` should be called to
+#   ``TRUE`` on output if ``FIND_PACKAGE(<tplName> ...)`` should be called to
 #   find the TPL ``<tplName>`` or ``FALSE`` if it should not be called.
 #
 # This function will set ``<allowPackagePrefindOut>`` to ``FALSE`` if any of
@@ -90,64 +90,64 @@ include(Split)
 # The variable ``<tplName>_FORCE_PRE_FIND_PACKAGE`` is needed to allow users
 # (or the ``FindTPL<tplName>.cmake`` module itself) to avoid name clashes with
 # the variables ``<tplName>_INCLUDE_DIRS`` or ``<tplName>_LIBRARY_DIRS`` in
-# the usage of ``find_package(<tplName> ...)`` because a lot of default
+# the usage of ``FIND_PACKAGE(<tplName> ...)`` because a lot of default
 # ``Find<tplName>.cmake`` modules also use these variables.  This function
 # sets ``<tplName>_FORCE_PRE_FIND_PACKAGE`` as a cache variable with default
 # value ``FALSE`` to maintain backward compatibility with existing
 # ``FindTPL<tplName>.cmake`` modules.
 #
-# See `How to use find_package() for a TriBITS TPL`_ for details in how to use
+# See `How to use FIND_PACKAGE() for a TriBITS TPL`_ for details in how to use
 # this function to create a ``FindTPL<tplName>.cmake`` module file.
 #
-function(tribits_tpl_allow_pre_find_package  TPL_NAME  ALLOW_PACKAGE_PREFIND_OUT)
+FUNCTION(TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE  TPL_NAME  ALLOW_PACKAGE_PREFIND_OUT)
 
-  if (TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE_DEBUG)
-    message("TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE: '${TPL_NAME}'  '${ALLOW_PACKAGE_PREFIND_OUT}'")
-    print_var(${TPL_NAME}_INCLUDE_DIRS)
-    print_var(${TPL_NAME}_LIBRARY_NAMES)
-    print_var(${TPL_NAME}_LIBRARY_DIRS)
-    print_var(${TPL_NAME}_FORCE_PRE_FIND_PACKAGE)
-  endif()
+  IF (TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE_DEBUG)
+    MESSAGE("TRIBITS_TPL_ALLOW_PRE_FIND_PACKAGE: '${TPL_NAME}'  '${ALLOW_PACKAGE_PREFIND_OUT}'")
+    PRINT_VAR(${TPL_NAME}_INCLUDE_DIRS)
+    PRINT_VAR(${TPL_NAME}_LIBRARY_NAMES)
+    PRINT_VAR(${TPL_NAME}_LIBRARY_DIRS)
+    PRINT_VAR(${TPL_NAME}_FORCE_PRE_FIND_PACKAGE)
+  ENDIF()
 
-  advanced_set(${TPL_NAME}_FORCE_PRE_FIND_PACKAGE  FALSE
+  ADVANCED_SET(${TPL_NAME}_FORCE_PRE_FIND_PACKAGE  FALSE
     CACHE BOOL
-    "Determines if the variables ${TPL_NAME}_[INCLUDE_DIRS,LIBRARY_NAMES,LIBRARY_DIRS] should be ignored and the pre-find find_package(${TPL_NAME} should be performed anyway.  But this will *not* do the pre-find if any of the TPL_${TPL_NAME}_[INCLUDE_DIRS,LIBRARY_NAMES,LIBRARY_DIRS] vars are set." )
+    "Determines if the variables ${TPL_NAME}_[INCLUDE_DIRS,LIBRARY_NAMES,LIBRARY_DIRS] should be ignored and the pre-find FIND_PACKAGE(${TPL_NAME} should be performed anyway.  But this will *not* do the pre-find if any of the TPL_${TPL_NAME}_[INCLUDE_DIRS,LIBRARY_NAMES,LIBRARY_DIRS] vars are set." )
 
   # Start out with TRUE and set to FALSE in logic below
-  set(ALLOW_PACKAGE_PREFIND TRUE)
+  SET(ALLOW_PACKAGE_PREFIND TRUE)
 
-  if (
+  IF (
     (NOT "${TPL_${TPL_NAME}_INCLUDE_DIRS}" STREQUAL "")
     OR (NOT "${TPL_${TPL_NAME}_LIBRARIES}" STREQUAL "")
     OR (NOT "${TPL_${TPL_NAME}_LIBRARY_DIRS}" STREQUAL "")
     )
     # The user has selected one or more of the final vars so skip calling
-    # find_package(${TPL_NAME} ...) ...
-    set(ALLOW_PACKAGE_PREFIND FALSE)
-  elseif (
+    # FIND_PACKAGE(${TPL_NAME} ...) ...
+    SET(ALLOW_PACKAGE_PREFIND FALSE)
+  ELSEIF (
     (NOT "${${TPL_NAME}_INCLUDE_DIRS}" STREQUAL "")
     OR (NOT "${${TPL_NAME}_LIBRARY_NAMES}" STREQUAL "")
     OR (NOT "${${TPL_NAME}_LIBRARY_DIRS}" STREQUAL "")
     )
     # One ore more of the ${TPL_NAME}_XXX variables are set
-    if (${TPL_NAME}_FORCE_PRE_FIND_PACKAGE)
+    IF (${TPL_NAME}_FORCE_PRE_FIND_PACKAGE)
       # Even with one or more of the ${TPL_NAME}_XXX vars set, we still want
-      # to do the find_package(${TPL_NAME} ...) search and ignore this
+      # to do the FIND_PACKAGE(${TPL_NAME} ...) search and ignore this
       # override.
-    else()
+    ELSE()
       # We will not ignore the override of these variables and will instead go
       # ahead and skip the pre-find.
-      set(ALLOW_PACKAGE_PREFIND FALSE)
-    endif()
-  endif()
+      SET(ALLOW_PACKAGE_PREFIND FALSE)
+    ENDIF()
+  ENDIF()
 
-  set(${ALLOW_PACKAGE_PREFIND_OUT} ${ALLOW_PACKAGE_PREFIND} PARENT_SCOPE)
+  SET(${ALLOW_PACKAGE_PREFIND_OUT} ${ALLOW_PACKAGE_PREFIND} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_tpl_find_include_dirs_and_libraries()
+# @FUNCTION: TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES()
 #
 # Function that sets up cache variables for users to specify where to find a
 # `TriBITS TPL`_'s headers and libraries.  This function is typically called
@@ -156,7 +156,7 @@ endfunction()
 #
 # Usage::
 #
-#   tribits_tpl_find_include_dirs_and_libraries(
+#   TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES(
 #     <tplName>
 #     [REQUIRED_HEADERS <header1> <header2> ...]
 #     [MUST_FIND_ALL_HEADERS]
@@ -177,7 +177,7 @@ endfunction()
 #   ``REQUIRED_HEADERS``
 #
 #     List of header files that are searched in order to find the TPL's
-#     include directories files using ``find_path()``. 
+#     include directories files using ``FIND_PATH()``. 
 #
 #   ``MUST_FIND_ALL_HEADERS``
 #
@@ -187,7 +187,7 @@ endfunction()
 #   ``REQUIRED_LIBS_NAMES``
 #
 #     List of libraries that are searched for when looking for the TPL's
-#     libraries using ``find_library()``.  This list can be overridden by the
+#     libraries using ``FIND_LIBRARY()``.  This list can be overridden by the
 #     user by setting ``<tplName>_LIBRARY_DIRS`` (see below).
 #
 #   ``MUST_FIND_ALL_LIBS``
@@ -239,7 +239,7 @@ endfunction()
 #   ``TPL_<tplName>_LIBRARIES`` (type ``FILEPATH``)
 #
 #     A list of commons-separated full library names (i.e. output from
-#     ``find_library()``) for all of the libraries found for the TPL.  If this
+#     ``FIND_LIBRARY()``) for all of the libraries found for the TPL.  If this
 #     variable is set before calling this function, then no libraries are
 #     searched for and this variable will be assumed to have the correct list
 #     of libraries to link to.
@@ -253,14 +253,14 @@ endfunction()
 #
 # Note, if ``TPL_TENTATIVE_ENABLE_<tplName>=ON``, then if all of the parts of
 # the TPL can't be found, then ``TPL_ENABLE_<tplName>`` will be (forced) set
-# to ``OFF`` in the cache.  See `tribits_tpl_tentatively_enable()`_.
+# to ``OFF`` in the cache.  See `TRIBITS_TPL_TENTATIVELY_ENABLE()`_.
 #
-function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
+FUNCTION(TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES TPL_NAME)
 
   # Make sure the right name is used
-  assert_defined(TPL_ENABLE_${TPL_NAME})
+  ASSERT_DEFINED(TPL_ENABLE_${TPL_NAME})
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
      #prefix
      PARSE
      #options
@@ -272,38 +272,38 @@ function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
      ${ARGN}
      )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    set(TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE TRUE)
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    SET(TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE TRUE)
+  ENDIF()
 
-  if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-    message("TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES: ${TPL_NAME}")
-    print_var(PARSE_REQUIRED_HEADERS)
-    print_var(PARSE_REQUIRED_LIBS_NAMES)
-    print_var(TPL_${TPL_NAME}_INCLUDE_DIRS)
-    print_var(TPL_${TPL_NAME}_LIBRARIES)
-  endif()
+  IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+    MESSAGE("TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES: ${TPL_NAME}")
+    PRINT_VAR(PARSE_REQUIRED_HEADERS)
+    PRINT_VAR(PARSE_REQUIRED_LIBS_NAMES)
+    PRINT_VAR(TPL_${TPL_NAME}_INCLUDE_DIRS)
+    PRINT_VAR(TPL_${TPL_NAME}_LIBRARIES)
+  ENDIF()
 
-  if (TPL_TENTATIVE_ENABLE_${TPL_NAME})
-    message("-- Attempting to tentatively enable TPL '${TPL_NAME}' ...")
-    set(ERROR_MSG_MODE)
-  else()
-    set(ERROR_MSG_MODE SEND_ERROR)
-  endif()
+  IF (TPL_TENTATIVE_ENABLE_${TPL_NAME})
+    MESSAGE("-- Attempting to tentatively enable TPL '${TPL_NAME}' ...")
+    SET(ERROR_MSG_MODE)
+  ELSE()
+    SET(ERROR_MSG_MODE SEND_ERROR)
+  ENDIF()
 
   #
   # User options
   #
 
-  if (PARSE_REQUIRED_LIBS_NAMES)
+  IF (PARSE_REQUIRED_LIBS_NAMES)
 
     # Library directories
 
-    multiline_set(DOCSTR
+    MULTILINE_SET(DOCSTR
       "List of semi-colon separated paths to look for the TPL ${TPL_NAME}"
-      " libraries.  This list of paths will be passed into a find_library(...)"
+      " libraries.  This list of paths will be passed into a FIND_LIBRARY(...)"
       " command to find the libraries listed in ${TPL_NAME}_LIBRARY_NAMES."
       "  Note that this set of paths is also the default value used for"
       " ${TPL_NAME}_LIBRARY_DIRS.  Therefore, if the headers exist in the"
@@ -311,194 +311,194 @@ function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
       " ${TPL_NAME}_LIBRARY_DIRS."
       )
 
-    advanced_set(${TPL_NAME}_LIBRARY_DIRS "" CACHE PATH ${DOCSTR})
-    if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-      print_var(${TPL_NAME}_LIBRARY_DIRS)
-    endif()
+    ADVANCED_SET(${TPL_NAME}_LIBRARY_DIRS "" CACHE PATH ${DOCSTR})
+    IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+      PRINT_VAR(${TPL_NAME}_LIBRARY_DIRS)
+    ENDIF()
 
     # Libraries
 
-    multiline_set(DOCSTR
+    MULTILINE_SET(DOCSTR
       "List of semi-colon separated names of libraries needed to link to for"
       " the TPL ${TPL_NAME}.  This list of libraries will be search for in"
-      " find_library(...) calls along with the directories specified with"
+      " FIND_LIBRARY(...) calls along with the directories specified with"
       " ${TPL_NAME}_LIBRARY_DIRS.  NOTE: This is not the final list of libraries"
       " used for linking.  That is specified by TPL_${TPL_NAME}_LIBRARIES!"
       )
-    advanced_set(${TPL_NAME}_LIBRARY_NAMES ${PARSE_REQUIRED_LIBS_NAMES}
+    ADVANCED_SET(${TPL_NAME}_LIBRARY_NAMES ${PARSE_REQUIRED_LIBS_NAMES}
       CACHE STRING ${DOCSTR})
-    split("${${TPL_NAME}_LIBRARY_NAMES}" "," ${TPL_NAME}_LIBRARY_NAMES)
-    print_var(${TPL_NAME}_LIBRARY_NAMES)
+    SPLIT("${${TPL_NAME}_LIBRARY_NAMES}" "," ${TPL_NAME}_LIBRARY_NAMES)
+    PRINT_VAR(${TPL_NAME}_LIBRARY_NAMES)
 
     # Let the user override what the names of the libraries which might
     # actually mean that no libraries are searched for.
-    set(REQUIRED_LIBS_NAMES ${${TPL_NAME}_LIBRARY_NAMES})
+    SET(REQUIRED_LIBS_NAMES ${${TPL_NAME}_LIBRARY_NAMES})
 
-    if (${PROJECT_NAME}_MUST_FIND_ALL_TPL_LIBS)
-      set(MUST_FIND_ALL_LIBS TRUE) 
-    else()
-      set(MUST_FIND_ALL_LIBS ${PARSE_MUST_FIND_ALL_LIBS}) 
-    endif()
+    IF (${PROJECT_NAME}_MUST_FIND_ALL_TPL_LIBS)
+      SET(MUST_FIND_ALL_LIBS TRUE) 
+    ELSE()
+      SET(MUST_FIND_ALL_LIBS ${PARSE_MUST_FIND_ALL_LIBS}) 
+    ENDIF()
 
-    if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-      print_var(${TPL_NAME}_LIBRARY_NAMES)
-      print_var(REQUIRED_LIBS_NAMES)
-    endif()
+    IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+      PRINT_VAR(${TPL_NAME}_LIBRARY_NAMES)
+      PRINT_VAR(REQUIRED_LIBS_NAMES)
+    ENDIF()
 
-  else()
+  ELSE()
 
-    set(${TPL_NAME}_LIBRARY_DIRS) # Just to ignore below!
+    SET(${TPL_NAME}_LIBRARY_DIRS) # Just to ignore below!
 
-  endif()
+  ENDIF()
 
   # Include directories
 
-  if (PARSE_REQUIRED_HEADERS)
+  IF (PARSE_REQUIRED_HEADERS)
 
-    multiline_set(DOCSTR
+    MULTILINE_SET(DOCSTR
       "List of semi-colon separated paths to look for the TPL ${TPL_NAME}"
-      " headers.  This list of paths will be passed into a find_path(...)"
+      " headers.  This list of paths will be passed into a FIND_PATH(...)"
       " command to find the headers for ${TPL_NAME} (which are known in advance)."
       )
-    advanced_set(${TPL_NAME}_INCLUDE_DIRS ${${TPL_NAME}_LIBRARY_DIRS}
+    ADVANCED_SET(${TPL_NAME}_INCLUDE_DIRS ${${TPL_NAME}_LIBRARY_DIRS}
       CACHE PATH ${DOCSTR})
 
-    if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-      print_var(${TPL_NAME}_LIBRARY_DIRS)
-      print_var(${TPL_NAME}_INCLUDE_DIRS)
-      print_var(PARSE_REQUIRED_HEADERS)
-    endif()
+    IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+      PRINT_VAR(${TPL_NAME}_LIBRARY_DIRS)
+      PRINT_VAR(${TPL_NAME}_INCLUDE_DIRS)
+      PRINT_VAR(PARSE_REQUIRED_HEADERS)
+    ENDIF()
 
-  endif()
+  ENDIF()
 
   #
   # Set the lib extensions to find
   #
 
   # Save the default the first time through
-  if (NOT CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT)
-   set(TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT ${CMAKE_FIND_LIBRARY_SUFFIXES})
-   #print_var(TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT)
-  endif()
+  IF (NOT CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT)
+   SET(TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT ${CMAKE_FIND_LIBRARY_SUFFIXES})
+   #PRINT_VAR(TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT)
+  ENDIF()
 
-  #print_var(TPL_FIND_SHARED_LIBS)
-  #print_var(CMAKE_FIND_LIBRARY_SUFFIXES)
+  #PRINT_VAR(TPL_FIND_SHARED_LIBS)
+  #PRINT_VAR(CMAKE_FIND_LIBRARY_SUFFIXES)
   # Set libraries to find
-  if (TPL_FIND_SHARED_LIBS)
+  IF (TPL_FIND_SHARED_LIBS)
     # The default should be to find shared libs first
-    set(TPL_CMAKE_FIND_LIBRARY_SUFFIXES ${TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT})
-  else()
-    if (WIN32)
-      set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a)
-    else()
-      set(CMAKE_FIND_LIBRARY_SUFFIXES .a )
-    endif()
-  endif()
-  #print_var(CMAKE_FIND_LIBRARY_SUFFIXES)
+    SET(TPL_CMAKE_FIND_LIBRARY_SUFFIXES ${TPL_CMAKE_FIND_LIBRARY_SUFFIXES_DEFAULT})
+  ELSE()
+    IF (WIN32)
+      SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a)
+    ELSE()
+      SET(CMAKE_FIND_LIBRARY_SUFFIXES .a )
+    ENDIF()
+  ENDIF()
+  #PRINT_VAR(CMAKE_FIND_LIBRARY_SUFFIXES)
 
   #
   # Direct build options
   #
 
-  set(_${TPL_NAME}_ENABLE_SUCCESS TRUE)
+  SET(_${TPL_NAME}_ENABLE_SUCCESS TRUE)
 
-  if (REQUIRED_LIBS_NAMES)
+  IF (REQUIRED_LIBS_NAMES)
 
     # Libraries
 
-    if (MUST_FIND_ALL_LIBS)
-      set(LIB_NOT_FOUND_MSG_PREFIX "ERROR:")
-    else()
-      set(LIB_NOT_FOUND_MSG_PREFIX "NOTE:")
-    endif()
+    IF (MUST_FIND_ALL_LIBS)
+      SET(LIB_NOT_FOUND_MSG_PREFIX "ERROR:")
+    ELSE()
+      SET(LIB_NOT_FOUND_MSG_PREFIX "NOTE:")
+    ENDIF()
 
-    if (NOT TPL_${TPL_NAME}_LIBRARIES)
+    IF (NOT TPL_${TPL_NAME}_LIBRARIES)
 
-      if (MUST_FIND_ALL_LIBS)
-        message("-- Must find at least one lib in each of the"
+      IF (MUST_FIND_ALL_LIBS)
+        MESSAGE("-- Must find at least one lib in each of the"
           " lib sets \"${REQUIRED_LIBS_NAMES}\"")
-      endif()
+      ENDIF()
 
-      message( "-- Searching for libs in ${TPL_NAME}_LIBRARY_DIRS='${${TPL_NAME}_LIBRARY_DIRS}'")
+      MESSAGE( "-- Searching for libs in ${TPL_NAME}_LIBRARY_DIRS='${${TPL_NAME}_LIBRARY_DIRS}'")
 
-      set(LIBRARIES_FOUND)
+      SET(LIBRARIES_FOUND)
 
-      foreach(LIBNAME_SET ${${TPL_NAME}_LIBRARY_NAMES})
+      FOREACH(LIBNAME_SET ${${TPL_NAME}_LIBRARY_NAMES})
 
-        message("-- Searching for a lib in the set \"${LIBNAME_SET}\":")
+        MESSAGE("-- Searching for a lib in the set \"${LIBNAME_SET}\":")
 
-        if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-          print_var(LIBNAME_SET)
-        endif()
+        IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+          PRINT_VAR(LIBNAME_SET)
+        ENDIF()
 
-        set(LIBNAME_LIST ${LIBNAME_SET})
-        separate_arguments(LIBNAME_LIST)
+        SET(LIBNAME_LIST ${LIBNAME_SET})
+        SEPARATE_ARGUMENTS(LIBNAME_LIST)
 
-        set(LIBNAME_SET_LIB)
+        SET(LIBNAME_SET_LIB)
 
-        foreach(LIBNAME ${LIBNAME_LIST})
+        FOREACH(LIBNAME ${LIBNAME_LIST})
 
-          message("--   Searching for lib '${LIBNAME}' ...")
+          MESSAGE("--   Searching for lib '${LIBNAME}' ...")
 
-          if (${TPL_NAME}_LIBRARY_DIRS)
-            set(PATHS_ARG PATHS ${${TPL_NAME}_LIBRARY_DIRS})
-          else()
-            set(PATHS_ARG PATHS)
-          endif()
+          IF (${TPL_NAME}_LIBRARY_DIRS)
+            SET(PATHS_ARG PATHS ${${TPL_NAME}_LIBRARY_DIRS})
+          ELSE()
+            SET(PATHS_ARG PATHS)
+          ENDIF()
 
-          set_notfound(_${TPL_NAME}_${LIBNAME}_LIBRARY)
-          find_library( _${TPL_NAME}_${LIBNAME}_LIBRARY
+          SET_NOTFOUND(_${TPL_NAME}_${LIBNAME}_LIBRARY)
+          FIND_LIBRARY( _${TPL_NAME}_${LIBNAME}_LIBRARY
             NAMES ${LIBNAME}
             ${PATHS_ARG} NO_DEFAULT_PATH )
-          find_library( _${TPL_NAME}_${LIBNAME}_LIBRARY
+          FIND_LIBRARY( _${TPL_NAME}_${LIBNAME}_LIBRARY
             NAMES ${LIBNAME} )
-          mark_as_advanced(_${TPL_NAME}_${LIBNAME}_LIBRARY)
+          MARK_AS_ADVANCED(_${TPL_NAME}_${LIBNAME}_LIBRARY)
 
-          if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-            print_var(_${TPL_NAME}_${LIBNAME}_LIBRARY)
-          endif()
+          IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+            PRINT_VAR(_${TPL_NAME}_${LIBNAME}_LIBRARY)
+          ENDIF()
 
-          if (_${TPL_NAME}_${LIBNAME}_LIBRARY)
-            message("--     Found lib '${_${TPL_NAME}_${LIBNAME}_LIBRARY}'")
-            set(LIBNAME_SET_LIB ${_${TPL_NAME}_${LIBNAME}_LIBRARY})
-            break()
-          endif()
+          IF (_${TPL_NAME}_${LIBNAME}_LIBRARY)
+            MESSAGE("--     Found lib '${_${TPL_NAME}_${LIBNAME}_LIBRARY}'")
+            SET(LIBNAME_SET_LIB ${_${TPL_NAME}_${LIBNAME}_LIBRARY})
+            BREAK()
+          ENDIF()
 
-        endforeach()
+        ENDFOREACH()
 
-        if (NOT LIBNAME_SET_LIB)
-          message(
+        IF (NOT LIBNAME_SET_LIB)
+          MESSAGE(
             "-- ${LIB_NOT_FOUND_MSG_PREFIX} Did not find a lib in the lib set \"${LIBNAME_SET}\""
              " for the TPL '${TPL_NAME}'!")
-          if (MUST_FIND_ALL_LIBS)
-	    set(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
-          else()
-            break()
-          endif()
-        endif()
+          IF (MUST_FIND_ALL_LIBS)
+	    SET(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
+          ELSE()
+            BREAK()
+          ENDIF()
+        ENDIF()
 
-        append_set(LIBRARIES_FOUND ${LIBNAME_SET_LIB})
+        APPEND_SET(LIBRARIES_FOUND ${LIBNAME_SET_LIB})
 
-      endforeach()
+      ENDFOREACH()
 
-      multiline_set(DOCSTR
+      MULTILINE_SET(DOCSTR
         "List of semi-colon separated full paths to the libraries for the TPL"
         " ${TPL_NAME}.  This is the final variable that is used in the link"
         " commands.  The user variable ${TPL_NAME}_LIBRARY_DIRS is used to look"
         " for the know library names but but is just a suggestion."
         " This variable, however, is the final value and will not be touched."
         )
-      advanced_set( TPL_${TPL_NAME}_LIBRARIES ${LIBRARIES_FOUND}
+      ADVANCED_SET( TPL_${TPL_NAME}_LIBRARIES ${LIBRARIES_FOUND}
         CACHE FILEPATH ${DOCSTR} FORCE)
       # Above, we have to force the set in case the find failed the last
       # configure in which case this cache var will be empty.  NOTE: If the
       # user specified a non-empty TPL_${TPL_NAME}_LIBRARIES, then we would
       # never get here in the first place!
 
-      if (NOT TPL_${TPL_NAME}_LIBRARIES OR NOT _${TPL_NAME}_ENABLE_SUCCESS)
-        message(
+      IF (NOT TPL_${TPL_NAME}_LIBRARIES OR NOT _${TPL_NAME}_ENABLE_SUCCESS)
+        MESSAGE(
           "-- ERROR: Could not find the libraries for the TPL '${TPL_NAME}'!")
-        message(
+        MESSAGE(
           "-- TIP: If the TPL '${TPL_NAME}' is on your system then you can set:\n"
           "     -D${TPL_NAME}_LIBRARY_DIRS='<dir0>;<dir1>;...'\n"
           "   to point to the directories where these libraries may be found.\n"
@@ -508,91 +508,91 @@ function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
           "   bypass any search for libraries and these libraries will be used without\n"
           "   question in the build.  (But this will result in a build-time error\n"
           "   if not all of the necessary symbols are found.)")
-        tribits_tpl_find_include_dirs_and_libraries_handle_fail()
-      endif()
+        TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_HANDLE_FAIL()
+      ENDIF()
 
-    endif()
+    ENDIF()
 
     # Print the final value to be used *always*
-    message("-- TPL_${TPL_NAME}_LIBRARIES='${TPL_${TPL_NAME}_LIBRARIES}'")
+    MESSAGE("-- TPL_${TPL_NAME}_LIBRARIES='${TPL_${TPL_NAME}_LIBRARIES}'")
 
-  else()
+  ELSE()
 
     # There are no libraries so set the libraries to null but don't
     # change the cache which should not even have this variable in it.
     # This set command is only to follow the standards for the package
     # support CMake code.
-    global_null_set(TPL_${TPL_NAME}_LIBRARIES)
+    GLOBAL_NULL_SET(TPL_${TPL_NAME}_LIBRARIES)
 
-  endif()
+  ENDIF()
 
   # Include directories
 
-  if (PARSE_REQUIRED_HEADERS)
+  IF (PARSE_REQUIRED_HEADERS)
 
-    if (NOT TPL_${TPL_NAME}_INCLUDE_DIRS)
+    IF (NOT TPL_${TPL_NAME}_INCLUDE_DIRS)
 
-      if (PARSE_MUST_FIND_ALL_HEADERS)
-        message("-- Must find at least one header in each of the"
+      IF (PARSE_MUST_FIND_ALL_HEADERS)
+        MESSAGE("-- Must find at least one header in each of the"
           " header sets \"${PARSE_REQUIRED_HEADERS}\"")
-      endif()
+      ENDIF()
 
-      message( "-- Searching for headers in ${TPL_NAME}_INCLUDE_DIRS='${${TPL_NAME}_INCLUDE_DIRS}'")
+      MESSAGE( "-- Searching for headers in ${TPL_NAME}_INCLUDE_DIRS='${${TPL_NAME}_INCLUDE_DIRS}'")
 
-      foreach(INCLUDE_FILE_SET ${PARSE_REQUIRED_HEADERS})
+      FOREACH(INCLUDE_FILE_SET ${PARSE_REQUIRED_HEADERS})
 
-        message("-- Searching for a header file in the set \"${INCLUDE_FILE_SET}\":")
+        MESSAGE("-- Searching for a header file in the set \"${INCLUDE_FILE_SET}\":")
 
-        set(INCLUDE_FILE_LIST ${INCLUDE_FILE_SET})
-        separate_arguments(INCLUDE_FILE_LIST)
-        set(INCLUDE_FILE_SET_PATH) # Start out as empty list
+        SET(INCLUDE_FILE_LIST ${INCLUDE_FILE_SET})
+        SEPARATE_ARGUMENTS(INCLUDE_FILE_LIST)
+        SET(INCLUDE_FILE_SET_PATH) # Start out as empty list
 
-        foreach(INCLUDE_FILE ${INCLUDE_FILE_LIST})
+        FOREACH(INCLUDE_FILE ${INCLUDE_FILE_LIST})
 
-          message("--   Searching for header '${INCLUDE_FILE}' ...")
+          MESSAGE("--   Searching for header '${INCLUDE_FILE}' ...")
 
-          if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-            print_var(INCLUDE_FILE)
-          endif()
+          IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+            PRINT_VAR(INCLUDE_FILE)
+          ENDIF()
 
-          set_notfound(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
-          find_path( _${TPL_NAME}_${INCLUDE_FILE}_PATH
+          SET_NOTFOUND(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
+          FIND_PATH( _${TPL_NAME}_${INCLUDE_FILE}_PATH
             NAMES ${INCLUDE_FILE}
             PATHS ${${TPL_NAME}_INCLUDE_DIRS}
             NO_DEFAULT_PATH)
-          find_path( _${TPL_NAME}_${INCLUDE_FILE}_PATH
+          FIND_PATH( _${TPL_NAME}_${INCLUDE_FILE}_PATH
             NAMES ${INCLUDE_FILE} )
-          mark_as_advanced(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
+          MARK_AS_ADVANCED(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
 
-          if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-            print_var(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
-          endif()
+          IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+            PRINT_VAR(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
+          ENDIF()
 
-          if(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
-            message( "--     Found header '${_${TPL_NAME}_${INCLUDE_FILE}_PATH}/${INCLUDE_FILE}'")
-            append_set(INCLUDE_FILE_SET_PATH ${_${TPL_NAME}_${INCLUDE_FILE}_PATH})
-            break()
-          endif()
+          IF(_${TPL_NAME}_${INCLUDE_FILE}_PATH)
+            MESSAGE( "--     Found header '${_${TPL_NAME}_${INCLUDE_FILE}_PATH}/${INCLUDE_FILE}'")
+            APPEND_SET(INCLUDE_FILE_SET_PATH ${_${TPL_NAME}_${INCLUDE_FILE}_PATH})
+            BREAK()
+          ENDIF()
 
-        endforeach()
+        ENDFOREACH()
 
-        if(NOT INCLUDE_FILE_SET_PATH)
-          message("-- ERROR: Could not find a header file in"
+        IF(NOT INCLUDE_FILE_SET_PATH)
+          MESSAGE("-- ERROR: Could not find a header file in"
             " the set \"${INCLUDE_FILE_SET}\"")
-          if(PARSE_MUST_FIND_ALL_HEADERS)
-            set(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
-          endif()
-        endif()
+          IF(PARSE_MUST_FIND_ALL_HEADERS)
+            SET(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
+          ENDIF()
+        ENDIF()
 
-        append_set(INCLUDES_FOUND ${INCLUDE_FILE_SET_PATH})
+        APPEND_SET(INCLUDES_FOUND ${INCLUDE_FILE_SET_PATH})
 
-      endforeach(INCLUDE_FILE_SET ${PARSE_REQUIRED_HEADERS})
+      ENDFOREACH(INCLUDE_FILE_SET ${PARSE_REQUIRED_HEADERS})
 
-      if (INCLUDES_FOUND)
-        list(REMOVE_DUPLICATES INCLUDES_FOUND)
-      endif()
+      IF (INCLUDES_FOUND)
+        LIST(REMOVE_DUPLICATES INCLUDES_FOUND)
+      ENDIF()
 
-      multiline_set(DOCSTR
+      MULTILINE_SET(DOCSTR
         "List of semi-colon separated paths to append to the compile invocations"
         " to find the headers for the TPL ${TPL_NAME}.  This is the final variable"
         " that is used in the build commands.  The user variable ${TPL_NAME}_INCLUDE_DIRS"
@@ -600,17 +600,17 @@ function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
         " This variable, however, is the final value and will not be touched."
         )
 
-      advanced_set(TPL_${TPL_NAME}_INCLUDE_DIRS ${INCLUDES_FOUND}
+      ADVANCED_SET(TPL_${TPL_NAME}_INCLUDE_DIRS ${INCLUDES_FOUND}
         CACHE PATH ${DOCSTR} FORCE)
       # Above, we have to force the set in case the find failed the last
       # configure in which case this cache var will be empty.  NOTE: If the
       # user specified a non-empty TPL_${TPL_NAME}_INCLUDE_DIRS, then we would
       # never get here in the first place!
 
-      if (NOT TPL_${TPL_NAME}_INCLUDE_DIRS OR NOT _${TPL_NAME}_ENABLE_SUCCESS)
-        message(
+      IF (NOT TPL_${TPL_NAME}_INCLUDE_DIRS OR NOT _${TPL_NAME}_ENABLE_SUCCESS)
+        MESSAGE(
           "-- ERROR: Could not find the include directories for TPL '${TPL_NAME}'!")
-        message(
+        MESSAGE(
           "-- TIP: If the TPL '${TPL_NAME}' is on your system then you can set:\n"
           "     -D${TPL_NAME}_INCLUDE_DIRS='<dir0>;<dir1>;...'\n"
           "   to point to directories where these header files may be found.\n"
@@ -621,77 +621,77 @@ function(tribits_tpl_find_include_dirs_and_libraries TPL_NAME)
           "   question in the build.  (But this will result in a build-time error\n"
           "   obviously if the necessary header files are not found in these\n"
           "   include directories.)")
-        tribits_tpl_find_include_dirs_and_libraries_handle_fail()
-      endif()
+        TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_HANDLE_FAIL()
+      ENDIF()
 
-      if (TPL_${TPL_NAME}_INCLUDE_DIRS)
-        message("-- Found TPL '${TPL_NAME}' include dirs '${TPL_${TPL_NAME}_INCLUDE_DIRS}'")
-      endif()
-    else()
+      IF (TPL_${TPL_NAME}_INCLUDE_DIRS)
+        MESSAGE("-- Found TPL '${TPL_NAME}' include dirs '${TPL_${TPL_NAME}_INCLUDE_DIRS}'")
+      ENDIF()
+    ELSE()
 
       # TPL_${TPL_NAME}_INCLUDE_DIRS is already in the cache so leave it alone!
 
-    endif()
+    ENDIF()
 
     # Print the final value to be used *always*
-    message("-- TPL_${TPL_NAME}_INCLUDE_DIRS='${TPL_${TPL_NAME}_INCLUDE_DIRS}'")
+    MESSAGE("-- TPL_${TPL_NAME}_INCLUDE_DIRS='${TPL_${TPL_NAME}_INCLUDE_DIRS}'")
 
-  else()
+  ELSE()
 
-    if (${TPL_NAME}_INCLUDE_DIRS)
-      advanced_set(TPL_${TPL_NAME}_INCLUDE_DIRS ${${TPL_NAME}_INCLUDE_DIRS}
+    IF (${TPL_NAME}_INCLUDE_DIRS)
+      ADVANCED_SET(TPL_${TPL_NAME}_INCLUDE_DIRS ${${TPL_NAME}_INCLUDE_DIRS}
         CACHE PATH "User provided include dirs in the absence of include files.")
-    else()
+    ELSE()
       # Library has no header files, no user override, so just set them to null
-      global_null_set(TPL_${TPL_NAME}_INCLUDE_DIRS)
-    endif()
+      GLOBAL_NULL_SET(TPL_${TPL_NAME}_INCLUDE_DIRS)
+    ENDIF()
 
-  endif()
+  ENDIF()
 
   # Set library directories to null always.  We do this because
   # the package support code expects this variable and it is used
   # for package dependencies.  Therefore, we need it to allow
   # TPLs and internal packages to be treated in the same way.
-  global_null_set(TPL_${TPL_NAME}_LIBRARY_DIRS)
+  GLOBAL_NULL_SET(TPL_${TPL_NAME}_LIBRARY_DIRS)
 
-  if (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
-    print_var(TPL_${TPL_NAME}_LIBRARY_DIRS)
-  endif()
+  IF (TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_VERBOSE)
+    PRINT_VAR(TPL_${TPL_NAME}_LIBRARY_DIRS)
+  ENDIF()
   # 2011/05/09: rabartl: ToDo: Remove this above variable from everywhere!
 
-  #print_var(TPL_TENTATIVE_ENABLE_${TPL_NAME})
-  #print_var(_${TPL_NAME}_ENABLE_SUCCESS)
-  if (TPL_TENTATIVE_ENABLE_${TPL_NAME})
-    if (_${TPL_NAME}_ENABLE_SUCCESS)
-      if (NOT PARSE_NO_PRINT_ENABLE_SUCCESS_FAIL)
-        message("-- Attempt to tentatively enable TPL '${TPL_NAME}' passed!")
-      endif()
-    else()
-      if (NOT PARSE_NO_PRINT_ENABLE_SUCCESS_FAIL)
-        message("-- Attempt to tentatively enable TPL '${TPL_NAME}' failed!"
+  #PRINT_VAR(TPL_TENTATIVE_ENABLE_${TPL_NAME})
+  #PRINT_VAR(_${TPL_NAME}_ENABLE_SUCCESS)
+  IF (TPL_TENTATIVE_ENABLE_${TPL_NAME})
+    IF (_${TPL_NAME}_ENABLE_SUCCESS)
+      IF (NOT PARSE_NO_PRINT_ENABLE_SUCCESS_FAIL)
+        MESSAGE("-- Attempt to tentatively enable TPL '${TPL_NAME}' passed!")
+      ENDIF()
+    ELSE()
+      IF (NOT PARSE_NO_PRINT_ENABLE_SUCCESS_FAIL)
+        MESSAGE("-- Attempt to tentatively enable TPL '${TPL_NAME}' failed!"
           "  Setting TPL_ENABLE_${TPL_NAME}=OFF")
-      endif()
-      set(TPL_ENABLE_${TPL_NAME} OFF CACHE STRING
+      ENDIF()
+      SET(TPL_ENABLE_${TPL_NAME} OFF CACHE STRING
         "Forced off since tentative enable failed!"  FORCE)
-    endif()
-  endif()
+    ENDIF()
+  ENDIF()
 
-  if (_${TPL_NAME}_ENABLE_SUCCESS)
-    global_set(TPL_${TPL_NAME}_NOT_FOUND FALSE)
-  endif()
+  IF (_${TPL_NAME}_ENABLE_SUCCESS)
+    GLOBAL_SET(TPL_${TPL_NAME}_NOT_FOUND FALSE)
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# @FUNCTION: tribits_tpl_tentatively_enable()
+# @FUNCTION: TRIBITS_TPL_TENTATIVELY_ENABLE()
 #
 # Function that sets up for an optionally enabled TPL that is attempted to be
 # enabled but will be disabled if all of the parts are not found.
 #
 # Usage::
 #
-#   tribits_tpl_tentatively_enable(<tplName>)
+#   TRIBITS_TPL_TENTATIVELY_ENABLE(<tplName>)
 # 
 # This function can be called from any CMakeLists.txt file to put a TPL in
 # tentative enable mode.  But typically, it is called from an SE Package's
@@ -712,33 +712,33 @@ endfunction()
 # disabled (i.e. ``-D TPL_ENABLE_<tplName>=OFF``), then this function has no
 # effect and the TPL will be unconditionally enabled or disabled.
 #
-function(tribits_tpl_tentatively_enable  TPL_NAME)
+FUNCTION(TRIBITS_TPL_TENTATIVELY_ENABLE  TPL_NAME)
 
-  if ("${TPL_ENABLE_${TPL_NAME}}" STREQUAL "")
+  IF ("${TPL_ENABLE_${TPL_NAME}}" STREQUAL "")
     # The TPL's enable status has not been set so tentatively enable it.
-    set(TPL_ENABLE_${TPL_NAME} ON CACHE STRING
-      "Set by tribits_tpl_tentatively_enable()" FORCE)
-    advanced_set(TPL_TENTATIVE_ENABLE_${TPL_NAME} ON CACHE STRING
-      "Set by tribits_tpl_tentatively_enable()" FORCE)
-  else()
+    SET(TPL_ENABLE_${TPL_NAME} ON CACHE STRING
+      "Set by TRIBITS_TPL_TENTATIVELY_ENABLE()" FORCE)
+    ADVANCED_SET(TPL_TENTATIVE_ENABLE_${TPL_NAME} ON CACHE STRING
+      "Set by TRIBITS_TPL_TENTATIVELY_ENABLE()" FORCE)
+  ELSE()
     # The TPL's enable status has already be hard set to be ON or OFF so we
     # will leave it alone.
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Utility macro
 #
 
-macro(tribits_tpl_find_include_dirs_and_libraries_handle_fail) 
-  set(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
-  global_set(TPL_${TPL_NAME}_NOT_FOUND TRUE)
-  message(
+MACRO(TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES_HANDLE_FAIL) 
+  SET(_${TPL_NAME}_ENABLE_SUCCESS FALSE)
+  GLOBAL_SET(TPL_${TPL_NAME}_NOT_FOUND TRUE)
+  MESSAGE(
     "-- ERROR: Failed finding all of the parts of TPL '${TPL_NAME}' (see above), Aborting!\n" )
-  if ("${ERROR_MSG_MODE}" STREQUAL "SEND_ERROR")
-    #message("ERROR_MSG_MODE=SEND_ERROR, Aborting")
-    return()
-  endif()
-endmacro()
+  IF ("${ERROR_MSG_MODE}" STREQUAL "SEND_ERROR")
+    #MESSAGE("ERROR_MSG_MODE=SEND_ERROR, Aborting")
+    RETURN()
+  ENDIF()
+ENDMACRO()

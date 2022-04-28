@@ -1,4 +1,4 @@
-C Copyright(C) 1999-2022 National Technology & Engineering Solutions
+C Copyright(C) 1999-2021 National Technology & Engineering Solutions
 C of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 C NTESS, the U.S. Government retains certain rights in this software.
 C
@@ -232,6 +232,11 @@ C   --Read in the element block ID array
          goto 960
       endif
 
+C   --Determine size of entity names...
+      if (namlen .eq. 0) then
+         call exinq(netid, EXDBMXUSNM, namlen, dummy, cdummy, ierr)
+         if (namlen .lt. 32) namlen = 32
+      end if
       call exmxnm(netid, namlen, ierr)
 
 C   --Read the element blocks
@@ -322,9 +327,7 @@ C   --Read the node sets
       CALL MDLONG ('LTNNPS', KLTNNS, LOLD2+LNPSNL)
       CALL MDLONG ('FACNPS', KFACNS, LOLD2+LNPSNL)
       call mdlong ('CFACNP', kcfacn, lnpsnl) ! Compressed df list array
-      if (numnps .gt. 0) then
-        CALL MCLONG ('NAMNS',  KNMNS, (LOLD+NUMNPS)*namlen)
-      end if
+      CALL MCLONG ('NAMNS',  KNMNS, (LOLD+NUMNPS)*namlen)
       CALL MDSTAT (NERR, MEM)
       IF (NERR .GT. 0) GOTO 950
 
@@ -373,9 +376,7 @@ C   --Read the side sets
       call mdlong ('LTSSNC', kltsnc, lold2+lessel)
       call mdfind ('FACESS', KFACSS, LOLD3)
       call mdlong ('FACESS', kfacss, lold3+lessdl)    ! Compressed dist factors list
-      if (numess .gt. 0) then
-        CALL MCLONG ('NAMSS',  KNMSS, (LOLD+NUMESS)*namlen)
-      end if
+      CALL MCLONG ('NAMSS',  KNMSS, (LOLD+NUMESS)*namlen)
       CALL MDSTAT (NERR, MEM)
       IF (NERR .GT. 0) GOTO 950
 
@@ -521,9 +522,11 @@ C     df count for this list
 
       subroutine getnam(ndb, itype, isiz, names)
       include 'gj_namlen.blk'
-
+      
       character*(namlen) names(*)
 
       call exgnams(ndb, itype, isiz, names, ierr)
       return
       end
+
+      

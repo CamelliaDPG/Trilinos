@@ -124,7 +124,7 @@ int main_(Teuchos::CommandLineProcessor &clp, Xpetra::UnderlyingLib& lib, int ar
     Galeri::Xpetra::BuildProblem<SC,LO,GO,Map,CrsMatrixWrap,MultiVector>(matrixType, map, galeriList);
   RCP<Matrix> A = Pr->BuildMatrix();
 
-  LO numRows = A->getLocalNumRows();
+  LO numRows = A->getNodeNumRows();
 
   RCP<TimeMonitor> tm;
 

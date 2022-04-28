@@ -41,9 +41,6 @@
 // @HEADER
 
 #include "PanzerAdaptersSTK_config.hpp"
-
-#ifdef PANZER_HAVE_EPETRA
-
 #include "Panzer_STK_SetupLOWSFactory.hpp"
 #include "Panzer_STK_ParameterListCallback.hpp"
 #include "Panzer_STK_ParameterListCallbackBlocked.hpp"
@@ -76,11 +73,10 @@
 
 #ifdef PANZER_HAVE_IFPACK2
 #include <Thyra_Ifpack2PreconditionerFactory.hpp>
-#include "Tpetra_CrsMatrix_decl.hpp"
 #endif
 
 namespace panzer_stk {
-
+  
 namespace {
 
   bool
@@ -529,5 +525,3 @@ namespace {
     return Teuchos::null;
   }
 }
-
-#endif // PANZER_HAVE_EPETRA

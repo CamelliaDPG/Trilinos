@@ -66,8 +66,10 @@ PHX_EXTENT(Cell)
  in a single function and require dynamic rank views.
  */
 
+using namespace std;
 using namespace Teuchos;
 using namespace PHX;
+using namespace Kokkos;
 using size_type = PHX::MDField<double>::size_type;
 
 namespace phalanx_test {
@@ -76,8 +78,8 @@ namespace phalanx_test {
   template<typename VectorType>
   void simulated_intrepid_integrate(VectorType v)
   {
-    Kokkos::parallel_for("simulated intrepid rank-3",
-		 Kokkos::RangePolicy<PHX::Device>(0,10),
+    parallel_for("simulated intrepid rank-3",
+		 RangePolicy<PHX::Device>(0,10),
 		 KOKKOS_LAMBDA (const int i)
     {
       if (v.rank() == 3) {

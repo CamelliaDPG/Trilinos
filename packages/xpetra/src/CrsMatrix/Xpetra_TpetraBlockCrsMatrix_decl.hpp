@@ -246,16 +246,16 @@ namespace Xpetra {
     global_size_t getGlobalNumCols() const;
 
     //! Returns the number of matrix rows owned on the calling node.
-    size_t getLocalNumRows() const;
+    size_t getNodeNumRows() const;
 
     //! Returns the number of columns connected to the locally owned rows of this matrix.
-    size_t getLocalNumCols() const;
+    size_t getNodeNumCols() const;
 
     //! Returns the global number of entries in this matrix.
     global_size_t getGlobalNumEntries() const;
 
     //! Returns the local number of entries in this matrix.
-    size_t getLocalNumEntries() const;
+    size_t getNodeNumEntries() const;
 
     //! Returns the current number of entries on this node in the specified local row.
     size_t getNumEntriesInLocalRow(LocalOrdinal localRow) const;
@@ -267,7 +267,7 @@ namespace Xpetra {
     size_t getGlobalMaxNumRowEntries() const;
 
     //! Returns the maximum number of entries across all rows/columns on this node.
-    size_t getLocalMaxNumRowEntries() const;
+    size_t getNodeMaxNumRowEntries() const;
 
     //! If matrix indices are in the local range, this function returns true. Otherwise, this function returns false.
     bool isLocallyIndexed() const;

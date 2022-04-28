@@ -102,8 +102,7 @@ int main(int narg, char *arg[])
   params.set("chunkSize", (size_t)chunkSize);
 
   // Call readSparseFile to read the file
-  using scalar_t = Tpetra::CrsMatrix<>::scalar_type;
-  using matrix_t = Tpetra::CrsMatrix<scalar_t>;
+  using matrix_t = Tpetra::CrsMatrix<double>;
   Teuchos::RCP<matrix_t> Amat;
   try {
     using reader_t = Tpetra::MatrixMarket::Reader<matrix_t>;

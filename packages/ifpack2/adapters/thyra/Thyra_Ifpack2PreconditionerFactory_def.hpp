@@ -53,7 +53,6 @@
 #include "Ifpack2_Parameters.hpp"
 
 #include "Tpetra_RowMatrix.hpp"
-#include "Tpetra_MixedScalarMultiplyOp.hpp"
 
 #include "Teuchos_TestForException.hpp"
 #include "Teuchos_Assert.hpp"
@@ -64,15 +63,6 @@
 
 #include <string>
 
-
-// CAG: This is not entirely ideal, since it disables half-precision
-//      altogether when we have e.g. double, float and
-//      complex<double>, but not complex<float>, although a
-//      double-float preconditioner would be possible.
-#if (!defined(HAVE_TPETRA_INST_DOUBLE) || (defined(HAVE_TPETRA_INST_DOUBLE) && defined(HAVE_TPETRA_INST_FLOAT))) && \
-    (!defined(HAVE_TPETRA_INST_COMPLEX_DOUBLE) || (defined(HAVE_TPETRA_INST_COMPLEX_DOUBLE) && defined(HAVE_TPETRA_INST_COMPLEX_FLOAT)))
-# define THYRA_IFPACK2_ENABLE_HALF_PRECISION
-#endif
 
 namespace Thyra {
 
@@ -170,10 +160,6 @@ void Ifpack2PreconditionerFactory<MatrixType>::initializePrec(
 
   // Process parameter list
 
-  bool useHalfPrecision = false;
-  if (paramList_->isParameter("half precision"))
-    useHalfPrecision = paramList_->get<bool>("half precision");
-
   Teuchos::RCP<const Teuchos::ParameterList> constParamList = paramList_;
   if (constParamList.is_null ()) {
     constParamList = getValidParameters ();
@@ -209,41 +195,11 @@ void Ifpack2PreconditionerFactory<MatrixType>::initializePrec(
   }
   timer.start(true);
 
-  Teuchos::RCP<LinearOpBase<scalar_type> > thyraPrecOp;
-
   typedef Ifpack2::Preconditioner<scalar_type, local_ordinal_type, global_ordinal_type, node_type> Ifpack2Prec;
-  Teuchos::RCP<Ifpack2Prec> concretePrecOp;
-
-#ifdef THYRA_IFPACK2_ENABLE_HALF_PRECISION
-  // CAG: There is nothing special about the combination double-float,
-  //      except that I feel somewhat confident that Trilinos builds
-  //      with both scalar types.
-  typedef typename Teuchos::ScalarTraits<scalar_type>::halfPrecision half_scalar_type;
-  typedef Ifpack2::Preconditioner<half_scalar_type, local_ordinal_type, global_ordinal_type, node_type> HalfIfpack2Prec;
-  Teuchos::RCP<HalfIfpack2Prec> concretePrecOpHalf;
-#endif
-
-  if (useHalfPrecision) {
-#ifdef THYRA_IFPACK2_ENABLE_HALF_PRECISION
-    if (Teuchos::nonnull(out) && Teuchos::includesVerbLevel(verbLevel, Teuchos::VERB_LOW)) {
-      Teuchos::OSTab(out).o() << "> Creating half precision preconditioner\n";
-    }
-
-
-    typedef Tpetra::RowMatrix<half_scalar_type, local_ordinal_type,
-                              global_ordinal_type, node_type> row_matrix_type;
-    auto tpetraFwdMatrixHalf = tpetraFwdMatrix->template convert<half_scalar_type>();
-    concretePrecOpHalf =
-      Ifpack2::Factory::create<row_matrix_type> (preconditionerType, tpetraFwdMatrixHalf);
-#else
-    TEUCHOS_TEST_FOR_EXCEPT(true);
-#endif
-  } else {
-    typedef Tpetra::RowMatrix<scalar_type, local_ordinal_type,
-                              global_ordinal_type, node_type> row_matrix_type;
-    concretePrecOp =
-      Ifpack2::Factory::create<row_matrix_type> (preconditionerType, tpetraFwdMatrix);
-  }
+  typedef Tpetra::RowMatrix<scalar_type, local_ordinal_type,
+    global_ordinal_type, node_type> row_matrix_type;
+  const Teuchos::RCP<Ifpack2Prec> concretePrecOp =
+    Ifpack2::Factory::create<row_matrix_type> (preconditionerType, tpetraFwdMatrix);
 
   timer.stop();
   if (Teuchos::nonnull(out) && Teuchos::includesVerbLevel(verbLevel, Teuchos::VERB_LOW)) {
@@ -252,25 +208,13 @@ void Ifpack2PreconditionerFactory<MatrixType>::initializePrec(
 
   // Initialize and compute the initial preconditioner
 
-  if (useHalfPrecision) {
-#ifdef THYRA_IFPACK2_ENABLE_HALF_PRECISION
-    concretePrecOpHalf->setParameters(*packageParamList);
-    concretePrecOpHalf->initialize();
-    concretePrecOpHalf->compute();
+  concretePrecOp->setParameters(*packageParamList);
+  concretePrecOp->initialize();
+  concretePrecOp->compute();
 
-    RCP<TpetraLinOp> wrappedOp = rcp(new Tpetra::MixedScalarMultiplyOp<scalar_type,half_scalar_type,local_ordinal_type,global_ordinal_type,node_type>(concretePrecOpHalf));
+  // Wrap concrete preconditioner
 
-    thyraPrecOp = Thyra::createLinearOp(wrappedOp);
-#endif
-  } else {
-    concretePrecOp->setParameters(*packageParamList);
-    concretePrecOp->initialize();
-    concretePrecOp->compute();
-
-    // Wrap concrete preconditioner
-    thyraPrecOp = Thyra::createLinearOp(Teuchos::RCP<TpetraLinOp>(concretePrecOp));
-  }
-
+  const Teuchos::RCP<LinearOpBase<scalar_type> > thyraPrecOp = Thyra::createLinearOp(Teuchos::RCP<TpetraLinOp>(concretePrecOp));
   defaultPrec->initializeUnspecified(thyraPrecOp);
 
   totalTimer.stop();
@@ -376,10 +320,6 @@ Ifpack2PreconditionerFactory<MatrixType>::getValidParameters() const
       "Overlap", 0,
       "Number of rows/columns overlapped between subdomains in different"
       "\nprocesses in the additive Schwarz-type domain-decomposition preconditioners."
-      );
-    validParamList->set(
-      "half precision", false,
-      "Whether a half-precision preconditioner should be built."
       );
     Teuchos::ParameterList &packageParamList = validParamList->sublist(
       "Ifpack2 Settings", false,

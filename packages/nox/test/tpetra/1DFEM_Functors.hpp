@@ -17,11 +17,11 @@ struct MeshFillFunctor
   const Scalar dz_;
   const GO minGID_;
 
-  MeshFillFunctor(TpetraVectorType& coords,
+  MeshFillFunctor(const TpetraVectorType& coords,
                   const Scalar& zMin,
                   const Scalar& dz,
                   const GO& minGID) :
-    coordsView_(coords.getLocalViewDevice(Tpetra::Access::ReadWrite)),
+    coordsView_(coords.getLocalViewDevice()),
     zMin_(zMin),
     dz_(dz),
     minGID_(minGID)
@@ -260,26 +260,25 @@ struct ResidualEvaluatorFunctor
   typedef typename map_type::local_map_type local_map_type;
   typedef typename TpetraVectorType::dual_view_type dual_view_type;
   typedef typename dual_view_type::t_dev view_type;
-  typedef typename view_type::const_type const_view_type;
 
   const view_type f_view_;
-  const const_view_type x_view_;
-  const const_view_type u_view_;
+  const view_type x_view_;
+  const view_type u_view_;
   const local_map_type row_map_;
   const local_map_type col_map_;
   const int myRank_;
   const scalar_type k_;
   const scalar_type p4_;
 
-  ResidualEvaluatorFunctor(TpetraVectorType& f,
+  ResidualEvaluatorFunctor(const TpetraVectorType& f,
                            const TpetraVectorType& x,
                            const TpetraVectorType& u,
                            const int& myRank,
                            const typename TpetraVectorType::impl_scalar_type& k,
                            const typename TpetraVectorType::impl_scalar_type& p4) :
-    f_view_(f.getLocalViewDevice(Tpetra::Access::ReadWrite)),
-    x_view_(x.getLocalViewDevice(Tpetra::Access::ReadOnly)),
-    u_view_(u.getLocalViewDevice(Tpetra::Access::ReadOnly)),
+    f_view_(f.getLocalViewDevice()),
+    x_view_(x.getLocalViewDevice()),
+    u_view_(u.getLocalViewDevice()),
     row_map_(f.getMap()->getLocalMap()),
     col_map_(u.getMap()->getLocalMap()),
     myRank_(myRank),
@@ -340,12 +339,12 @@ struct JacobianEvaluatorFunctor
   typedef typename TpetraVectorType::map_type map_type;
   typedef typename map_type::local_map_type local_map_type;
   typedef typename TpetraVectorType::dual_view_type dual_view_type;
-  typedef typename dual_view_type::t_dev::const_type const_view_type;
-  typedef typename TpetraMatrixType::local_matrix_device_type local_matrix_type;
+  typedef typename dual_view_type::t_dev view_type;
+  typedef typename TpetraMatrixType::local_matrix_type local_matrix_type;
 
   const local_matrix_type J_local_;
-  const const_view_type x_view_;
-  const const_view_type u_view_;
+  const view_type x_view_;
+  const view_type u_view_;
   const local_map_type row_map_;
   const local_map_type col_map_;
   const int myRank_;
@@ -356,9 +355,9 @@ struct JacobianEvaluatorFunctor
                            const TpetraVectorType& u,
                            const int& myRank,
                            const typename TpetraVectorType::impl_scalar_type& k) :
-    J_local_(J.getLocalMatrixDevice()),
-    x_view_(x.getLocalViewDevice(Tpetra::Access::ReadOnly)),
-    u_view_(u.getLocalViewDevice(Tpetra::Access::ReadOnly)),
+    J_local_(J.getLocalMatrix()),
+    x_view_(x.getLocalViewDevice()),
+    u_view_(u.getLocalViewDevice()),
     row_map_(J.getRowMap()->getLocalMap()),
     col_map_(J.getColMap()->getLocalMap()),
     myRank_(myRank),
@@ -397,8 +396,8 @@ struct JacobianEvaluatorFunctor
             scalar_type value = basis.wt * basis.dz
               * ((basis.dphide[j]*basis.dphide[i])/(basis.dz*basis.dz)
               + 2.0*basis.uu*basis.phi[j]*basis.phi[i]*k_);
-
-            J_local_.sumIntoValues(localRow, &localColumn, 1, &value, false, true);
+            // Do we need to set force_atomic true in this?
+            J_local_.sumIntoValues(localRow, &localColumn, 1, &value);
           }
         }
       }
@@ -429,12 +428,12 @@ struct PreconditionerEvaluatorFunctor
   typedef typename TpetraVectorType::map_type map_type;
   typedef typename map_type::local_map_type local_map_type;
   typedef typename TpetraVectorType::dual_view_type dual_view_type;
-  typedef typename dual_view_type::t_dev::const_type const_view_type;
-  typedef typename TpetraMatrixType::local_matrix_device_type local_matrix_type;
+  typedef typename dual_view_type::t_dev view_type;
+  typedef typename TpetraMatrixType::local_matrix_type local_matrix_type;
 
   const local_matrix_type M_local_;
-  const const_view_type x_view_;
-  const const_view_type u_view_;
+  const view_type x_view_;
+  const view_type u_view_;
   const local_map_type row_map_;
   const local_map_type col_map_;
   const int myRank_;
@@ -445,9 +444,9 @@ struct PreconditionerEvaluatorFunctor
                                  const TpetraVectorType& u,
                                  const int& myRank,
                                  const typename TpetraVectorType::impl_scalar_type& k) :
-    M_local_(M.getLocalMatrixDevice()),
-    x_view_(x.getLocalViewDevice(Tpetra::Access::ReadOnly)),
-    u_view_(u.getLocalViewDevice(Tpetra::Access::ReadOnly)),
+    M_local_(M.getLocalMatrix()),
+    x_view_(x.getLocalViewDevice()),
+    u_view_(u.getLocalViewDevice()),
     row_map_(M.getRowMap()->getLocalMap()),
     col_map_(M.getColMap()->getLocalMap()),
     myRank_(myRank),
@@ -517,24 +516,23 @@ struct DfDp2EvaluatorFunctor
   typedef typename map_type::local_map_type local_map_type;
   typedef typename TpetraVectorType::dual_view_type dual_view_type;
   typedef typename dual_view_type::t_dev view_type;
-  typedef typename dual_view_type::t_dev::const_type const_view_type;
 
   const view_type f_view_;
-  const const_view_type x_view_;
-  const const_view_type u_view_;
+  const view_type x_view_;
+  const view_type u_view_;
   const local_map_type row_map_;
   const local_map_type col_map_;
   const int myRank_;
   const scalar_type k_;
 
-  DfDp2EvaluatorFunctor(TpetraVectorType& f,
+  DfDp2EvaluatorFunctor(const TpetraVectorType& f,
                         const TpetraVectorType& x,
                         const TpetraVectorType& u,
                         const int& myRank,
                         const typename TpetraVectorType::impl_scalar_type& k) :
-    f_view_(f.getLocalViewDevice(Tpetra::Access::ReadWrite)),
-    x_view_(x.getLocalViewDevice(Tpetra::Access::ReadOnly)),
-    u_view_(u.getLocalViewDevice(Tpetra::Access::ReadOnly)),
+    f_view_(f.getLocalViewDevice()),
+    x_view_(x.getLocalViewDevice()),
+    u_view_(u.getLocalViewDevice()),
     row_map_(f.getMap()->getLocalMap()),
     col_map_(u.getMap()->getLocalMap()),
     myRank_(myRank),

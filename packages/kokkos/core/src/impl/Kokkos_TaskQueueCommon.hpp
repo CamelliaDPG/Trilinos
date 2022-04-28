@@ -57,7 +57,8 @@
 #include <impl/Kokkos_TaskResult.hpp>
 
 #include <impl/Kokkos_TaskQueueMemoryManager.hpp>
-#include <Kokkos_Atomic.hpp>
+#include <impl/Kokkos_Memory_Fence.hpp>
+#include <impl/Kokkos_Atomic_Increment.hpp>
 #include <impl/Kokkos_OptionalRef.hpp>
 #include <impl/Kokkos_LIFO.hpp>
 
@@ -87,7 +88,6 @@ class TaskQueueCommonMixin {
   // <editor-fold desc="Constructors, destructor, and assignment"> {{{2
 
   TaskQueueCommonMixin() : m_ready_count(0) {
-    Kokkos::memory_fence();
     // TODO @tasking @memory_order DSH figure out if I need this store to be
     // atomic
   }
@@ -158,17 +158,14 @@ class TaskQueueCommonMixin {
   KOKKOS_INLINE_FUNCTION
   void _increment_ready_count() {
     // TODO @tasking @memory_order DSH memory order
-    Kokkos::Impl::desul_atomic_inc(&this->m_ready_count,
-                                   Kokkos::Impl::MemoryOrderSeqCst(),
-                                   Kokkos::Impl::MemoryScopeDevice());
+    Kokkos::atomic_increment(&this->m_ready_count);
   }
 
   KOKKOS_INLINE_FUNCTION
   void _decrement_ready_count() {
     // TODO @tasking @memory_order DSH memory order
-    Kokkos::Impl::desul_atomic_dec(&this->m_ready_count,
-                                   Kokkos::Impl::MemoryOrderSeqCst(),
-                                   Kokkos::Impl::MemoryScopeDevice());
+    Kokkos::atomic_decrement(&this->m_ready_count);
+    Kokkos::memory_fence();
   }
 
  public:
@@ -479,7 +476,7 @@ class TaskQueueCommonMixin {
   }
 
   template <class ExecutionSpace, class MemorySpace, class MemoryPool>
-  static /* constexpr */ size_t task_queue_allocation_size(
+  static /* KOKKOS_CONSTEXPR_14 */ size_t task_queue_allocation_size(
       ExecutionSpace const&, MemorySpace const&, MemoryPool const&)
   // requires Same<ExecutionSpace, typename Derived::execution_space>
   //            && Same<MemorySpace, typename Derived::memory_space>

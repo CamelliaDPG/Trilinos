@@ -2,7 +2,7 @@
 
 TRIBITS_ADD_EXECUTABLE(
   Solver_Test
-  SOURCES Solver_Test.cpp
+  SOURCES Solver_Test
   )
 
 
@@ -40,7 +40,7 @@ IF (${PACKAGE_NAME}_ENABLE_KLU2)
     KLU2_UnitTests
 #    EXCLUDE_IF_NOT_TRUE ${PROJECT_NAME}_ENABLE_DEBUG
     SOURCES
-      KLU2_UnitTests.cpp
+      KLU2_UnitTests
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
     COMM serial mpi
     NUM_MPI_PROCS 2
@@ -75,7 +75,7 @@ IF (${PACKAGE_NAME}_ENABLE_SuperLU)
     EXEDEPS Solver_Test
     )
 
-
+    
   TRIBITS_ADD_TEST(
     Solver_Test
     NAME SuperLU_Solver_Test
@@ -108,7 +108,7 @@ IF (NOT ${PROJECT_NAME}_ENABLE_DEBUG)
     Superlu_UnitTests
 #    EXCLUDE_IF_NOT_TRUE ${PROJECT_NAME}_ENABLE_DEBUG
     SOURCES
-      Superlu_UnitTests.cpp
+      Superlu_UnitTests
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
     COMM serial mpi
     NUM_MPI_PROCS 2
@@ -139,7 +139,7 @@ IF (${PACKAGE_NAME}_ENABLE_STRUMPACK)
     TRIBITS_ADD_EXECUTABLE_AND_TEST(
       STRUMPACK_UnitTests
       SOURCES
-        STRUMPACK_UnitTests.cpp
+        STRUMPACK_UnitTests
         ${TEUCHOS_STD_UNIT_TEST_MAIN}
       COMM serial mpi
       NUM_MPI_PROCS 2
@@ -336,7 +336,7 @@ IF (${PACKAGE_NAME}_ENABLE_Basker)
     TRIBITS_ADD_EXECUTABLE_AND_TEST(
     Basker_UnitTests
     SOURCES
-      Basker_UnitTests.cpp
+      Basker_UnitTests
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
     COMM serial mpi
     NUM_MPI_PROCS 2
@@ -357,7 +357,7 @@ TRIBITS_ADD_TEST(
     NUM_MPI_PROCS 1
     COMM serial mpi
     )
-
+    
 ENDIF()
 
 ####   SHYLUBASKER Tests ####
@@ -365,13 +365,13 @@ IF (${PACKAGE_NAME}_ENABLE_ShyLU_NodeBasker)
     TRIBITS_ADD_EXECUTABLE_AND_TEST(
     ShyLUBasker_UnitTests
     SOURCES
-      ShyLUBasker_UnitTests.cpp
+      ShyLUBasker_UnitTests
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
     COMM serial mpi
     NUM_MPI_PROCS 2
     STANDARD_PASS_OUTPUT
     )
-
+    
     ##Copy shylubasker_test.xml, but do not test
     ##depends on not included matrices
     TRIBITS_COPY_FILES_TO_BINARY_DIR(SolverTestCopyShyLUBaskerFiles
@@ -388,7 +388,7 @@ IF (${PACKAGE_NAME}_ENABLE_MUMPS AND Tpetra_INST_INT_INT)
    TRIBITS_ADD_EXECUTABLE_AND_TEST(
    MUMPS_UnitTests
    SOURCES
-      MUMPS_UnitTests.cpp
+      MUMPS_UnitTests
       ${TEUCHOS_STD_UNIT_TEST_MAIN}
    COMM serial mpi
    STANDARD_PASS_OUTPUT
@@ -399,8 +399,9 @@ ENDIF()
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   SolverFactory_UnitTests
   SOURCES
-  SolverFactory.cpp
+  SolverFactory
   ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   STANDARD_PASS_OUTPUT
   )
+

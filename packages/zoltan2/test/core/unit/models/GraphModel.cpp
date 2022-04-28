@@ -146,12 +146,12 @@ void computeNumDiags<tcrsGraph_t>(
 {
   typedef typename tcrsGraph_t::global_ordinal_type gno_t;
 
-  size_t maxnnz = M->getLocalMaxNumRowEntries();
+  size_t maxnnz = M->getNodeMaxNumRowEntries();
   typename tcrsGraph_t::nonconst_global_inds_host_view_type colGids("colGIds", maxnnz);
   numLocalDiags = 0;
   numGlobalDiags = 0;
 
-  int nLocalRows = M->getLocalNumRows();
+  int nLocalRows = M->getNodeNumRows();
   for (int i = 0; i < nLocalRows; i++) {
 
     gno_t rowGid = M->getRowMap()->getGlobalElement(i);
@@ -200,8 +200,8 @@ void testAdapter(
   int nprocs = comm->getSize();
   RCP<const Zoltan2::Environment> env = rcp(new Zoltan2::Environment(comm));
 
-  zlno_t nLocalRows = M->getLocalNumRows();
-  zlno_t nLocalNZ = M->getLocalNumEntries();
+  zlno_t nLocalRows = M->getNodeNumRows();
+  zlno_t nLocalNZ = M->getNodeNumEntries();
   zgno_t nGlobalRows =  M->getGlobalNumRows();
   zgno_t nGlobalNZ = M->getGlobalNumEntries();
 
@@ -241,8 +241,8 @@ void testAdapter(
     }
   }
 
-  if (nEdgeWeights > 0 && rank == 0){
-    std::cout << "TODO:  STILL NEED TO TEST EDGE WEIGHTS!" << std::endl;
+  if (nEdgeWeights > 0){
+    printf("TODO:  STILL NEED TO TEST EDGE WEIGHTS!\n");
   }
 
   // Create a matrix or graph input adapter.

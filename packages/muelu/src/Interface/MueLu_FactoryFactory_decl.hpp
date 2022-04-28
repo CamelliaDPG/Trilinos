@@ -144,7 +144,6 @@
 #include "MueLu_TogglePFactory.hpp"
 #include "MueLu_TrilinosSmoother.hpp"
 #include "MueLu_TransPFactory.hpp"
-#include "MueLu_RfromP_Or_TransP.hpp"
 #include "MueLu_UncoupledAggregationFactory.hpp"
 #include "MueLu_HybridAggregationFactory.hpp"
 #include "MueLu_UnsmooshFactory.hpp"
@@ -166,7 +165,6 @@
 #include "MueLu_GeometricInterpolationPFactory_kokkos.hpp"
 #include "MueLu_NullspaceFactory_kokkos.hpp"
 #include "MueLu_SaPFactory_kokkos.hpp"
-#include "MueLu_SemiCoarsenPFactory_kokkos.hpp"
 #include "MueLu_StructuredAggregationFactory_kokkos.hpp"
 #include "MueLu_TentativePFactory_kokkos.hpp"
 #include "MueLu_UncoupledAggregationFactory_kokkos.hpp"
@@ -299,7 +297,6 @@ namespace MueLu {
       if (factoryName == "ToggleCoordinatesTransferFactory")      return BuildToggleCoordinatesTransferFactory         (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "TogglePFactory")                        return BuildTogglePFactory<TogglePFactory>           (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "TransPFactory")                         return Build2<TransPFactory>                         (paramList, factoryMapIn, factoryManagersIn);
-      if (factoryName == "RfromP_Or_TransP")                      return Build2<RfromP_Or_TransP>                      (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "TrilinosSmoother")                      return BuildTrilinosSmoother                         (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "UncoupledAggregationFactory")           return Build2<UncoupledAggregationFactory>           (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "UnsmooshFactory")                       return Build2<UnsmooshFactory>                       (paramList, factoryMapIn, factoryManagersIn);
@@ -315,7 +312,6 @@ namespace MueLu {
       if (factoryName == "GeometricInterpolationPFactory_kokkos") return Build2<GeometricInterpolationPFactory_kokkos> (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "NullspaceFactory_kokkos")               return Build2<NullspaceFactory_kokkos>               (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "SaPFactory_kokkos")                     return Build2<SaPFactory_kokkos>                     (paramList, factoryMapIn, factoryManagersIn);
-      if (factoryName == "SemiCoarsenPFactory_kokkos")            return Build2<SemiCoarsenPFactory_kokkos>            (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "StructuredAggregationFactory_kokkos")   return Build2<StructuredAggregationFactory_kokkos>   (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "TentativePFactory_kokkos")              return Build2<TentativePFactory_kokkos>              (paramList, factoryMapIn, factoryManagersIn);
       if (factoryName == "UncoupledAggregationFactory_kokkos")    return Build2<UncoupledAggregationFactory_kokkos>    (paramList, factoryMapIn, factoryManagersIn);

@@ -122,7 +122,7 @@ namespace MueLu {
       RCP<const BlockedMap> coarseMap = Get< RCP<const BlockedMap> >(coarseLevel, "CoarseMap");
       bool thyraMode = coarseMap->getThyraMode();
 
-      ArrayView<const GO> elementAList = coarseMap->getFullMap()->getLocalElementList();
+      ArrayView<const GO> elementAList = coarseMap->getFullMap()->getNodeElementList();
 
       LO blkSize = 1;
       if (rcp_dynamic_cast<const StridedMap>(coarseMap->getMap(0, thyraMode)) != Teuchos::null)

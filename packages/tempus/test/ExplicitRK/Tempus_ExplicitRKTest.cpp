@@ -80,20 +80,10 @@ TEUCHOS_UNIT_TEST(ExplicitRK, ParameterList)
       tempusPL->sublist("Demo Stepper").set("Stepper Type", RKMethods[m]);
     }
 
-    // Test constructor IntegratorBasic(tempusPL, model, runInitialize)
+    // Test constructor IntegratorBasic(tempusPL, model)
     {
       RCP<Tempus::IntegratorBasic<double> > integrator =
-        Tempus::createIntegratorBasic<double>(tempusPL, model,false);
-
-      // check initialization
-      {
-        // TSC should not be initialized
-        TEST_ASSERT(!integrator->getNonConstTimeStepControl()->isInitialized());
-        // now initialize everything (TSC should also be initilized)
-        integrator->initialize();
-        // TSC should be initialized
-        TEST_ASSERT(integrator->getNonConstTimeStepControl()->isInitialized());
-      }
+        Tempus::createIntegratorBasic<double>(tempusPL, model);
 
       RCP<ParameterList> stepperPL = sublist(tempusPL, "Demo Stepper", true);
       if (RKMethods[m] == "General ERK")

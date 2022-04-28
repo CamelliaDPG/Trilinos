@@ -37,38 +37,38 @@
 # ************************************************************************
 # @HEADER
 
-if (PRINT_VAR_INCLUDED)
-  return()
-endif()
-set(PRINT_VAR_INCLUDED TRUE)
+IF (PRINT_VAR_INCLUDED)
+  RETURN()
+ENDIF()
+SET(PRINT_VAR_INCLUDED TRUE)
 
 #
-# @FUNCTION: print_var()
+# @FUNCTION: PRINT_VAR()
 #
 # Unconditionally print a variable giving its name then value.
 #
 # Usage::
 #
-#   print_var(<varName>)
+#   PRINT_VAR(<varName>)
 #
 # This prints::
 #
-#   message("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
+#   MESSAGE("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
 #
 # The variable ``<varName>`` can be defined or undefined or empty.  This uses
 # an explicit "-- " line prefix so that it prints nice even on Windows CMake.
 #
-function(print_var VARIBLE_NAME)
-  if (MESSAGE_WRAPPER_UNIT_TEST_MODE)
-    global_set(MESSAGE_WRAPPER_INPUT "${MESSAGE_WRAPPER_INPUT}"
+FUNCTION(PRINT_VAR VARIBLE_NAME)
+  IF (MESSAGE_WRAPPER_UNIT_TEST_MODE)
+    GLOBAL_SET(MESSAGE_WRAPPER_INPUT "${MESSAGE_WRAPPER_INPUT}"
       "-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'" "${PRINT_MSG}")
-  else()
-    message("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
-  endif()
-endfunction()
+  ELSE()
+    MESSAGE("-- " "${VARIBLE_NAME}='${${VARIBLE_NAME}}'")
+  ENDIF()
+ENDFUNCTION()
 
-# NOTE: Above, I was not able to call message_wrapper() directly because it
+# NOTE: Above, I was not able to call MESSAGE_WRAPPER() directly because it
 # was removing the ';' in array arguments.  This broke a bunch of unit tests.
 # Therefore, I have to duplicate code and call it in two separate places.  I
 # have to admit that CMake behavior surprises me many times.  This is not a
-# great programming language.
+# great programming langauge.

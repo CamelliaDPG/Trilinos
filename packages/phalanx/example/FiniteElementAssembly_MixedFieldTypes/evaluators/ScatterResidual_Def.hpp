@@ -81,7 +81,6 @@ evaluateFields(typename Traits::EvalData workset)
 
 // **********************************************************************
 template<typename Traits>
-PHALANX_HIP_HACK_KOKKOS_FUNCTION
 void ScatterResidual<PHX::MyTraits::Residual,Traits>::
 operator()(const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const
 {
@@ -132,7 +131,6 @@ evaluateFields(typename Traits::EvalData workset)
 
 // **********************************************************************
 template<typename Traits>
-PHALANX_HIP_HACK_KOKKOS_FUNCTION
 void ScatterResidual<PHX::MyTraits::Jacobian,Traits>::
 operator()(const Kokkos::TeamPolicy<PHX::exec_space>::member_type& team) const
 {

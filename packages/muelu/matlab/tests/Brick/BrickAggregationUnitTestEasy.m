@@ -27,7 +27,6 @@ try
   end
 
 catch me
-  disp('Test failed, on exception:');
-  disp(getReport(me));
+  disp('Test failed, on exception.');
   exit(-2)
 end

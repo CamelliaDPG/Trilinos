@@ -381,14 +381,15 @@ StepperNewmarkImplicitDForm<Scalar>::takeStep(
 
 
     //Set d_pred as initial guess for NOX solver, and solve nonlinear system.
-    const Thyra::SolveStatus<Scalar> sStatus = (*(this->solver_)).solve(&*initial_guess);
+    const Thyra::SolveStatus<Scalar> sStatus =
+      this->solveImplicitODE(initial_guess);
 
     workingState->setSolutionStatus(sStatus);  // Converged --> pass.
 
     stepperNewmarkImpAppAction_->execute(solutionHistory, thisStepper,
       StepperNewmarkImplicitDFormAppAction<Scalar>::ACTION_LOCATION::AFTER_SOLVE);
 
-    //solve will return converged solution in initial_guess
+    //solveImplicitODE will return converged solution in initial_guess
     //vector.  Copy it here to d_new, to define the new displacement.
     Thyra::copy(*initial_guess, d_new.ptr());
 

@@ -40,10 +40,10 @@
 namespace stk {
 namespace mesh {
 
-template <typename T> KOKKOS_FUNCTION
+template <typename T> STK_FUNCTION
 void atomic_add(T *dest, const T src)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_OPENMP)
   Kokkos::atomic_add(dest, src);
 #else
   *dest += src;

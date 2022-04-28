@@ -34,6 +34,9 @@
 
 #include "stk_util/util/ParameterList.hpp"
 
+#ifdef STK_HAVE_BOOST
+
+#include "boost/any.hpp"                           // for any_cast
 #include <cstddef>                                 // for size_t
 #include <cstdint>                                 // for int64_t
 
@@ -56,33 +59,33 @@ void ParameterList::write_parameter_list(std::ostream & stream)
     {
       stream << "Parameter '" << parameterName << "' is of type integer"
              << " and the value is "
-             << STK_ANY_NAMESPACE::any_cast<int>(parameter.value) << std::endl;
+             << boost::any_cast<int>(parameter.value) << std::endl;
       break;
     }
     case ParameterType::INT64:
     {
       stream << "Parameter '" << parameterName << "' is of type int64"
              << " and the value is "
-             << STK_ANY_NAMESPACE::any_cast<int64_t>(parameter.value) << std::endl;
+             << boost::any_cast<int64_t>(parameter.value) << std::endl;
       break;
     }
     case ParameterType::DOUBLE:
     {
       stream << "Parameter '" << parameterName << "' is of type double"
              << " and the value is "
-             << STK_ANY_NAMESPACE::any_cast<double>(parameter.value) << std::endl;
+             << boost::any_cast<double>(parameter.value) << std::endl;
       break;
     }
     case ParameterType::FLOAT:
     {
       stream << "Parameter '" << parameterName << "' is of type float"
              << " and the value is "
-             << STK_ANY_NAMESPACE::any_cast<float>(parameter.value) << std::endl;
+             << boost::any_cast<float>(parameter.value) << std::endl;
       break;
     }
     case ParameterType::DOUBLEVECTOR:
     {
-      std::vector<double> vec = STK_ANY_NAMESPACE::any_cast<std::vector<double> >(parameter.value);
+      std::vector<double> vec = boost::any_cast<std::vector<double> >(parameter.value);
       stream << "Parameter '" << parameterName << "' is of type vector of doubles"
              << " and the " << vec.size() << " values are ";
       for (size_t j = 0; j < vec.size(); ++j) {
@@ -94,7 +97,7 @@ void ParameterList::write_parameter_list(std::ostream & stream)
     }
     case ParameterType::FLOATVECTOR:
     {
-      std::vector<float> vec = STK_ANY_NAMESPACE::any_cast<std::vector<float> >(parameter.value);
+      std::vector<float> vec = boost::any_cast<std::vector<float> >(parameter.value);
       stream << "Parameter '" << parameterName << "' is of type vector of floats"
              << " and the " << vec.size() << " values are ";
       for (size_t j = 0; j < vec.size(); ++j) {
@@ -106,7 +109,7 @@ void ParameterList::write_parameter_list(std::ostream & stream)
     }
     case ParameterType::INTEGERVECTOR:
     {
-      std::vector<int> vec = STK_ANY_NAMESPACE::any_cast<std::vector<int> >(parameter.value);
+      std::vector<int> vec = boost::any_cast<std::vector<int> >(parameter.value);
       stream << "Parameter '" << parameterName << "' is of type vector of integers"
              << " and the " << vec.size() << " values are ";
       for (size_t j = 0; j < vec.size(); ++j) {
@@ -118,7 +121,7 @@ void ParameterList::write_parameter_list(std::ostream & stream)
     }
     case ParameterType::INT64VECTOR:
     {
-      std::vector<int64_t> vec = STK_ANY_NAMESPACE::any_cast<std::vector<int64_t> >(parameter.value);
+      std::vector<int64_t> vec = boost::any_cast<std::vector<int64_t> >(parameter.value);
       stream << "Parameter '" << parameterName << "' is of type vector of int64s"
              << " and the " << vec.size() << " values are ";
       for (size_t j = 0; j < vec.size(); ++j) {
@@ -132,13 +135,13 @@ void ParameterList::write_parameter_list(std::ostream & stream)
     {
       stream << "Parameter '" << parameterName << "' is of type string"
              << " and the value is '"
-             << STK_ANY_NAMESPACE::any_cast<std::string>(parameter.value)
+             << boost::any_cast<std::string>(parameter.value)
              << "'" << std::endl;
       break;
     }
     case ParameterType::STRINGVECTOR:
     {
-      std::vector<std::string> vec = STK_ANY_NAMESPACE::any_cast<std::vector<std::string> >(parameter.value);
+      std::vector<std::string> vec = boost::any_cast<std::vector<std::string> >(parameter.value);
       stream << "Parameter '" << parameterName << "' is of type vector of strings"
              << " and the " << vec.size() << " values are ";
       for (size_t j = 0; j < vec.size(); ++j) {
@@ -161,4 +164,6 @@ void ParameterList::write_parameter_list(std::ostream & stream)
 
 }
 }
+
+#endif //STK_HAVE_BOOST
 

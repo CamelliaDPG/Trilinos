@@ -124,7 +124,7 @@
 //                       break;
 //
 //                   case _T('n'):
-//                       TRACE(_T("option n: value=%d\n"), strtol(optarg, NULL, 10));
+//                       TRACE(_T("option n: value=%d\n"), atoi(optarg));
 //                       //
 //                       // do something with value here
 //                       //

@@ -102,19 +102,18 @@ int verifyInputAdapter(
   RCP<const Comm<int> > comm = M.getComm();
   int fail = 0, gfail=0;
 
-  if (!fail && ia.getLocalNumRows() != M.getLocalNumRows())
+  if (!fail && ia.getLocalNumRows() != M.getNodeNumRows())
     fail = 4;
 
-  if (M.getLocalNumRows()){
-    if (!fail && ia.getLocalNumColumns() != M.getLocalNumCols())
+  if (M.getNodeNumRows()){
+    if (!fail && ia.getLocalNumColumns() != M.getNodeNumCols())
       fail = 6;
   }
 
   gfail = globalFail(*comm, fail);
 
-  const zgno_t *rowIds=NULL;
-  ArrayRCP<const zgno_t> colIds;
-  ArrayRCP<const offset_t> offsets;
+  const zgno_t *rowIds=NULL, *colIds=NULL;
+  const offset_t *offsets=NULL;
   size_t nrows=0;
 
   if (!gfail){
@@ -123,13 +122,13 @@ int verifyInputAdapter(
     ia.getRowIDsView(rowIds);
     ia.getCRSView(offsets, colIds);
 
-    if (nrows != M.getLocalNumRows())
+    if (nrows != M.getNodeNumRows())
       fail = 8;
 
     gfail = globalFail(*comm, fail);
 
     if (gfail == 0){
-      printMatrix<offset_t>(comm, nrows, rowIds, offsets.getRawPtr(), colIds.getRawPtr());
+      printMatrix<offset_t>(comm, nrows, rowIds, offsets, colIds);
     }
     else{
       if (!fail) fail = 10;
@@ -168,7 +167,7 @@ int main(int narg, char *arg[])
   RCP<tmatrix_t> newM;   // migrated matrix
 
   tM = uinput->getUITpetraCrsMatrix();
-  size_t nrows = tM->getLocalNumRows();
+  size_t nrows = tM->getNodeNumRows();
 
   // To test migration in the input adapter we need a Solution object. 
 

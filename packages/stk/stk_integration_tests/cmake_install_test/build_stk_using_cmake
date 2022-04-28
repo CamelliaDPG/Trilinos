@@ -16,6 +16,11 @@ cuda_on_or_off=${CUDA:-OFF}
 build_type=${CMAKE_BUILD_TYPE:-release}
 date_suffix=`date +%F_%H-%M-%S`
 
+if [ -z "${SIERRA_COMPILER}" ] ; then
+  echo "Can't find SIERRA_COMPILER env var. Make sure you have a sierra-devel module loaded.";
+  exit 1;
+fi
+
 if [ ! -d ${output_dir} ] ; then
   exe mkdir -p ${output_dir};
 fi
@@ -29,10 +34,10 @@ else
   exe git pull
 fi
 
-trilinos_install_dir=${output_dir}/trilinos_install_${build_type}_gcc
+trilinos_install_dir=${output_dir}/trilinos_install_${build_type}_${SIERRA_COMPILER}
 exe rm -rf $trilinos_install_dir
 
-stk_build_dir=${output_dir}/stk_build_${build_type}_gcc
+stk_build_dir=${output_dir}/stk_build_${build_type}_${SIERRA_COMPILER}
 exe rm -rf $stk_build_dir
 exe mkdir -p $stk_build_dir
 
@@ -40,6 +45,7 @@ stk_cmake_testing_source_dir=${sierra_proj}/stk/stk_integration_tests/cmake_inst
 
 printf "\nUsing sierra project: ${sierra_proj}\n";
 printf "Using build-type: ${build_type}\n";
+printf "Using SIERRA_COMPILER: ${SIERRA_COMPILER}\n";
 printf "CUDA: ${cuda_on_or_off}\n";
 printf "Putting output and logs here: ${output_dir}\n";
 
@@ -77,7 +83,7 @@ exe "TRILINOS_DIR=${trilinos_dir} \
      TRILINOS_INSTALL_DIR=${trilinos_install_dir} \
      CMAKE_BUILD_TYPE=${build_type} \
      CUDA=${cuda_on_or_off} \
-     ./run_cmake_stk >& ${stk_config_log}"
+     ./run_cmake_stk ${stk_build_dir}/tpl_paths >& ${stk_config_log}"
 
 printf "Now building trilinos/stk using make...\n";
 exe "make VERBOSE=1 -j8 >& ${stk_make_log}";

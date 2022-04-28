@@ -112,8 +112,6 @@ const Epetra_IntMultiVector & toEpetra(const MultiVector<int, int, GlobalOrdinal
     //! Set multi-vector values to random numbers.
     void randomize(bool bUseXpetraImplementation = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
 
-    //! Set multi-vector values to random numbers.
-    void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
 
     //! Set seed for Random function.
     /** Note: this method does not exist in Tpetra interface. Added for MueLu. */
@@ -401,9 +399,6 @@ const Epetra_IntMultiVector & toEpetra(const MultiVector<int, int, GlobalOrdinal
 
       //! Set multi-vector values to random numbers.
       void randomize(bool /* bUseXpetraImplementation */ = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
-
-      //! Set multi-vector values to random numbers.
-      void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
 
 
       //! Set seed for Random function.
@@ -790,9 +785,6 @@ const Epetra_IntMultiVector & toEpetra(const MultiVector<int, int, GlobalOrdinal
 
       //! Set multi-vector values to random numbers.
       void randomize(bool /* bUseXpetraImplementation */ = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
-
-      //! Set multi-vector values to random numbers.
-      void randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation = true) { XPETRA_MONITOR("EpetraIntMultiVectorT::randomize"); TEUCHOS_TEST_FOR_EXCEPTION(1, Xpetra::Exceptions::NotImplemented, "Xpetra::EpetraIntMultiVectorT::randomize(): Functionnality not available in Epetra"); }
 
 
       //! Set seed for Random function.

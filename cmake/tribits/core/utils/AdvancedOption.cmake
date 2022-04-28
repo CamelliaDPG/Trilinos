@@ -38,21 +38,21 @@
 # @HEADER
 
 #
-# @MACRO: advanced_option()
+# @MACRO: ADVANCED_OPTION()
 #
 # Macro that sets an option and marks it as advanced (removes boiler-plate and
 # duplication).
 #
 # Usage::
 #
-#   advanced_option(<varName> [other arguments])
+#   ADVANCED_OPTION(<varName> [other arguments])
 #
 # This just calls the built-in CMake commands::
 #
-#   option(<varName> [other arguments])
-#   mark_as_advanced(<varName>)
+#   OPTION(<varName> [other arguments])
+#   MARK_AS_ADVANCED(<varName>)
 #
-macro(advanced_option VARNAME)
-  option(${VARNAME} ${ARGN})
-  mark_as_advanced(${VARNAME})
-endmacro()
+MACRO(ADVANCED_OPTION VARNAME)
+  OPTION(${VARNAME} ${ARGN})
+  MARK_AS_ADVANCED(${VARNAME})
+ENDMACRO()

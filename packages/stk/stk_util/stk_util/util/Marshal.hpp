@@ -36,6 +36,7 @@
 #define STK_UTIL_UTIL_MARSHAL_HPP
 
 #include "stk_util/stk_config.h"
+#ifdef STK_HAS_MPI
 
 #include <stddef.h>                     // for size_t
 #include <list>                         // for list
@@ -347,4 +348,5 @@ Marshal &read(Marshal &min, T &t) {
 }
 
 } // namespace stk
+#endif // STK_HAS_MPI
 #endif // STK_UTIL_UTIL_MARSHAL_HPP

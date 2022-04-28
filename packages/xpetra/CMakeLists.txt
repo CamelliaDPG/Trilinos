@@ -175,7 +175,12 @@ TRIBITS_ADD_OPTION_AND_DEFINE(XPETRA_ENABLE_PROFILING
   OFF)
 
 # Define option to enable code that is refactored to use Kokkos
-SET(Kokkos_Refactor_On_By_Default ON)
+# This is ON by default when Kokkos is enabled.
+IF (${PACKAGE_NAME}_ENABLE_KokkosCore)
+  SET(Kokkos_Refactor_On_By_Default ON)
+ELSE()
+  SET(Kokkos_Refactor_On_By_Default OFF)
+ENDIF()
 
 TRIBITS_ADD_OPTION_AND_DEFINE(
   ${PACKAGE_NAME}_ENABLE_Kokkos_Refactor

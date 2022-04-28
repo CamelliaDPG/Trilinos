@@ -50,11 +50,9 @@ namespace stk
 {
 namespace unit_test_util
 {
-void initialize_stk_io_for_text_mesh();
 
 // Example:  meshSizeSpec = "2x2x1"
-void generated_mesh_to_file_in_serial(const std::string& meshSizeSpec, const std::string& fileName);
-void text_mesh_to_file_in_serial(const std::string& meshDesc, const std::string& fileName);
+void generated_mesh_to_file_in_serial(const std::string &meshSizeSpec, const std::string &fileName);
 
 void read_from_serial_file_and_decompose(const std::string& fileName, stk::mesh::BulkData &mesh, const std::string &decompositionMethod);
 

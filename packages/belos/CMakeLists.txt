@@ -112,10 +112,6 @@ IF (Belos_ENABLE_Tpetra)
   ADD_SUBDIRECTORY(tpetra)
 ENDIF()
 
-IF (Belos_ENABLE_KokkosKernels)
-  ADD_SUBDIRECTORY(kokkos)
-ENDIF()
-
 IF (Belos_ENABLE_Xpetra)
   ADD_SUBDIRECTORY(xpetra)
 ENDIF()

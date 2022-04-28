@@ -36,7 +36,7 @@ evaluatorTpetra1DFEM(const Teuchos::RCP<const Teuchos::Comm<int> >& comm,
    dz2
 
    subject to:
-      T  = p(4), defaults to 1.0 @ z = zMin
+      T  = p(4) = defaults to 1.0 @ z = zMin
       T' = 0.0 @ z = zMax
       k = p(2), defaults to 1.0 (independent parameter)
 
@@ -147,9 +147,6 @@ public:
   void reportFinalPoint (const ::Thyra::ModelEvaluatorBase::InArgs<Scalar> &finalPoint, const bool wasSolved);
   //@}
 
-  std::pair<int,int> get_p_index(const std::string& p_name) const;
-  std::pair<int,int> get_g_index(const std::string& g_name) const;
-
 private:
 
   /** Allocates and returns the Jacobian matrix graph */
@@ -204,9 +201,6 @@ private: // data members
   Teuchos::RCP<const thyra_vec_space> gSpace_;
   Teuchos::RCP<const tpetra_map> dgdpMap_; // locally replicated dense matrix
   Teuchos::RCP<const thyra_vec_space> dgdpSpace_;
-
-  std::unordered_map<std::string,std::pair<int,int>> p_name_to_index_;
-  std::unordered_map<std::string,std::pair<int,int>> g_name_to_index_;
 };
 
 //==================================================================

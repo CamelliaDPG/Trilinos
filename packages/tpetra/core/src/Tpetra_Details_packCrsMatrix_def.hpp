@@ -81,6 +81,11 @@
 
 namespace Tpetra {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration of Distributor
+class Distributor;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
 //
 // Users must never rely on anything in the Details namespace.
 //
@@ -118,23 +123,23 @@ public:
   static_assert (std::is_same<typename CountsViewType::device_type::execution_space,
                    typename device_type::execution_space>::value,
                  "OutputOffsetsViewType and CountsViewType must have the same execution space.");
-  static_assert (Kokkos::is_view<OutputOffsetsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<OutputOffsetsViewType>::value,
                  "OutputOffsetsViewType must be a Kokkos::View.");
   static_assert (std::is_same<typename OutputOffsetsViewType::value_type, output_offset_type>::value,
                  "OutputOffsetsViewType must be a nonconst Kokkos::View.");
   static_assert (std::is_integral<output_offset_type>::value,
                  "The type of each entry of OutputOffsetsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<CountsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<CountsViewType>::value,
                  "CountsViewType must be a Kokkos::View.");
   static_assert (std::is_same<typename CountsViewType::value_type, output_offset_type>::value,
                  "CountsViewType must be a nonconst Kokkos::View.");
   static_assert (std::is_integral<count_type>::value,
                  "The type of each entry of CountsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<InputOffsetsViewType>::value,
+  static_assert (Kokkos::Impl::is_view<InputOffsetsViewType>::value,
                  "InputOffsetsViewType must be a Kokkos::View.");
   static_assert (std::is_integral<input_offset_type>::value,
                  "The type of each entry of InputOffsetsViewType must be a built-in integer type.");
-  static_assert (Kokkos::is_view<InputLocalRowIndicesViewType>::value,
+  static_assert (Kokkos::Impl::is_view<InputLocalRowIndicesViewType>::value,
                  "InputLocalRowIndicesViewType must be a Kokkos::View.");
   static_assert (std::is_integral<local_row_index_type>::value,
                  "The type of each entry of InputLocalRowIndicesViewType must be a built-in integer type.");
@@ -239,10 +244,8 @@ public:
 
   //! Host function for getting the error.
   int getError () const {
-    typedef typename device_type::execution_space execution_space;
     auto error_h = Kokkos::create_mirror_view (error_);
-    // DEEP_COPY REVIEW - DEVICE-TO-HOSTMIRROR
-    Kokkos::deep_copy (execution_space(), error_h, error_);
+    Kokkos::deep_copy (error_h, error_);
     return error_h ();
   }
 
@@ -728,7 +731,8 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                const Kokkos::View<const LO*, BufferDeviceType>& export_lids,
                const Kokkos::View<const int*, typename NT::device_type>& export_pids,
                size_t& constant_num_packets,
-               const bool pack_pids)
+               const bool pack_pids,
+               Distributor& /* dist */)
 {
   ::Tpetra::Details::ProfilingRegion region_pack_crs_matrix(
     "Tpetra::Details::PackCrsMatrixImpl::packCrsMatrix",
@@ -860,13 +864,13 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                Teuchos::Array<char>& exports,
                const Teuchos::ArrayView<size_t>& numPacketsPerLID,
                const Teuchos::ArrayView<const LO>& exportLIDs,
-               size_t& constantNumPackets)
+               size_t& constantNumPackets,
+               Distributor& distor)
 {
-
-  using device_type = typename CrsMatrix<ST,LO,GO,NT>::local_matrix_device_type::device_type;
+  using local_matrix_device_type = typename CrsMatrix<ST,LO,GO,NT>::local_matrix_device_type;
+  using device_type = typename local_matrix_device_type::device_type;
   using buffer_device_type = typename DistObject<char, LO, GO, NT>::buffer_device_type;
   using host_exec_space = typename Kokkos::View<size_t*, device_type>::HostMirror::execution_space;
-  using device_exec_space = typename device_type::execution_space;
   using host_dev_type = Kokkos::Device<host_exec_space, Kokkos::HostSpace>;
 
   // Convert all Teuchos::Array to Kokkos::View
@@ -895,15 +899,14 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
   constexpr bool pack_pids = false;
   PackCrsMatrixImpl::packCrsMatrix<ST, LO, GO, NT, buffer_device_type> (
       sourceMatrix, exports_dv, num_packets_per_lid_d, export_lids_d,
-      export_pids_d, constantNumPackets, pack_pids);
+      export_pids_d, constantNumPackets, pack_pids, distor);
 
   // The counts are an output of PackCrsMatrixImpl::packCrsMatrix, so we have to
   // copy them back to host.
   Kokkos::View<size_t*, host_dev_type> num_packets_per_lid_h
     (numPacketsPerLID.getRawPtr (),
      numPacketsPerLID.size ());
-  // DEEP_COPY REVIEW - DEVICE-TO-HOST
-  Kokkos::deep_copy (device_exec_space(), num_packets_per_lid_h, num_packets_per_lid_d);
+  Kokkos::deep_copy (num_packets_per_lid_h, num_packets_per_lid_d);
 
   // FIXME (mfh 23 Aug 2017) If we're forced to use a DualView for
   // exports_dv above, then we have two host copies for exports_h.
@@ -916,8 +919,7 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
   }
   Kokkos::View<char*, host_dev_type> exports_h (exports.getRawPtr (),
                                                 exports.size ());
-  // DEEP_COPY REVIEW - DEVICE-TO-HOST
-  Kokkos::deep_copy (device_exec_space(), exports_h, exports_dv.d_view);
+  Kokkos::deep_copy (exports_h, exports_dv.d_view);
 }
 
 template<typename ST, typename LO, typename GO, typename NT>
@@ -927,7 +929,9 @@ packCrsMatrixNew(
   Kokkos::DualView<char*, typename DistObject<char, LO, GO, NT>::buffer_device_type>& exports,
   const Kokkos::DualView<size_t*, typename DistObject<char, LO, GO, NT>::buffer_device_type>& numPacketsPerLID,
   const Kokkos::DualView<const LO*, typename DistObject<char, LO, GO, NT>::buffer_device_type>& exportLIDs,
-  size_t& constantNumPackets)
+  size_t& constantNumPackets,
+  Distributor& distor
+)
 {
   using device_type = typename CrsMatrix<ST, LO, GO, NT>::device_type;
   using buffer_device_type = typename DistObject<char, LO, GO, NT>::buffer_device_type;
@@ -952,7 +956,7 @@ packCrsMatrixNew(
   );
   PackCrsMatrixImpl::packCrsMatrix<ST,LO,GO,NT,buffer_device_type> (
       sourceMatrix, exports, numPacketsPerLID_d, exportLIDs_d,
-      exportPIDs_d, constantNumPackets, pack_pids);
+      exportPIDs_d, constantNumPackets, pack_pids, distor);
 }
 
 template<typename ST, typename LO, typename GO, typename NT>
@@ -962,7 +966,8 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                              const Teuchos::ArrayView<size_t>& numPacketsPerLID,
                              const Teuchos::ArrayView<const LO>& exportLIDs,
                              const Teuchos::ArrayView<const int>& sourcePIDs,
-                             size_t& constantNumPackets)
+                             size_t& constantNumPackets,
+                             Distributor& distor)
 {
   typedef typename CrsMatrix<ST,LO,GO,NT>::local_matrix_device_type local_matrix_device_type;
   typedef typename DistObject<char, LO, GO, NT>::buffer_device_type buffer_device_type;
@@ -970,8 +975,6 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
   typedef Kokkos::Device<host_exec_space, Kokkos::HostSpace> host_dev_type;
 
   typename local_matrix_device_type::device_type outputDevice;
-  typedef typename NT::execution_space execution_space;
-
 
   const bool verbose = ::Tpetra::Details::Behavior::verbose ();
   std::unique_ptr<std::string> prefix;
@@ -1024,7 +1027,7 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
   try {
     PackCrsMatrixImpl::packCrsMatrix
       (sourceMatrix, exports_dv, num_packets_per_lid_d, export_lids_d,
-       export_pids_d, constantNumPackets, pack_pids);
+       export_pids_d, constantNumPackets, pack_pids, distor);
   }
   catch (std::exception& e) {
     if (verbose) {
@@ -1051,8 +1054,7 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
       // so we have to copy them back to host.
       Kokkos::View<size_t*, host_dev_type> num_packets_per_lid_h
         (numPacketsPerLID.getRawPtr (), numPacketsPerLID.size ());
-      // DEEP_COPY REVIEW - DEVICE-TO-HOST
-      Kokkos::deep_copy (execution_space(), num_packets_per_lid_h, num_packets_per_lid_d);
+      Kokkos::deep_copy (num_packets_per_lid_h, num_packets_per_lid_d);
     }
     catch (std::exception& e) {
       if (verbose) {
@@ -1089,19 +1091,22 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
     Teuchos::Array<char>&, \
     const Teuchos::ArrayView<size_t>&, \
     const Teuchos::ArrayView<const LO>&, \
-    size_t&); \
+    size_t&, \
+    Distributor&); \
   template void \
   Details::packCrsMatrixNew<ST, LO, GO, NT> (const CrsMatrix<ST, LO, GO, NT>&, \
     Kokkos::DualView<char*, DistObject<char, LO, GO, NT>::buffer_device_type>&, \
     const Kokkos::DualView<size_t*, DistObject<char, LO, GO, NT>::buffer_device_type>&, \
     const Kokkos::DualView<const LO*, DistObject<char, LO, GO, NT>::buffer_device_type>&, \
-    size_t&); \
+    size_t&, \
+    Distributor&); \
   template void \
   Details::packCrsMatrixWithOwningPIDs<ST, LO, GO, NT> (const CrsMatrix<ST, LO, GO, NT>&, \
     Kokkos::DualView<char*, DistObject<char, LO, GO, NT>::buffer_device_type>&, \
     const Teuchos::ArrayView<size_t>&, \
     const Teuchos::ArrayView<const LO>&, \
     const Teuchos::ArrayView<const int>&, \
-    size_t&);
+    size_t&, \
+    Distributor&);
 
 #endif // TPETRA_DETAILS_PACKCRSMATRIX_DEF_HPP

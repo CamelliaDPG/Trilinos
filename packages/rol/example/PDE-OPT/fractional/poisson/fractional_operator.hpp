@@ -119,16 +119,15 @@ public:
 
     if ( !transpose_ ) {
       size_t numRowEntries(0);
-      typename Tpetra::CrsMatrix<>::nonconst_global_inds_host_view_type indices;
-      typename Tpetra::CrsMatrix<>::nonconst_values_host_view_type values;
+      Teuchos::Array<GO> indices;
+      Teuchos::Array<Real> values;
       Teuchos::Array<size_t> col(1), row(1);
       for (size_t r = 0; r < Mcylinder_->getGlobalNumRows(); ++r) {
         row[0] = r;
         numRowEntries = Mcylinder_->getNumEntriesInGlobalRow(r);
-        Kokkos::resize(indices,numRowEntries);
-        Kokkos::resize(values,numRowEntries);
-        Mcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
-        for (size_t c = 0; c < indices.size(); ++c) {
+        indices.resize(numRowEntries); values.resize(numRowEntries);
+        Mcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
+        for (int c = 0; c < indices.size(); ++c) {
           col[0] = static_cast<size_t>(indices[c]);
           Klocal_->apply(*(vf->subView(col())),*(Hvf->subViewNonConst(row())),Teuchos::NO_TRANS,values[c],static_cast<Real>(0));
           //Klocal_->apply(*(vf->getVector(indices[c])),*(Hvf->getVectorNonConst(r)),Teuchos::NO_TRANS,values[c],static_cast<Real>(0));
@@ -137,10 +136,9 @@ public:
       for (size_t r = 0; r < Kcylinder_->getGlobalNumRows(); ++r) {
         row[0] = r;
         numRowEntries = Kcylinder_->getNumEntriesInGlobalRow(r);
-        Kokkos::resize(indices,numRowEntries);
-        Kokkos::resize(values,numRowEntries);
-        Kcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
-        for (size_t c = 0; c < indices.size(); ++c) {
+        indices.resize(numRowEntries); values.resize(numRowEntries);
+        Kcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
+        for (int c = 0; c < indices.size(); ++c) {
           col[0] = static_cast<size_t>(indices[c]);
           Mlocal_->apply(*(vf->subView(col())),*(Hvf->subViewNonConst(row())),Teuchos::NO_TRANS,values[c],static_cast<Real>(1));
           //Mlocal_->apply(*(vf->getVector(indices[c])),*(Hvf->getVectorNonConst(r)),Teuchos::NO_TRANS,values[c],static_cast<Real>(1));
@@ -226,28 +224,26 @@ public:
 
     size_t numRowEntries(0);
     Real massVal(0), stiffVal(0);
-    typename Tpetra::CrsMatrix<>::nonconst_global_inds_host_view_type indices;
-    typename Tpetra::CrsMatrix<>::nonconst_values_host_view_type values;
+    Teuchos::Array<GO> indices;
+    Teuchos::Array<Real> values;
     Teuchos::Array<size_t> row(1);
     for (size_t r = 0; r < Mcylinder_->getGlobalNumRows(); ++r) {
       row[0] = r;
       numRowEntries = Mcylinder_->getNumEntriesInGlobalRow(r);
-      Kokkos::resize(indices,numRowEntries);
-      Kokkos::resize(values,numRowEntries);
-      Mcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
+      indices.resize(numRowEntries); values.resize(numRowEntries);
+      Mcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
       massVal = static_cast<Real>(0);
-      for (size_t c = 0; c < indices.size(); ++c) {
+      for (int c = 0; c < indices.size(); ++c) {
         if ( indices[c] == static_cast<int>(r) ) {
           massVal = values[c];
           break;
         }
       }
       numRowEntries = Kcylinder_->getNumEntriesInGlobalRow(r);
-      Kokkos::resize(indices,numRowEntries);
-      Kokkos::resize(values,numRowEntries);
-      Kcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
+      indices.resize(numRowEntries); values.resize(numRowEntries);
+      Kcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
       stiffVal = static_cast<Real>(0);
-      for (size_t c = 0; c < indices.size(); ++c) {
+      for (int c = 0; c < indices.size(); ++c) {
         if ( indices[c] == static_cast<int>(r) ) {
           stiffVal = values[c];
           break;
@@ -265,28 +261,26 @@ public:
 
     size_t numRowEntries(0);
     Real massVal(0), stiffVal(0);
-    typename Tpetra::CrsMatrix<>::nonconst_global_inds_host_view_type indices;
-    typename Tpetra::CrsMatrix<>::nonconst_values_host_view_type values;
+    Teuchos::Array<GO> indices;
+    Teuchos::Array<Real> values;
     Teuchos::Array<size_t> row(1);
     for (size_t r = 0; r < Mcylinder_->getGlobalNumRows(); ++r) {
       row[0] = r;
       numRowEntries = Mcylinder_->getNumEntriesInGlobalRow(r);
-      Kokkos::resize(indices,numRowEntries);
-      Kokkos::resize(values,numRowEntries);
-      Mcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
+      indices.resize(numRowEntries); values.resize(numRowEntries);
+      Mcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
       massVal = static_cast<Real>(0);
-      for (size_t c = 0; c < indices.size(); ++c) {
+      for (int c = 0; c < indices.size(); ++c) {
         if ( indices[c] == static_cast<int>(r) ) {
           massVal = values[c];
           break;
         }
       }
       numRowEntries = Kcylinder_->getNumEntriesInGlobalRow(r);
-      Kokkos::resize(indices,numRowEntries);
-      Kokkos::resize(values,numRowEntries);
-      Kcylinder_->getGlobalRowCopy(r,indices,values,numRowEntries);
+      indices.resize(numRowEntries); values.resize(numRowEntries);
+      Kcylinder_->getGlobalRowCopy(r,indices(),values(),numRowEntries);
       stiffVal = static_cast<Real>(0);
-      for (size_t c = 0; c < indices.size(); ++c) {
+      for (int c = 0; c < indices.size(); ++c) {
         if ( indices[c] == static_cast<int>(r) ) {
           stiffVal = values[c];
           break;

@@ -224,15 +224,14 @@ namespace MueLu {
       RCP<const CrsMatrix> Acrs = rcp_dynamic_cast<const CrsMatrixWrap>(A)->getCrsMatrix();
       RCP<CrsMatrix> Aghost_crs = CrsMatrixFactory::Build(Acrs,*remoteOnlyImporter,A->getDomainMap(),remoteOnlyImporter->getTargetMap());
       Aghost = rcp(new CrsMatrixWrap(Aghost_crs));
-      // CAG: It seems that this isn't actually needed?
-      // We also may need need to ghost myPointType for Aghost
-      // RCP<const Import> Importer2 = Aghost->getCrsGraph()->getImporter();
-      // if(Importer2.is_null()) {
-      //   RCP<LocalOrdinalVector> fc_splitting_ghost_nonconst = LocalOrdinalVectorFactory::Build(Aghost->getColMap());
-      //   fc_splitting_ghost_nonconst->doImport(*owned_fc_splitting,*Importer,Xpetra::INSERT);
-      //   fc_splitting_ghost = fc_splitting_ghost_nonconst;
-      //   myPointType_ghost  = fc_splitting_ghost->getData(0);
-      // }
+      // We also may need need to ghost myPointType for Aghos
+      RCP<const Import> Importer2 = Aghost->getCrsGraph()->getImporter();
+      if(Importer2.is_null()) {
+        RCP<LocalOrdinalVector> fc_splitting_ghost_nonconst = LocalOrdinalVectorFactory::Build(Aghost->getColMap());
+        fc_splitting_ghost_nonconst->doImport(*owned_fc_splitting,*Importer,Xpetra::INSERT);
+        fc_splitting_ghost = fc_splitting_ghost_nonconst;
+        myPointType_ghost  = fc_splitting_ghost->getData(0);      
+      }
     }
 
     /* Generate the ghosted Coarse map using the "Tuminaro maneuver" (if needed)*/   
@@ -262,9 +261,9 @@ namespace MueLu {
     {
       RCP<const CrsMatrix> Acrs = rcp_dynamic_cast<const CrsMatrixWrap>(A)->getCrsMatrix();
       int rank = A->getRowMap()->getComm()->getRank();
-      printf("[%d] A local size = %dx%d\n",rank,(int)Acrs->getRowMap()->getLocalNumElements(),(int)Acrs->getColMap()->getLocalNumElements());
+      printf("[%d] A local size = %dx%d\n",rank,(int)Acrs->getRowMap()->getNodeNumElements(),(int)Acrs->getColMap()->getNodeNumElements());
 
-      printf("[%d] graph local size = %dx%d\n",rank,(int)graph->GetDomainMap()->getLocalNumElements(),(int)graph->GetImportMap()->getLocalNumElements());
+      printf("[%d] graph local size = %dx%d\n",rank,(int)graph->GetDomainMap()->getNodeNumElements(),(int)graph->GetImportMap()->getNodeNumElements());
 
       std::ofstream ofs(std::string("dropped_graph_") + std::to_string(fineLevel.GetLevelID())+std::string("_") + std::to_string(rank) + std::string(".dat"),std::ofstream::out);
       RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(ofs));
@@ -309,7 +308,7 @@ namespace MueLu {
     // pcol2cpoint - Takes a LCID for P and turns in into an LCID for A.
     // cpoint2pcol - Takes a LCID for A --- if it is a C Point --- and turns in into an LCID for P.
     Array<LO> cpoint2pcol(myPointType.size(),LO_INVALID);
-    Array<LO> pcol2cpoint(coarseMap->getLocalNumElements(),LO_INVALID);   
+    Array<LO> pcol2cpoint(coarseMap->getNodeNumElements(),LO_INVALID);   
     LO num_c_points = 0;
     LO num_f_points =0;
     for(LO i=0; i<(LO) myPointType.size(); i++) {
@@ -352,8 +351,7 @@ namespace MueLu {
     // NOTE: ParameterList validator will check this guy so we don't really need an "else" here
 
 #ifdef CMS_DEBUG
-    Xpetra::IO<SC,LO,GO,NO>::Write("classical_p.mat."+std::to_string(coarseLevel.GetLevelID()), *P);
-    // Xpetra::IO<SC,LO,GO,NO>::WriteLocal("classical_p.mat."+std::to_string(coarseLevel.GetLevelID()), *P);
+    Xpetra::IO<SC,LO,GO,NO>::Write("classical_p.mat", *P);
 #endif
 
     // Save output
@@ -430,13 +428,13 @@ Coarsen_ClassicalModified(const Matrix & A,const RCP<const Matrix> & Aghost, con
     // Initial (estimated) allocation
     // NOTE: If we only used Tpetra, then we could use these guys as is, but because Epetra, we can't, so there
     // needs to be a copy below.
-    size_t Nrows = A.getLocalNumRows();
+    size_t Nrows = A.getNodeNumRows();
     double c_point_density = (double)num_c_points / (num_c_points+num_f_points);
     double mean_strong_neighbors_per_row = (double) graph.GetNodeNumEdges() / graph.GetNodeNumVertices();
-    //    double mean_neighbors_per_row = (double)A.getLocalNumEntries() / Nrows;
+    //    double mean_neighbors_per_row = (double)A.getNodeNumEntries() / Nrows;
     double nnz_per_row_est = c_point_density*mean_strong_neighbors_per_row;
 
-    size_t nnz_est = std::max(Nrows,std::min((size_t)A.getLocalNumEntries(),(size_t)(nnz_per_row_est*Nrows)));
+    size_t nnz_est = std::max(Nrows,std::min((size_t)A.getNodeNumEntries(),(size_t)(nnz_per_row_est*Nrows)));
     Array<size_t> tmp_rowptr(Nrows+1);
     Array<LO> tmp_colind(nnz_est);
 
@@ -521,21 +519,21 @@ Coarsen_ClassicalModified(const Matrix & A,const RCP<const Matrix> & Aghost, con
     }
 
     // Gustavson-style perfect hashing
-    ArrayRCP<LO> Acol_to_Pcol(A.getColMap()->getLocalNumElements(),LO_INVALID);
+    ArrayRCP<LO> Acol_to_Pcol(A.getColMap()->getNodeNumElements(),LO_INVALID);
 
     // Get a quick reindexing array from Pghost LCIDs to P LCIDs
     ArrayRCP<LO> Pghostcol_to_Pcol;
     if(!Pghost.is_null()) {
-      Pghostcol_to_Pcol.resize(Pghost->getColMap()->getLocalNumElements(),LO_INVALID);
-      for(LO i=0; i<(LO) Pghost->getColMap()->getLocalNumElements(); i++) 
+      Pghostcol_to_Pcol.resize(Pghost->getColMap()->getNodeNumElements(),LO_INVALID);
+      for(LO i=0; i<(LO) Pghost->getColMap()->getNodeNumElements(); i++) 
         Pghostcol_to_Pcol[i] = Pgraph->getColMap()->getLocalElement(Pghost->getColMap()->getGlobalElement(i));
     }//end Pghost
 
     // Get a quick reindexing array from Aghost LCIDs to A LCIDs
     ArrayRCP<LO> Aghostcol_to_Acol;
     if(!Aghost.is_null()) {
-      Aghostcol_to_Acol.resize(Aghost->getColMap()->getLocalNumElements(),LO_INVALID);
-      for(LO i=0; i<(LO)Aghost->getColMap()->getLocalNumElements(); i++) 
+      Aghostcol_to_Acol.resize(Aghost->getColMap()->getNodeNumElements(),LO_INVALID);
+      for(LO i=0; i<(LO)Aghost->getColMap()->getNodeNumElements(); i++) 
         Aghostcol_to_Acol[i] = A.getColMap()->getLocalElement(Aghost->getColMap()->getGlobalElement(i));
     }//end Aghost
 
@@ -824,13 +822,13 @@ Coarsen_Direct(const Matrix & A,const RCP<const Matrix> & Aghost, const GraphBas
     using STS = typename Teuchos::ScalarTraits<SC>;
     using MT  = typename STS::magnitudeType;
     using MTS = typename Teuchos::ScalarTraits<MT>;
-    size_t Nrows = A.getLocalNumRows();
+    size_t Nrows = A.getNodeNumRows();
     double c_point_density = (double)num_c_points / (num_c_points+num_f_points);
     double mean_strong_neighbors_per_row = (double) graph.GetNodeNumEdges() / graph.GetNodeNumVertices();
-    //    double mean_neighbors_per_row = (double)A.getLocalNumEntries() / Nrows;
+    //    double mean_neighbors_per_row = (double)A.getNodeNumEntries() / Nrows;
     double nnz_per_row_est = c_point_density*mean_strong_neighbors_per_row;
 
-    size_t nnz_est = std::max(Nrows,std::min((size_t)A.getLocalNumEntries(),(size_t)(nnz_per_row_est*Nrows)));
+    size_t nnz_est = std::max(Nrows,std::min((size_t)A.getNodeNumEntries(),(size_t)(nnz_per_row_est*Nrows)));
     SC SC_ZERO = STS::zero();
     MT MT_ZERO = MTS::zero();
     Array<size_t> tmp_rowptr(Nrows+1);
@@ -1052,16 +1050,16 @@ GenerateStrengthFlags(const Matrix & A,const GraphBase & graph, Teuchos::Array<s
   // To make this easier, we'll create a bool array equal to the nnz in the matrix
   // so we know whether each edge is strong or not.  This will save us a bunch of
   // trying to match the graph and matrix later
-  size_t Nrows = A.getLocalNumRows();
+  size_t Nrows = A.getNodeNumRows();
   eis_rowptr.resize(Nrows+1);
 
   if(edgeIsStrong.size() == 0) {
     // Preferred
-    edgeIsStrong.resize(A.getLocalNumEntries(),false);
+    edgeIsStrong.resize(A.getNodeNumEntries(),false);
   }
   else {
-    edgeIsStrong.resize(A.getLocalNumEntries(),false);
-    edgeIsStrong.assign(A.getLocalNumEntries(),false);
+    edgeIsStrong.resize(A.getNodeNumEntries(),false);
+    edgeIsStrong.assign(A.getNodeNumEntries(),false);
   }
   
   eis_rowptr[0] = 0;
@@ -1078,9 +1076,9 @@ GenerateStrengthFlags(const Matrix & A,const GraphBase & graph, Teuchos::Array<s
     // Both of these guys should be in the same (sorted) order, but let's check
     bool is_ok=true;
     for(LO j=0; j<A_size-1; j++)
-      if (A_indices[j] >= A_indices[j+1]) { is_ok=false; break;}
+      if (A_indices[j] > A_indices[j+1]) { is_ok=false; break;}
     for(LO j=0; j<G_size-1; j++)
-      if (G_indices[j] >= G_indices[j+1]) { is_ok=false; break;}
+      if (G_indices[j] > G_indices[j+1]) { is_ok=false; break;}
     TEUCHOS_TEST_FOR_EXCEPTION(!is_ok, Exceptions::RuntimeError,"ClassicalPFactory: Exected A and Graph to be sorted");
     
     // Now cycle through and set the flags - if the edge is in G it is strong

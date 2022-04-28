@@ -91,8 +91,11 @@ namespace Intrepid2 {
                                               const exactValueType *exactCubPoints,
                                               const exactValueType *exactCubWeights,
                                               outStreamType outStream) {
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
 
       typedef Kokkos::DynRankView<ValueType,DeviceSpaceType> DynRankView;
+      //typedef Kokkos::DynRankView<ValueType,HostSpaceType>   DynRankViewHost;
       
       const auto tol = tolerence();
 
@@ -127,8 +130,8 @@ namespace Intrepid2 {
           
         cubature.getCubature(cubPoints, cubWeights, cellCoords);
 
-        auto cubPointsHost  = Kokkos::create_mirror_view(cubPoints);
-        auto cubWeightsHost = Kokkos::create_mirror_view(cubWeights);
+        auto cubPointsHost  = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPoints);
+        auto cubWeightsHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeights);
 
         Kokkos::deep_copy(cubPointsHost,  cubPoints);
         Kokkos::deep_copy(cubWeightsHost, cubWeights);
@@ -193,8 +196,11 @@ namespace Intrepid2 {
                                          const cellCoordViewType cellCoords,
                                          const exactValueType exactVolume,
                                          outStreamType outStream) {
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
 
       typedef Kokkos::DynRankView<ValueType,DeviceSpaceType> DynRankView;
+      //typedef Kokkos::DynRankView<ValueType,HostSpaceType>   DynRankViewHost;
       
       typedef ValueType pointValueType;
       typedef ValueType weightValueType;
@@ -220,8 +226,8 @@ namespace Intrepid2 {
           
         CubatureControlVolume.getCubature(cubPoints, cubWeights, cellCoords);
         
-        auto cubPointsHost  = Kokkos::create_mirror_view(cubPoints);
-        auto cubWeightsHost = Kokkos::create_mirror_view(cubWeights);
+        auto cubPointsHost  = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPoints);
+        auto cubWeightsHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeights);
 
         Kokkos::deep_copy(cubPointsHost,  cubPoints);
         Kokkos::deep_copy(cubWeightsHost, cubWeights);
@@ -260,6 +266,12 @@ namespace Intrepid2 {
       Teuchos::oblackholestream oldFormatState;
       oldFormatState.copyfmt(std::cout);
 
+      typedef typename
+        Kokkos::Impl::is_space<DeviceSpaceType>::host_mirror_space::execution_space HostSpaceType ;
+
+      *outStream << "DeviceSpace::  "; DeviceSpaceType::print_configuration(*outStream, false);
+      *outStream << "HostSpace::    ";   HostSpaceType::print_configuration(*outStream, false);
+
       *outStream                                                        
         << "===============================================================================\n" 
         << "|                                                                             |\n" 
@@ -283,7 +295,7 @@ namespace Intrepid2 {
         << "===============================================================================\n";
       
       typedef Kokkos::DynRankView<ValueType,DeviceSpaceType> DynRankView;
-      typedef Kokkos::DynRankView<ValueType,Kokkos::HostSpace>   DynRankViewHost;
+      typedef Kokkos::DynRankView<ValueType,HostSpaceType>   DynRankViewHost;
 
       int errorFlag = 0;
 
@@ -843,10 +855,10 @@ namespace Intrepid2 {
           CubatureControlVolume.getCubature    (cubPointsVolume, cubWeightsVolume, cellCoords);
           CubatureControlVolumeSide.getCubature(cubPointsSide,   cubWeightsSide,   cellCoords);
           
-          auto cubPointsVolumeHost  = Kokkos::create_mirror_view(cubPointsVolume);
-          auto cubWeightsVolumeHost = Kokkos::create_mirror_view(cubWeightsVolume);
-          auto cubPointsSideHost    = Kokkos::create_mirror_view(cubPointsSide);
-          auto cubWeightsSideHost   = Kokkos::create_mirror_view(cubWeightsSide);
+          auto cubPointsVolumeHost  = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPointsVolume);
+          auto cubWeightsVolumeHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeightsVolume);
+          auto cubPointsSideHost    = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPointsSide);
+          auto cubWeightsSideHost   = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeightsSide);
           
           Kokkos::deep_copy(cubPointsVolumeHost,  cubPointsVolume);
           Kokkos::deep_copy(cubWeightsVolumeHost, cubWeightsVolume);
@@ -951,10 +963,10 @@ namespace Intrepid2 {
           CubatureControlVolume.getCubature    (cubPointsVolume, cubWeightsVolume, cellCoords);
           CubatureControlVolumeSide.getCubature(cubPointsSide,   cubWeightsSide,   cellCoords);
           
-          auto cubPointsVolumeHost  = Kokkos::create_mirror_view(cubPointsVolume);
-          auto cubWeightsVolumeHost = Kokkos::create_mirror_view(cubWeightsVolume);
-          auto cubPointsSideHost    = Kokkos::create_mirror_view(cubPointsSide);
-          auto cubWeightsSideHost   = Kokkos::create_mirror_view(cubWeightsSide);
+          auto cubPointsVolumeHost  = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPointsVolume);
+          auto cubWeightsVolumeHost = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeightsVolume);
+          auto cubPointsSideHost    = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubPointsSide);
+          auto cubWeightsSideHost   = Kokkos::create_mirror_view(typename HostSpaceType::memory_space(), cubWeightsSide);
           
           Kokkos::deep_copy(cubPointsVolumeHost,  cubPointsVolume);
           Kokkos::deep_copy(cubWeightsVolumeHost, cubWeightsVolume);

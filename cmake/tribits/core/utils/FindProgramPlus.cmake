@@ -37,8 +37,8 @@
 # ************************************************************************
 # @HEADER
 
-include(CMakeParseArguments)
-include(PrintNonemptyVar)
+INCLUDE(CMakeParseArguments)
+INCLUDE(PrintNonemptyVar)
 
 #
 # Finds the absolute path for a program given optionally just the program name
@@ -55,9 +55,9 @@ include(PrintNonemptyVar)
 #      Documentation string
 #
 
-function(find_program_plus PROG_VAR)
+FUNCTION(FIND_PROGRAM_PLUS PROG_VAR)
 
-  cmake_parse_arguments(
+  CMAKE_PARSE_ARGUMENTS(
     #prefix
     PARSE
     #options
@@ -69,35 +69,35 @@ function(find_program_plus PROG_VAR)
     ${ARGN}
     )
 
-  tribits_check_for_unparsed_arguments()
+  TRIBITS_CHECK_FOR_UNPARSED_ARGUMENTS()
 
-  print_nonempty_var(${PROG_VAR})
+  PRINT_NONEMPTY_VAR(${PROG_VAR})
 
-  if (IS_ABSOLUTE ${PROG_VAR})
-    #message(STATUS "Is Absolute")
-    set(NAMES_ARGS ${PARSE_NAMES})
-  else()
-    #message(STATUS "Is Not Absolute")
-    set(NAMES_ARGS ${${PROG_VAR}} ${PARSE_NAMES})
-    set(${PROG_VAR} "${PROG_VAR}-NOTFOUND" CACHE FILEPATH "" FORCE)
-  endif()
-  #print_var(NAMES_ARGS)
+  IF (IS_ABSOLUTE ${PROG_VAR})
+    #MESSAGE(STATUS "Is Absoute")
+    SET(NAMES_ARGS ${PARSE_NAMES})
+  ELSE()
+    #MESSAGE(STATUS "Is Not Absolute")
+    SET(NAMES_ARGS ${${PROG_VAR}} ${PARSE_NAMES})
+    SET(${PROG_VAR} "${PROG_VAR}-NOTFOUND" CACHE FILEPATH "" FORCE)
+  ENDIF()
+  #PRINT_VAR(NAMES_ARGS)
 
-  set(DOC "${PARSE_DOC}  Can be full path or just exec name.")
+  SET(DOC "${PARSE_DOC}  Can be full path or just exec name.")
 
   # Look for program in given paths first!
-  find_program( ${PROG_VAR}
+  FIND_PROGRAM( ${PROG_VAR}
     NAMES ${NAMES_ARGS}
     PATHS ${PARSE_PATHS}
     DOC ${DOC}
     NO_DEFAULT_PATH
     )
-  find_program( ${PROG_VAR}
+  FIND_PROGRAM( ${PROG_VAR}
     NAMES ${NAMES_ARGS}
     DOC ${DOC}
     )
-  mark_as_advanced(${PROG_VAR})
+  MARK_AS_ADVANCED(${PROG_VAR})
 
-  print_nonempty_var(${PROG_VAR})
+  PRINT_NONEMPTY_VAR(${PROG_VAR})
 
-endfunction()
+ENDFUNCTION()

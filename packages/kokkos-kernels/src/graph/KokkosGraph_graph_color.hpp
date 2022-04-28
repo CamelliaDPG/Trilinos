@@ -42,6 +42,7 @@
 //@HEADER
 */
 
+
 /**
  * This maintains backwards-compatibility with older code that included
  * the KokkosGraph_graph_color.hpp file. The new file is renamed to

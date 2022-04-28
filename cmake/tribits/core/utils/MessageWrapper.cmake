@@ -37,31 +37,31 @@
 # ************************************************************************
 # @HEADER
 
-if (MESSAGE_WRAPPER_INCLUDED)
-  return()
-endif()
-set(MESSAGE_WRAPPER_INCLUDED TRUE)
+IF (MESSAGE_WRAPPER_INCLUDED)
+  RETURN()
+ENDIF()
+SET(MESSAGE_WRAPPER_INCLUDED TRUE)
 
-include(GlobalSet)
+INCLUDE(GlobalSet)
 
 #
-# @FUNCTION: message_wrapper()
+# @FUNCTION: MESSAGE_WRAPPER()
 #
-# Function that wraps the standard CMake/CTest ``message()`` function call in
+# Function that wraps the standard CMake/CTest ``MESSAGE()`` function call in
 # order to allow unit testing to intercept the output.
 #
 # Usage::
 #
-#   message_wrapper(...)
+#   MESSAGE_WRAPPER(...)
 #
-# This function takes exactly the same arguments as built-in ``message()``
+# This function takes exactly the same arguments as built-in ``MESSAGE()``
 # function.  However, when the variable ``MESSAGE_WRAPPER_UNIT_TEST_MODE`` is
-# set to ``TRUE``, then this function will not call ``message(...)`` but
+# set to ``TRUE``, then this function will not call ``MESSAGE(...)`` but
 # instead will prepend set to the global variable ``MESSAGE_WRAPPER_INPUT``
-# the input argument that would have gone to ``message()``.  To capture just
+# the input argument that would have gone to ``MESSAGE()``.  To capture just
 # this call's input, first call::
 #
-#   global_null_set(MESSAGE_WRAPPER_INPUT)
+#   GLOBAL_NULL_SET(MESSAGE_WRAPPER_INPUT)
 #
 # before calling this function (or the functions/macros that call this
 # function).
@@ -71,12 +71,12 @@ include(GlobalSet)
 # the CMake program.  Otherwise, this is used to capture print messages to
 # verify that they say the right thing.
 #
-function(message_wrapper)
-  #message("MESSAGE_WRAPPER: ${ARGN}")
-  if (MESSAGE_WRAPPER_UNIT_TEST_MODE)
-    global_set(MESSAGE_WRAPPER_INPUT "${MESSAGE_WRAPPER_INPUT}" ${ARGN})
-  else()
-    message(${ARGN})
-  endif()
-endfunction()
+FUNCTION(MESSAGE_WRAPPER)
+  #MESSAGE("MESSAGE_WRAPPER: ${ARGN}")
+  IF (MESSAGE_WRAPPER_UNIT_TEST_MODE)
+    GLOBAL_SET(MESSAGE_WRAPPER_INPUT "${MESSAGE_WRAPPER_INPUT}" ${ARGN})
+  ELSE()
+    MESSAGE(${ARGN})
+  ENDIF()
+ENDFUNCTION()
 

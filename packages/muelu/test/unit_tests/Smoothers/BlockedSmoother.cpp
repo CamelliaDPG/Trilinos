@@ -93,8 +93,8 @@ namespace MueLuTests {
     Teuchos::RCP<const Teuchos::Comm<int> > comm = Amap.getComm();
 
     GlobalOrdinal count=0;
-    Teuchos::Array<GlobalOrdinal> myaugids(Amap.getLocalNumElements());
-    for (size_t i=0; i<Amap.getLocalNumElements(); ++i) {
+    Teuchos::Array<GlobalOrdinal> myaugids(Amap.getNodeNumElements());
+    for (size_t i=0; i<Amap.getNodeNumElements(); ++i) {
       const GlobalOrdinal gid = Amap.getGlobalElement(i);
       if (Agiven.isNodeGlobalElement(gid)) continue;
       myaugids[Teuchos::as<GlobalOrdinal>(count)] = gid;
@@ -153,8 +153,8 @@ namespace MueLuTests {
       //std::cout << it << " " << maps[it]->getMinAllGlobalIndex() << " - " << maps[it]->getMaxAllGlobalIndex() << std::endl;
       blocks[it] = CrsMatrixFactory::Build(maps[it], 1);
 
-      LocalOrdinal NumMyElements = maps[it]->getLocalNumElements();
-      Teuchos::ArrayView<const GlobalOrdinal> MyGlobalElements = maps[it]->getLocalElementList();
+      LocalOrdinal NumMyElements = maps[it]->getNodeNumElements();
+      Teuchos::ArrayView<const GlobalOrdinal> MyGlobalElements = maps[it]->getNodeElementList();
 
       for (LocalOrdinal i = 0; i < NumMyElements; i++)
         blocks[it]->insertGlobalValues(MyGlobalElements[i],
@@ -206,8 +206,8 @@ namespace MueLuTests {
       //std::cout << it << " " << maps[it]->getMinAllGlobalIndex() << " - " << maps[it]->getMaxAllGlobalIndex() << std::endl;
       blocks[it] = CrsMatrixFactory::Build(maps[it], 1);
 
-      LocalOrdinal NumMyElements = maps[it]->getLocalNumElements();
-      Teuchos::ArrayView<const GlobalOrdinal> MyGlobalElements = maps[it]->getLocalElementList();
+      LocalOrdinal NumMyElements = maps[it]->getNodeNumElements();
+      Teuchos::ArrayView<const GlobalOrdinal> MyGlobalElements = maps[it]->getNodeElementList();
 
       for (LocalOrdinal i = 0; i < NumMyElements; i++)
         blocks[it]->insertGlobalValues(MyGlobalElements[i],
@@ -375,9 +375,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with zero initial guess, and unreliable nonzeroed vector X" << std::endl;
       X->randomize();
@@ -391,8 +390,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -406,8 +405,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm3[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm3[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm3[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] == residualNorm2[0], true);
@@ -518,10 +517,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with zero initial guess, and unreliable nonzeroed vector X" << std::endl;
       X->randomize();
@@ -535,8 +532,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -550,8 +547,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm3[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm3[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm3[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] == residualNorm2[0], true);
@@ -657,9 +654,7 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
 
       Teuchos::RCP<const MapExtractor> doMapExtractor = reorderedbA->getDomainMapExtractor();
 
@@ -815,9 +810,7 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
 
       Teuchos::RCP<const MapExtractor> doMapExtractor = reorderedbA->getDomainMapExtractor();
 
@@ -1240,9 +1233,7 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 10*std::sqrt(Teuchos::ScalarTraits<Scalar>::eps());
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 1e-7, out, success);
     } // end Tpetra
   }
 
@@ -1353,9 +1344,7 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
 
       Teuchos::RCP<const MapExtractor> doMapExtractor = reorderedbA->getDomainMapExtractor();
 
@@ -1591,10 +1580,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -1608,8 +1595,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] != residualNorm2[0], true);
@@ -1800,10 +1787,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -1986,10 +1971,8 @@ namespace MueLuTests {
         out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
         out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-        magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-        TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-        TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+        TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+        TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
       }// end useTpetra
     }
 
@@ -2174,10 +2157,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -2360,10 +2341,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -2800,10 +2779,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -2817,8 +2794,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] != residualNorm2[0], true);
@@ -2963,10 +2940,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -3122,10 +3097,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -3265,10 +3238,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -3427,10 +3398,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -3586,10 +3555,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -3955,10 +3922,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -3972,8 +3937,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] != residualNorm2[0], true);
@@ -4159,10 +4124,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -4342,10 +4305,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -4773,10 +4734,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       out << "solve with random initial guess" << std::endl;
       X->randomize();
@@ -4790,8 +4749,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm2[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm2[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
 
       if (comm->getSize() == 1) {
         TEST_EQUALITY(residualNorm1[0] != residualNorm2[0], true);
@@ -4977,10 +4936,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -5160,10 +5117,8 @@ namespace MueLuTests {
       out << "  ||Residual_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(20) << residualNorm1[0] << std::endl;
       out << "  ||X_final|| = " << std::setiosflags(std::ios::fixed) << std::setprecision(10) << finalNorms[0] << std::endl;
 
-      magnitude_type tol = 50.*Teuchos::ScalarTraits<Scalar>::eps();
-
-      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, tol, out, success);
-      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, tol, out, success);
+      TEUCHOS_TEST_COMPARE(residualNorm1[0], <, 5e-15, out, success);
+      TEUCHOS_TEST_COMPARE(finalNorms[0] - Teuchos::ScalarTraits<Scalar>::magnitude(Teuchos::ScalarTraits<Scalar>::one()), <, 5e-15, out, success);
     }// end useTpetra
   }
 
@@ -5513,7 +5468,7 @@ namespace MueLuTests {
       Teuchos::Array<GlobalOrdinal> myGids2;
       GlobalOrdinal count1 = 0;
       GlobalOrdinal count2 = 0;
-      for (size_t i=0; i<map->getLocalNumElements(); ++i) {
+      for (size_t i=0; i<map->getNodeNumElements(); ++i) {
         const GlobalOrdinal gid = map->getGlobalElement(i);
         if (gid % 2 == 0) { myGids1.push_back(gid); count1++; }
         else              { myGids2.push_back(gid); count2++; }

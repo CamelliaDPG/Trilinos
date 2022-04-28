@@ -71,7 +71,7 @@ namespace MueLu {
   BuildAggregates(const ParameterList& params,
                   const LWGraph_kokkos& graph,
                   Aggregates_kokkos& aggregates,
-                  Kokkos::View<unsigned*, typename LWGraph_kokkos::device_type>& aggStat,
+                  Kokkos::View<unsigned*, typename LWGraph_kokkos::memory_space>& aggStat,
                   LO& numNonAggregatedNodes) const {
 
     // So far we only have the non-deterministic version of the algorithm...
@@ -92,7 +92,7 @@ namespace MueLu {
   BuildAggregatesRandom(const ParameterList& params,
                         const LWGraph_kokkos& graph,
                         Aggregates_kokkos& aggregates,
-                        Kokkos::View<unsigned*, typename LWGraph_kokkos::device_type>& aggStat,
+                        Kokkos::View<unsigned*, typename LWGraph_kokkos::memory_space>& aggStat,
                         LO& numNonAggregatedNodes) const {
 
     bool error_on_isolated = params.get<bool>("aggregation: error on nodes with no on-rank neighbors");
@@ -106,14 +106,12 @@ namespace MueLu {
     auto colors        = aggregates.GetGraphColors();
     const LO numColors = aggregates.GetGraphNumColors();
 
-    auto lclLWGraph = graph.getLocalLWGraph();
-
-    Kokkos::View<LO, device_type> numAggregates("numAggregates");
+    Kokkos::View<LO, memory_space> numAggregates("numAggregates");
     Kokkos::deep_copy(numAggregates, aggregates.GetNumAggregates());
 
-    Kokkos::View<unsigned*, device_type> aggStatOld("Initial aggregation status", aggStat.extent(0));
+    Kokkos::View<unsigned*, memory_space> aggStatOld("Initial aggregation status", aggStat.extent(0));
     Kokkos::deep_copy(aggStatOld, aggStat);
-    Kokkos::View<LO, device_type> numNonAggregated("numNonAggregated");
+    Kokkos::View<LO, memory_space> numNonAggregated("numNonAggregated");
     Kokkos::deep_copy(numNonAggregated, numNonAggregatedNodes);
     for(int color = 1; color < numColors + 1; ++color) {
       Kokkos::parallel_for("Aggregation Phase 3: aggregates clean-up",
@@ -125,7 +123,7 @@ namespace MueLu {
                                  (aggStatOld(nodeIdx) == IGNORED) ){ return; }
 
                              // Grab node neighbors
-                             auto neighbors = lclLWGraph.getNeighborVertices(nodeIdx);
+                             auto neighbors = graph.getNeighborVertices(nodeIdx);
                              LO neighIdx;
 
                              // We don't want a singleton.
@@ -135,7 +133,7 @@ namespace MueLu {
                                neighIdx = neighbors(neigh);
 
                                if((neighIdx != nodeIdx) &&
-                                  lclLWGraph.isLocalNeighborVertex(neighIdx) &&
+                                  graph.isLocalNeighborVertex(neighIdx) &&
                                   (aggStatOld(neighIdx) == READY)) {
                                  isNewAggregate = true;
                                  break;
@@ -155,7 +153,7 @@ namespace MueLu {
                                for(int neigh = 0; neigh < neighbors.length; ++neigh) {
                                  neighIdx = neighbors(neigh);
                                  if((neighIdx != nodeIdx) &&
-                                    lclLWGraph.isLocalNeighborVertex(neighIdx) &&
+                                    graph.isLocalNeighborVertex(neighIdx) &&
                                     (aggStatOld(neighIdx) == READY)) {
                                    aggStat(neighIdx)         = AGGREGATED;
                                    procWinner(neighIdx, 0)   = myRank;
@@ -170,7 +168,7 @@ namespace MueLu {
                              // Let us try to aggregate into a neighboring aggregate
                              for(int neigh = 0; neigh < neighbors.length; ++neigh) {
                                neighIdx = neighbors(neigh);
-                               if (lclLWGraph.isLocalNeighborVertex(neighIdx) &&
+                               if (graph.isLocalNeighborVertex(neighIdx) &&
                                    (aggStatOld(neighIdx) == AGGREGATED)) {
                                  aggStat(nodeIdx)         = AGGREGATED;
                                  procWinner(nodeIdx, 0)   = myRank;

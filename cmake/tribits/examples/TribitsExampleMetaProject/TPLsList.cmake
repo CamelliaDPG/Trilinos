@@ -1,1 +1,1 @@
-tribits_repository_define_tpls()
+TRIBITS_REPOSITORY_DEFINE_TPLS()

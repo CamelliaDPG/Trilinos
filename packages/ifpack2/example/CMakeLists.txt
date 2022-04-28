@@ -6,9 +6,7 @@ TRIBITS_ADD_EXECUTABLE(
   SOURCES ex1.cpp
 )
 
-IF (Tpetra_INST_DOUBLE)
 TRIBITS_ADD_EXECUTABLE(
   RelaxationWithEquilibration
   SOURCES RelaxationWithEquilibration.cpp
 )
-ENDIF()

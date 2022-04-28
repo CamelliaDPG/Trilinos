@@ -141,7 +141,7 @@ namespace Intrepid2 {
     
     // -------------------------------------------------------------------------------------
     
-    template<typename DT, ordinal_type numPtsPerEval,
+    template<typename SpT, ordinal_type numPtsPerEval,
              typename outputValueValueType, class ...outputValueProperties,
              typename inputPointValueType,  class ...inputPointProperties>
     void 
@@ -154,7 +154,7 @@ namespace Intrepid2 {
                const EOperator operatorType ) {
       typedef          Kokkos::DynRankView<outputValueValueType,outputValueProperties...>         outputValueViewType;
       typedef          Kokkos::DynRankView<inputPointValueType, inputPointProperties...>          inputPointViewType;
-      typedef typename DT::execution_space ExecSpaceType;
+      typedef typename ExecSpace<typename inputPointViewType::execution_space,SpT>::ExecSpaceType ExecSpaceType;
 
       // loopSize corresponds to the # of points
       const auto loopSizeTmp1 = (inputPoints.extent(0)/numPtsPerEval);
@@ -208,8 +208,8 @@ namespace Intrepid2 {
 
   // -------------------------------------------------------------------------------------
 
-  template<typename DT, typename OT, typename PT>
-  Basis_HGRAD_LINE_Cn_FEM_JACOBI<DT,OT,PT>::
+  template<typename SpT, typename OT, typename PT>
+  Basis_HGRAD_LINE_Cn_FEM_JACOBI<SpT,OT,PT>::
   Basis_HGRAD_LINE_Cn_FEM_JACOBI( const ordinal_type order, 
                                   const double alpha, 
                                   const double beta ) {

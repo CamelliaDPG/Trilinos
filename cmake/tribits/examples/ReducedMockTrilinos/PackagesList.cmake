@@ -1,4 +1,4 @@
-tribits_repository_define_packages(
+TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   Teuchos             packages/teuchos                PT
   RTOp                packages/rtop                   PT
   Epetra              packages/epetra                 PT

@@ -7,38 +7,33 @@
 
 namespace {
 
-class Args
+struct Args
 {
-public:
-  Args(const std::vector<std::string> & strArgs)
-    : m_stringArgs(strArgs),
-      m_argc(m_stringArgs.size()),
-      m_argv(strArgs.empty() ? nullptr : new char*[m_argc])
+  Args(const std::vector<std::string>& strArgs = std::vector<std::string>())
+   : stringArgs(strArgs),
+     argc(stringArgs.size()),
+     argv(strArgs.empty() ? nullptr : new char*[argc])
   {
-    for (int i = 0; i < m_argc; ++i) {
-      m_argv[i] = const_cast<char*>(m_stringArgs[i].c_str());
-    }
+     for(int i=0; i<argc; ++i) {
+       argv[i] = const_cast<char*>(stringArgs[i].c_str());
+     }
   }
 
   ~Args()
   {
-    delete [] m_argv;
+    delete [] argv;
   }
 
-  int argc() { return m_argc; }
-  char** argv() { return m_argv; }
-
-private:
-  const std::vector<std::string> m_stringArgs;
-  int m_argc;
-  char** m_argv;
+  const std::vector<std::string> stringArgs;
+  int argc;
+  char** argv;
 };
 
 TEST(UnitTestGetOption, get_command_line_option_null)
 {
-  Args args({});
+  Args args;
   int defaultValue = -1;
-  int result = stk::get_command_line_option(args.argc(), args.argv(), "foo", defaultValue);
+  int result = stk::get_command_line_option(args.argc, args.argv, "foo", defaultValue);
   EXPECT_EQ(defaultValue, result);
 }
 
@@ -48,10 +43,10 @@ TEST(UnitTestGetOption, get_command_line_option_bad_arg)
 
   int myRank = stk::parallel_machine_rank(MPI_COMM_WORLD);
   Args args({"exe", "--garbage-color", std::to_string(myRank)});
-  int defaultValue = 0;
 
+  int defaultValue = 0;
   testing::internal::CaptureStderr();
-  int result = stk::get_command_line_option(args.argc(), args.argv(), "app-color", defaultValue);
+  int result = stk::get_command_line_option(args.argc, args.argv, "app-color", defaultValue);
   testing::internal::GetCapturedStderr();
   EXPECT_EQ(defaultValue, result);
 }
@@ -61,10 +56,10 @@ TEST(UnitTestGetOption, get_command_line_option_no_value)
   if (stk::parallel_machine_size(MPI_COMM_WORLD) != 2) { return; }
 
   Args args({"exe", "--app-color"});
-  int defaultValue = -1;
 
+  int defaultValue = -1;
   testing::internal::CaptureStderr();
-  EXPECT_THROW(stk::get_command_line_option(args.argc(), args.argv(), "app-color", defaultValue), std::runtime_error);
+  EXPECT_THROW(stk::get_command_line_option(args.argc, args.argv, "app-color", defaultValue),std::runtime_error);
   testing::internal::GetCapturedStderr();
 }
 
@@ -73,9 +68,9 @@ TEST(UnitTestGetOption, get_command_line_option_non_int_value)
   if (stk::parallel_machine_size(MPI_COMM_WORLD) != 2) { return; }
 
   Args args({"exe", "--app-color", "foo"});
-  int defaultValue = -1;
 
-  EXPECT_THROW(stk::get_command_line_option(args.argc(), args.argv(), "app-color", defaultValue), std::logic_error);
+  int defaultValue = -1;
+  EXPECT_THROW(stk::get_command_line_option(args.argc, args.argv, "app-color", defaultValue),std::logic_error);
 }
 
 TEST(UnitTestGetOption, get_command_line_option)
@@ -84,629 +79,280 @@ TEST(UnitTestGetOption, get_command_line_option)
 
   int myRank = stk::parallel_machine_rank(MPI_COMM_WORLD);
   Args args({"exe", "--my-color", std::to_string(myRank)});
-  int defaultColor = -1;
 
+  int defaultColor = -1;
   int expectedResult = myRank;
-  int result = stk::get_command_line_option(args.argc(), args.argv(), "my-color", defaultColor);
+  int result = stk::get_command_line_option(args.argc, args.argv, "my-color", defaultColor);
   EXPECT_EQ(expectedResult, result);
 }
 
-
-bool messageContains(const std::string & errorMsg, const std::string & containedString) {
-  return (errorMsg.find(containedString) != std::string::npos);
-}
-
-bool parse_command_line_without_error(stk::CommandLineParser & parser, Args & args)
+class EmptyCommandLine : public ::testing::Test
 {
-  return parser.parse(args.argc(), const_cast<const char**>(args.argv())) == stk::CommandLineParser::ParseComplete;
-}
+protected:
+    static constexpr int argc = 1;
+    const char *argv[argc] = {"exeName"};
+};
 
-bool parse_command_line_with_help(stk::CommandLineParser & parser, Args & args)
+TEST_F(EmptyCommandLine, parseNoOptions_noArgs)
 {
-  testing::internal::CaptureStderr();
+    stk::CommandLineParser parser;
+    parser.parse(argc, argv);
 
-  const bool requestedHelpDuringParse = parser.parse(args.argc(), const_cast<const char**>(args.argv())) == stk::CommandLineParser::ParseHelpOnly;
-  EXPECT_TRUE(requestedHelpDuringParse);
-
-  const std::string output = testing::internal::GetCapturedStderr();
-  const bool printedNoOutput = output.empty();
-  EXPECT_EQ(printedNoOutput, true) << "Actual output: " << output;
-
-  return requestedHelpDuringParse && printedNoOutput;
+    EXPECT_TRUE(parser.is_empty());
 }
 
-bool parse_command_line_with_version(stk::CommandLineParser & parser, Args & args)
+TEST_F(EmptyCommandLine, askForOption_throws)
 {
-  testing::internal::CaptureStderr();
+    stk::CommandLineParser parser;
+    parser.parse(argc, argv);
 
-  const bool requestedVersionDuringParse = parser.parse(args.argc(), const_cast<const char**>(args.argv())) == stk::CommandLineParser::ParseVersionOnly;
-  EXPECT_TRUE(requestedVersionDuringParse);
-
-  const std::string output = testing::internal::GetCapturedStderr();
-  const bool printedNoOutput = output.empty();
-  EXPECT_EQ(printedNoOutput, true) << "Actual output: " << output;
-
-  return requestedVersionDuringParse && printedNoOutput;
+    EXPECT_THROW(parser.get_option_value<std::string>("oneOpt"), std::exception);
 }
 
-bool parse_command_line_with_error(stk::CommandLineParser & parser, Args & args, const std::string & expectedErrorText)
+void add_one_option(stk::CommandLineParser &parser)
 {
-  testing::internal::CaptureStderr();
-
-  const bool hadErrorDuringParse = parser.parse(args.argc(), const_cast<const char**>(args.argv())) == stk::CommandLineParser::ParseError;
-  EXPECT_TRUE(hadErrorDuringParse);
-
-  const std::string errorMessage = testing::internal::GetCapturedStderr();
-  const bool hadExpectedErrorMessage = messageContains(errorMessage, expectedErrorText);
-  EXPECT_EQ(hadExpectedErrorMessage, true) << "Actual error message: " << errorMessage;
-
-  return hadErrorDuringParse && hadExpectedErrorMessage;
+    parser.add_required<std::string>({"oneOpt", "o", "one option"});
 }
 
-//==============================================================================
-TEST(CommandLineParser, oneFlag_notProvided_querySaysNotProvided)
+void add_flag(stk::CommandLineParser &parser)
 {
-  stk::CommandLineParser parser;
-  parser.add_flag("flag,f", "One flag description");
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("flag"));
-  EXPECT_FALSE(parser.is_option_provided("flag"));
+    parser.add_flag("flag,f", "a simple flag");
 }
 
-TEST(CommandLineParser, oneFlag_provided_querySaysProvided)
+void add_positional_argument(stk::CommandLineParser &parser)
 {
-  stk::CommandLineParser parser;
-  parser.add_flag("flag,f", "One flag description");
-
-  Args args({"exe", "--flag"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("flag"));
-  EXPECT_TRUE(parser.is_option_provided("flag"));
+    parser.add_required_positional<std::string>({"positional", "p", "a positional argument"});
 }
 
-TEST(CommandLineParser, oneFlag_shortProvided_querySaysProvided)
+void add_positional_argument_with_default(stk::CommandLineParser &parser)
 {
-  stk::CommandLineParser parser;
-  parser.add_flag("flag,f", "One flag description");
-
-  Args args({"exe", "-f"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("flag"));
-  EXPECT_TRUE(parser.is_option_provided("flag"));
+    parser.add_optional_positional<std::string>({"positional", "p", "a positional argument"}, "def");
 }
 
-
-//==============================================================================
-TEST(CommandLineParser, oneRequiredPositional_notProvided_printsErrorDuringParse_getValueThrows)
+TEST_F(EmptyCommandLine, parseOneOption_noArgs)
 {
-  stk::CommandLineParser parser;
-  parser.add_required_positional<std::string>({"positionalOpt", "p", "One required positional description"});
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    parser.parse(argc, argv);
 
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, ""));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_FALSE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("positionalOpt"), std::logic_error);
+    EXPECT_TRUE(parser.is_empty());
 }
 
-TEST(CommandLineParser, oneRequiredPositional_valueProvided_getValueReturnsProvided)
+TEST_F(EmptyCommandLine, parseOneOptionDefaultValue_getDefault)
 {
-  stk::CommandLineParser parser;
-  parser.add_required_positional<std::string>({"positionalOpt", "p", "One required positional description"});
+    stk::CommandLineParser parser;
+    parser.add_optional<std::string>({"oneOpt" ,"o", "one option"}, "default");
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
 
-  Args args({"exe", "positionalValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "positionalValue");
+    EXPECT_TRUE(!parser.is_empty());
+    EXPECT_EQ("default", parser.get_option_value<std::string>("oneOpt"));
 }
 
-TEST(CommandLineParser, oneRequiredPositional_optionAndValueProvided_getValueReturnsProvided)
+TEST_F(EmptyCommandLine, parseOneOptionWithoutAbbreviation)
 {
-  stk::CommandLineParser parser;
-  parser.add_required_positional<std::string>({"positionalOpt", "p", "One required positional description"});
+    stk::CommandLineParser parser;
+    parser.add_optional<std::string>("oneOpt", "one option", "default");
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
 
-  Args args({"exe", "--positionalOpt=positionalValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "positionalValue");
+    EXPECT_TRUE(!parser.is_empty());
+    EXPECT_EQ("default", parser.get_option_value<std::string>("oneOpt"));
 }
 
-
-//==============================================================================
-TEST(CommandLineParser, oneOptionalPositional_notProvided_getValueReturnsDefault)
+TEST_F(EmptyCommandLine, queryIfFlagProvided_notProvided)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_positional<std::string>({"positionalOpt", "p", "One required positional description"}, "defaultValue");
+    stk::CommandLineParser parser;
+    add_flag(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
 
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "defaultValue");
+    EXPECT_TRUE(!parser.is_option_provided("flag"));
 }
 
-TEST(CommandLineParser, oneOptionalPositional_valueProvided_getValueReturnsProvided)
+TEST_F(EmptyCommandLine, getUsage_nonEmptyString)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_positional<std::string>({"positionalOpt", "p", "One required positional description"}, "defaultValue");
-
-  Args args({"exe", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "providedValue");
+    stk::CommandLineParser parser;
+    std::string usage = parser.get_usage();
+    EXPECT_TRUE(!usage.empty());
 }
 
-TEST(CommandLineParser, oneOptionalPositional_optionAndValueProvided_getValueReturnsProvided)
+TEST_F(EmptyCommandLine, getUsageSpecified_usageStartsWithSpecified)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_positional<std::string>({"positionalOpt", "p", "One required positional description"}, "defaultValue");
-
-  Args args({"exe", "--positionalOpt=providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "providedValue");
+    const std::string word("myProgram");
+    stk::CommandLineParser parser(word);
+    std::string usage = parser.get_usage();
+    EXPECT_TRUE(usage.find(word) != std::string::npos);
 }
 
-TEST(CommandLineParser, oneOptionalPositional_disallowUnrecognized_unrecognizedOptionInPlaceOfPositional_errorDuringParse)
+TEST_F(EmptyCommandLine, requiredOneOption_parseError)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_positional<std::string>({"positionalOpt", "p", "One positional description"}, "defaultValue");
-  parser.disallow_unrecognized();
-
-  Args args({"exe", "--unrecognizedOpt"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Unrecognized option: '--unrecognizedOpt'"));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "defaultValue");
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseError, parser.parse(argc, argv));
 }
 
-
-//==============================================================================
-TEST(CommandLineParser, oneRequired_notProvided_printErrorDuringParse_getValueThrows)
+class HelpOnlyCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required option description"});
+protected:
+    static constexpr int argc = 2;
+    const char *argv[argc] = {"exeName", "-h"};
+};
 
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Required option '--requiredOpt' not found"));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("requiredOpt"));
-  EXPECT_FALSE(parser.is_option_provided("requiredOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("requiredOpt"), std::exception);
-}
-
-TEST(CommandLineParser, oneRequired_shortOptionAndValueProvided_getValueReturnsProvided)
+TEST_F(HelpOnlyCommandLine, parsing_parsesHelp)
 {
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required description"});
-
-  Args args({"exe", "-r", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("requiredOpt"));
-  EXPECT_TRUE(parser.is_option_provided("requiredOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("requiredOpt"), "providedValue");
+    stk::CommandLineParser parser;
+    EXPECT_EQ(stk::CommandLineParser::ParseHelpOnly, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, oneRequired_optionAndValueProvided_getValueReturnsProvided)
+TEST_F(HelpOnlyCommandLine, requiredArgumentNotGiven_parsesHelp)
 {
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required description"});
-
-  Args args({"exe", "--requiredOpt", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("requiredOpt"));
-  EXPECT_TRUE(parser.is_option_provided("requiredOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("requiredOpt"), "providedValue");
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseHelpOnly, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, oneRequired_optionAndNoValueProvided_errorDuringParse)
+class VersionOnlyCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required description"});
+protected:
+    static constexpr int argc = 2;
+    const char *argv[argc] = {"exeName", "-v"};
+};
 
-  Args args({"exe", "--requiredOpt"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Missing value for option --requiredOpt"));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("requiredOpt"));
-  EXPECT_FALSE(parser.is_option_provided("requiredOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("requiredOpt"), std::logic_error);
-}
-
-
-//==============================================================================
-TEST(CommandLineParser, oneOptional_notProvided_getValueReturnsDefault)
+TEST_F(VersionOnlyCommandLine, parsing_parsesVersion)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt" ,"o", "One optional option description"}, "defaultValue");
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "defaultValue");
+    stk::CommandLineParser parser;
+    EXPECT_EQ(stk::CommandLineParser::ParseVersionOnly, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, oneOptionalWithoutAbbreviation_notProvided_getValueReturnsDefault)
+TEST_F(VersionOnlyCommandLine, requiredArgumentNotGiven_parsesVersion)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>("optionalOpt", "One optional option description", "defaultValue");
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "defaultValue");
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseVersionOnly, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, oneOptional_notProvided_throwIfGettingWrongTypeFromDefault)
+class FlagCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt", "r", "One required description"}, "defaultValue");
+protected:
+    static constexpr int argc = 2;
+    const char *argv[argc] = {"exeName", "-f"};
+};
 
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_THROW(parser.get_option_value<double>("optionalOpt"), std::logic_error);
-}
-
-TEST(CommandLineParser, oneOptional_povided_getValueReturnsProvided)
+TEST_F(FlagCommandLine, queryIfFlagProvided_Provided)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt", "o", "One optional option description"}, "defaultValue");
-
-  Args args({"exe", "--optionalOpt", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "providedValue");
+    stk::CommandLineParser parser;
+    add_flag(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
+    EXPECT_TRUE(parser.is_option_provided("flag"));
 }
 
-TEST(CommandLineParser, oneOptional_shortPovided_getValueReturnsProvided)
+class OnePositionalArgumentOnCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt", "o", "One optional option description"}, "defaultValue");
+protected:
+    static constexpr int argc = 2;
+    const char *argv[argc] = {"exeName", "value"};
+};
 
-  Args args({"exe", "-o", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "providedValue");
-}
-
-TEST(CommandLineParser, oneOptional_optionWithEqualsAndNoValueProvided_errorDuringParse)
+TEST_F(OnePositionalArgumentOnCommandLine, parsePositional_parseCompletes)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt", "r", "One required description"}, "defaultValue");
-
-  Args args({"exe", "--optionalOpt="});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Missing value for option --optionalOpt"));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "defaultValue");
+    stk::CommandLineParser parser;
+    add_positional_argument(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
+    EXPECT_EQ(argv[1], parser.get_option_value<std::string>("positional"));
 }
 
-TEST(CommandLineParser, oneOptional_optionAndNoValueProvided_errorDuringParse)
+TEST_F(EmptyCommandLine, parsePositional_parseError)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt", "r", "One required description"}, "defaultValue");
-
-  Args args({"exe", "--optionalOpt"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Missing value for option --optionalOpt"));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "defaultValue");
+    stk::CommandLineParser parser;
+    add_positional_argument(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseError, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, oneOptional_noDefault_notProvided_getValueThrows)
+TEST_F(OnePositionalArgumentOnCommandLine, parsePositionalWithDefault_parseCompletes)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt" ,"o", "One optional option description"});
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_FALSE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("optionalOpt"), std::logic_error);
+    stk::CommandLineParser parser;
+    add_positional_argument_with_default(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
+    EXPECT_EQ(argv[1], parser.get_option_value<std::string>("positional"));
 }
 
-TEST(CommandLineParser, oneOptional_noDefault_optionProvided_getValueReturnsProvided)
+TEST_F(EmptyCommandLine, parsePositionalWithDefault_parseCompletesAndGetDefaultValue)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional<std::string>({"optionalOpt" ,"o", "One optional option description"});
-
-  Args args({"exe", "--optionalOpt", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "providedValue");
+    stk::CommandLineParser parser;
+    add_positional_argument_with_default(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
+    EXPECT_EQ("def", parser.get_option_value<std::string>("positional"));
 }
 
-//==============================================================================
-TEST(CommandLineParser, oneOptionalImplicit_provided_getValueReturnsProvided)
+class OneOptionOnCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_implicit<std::string>({"implicitOpt", "i", "One optional implicit description"}, "defaultValue");
+protected:
+    static constexpr int argc = 3;
+    const char *argv[argc] = {"exeName", "-o", "value"};
+};
 
-  Args args({"exe", "--implicitOpt", "providedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("implicitOpt"));
-  EXPECT_TRUE(parser.is_option_provided("implicitOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("implicitOpt"), "providedValue");
-}
-
-TEST(CommandLineParser, oneOptionalImplicit_providedWithoutValue_getValueReturnsDefault)
+TEST_F(OneOptionOnCommandLine, parseOneOption_oneArg)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_implicit<std::string>({"implicitOpt", "i", "One optional implicit description"}, "defaultValue");
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    parser.parse(argc, argv);
 
-  Args args({"exe", "--implicitOpt"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("implicitOpt"));
-  EXPECT_TRUE(parser.is_option_provided("implicitOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("implicitOpt"), "defaultValue");
+    ASSERT_TRUE(!parser.is_empty());
+    EXPECT_TRUE(parser.is_option_provided("oneOpt"));
+    EXPECT_EQ("value", parser.get_option_value<std::string>("oneOpt"));
 }
 
-TEST(CommandLineParser, oneOptionalImplicit_notProvided_getValueThrows)
+TEST_F(OneOptionOnCommandLine, noOptionsSpecified_throws)
 {
-  stk::CommandLineParser parser;
-  parser.add_optional_implicit<std::string>({"implicitOpt", "i", "One optional implicit description"}, "defaultValue");
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("implicitOpt"));
-  EXPECT_FALSE(parser.is_option_provided("implicitOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("implicitOpt"), std::logic_error);
+    stk::CommandLineParser parser;
+    parser.add_required<std::string>({"otherOpt", "p", "other option"});
+    EXPECT_EQ(stk::CommandLineParser::ParseError, parser.parse(argc, argv));
 }
 
-
-//==============================================================================
-TEST(CommandLineParser, twoRequired_bothOptionsAndValuesProvided_getValueReturnsProvided)
+class TwoOptionsOnCommandLine : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt1", "r", "First required description"});
-  parser.add_required<std::string>({"requiredOpt2", "o", "Second required description"});
+protected:
+    static constexpr int argc = 4;
+    const char *argv[argc] = {"exeName", "-o", "value", "--twoOpt=2"};
+};
 
-  Args args({"exe", "-r", "firstProvidedValue", "--requiredOpt2=secondProvidedValue"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_TRUE(parser.is_option_parsed("requiredOpt1"));
-  EXPECT_TRUE(parser.is_option_parsed("requiredOpt2"));
-  EXPECT_TRUE(parser.is_option_provided("requiredOpt1"));
-  EXPECT_TRUE(parser.is_option_provided("requiredOpt2"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("requiredOpt1"), "firstProvidedValue");
-  EXPECT_EQ(parser.get_option_value<std::string>("requiredOpt2"), "secondProvidedValue");
-}
-
-
-TEST(CommandLineParser, oneRequiredPositional_disallowUnrecognized_unrecognizedOptionInPlaceOfPositional_errorDuringParse)
+void add_two_option(stk::CommandLineParser &parser)
 {
-  stk::CommandLineParser parser;
-  parser.add_required_positional<std::string>({"positionalOpt", "p", "One positional description"});
-  parser.disallow_unrecognized();
-
-  Args args({"exe", "--unrecognizedOpt"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Required option '--positionalOpt' not found"));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_FALSE(parser.is_option_provided("positionalOpt"));
-
-  EXPECT_THROW(parser.get_option_value<std::string>("positionalOpt"), std::exception);
+    parser.add_required<int>({"twoOpt", "t", "two option"});
 }
 
-TEST(CommandLineParser, oneRequiredPositionalAndOneOptional_disallowUnrecognized_bothOptionsProvidedWithUnrecognized_errorDuringParse)
+TEST_F(TwoOptionsOnCommandLine, parseTwoOption_twoArgs)
 {
-  stk::CommandLineParser parser;
-  parser.add_required_positional<std::string>({"positionalOpt", "p", "One positional description"});
-  parser.add_optional<std::string>({"optionalOpt", "o", "One optional description"}, "defaultValue");
-  parser.disallow_unrecognized();
+    stk::CommandLineParser parser;
+    add_one_option(parser);
+    add_two_option(parser);
+    parser.parse(argc, argv);
 
-  Args args({"exe", "positionalValue", "--unrecognizedOpt", "unrecognizedValue", "--optionalOpt", "optionalValue"});
-  EXPECT_TRUE(parse_command_line_with_error(parser, args, "Unrecognized option: '--unrecognizedOpt'"));
-
-  EXPECT_FALSE(parser.is_empty());
-  EXPECT_FALSE(parser.is_option_parsed("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_parsed("optionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("positionalOpt"));
-  EXPECT_TRUE(parser.is_option_provided("optionalOpt"));
-
-  EXPECT_EQ(parser.get_option_value<std::string>("positionalOpt"), "positionalValue");
-  EXPECT_EQ(parser.get_option_value<std::string>("optionalOpt"), "optionalValue");
+    ASSERT_TRUE(!parser.is_empty());
+    EXPECT_EQ("value", parser.get_option_value<std::string>("oneOpt"));
+    EXPECT_EQ(2, parser.get_option_value<int>("twoOpt"));
 }
 
-//==============================================================================
-TEST(CommandLineParser, noDefinedArgs_getUsage_displaysDefaultArgs)
+class DisallowUnrecognized : public ::testing::Test
 {
-  stk::CommandLineParser parser;
-  std::string usage = parser.get_usage();
+protected:
+    static constexpr int argc = 5;
+    const char *argv[argc] = {"exeName", "positionalValue", "--mis-spelled-option", "value", "--option=2"};
+};
 
-  EXPECT_TRUE(messageContains(usage, "Options"));
-  EXPECT_TRUE(messageContains(usage, "--help,-h"));
-  EXPECT_TRUE(messageContains(usage, "--version,-v"));
-}
-
-TEST(CommandLineParser, noDefinedArgs_specifiedPreamble_getUsage_displaysDefaultArgsWithhPreamble)
+TEST_F(DisallowUnrecognized, unrecognizedOption_returnParseError)
 {
-  stk::CommandLineParser parser("myWackyProgram usage:");
-  std::string usage = parser.get_usage();
-
-  EXPECT_FALSE(messageContains(usage, "Options"));
-  EXPECT_TRUE(messageContains(usage, "myWackyProgram usage:"));
-  EXPECT_TRUE(messageContains(usage, "--help,-h"));
-  EXPECT_TRUE(messageContains(usage, "--version,-v"));
+    stk::CommandLineParser parser;
+    parser.add_optional<std::string>({"option" ,"o", "an option"}, "default");
+    add_positional_argument(parser);
+    parser.disallow_unrecognized();
+    EXPECT_EQ(stk::CommandLineParser::ParseError, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, emptyCommandLine_parseNothing)
+TEST_F(DisallowUnrecognized, unrecognizedOption_ignore)
 {
-  stk::CommandLineParser parser;
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_TRUE(parser.is_empty());
+    stk::CommandLineParser parser;
+    parser.add_optional<std::string>({"option" ,"o", "an option"}, "default");
+    add_positional_argument(parser);
+    EXPECT_EQ(stk::CommandLineParser::ParseComplete, parser.parse(argc, argv));
 }
 
-TEST(CommandLineParser, emptyCommandLine_parseNothing_getValueThrows)
-{
-  stk::CommandLineParser parser;
-
-  Args args({"exe"});
-  EXPECT_TRUE(parse_command_line_without_error(parser, args));
-
-  EXPECT_TRUE(parser.is_empty());
-  EXPECT_THROW(parser.get_option_value<std::string>("undefinedOpt"), std::exception);
-}
-
-TEST(CommandLineParser, noArgsDefined_askHelp_returnsHelpStatus)
-{
-  stk::CommandLineParser parser;
-
-  Args args({"exe", "--help"});
-  EXPECT_TRUE(parse_command_line_with_help(parser, args));
-}
-
-TEST(CommandLineParser, noArgsDefined_askShortHelp_returnsHelpStatus)
-{
-  stk::CommandLineParser parser;
-
-  Args args({"exe", "-h"});
-  EXPECT_TRUE(parse_command_line_with_help(parser, args));
-}
-
-TEST(CommandLineParser, oneRequired_notProvided_askHelp_returnsHelpStatus)
-{
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required option description"});
-
-  Args args({"exe", "--help"});
-  EXPECT_TRUE(parse_command_line_with_help(parser, args));
-}
-
-TEST(CommandLineParser, oneRequired_notProvided_askShortHelp_returnsHelpStatus)
-{
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required option description"});
-
-  Args args({"exe", "-h"});
-  EXPECT_TRUE(parse_command_line_with_help(parser, args));
-}
-
-TEST(CommandLineParser, noArgsDefined_askVersion_returnsVersionStatus)
-{
-  stk::CommandLineParser parser;
-
-  Args args({"exe", "--version"});
-  EXPECT_TRUE(parse_command_line_with_version(parser, args));
-}
-
-TEST(CommandLineParser, noArgsDefined_askShortVersion_returnsVersionStatus)
-{
-  stk::CommandLineParser parser;
-
-  Args args({"exe", "-v"});
-  EXPECT_TRUE(parse_command_line_with_version(parser, args));
-}
-
-TEST(CommandLineParser, oneRequired_askVersion_returnsVersionStatus)
-{
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required option description"});
-
-  Args args({"exe", "--version"});
-  EXPECT_TRUE(parse_command_line_with_version(parser, args));
-}
-
-TEST(CommandLineParser, oneRequired_askShortVersion_returnsVersionStatus)
-{
-  stk::CommandLineParser parser;
-  parser.add_required<std::string>({"requiredOpt", "r", "One required option description"});
-
-  Args args({"exe", "-v"});
-  EXPECT_TRUE(parse_command_line_with_version(parser, args));
-}
-
-
-//==============================================================================
 }

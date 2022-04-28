@@ -38,21 +38,21 @@
 # @HEADER
 
 #
-# @MACRO: prepend_set()
+# @MACRO: PREPEND_SET()
 #
 # Utility macro to prepend elements to a variable (reduces boiler-plate code).
 #
 # Usage::
 #
-#   prepend_set(<varName> <arg0> <arg1> ...)
+#   PREPEND_SET(<varName> <arg0> <arg1> ...)
 #
 # Just calls::
 #
-#   set(<varName> <arg0> <arg1> ... ${<varName>})
+#   SET(<varName> <arg0> <arg1> ... ${<varName>})
 #
-# NOTE: Prepending is not as efficient as appending so prefer `append_set()`_
-# or just ``list(APPEND ...)``.
+# NOTE: Prepending is not as efficient as appending so prefer `APPEND_SET()`_
+# or just ``LIST(APPEND ...)``.
 #
-macro(prepend_set VARNAME)
-  set(${VARNAME} ${ARGN} ${${VARNAME}})
-endmacro()
+MACRO(PREPEND_SET VARNAME)
+  SET(${VARNAME} ${ARGN} ${${VARNAME}})
+ENDMACRO()

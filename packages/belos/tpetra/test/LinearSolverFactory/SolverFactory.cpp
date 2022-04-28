@@ -86,9 +86,9 @@ createTestMatrix (Teuchos::FancyOStream& out,
   // lets us use local indices.
   RCP<const map_type> colMap = rowMap;
   const size_t maxNumEntPerRow = 1;
-  RCP<MAT> A (new MAT (rowMap, colMap, maxNumEntPerRow));
+  RCP<MAT> A (new MAT (rowMap, colMap, maxNumEntPerRow, Tpetra::StaticProfile));
 
-  if (rowMap->getLocalNumElements () != 0) {
+  if (rowMap->getNodeNumElements () != 0) {
     Teuchos::Array<SC> vals (1);
     Teuchos::Array<LO> inds (1);
     for (LO lclRow = rowMap->getMinLocalIndex ();

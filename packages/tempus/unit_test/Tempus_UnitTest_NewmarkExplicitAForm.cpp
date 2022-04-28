@@ -6,9 +6,16 @@
 // ****************************************************************************
 // @HEADER
 
-#include "Tempus_UnitTest_Utils.hpp"
-
+#include "Teuchos_UnitTestHarness.hpp"
 #include "Teuchos_XMLParameterListHelpers.hpp"
+#include "Teuchos_TimeMonitor.hpp"
+#include "Teuchos_DefaultComm.hpp"
+
+#include "Thyra_VectorStdOps.hpp"
+
+#include "Tempus_IntegratorBasic.hpp"
+#include "Tempus_SolutionHistory.hpp"
+#include "Tempus_UnitTest_Utils.hpp"
 
 #include "Tempus_StepperNewmarkExplicitAForm.hpp"
 #include "Tempus_StepperNewmarkExplicitAFormModifierBase.hpp"
@@ -16,8 +23,13 @@
 #include "Tempus_StepperNewmarkExplicitAFormModifierDefault.hpp"
 #include "Tempus_StepperNewmarkExplicitAFormModifierXDefault.hpp"
 
+#include "../TestModels/SinCosModel.hpp"
+#include "../TestModels/VanDerPolModel.hpp"
 #include "../TestModels/HarmonicOscillatorModel.hpp"
+#include "../TestUtils/Tempus_ConvergenceTestUtils.hpp"
 
+#include <fstream>
+#include <vector>
 
 namespace Tempus_Unit_Test {
 
@@ -27,6 +39,7 @@ using Teuchos::rcp_const_cast;
 using Teuchos::rcp_dynamic_cast;
 using Teuchos::ParameterList;
 using Teuchos::sublist;
+using Teuchos::getParametersFromXmlFile;
 
 
 // ************************************************************
@@ -168,6 +181,7 @@ public:
 TEUCHOS_UNIT_TEST(NewmarkExplicitAForm, AppAction_Modifier)
 {
   using Teuchos::RCP;
+  using Teuchos::getParametersFromXmlFile;
   using Teuchos::sublist;
   using Teuchos::ParameterList;
 
@@ -177,7 +191,7 @@ TEUCHOS_UNIT_TEST(NewmarkExplicitAForm, AppAction_Modifier)
 
   // Read params from .xml file
   RCP<ParameterList> pList =
-    Teuchos::getParametersFromXmlFile("Tempus_NewmarkExplicitAForm_HarmonicOscillator_Damped.xml");
+    getParametersFromXmlFile("Tempus_NewmarkExplicitAForm_HarmonicOscillator_Damped.xml");
 
   // Setup the HarmonicOscillatorModel
   RCP<ParameterList> hom_pl = sublist(pList, "HarmonicOscillatorModel", true);
@@ -227,6 +241,7 @@ TEUCHOS_UNIT_TEST(NewmarkExplicitAForm, AppAction_Modifier)
 TEUCHOS_UNIT_TEST(NewmarkExplicitAForm, AppAction_ModifierX)
 {
   using Teuchos::RCP;
+  using Teuchos::getParametersFromXmlFile;
   using Teuchos::sublist;
   using Teuchos::ParameterList;
 
@@ -236,7 +251,7 @@ TEUCHOS_UNIT_TEST(NewmarkExplicitAForm, AppAction_ModifierX)
 
   // Read params from .xml file
   RCP<ParameterList> pList =
-    Teuchos::getParametersFromXmlFile("Tempus_NewmarkExplicitAForm_HarmonicOscillator_Damped.xml");
+    getParametersFromXmlFile("Tempus_NewmarkExplicitAForm_HarmonicOscillator_Damped.xml");
 
   // Setup the HarmonicOscillatorModel
   RCP<ParameterList> hom_pl = sublist(pList, "HarmonicOscillatorModel", true);

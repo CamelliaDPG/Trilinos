@@ -38,14 +38,14 @@
 # @HEADER
 
 
-include(TribitsConstants)
-include(TribitsListHelpers)
+INCLUDE(TribitsConstants)
+INCLUDE(TribitsListHelpers)
 
-include(PrintVar)
-include(Split)
+INCLUDE(PrintVar)
+INCLUDE(Split)
 
 #
-# @MACRO: tribits_repository_define_tpls()
+# @MACRO: TRIBITS_REPOSITORY_DEFINE_TPLS()
 #
 # Define the list of `TriBITS TPLs`_ for a given `TriBITS Repository`_ which
 # includes the TPL name, find module, and classification .  This macro is
@@ -54,7 +54,7 @@ include(Split)
 #
 # Usage::
 #
-#   tribits_repository_define_tpls(
+#   TRIBITS_REPOSITORY_DEFINE_TPLS(
 #     <tpl0_name>   <tpl0_findmod>  <tpl0_classif>
 #     <tpl1_name>   <tpl1_findmod>  <tpl1_classif>
 #     ...
@@ -80,7 +80,7 @@ include(Split)
 #    find module will be assumed to be under that this directory with the
 #    standard name (e.g. ``cmake/tpls/FindTPL<tplName>.cmake``).  A standard
 #    way to write a ``FindTPL<tplName>.cmake`` module is to use the function
-#    `tribits_tpl_find_include_dirs_and_libraries()`_.
+#    `TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES()`_.
 #
 # 2. **CLASSIFICATION** (``<pkgi_classif>``): Gives the `SE Package Test
 #    Group`_ `PT`_, `ST`_, or `EX`_ and the maturity level ``EP``, ``RS``,
@@ -115,13 +115,14 @@ include(Split)
 #   ``${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS``.  If one misspells
 #   the name of a macro, it is an immediate error in CMake.
 #
-macro(tribits_repository_define_tpls)
-  assert_defined(REPOSITORY_NAME)
-  set(${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS "${ARGN}")
-endmacro()
+MACRO(TRIBITS_REPOSITORY_DEFINE_TPLS)
+  ASSERT_DEFINED(REPOSITORY_NAME)
+  SET(${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS "${ARGN}")
+ENDMACRO()
 
 
-# @MACRO: tribits_process_tpls_lists()
+#
+# @MACRO: TRIBITS_PROCESS_TPLS_LISTS()
 #
 # This macro that processes the project-level variable::
 #
@@ -138,169 +139,167 @@ endmacro()
 #   ${TPL_NAME}_FINDMOD
 #   ${TPL_NAME}_TESTGROUP
 #
-# See `Function call tree for constructing package dependency graph`_
-#
-macro(tribits_process_tpls_lists  REPOSITORY_NAME  REPOSITORY_DIR)
+MACRO(TRIBITS_PROCESS_TPLS_LISTS  REPOSITORY_NAME  REPOSITORY_DIR)
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    message("TRIBITS_PROCESS_TPLS_LISTS:  '${REPOSITORY_NAME}'  '${REPOSITORY_DIR}'")
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    MESSAGE("TRIBITS_PROCESS_TPLS_LISTS:  '${REPOSITORY_NAME}'  '${REPOSITORY_DIR}'")
+  ENDIF()
 
-  #set(TRIBITS_PROCESS_TPLS_LISTS_DEBUG ON)
-  set(TRIBITS_PROCESS_TPLS_LISTS_DEBUG OFF)
+  #SET(TRIBITS_PROCESS_TPLS_LISTS_DEBUG ON)
+  SET(TRIBITS_PROCESS_TPLS_LISTS_DEBUG OFF)
 
-  set(TPL_NAME_OFFSET 0)
-  set(TPL_FINDMOD_OFFSET 1)
-  set(TPL_CLASSIFICATION_OFFSET 2)
-  set(TPL_NUM_COLUMNS 3)
+  SET(TPL_NAME_OFFSET 0)
+  SET(TPL_FINDMOD_OFFSET 1)
+  SET(TPL_CLASSIFICATION_OFFSET 2)
+  SET(TPL_NUM_COLUMNS 3)
 
-  list(LENGTH ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS
+  LIST(LENGTH ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS
     ${REPOSITORY_NAME}_CURR_NUM_TPLS_FULL)
-  math(EXPR ${REPOSITORY_NAME}_CURR_NUM_TPLS
+  MATH(EXPR ${REPOSITORY_NAME}_CURR_NUM_TPLS
     "${${REPOSITORY_NAME}_CURR_NUM_TPLS_FULL}/${TPL_NUM_COLUMNS}")
 
-  if (${REPOSITORY_NAME}_CURR_NUM_TPLS GREATER 0)
+  IF (${REPOSITORY_NAME}_CURR_NUM_TPLS GREATER 0)
 
-    math(EXPR ${REPOSITORY_NAME}_LAST_TPL_IDX
+    MATH(EXPR ${REPOSITORY_NAME}_LAST_TPL_IDX
       "${${REPOSITORY_NAME}_CURR_NUM_TPLS}-1")
 
-    foreach(TPL_IDX RANGE ${${REPOSITORY_NAME}_LAST_TPL_IDX})
+    FOREACH(TPL_IDX RANGE ${${REPOSITORY_NAME}_LAST_TPL_IDX})
 
-      if (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
-        print_var(TPL_IDX)
-      endif()
+      IF (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
+        PRINT_VAR(TPL_IDX)
+      ENDIF()
 
       # Get fields for this TPL
 
-      math(EXPR TPL_NAME_IDX
+      MATH(EXPR TPL_NAME_IDX
         "${TPL_IDX}*${TPL_NUM_COLUMNS}+${TPL_NAME_OFFSET}")
-      list(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_NAME_IDX}
+      LIST(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_NAME_IDX}
         TPL_NAME)
-      if (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
-        print_var(TPL_NAME)
-      endif()
+      IF (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
+        PRINT_VAR(TPL_NAME)
+      ENDIF()
 
-      math(EXPR TPL_FINDMOD_IDX
+      MATH(EXPR TPL_FINDMOD_IDX
         "${TPL_IDX}*${TPL_NUM_COLUMNS}+${TPL_FINDMOD_OFFSET}")
-      list(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_FINDMOD_IDX}
+      LIST(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_FINDMOD_IDX}
         TPL_FINDMOD)
-      if (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
-        print_var(TPL_FINDMOD)
-      endif()
+      IF (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
+        PRINT_VAR(TPL_FINDMOD)
+      ENDIF()
 
-      math(EXPR TPL_CLASSIFICATION_IDX
+      MATH(EXPR TPL_CLASSIFICATION_IDX
         "${TPL_IDX}*${TPL_NUM_COLUMNS}+${TPL_CLASSIFICATION_OFFSET}")
-      list(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_CLASSIFICATION_IDX}
+      LIST(GET ${REPOSITORY_NAME}_TPLS_FINDMODS_CLASSIFICATIONS ${TPL_CLASSIFICATION_IDX}
         TPL_CLASSIFICATION)
-      if (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
-        print_var(TPL_CLASSIFICATION)
-      endif()
+      IF (TRIBITS_PROCESS_TPLS_LISTS_DEBUG)
+        PRINT_VAR(TPL_CLASSIFICATION)
+      ENDIF()
 
       # ToDo: Parse out TESTGROUP and MATURITYLEVEL (Trilinos #6042)
-      set(TPL_TESTGROUP ${TPL_CLASSIFICATION})
+      SET(TPL_TESTGROUP ${TPL_CLASSIFICATION})
 
-      tribits_update_ps_pt_ss_st(TPL  ${TPL_NAME}  TPL_TESTGROUP)
+      TRIBITS_UPDATE_PS_PT_SS_ST(TPL  ${TPL_NAME}  TPL_TESTGROUP)
 
       # Update TPLS list (unless the TPL already exists)
 
-      if (${TPL_NAME}_FINDMOD)
+      IF (${TPL_NAME}_FINDMOD)
         # If the variable ${TPL_NAME}_FINDMOD already exists, then this TPL
         # has already been defined in a previous repository.  In this case, we
         # will just leave the TPL in its current position.
-        if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-          message("-- " "NOTE: The TPL ${TPL_NAME} has already been defined so leaving it"
+        IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+          MESSAGE("-- " "NOTE: The TPL ${TPL_NAME} has already been defined so leaving it"
             " in the same location and not adding it again!")
-        endif()
-      else()
-        list(APPEND ${PROJECT_NAME}_TPLS ${TPL_NAME})
-      endif()
+        ENDIF()
+      ELSE()
+        LIST(APPEND ${PROJECT_NAME}_TPLS ${TPL_NAME})
+      ENDIF()
 
       # Set ${TPL_NAME}_TESTGROUP
 
-      if (TPL_TESTGROUP STREQUAL PT
+      IF (TPL_TESTGROUP STREQUAL PT
         OR TPL_TESTGROUP STREQUAL ST
         OR TPL_TESTGROUP STREQUAL TT
         OR TPL_TESTGROUP STREQUAL EX
         )
-      else()
-        message(FATAL_ERROR "Error the TPL classification '${TPL_TESTGROUP}'"
+      ELSE()
+        MESSAGE(FATAL_ERROR "Error the TPL classification '${TPL_TESTGROUP}'"
           " for the TPL ${TPL_NAME} is not a valid classification." )
-      endif()
+      ENDIF()
 
-      if (NOT ${TPL_NAME}_TESTGROUP) # Allow for testing override
-        set(${TPL_NAME}_TESTGROUP ${TPL_TESTGROUP})
-      endif()
+      IF (NOT ${TPL_NAME}_TESTGROUP) # Allow for testing override
+        SET(${TPL_NAME}_TESTGROUP ${TPL_TESTGROUP})
+      ENDIF()
 
       # Set ${TPL_NAME}_FINDMOD
 
-      #print_var(REPOSITORY_DIR)
+      #PRINT_VAR(REPOSITORY_DIR)
 
-      if ("${REPOSITORY_DIR}" STREQUAL "." OR IS_ABSOLUTE ${TPL_FINDMOD})
-        set(REPOSITORY_DIR_AND_SEP "")
-      else()
-        set(REPOSITORY_DIR_AND_SEP "${REPOSITORY_DIR}/")
-      endif()
-      #print_var(REPOSITORY_DIR_AND_SEP)
+      IF ("${REPOSITORY_DIR}" STREQUAL "." OR IS_ABSOLUTE ${TPL_FINDMOD})
+        SET(REPOSITORY_DIR_AND_SEP "")
+      ELSE()
+        SET(REPOSITORY_DIR_AND_SEP "${REPOSITORY_DIR}/")
+      ENDIF()
+      #PRINT_VAR(REPOSITORY_DIR_AND_SEP)
 
-      set(TPL_FINDMOD "${REPOSITORY_DIR_AND_SEP}${TPL_FINDMOD}")
-      #print_var(TPL_FINDMOD)
+      SET(TPL_FINDMOD "${REPOSITORY_DIR_AND_SEP}${TPL_FINDMOD}")
+      #PRINT_VAR(TPL_FINDMOD)
 
-      set(TPL_FINDMOD_STD_NAME "FindTPL${TPL_NAME}.cmake")
+      SET(TPL_FINDMOD_STD_NAME "FindTPL${TPL_NAME}.cmake")
 
-      if (TPL_FINDMOD)
-        string(REGEX MATCH ".+/$" FINDMOD_IS_DIR "${TPL_FINDMOD}")
-        #print_var(FINDMOD_IS_DIR)
-        if (FINDMOD_IS_DIR)
-          set(${TPL_NAME}_FINDMOD "${TPL_FINDMOD}${TPL_FINDMOD_STD_NAME}")
-        else()
-          set(${TPL_NAME}_FINDMOD ${TPL_FINDMOD})
-        endif()
-      else()
-        set(${TPL_NAME}_FINDMOD ${TPL_FINDMOD_STD_NAME})
-      endif()
+      IF (TPL_FINDMOD)
+        STRING(REGEX MATCH ".+/$" FINDMOD_IS_DIR "${TPL_FINDMOD}")
+        #PRINT_VAR(FINDMOD_IS_DIR)
+        IF (FINDMOD_IS_DIR)
+          SET(${TPL_NAME}_FINDMOD "${TPL_FINDMOD}${TPL_FINDMOD_STD_NAME}")
+        ELSE()
+          SET(${TPL_NAME}_FINDMOD ${TPL_FINDMOD})
+        ENDIF()
+      ELSE()
+        SET(${TPL_NAME}_FINDMOD ${TPL_FINDMOD_STD_NAME})
+      ENDIF()
 
-      assert_defined(${REPOSITORY_NAME}_TPLS_FILE)
-      set(${TPL_NAME}_TPLS_LIST_FILE ${${REPOSITORY_NAME}_TPLS_FILE})
+      ASSERT_DEFINED(${REPOSITORY_NAME}_TPLS_FILE)
+      SET(${TPL_NAME}_TPLS_LIST_FILE ${${REPOSITORY_NAME}_TPLS_FILE})
 
-      if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-        print_var(${TPL_NAME}_FINDMOD)
-        print_var(${TPL_NAME}_TESTGROUP)
-        print_var(${TPL_NAME}_TPLS_LIST_FILE)
-      endif()
+      IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+        PRINT_VAR(${TPL_NAME}_FINDMOD)
+        PRINT_VAR(${TPL_NAME}_TESTGROUP)
+        PRINT_VAR(${TPL_NAME}_TPLS_LIST_FILE)
+      ENDIF()
 
       # Set the enable cache variable for ${TPL_NAME}
 
-      multiline_set(DOCSTR
+      MULTILINE_SET(DOCSTR
         "Enable support for the TPL ${TPL_NAME} in all supported ${PROJECT_NAME} packages."
         "  This can be set to 'ON', 'OFF', or left empty ''."
         )
-      set_cache_on_off_empty( TPL_ENABLE_${TPL_NAME} "" ${DOCSTR} )
+      SET_CACHE_ON_OFF_EMPTY( TPL_ENABLE_${TPL_NAME} "" ${DOCSTR} )
 
       # 2008/11/25: rabartl: Above, we use the prefix TPL_ instead of
       # ${PROJECT_NAME}_ in order to make it clear that external TPLs are
       # different from packages so users don't get confused and
       # think that the project actually includes some TPL when it does not!
 
-    endforeach()
+    ENDFOREACH()
 
-  endif()
+  ENDIF()
 
-  if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-    print_var(${PROJECT_NAME}_TPLS)
-  endif()
+  IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+    PRINT_VAR(${PROJECT_NAME}_TPLS)
+  ENDIF()
 
   # Get the final length
 
-  list(LENGTH ${PROJECT_NAME}_TPLS ${PROJECT_NAME}_NUM_TPLS)
-  print_var(${PROJECT_NAME}_NUM_TPLS)
+  LIST(LENGTH ${PROJECT_NAME}_TPLS ${PROJECT_NAME}_NUM_TPLS)
+  PRINT_VAR(${PROJECT_NAME}_NUM_TPLS)
 
   # Create a reverse list for later use
 
-  if (${PROJECT_NAME}_TPLS)
-    set(${PROJECT_NAME}_REVERSE_TPLS ${${PROJECT_NAME}_TPLS})
-    list(REVERSE ${PROJECT_NAME}_REVERSE_TPLS)
-  else()
-    set(${PROJECT_NAME}_REVERSE_TPLS)
-  endif()
+  IF (${PROJECT_NAME}_TPLS)
+    SET(${PROJECT_NAME}_REVERSE_TPLS ${${PROJECT_NAME}_TPLS})
+    LIST(REVERSE ${PROJECT_NAME}_REVERSE_TPLS)
+  ELSE()
+    SET(${PROJECT_NAME}_REVERSE_TPLS)
+  ENDIF()
 
-endmacro()
+ENDMACRO()

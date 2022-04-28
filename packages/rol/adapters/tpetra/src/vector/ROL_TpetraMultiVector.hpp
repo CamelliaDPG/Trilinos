@@ -92,13 +92,12 @@ namespace TPMultiVector {
             class Node=Tpetra::Map<>::node_type >
    struct binaryFunc {
     typedef typename Tpetra::MultiVector<Real,LO,GO,Node>::dual_view_type::t_dev ViewType;
-    typedef typename Tpetra::MultiVector<const Real,LO,GO,Node>::dual_view_type::t_dev ConstViewType;
     typedef typename ViewType::execution_space execution_space;
     ViewType X_;
-    ConstViewType Y_;
+    ViewType Y_;
     const Elementwise::BinaryFunction<Real>* const f_;
 
-    binaryFunc(ViewType& X, const ConstViewType& Y, const Elementwise::BinaryFunction<Real>* const f)
+    binaryFunc(ViewType& X, const ViewType& Y, const Elementwise::BinaryFunction<Real>* const f)
       : X_(X), Y_(Y), f_(f) {}
 
     KOKKOS_INLINE_FUNCTION
@@ -116,12 +115,12 @@ namespace TPMultiVector {
             class GO=Tpetra::Map<>::global_ordinal_type,
             class Node=Tpetra::Map<>::node_type >
   struct reduceFunc {
-    typedef typename Tpetra::MultiVector<const Real,LO,GO,Node>::dual_view_type::t_dev ConstViewType;
-    typedef typename ConstViewType::execution_space execution_space;
-    ConstViewType X_;
+    typedef typename Tpetra::MultiVector<Real,LO,GO,Node>::dual_view_type::t_dev ViewType;
+    typedef typename ViewType::execution_space execution_space;
+    ViewType X_;
     const Elementwise::ReductionOp<Real>* const r_;
 
-    reduceFunc(const ConstViewType& X, const Elementwise::ReductionOp<Real>* const r)
+    reduceFunc(const ViewType& X, const Elementwise::ReductionOp<Real>* const r)
       : X_(X), r_(r) {}
 
     KOKKOS_INLINE_FUNCTION
@@ -288,10 +287,10 @@ public:
 /*****************************************************************************/
 private:
   typedef typename Tpetra::MultiVector<Real,LO,GO,Node>::dual_view_type::t_dev ViewType;
-  typedef typename Tpetra::MultiVector<const Real,LO,GO,Node>::dual_view_type::t_dev ConstViewType;
+
 public:
   void applyUnary( const Elementwise::UnaryFunction<Real> &f ) {
-    ViewType v_lcl =  tpetra_vec_->getLocalViewDevice(Tpetra::Access::ReadWrite);
+    ViewType v_lcl =  tpetra_vec_->getLocalViewDevice();
 
     int lclDim = tpetra_vec_->getLocalLength();
     TPMultiVector::unaryFunc<Real,LO,GO,Node> func(v_lcl, &f);
@@ -308,8 +307,8 @@ public:
    const TpetraMultiVector &ex = dynamic_cast<const TpetraMultiVector&>(x);
    Ptr<const Tpetra::MultiVector<Real,LO,GO,Node> > xp = ex.getVector();
 
-    ViewType v_lcl = tpetra_vec_->getLocalViewDevice(Tpetra::Access::ReadWrite);
-    ConstViewType x_lcl = xp->getLocalViewDevice(Tpetra::Access::ReadOnly);
+    ViewType v_lcl = tpetra_vec_->getLocalViewDevice();
+    ViewType x_lcl = xp->getLocalViewDevice();
 
     int lclDim = tpetra_vec_->getLocalLength();
 
@@ -320,7 +319,7 @@ public:
   }
 
   Real reduce( const Elementwise::ReductionOp<Real> &r ) const {
-    ConstViewType v_lcl = tpetra_vec_->getLocalViewDevice(Tpetra::Access::ReadOnly);
+    ViewType v_lcl = tpetra_vec_->getLocalViewDevice();
 
     int lclDim = tpetra_vec_->getLocalLength();
     TPMultiVector::reduceFunc<Real,LO,GO,Node> func(v_lcl, &r);

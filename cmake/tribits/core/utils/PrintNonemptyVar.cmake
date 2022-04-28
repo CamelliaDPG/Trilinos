@@ -37,24 +37,24 @@
 # ************************************************************************
 # @HEADER
 
-include(AssertDefined)
-include(PrintVar)
+INCLUDE(AssertDefined)
+INCLUDE(PrintVar)
 
 
 #
-# @FUNCTION: print_nonempty_var()
+# @FUNCTION: PRINT_NONEMPTY_VAR()
 #
 # Print a defined variable giving its name then value only if it is not empty.
 #
 # Usage::
 #
-#    print_nonempty_var(<varName>)
+#    PRINT_NONEMPTY_VAR(<varName>)
 #
-# Calls ``print_var(<varName>)`` if ``${<varName>}`` is not empty.
+# Calls ``PRINT_VAR(<varName>)`` if ``${<varName>}`` is not empty.
 #
-function(print_nonempty_var VARIABLE_NAME)
-  assert_defined(VARIABLE_NAME)
-  if (NOT "${${VARIABLE_NAME}}" STREQUAL "")
-    print_var(${VARIABLE_NAME})
-  endif()
-endfunction()
+FUNCTION(PRINT_NONEMPTY_VAR VARIABLE_NAME)
+  ASSERT_DEFINED(VARIABLE_NAME)
+  IF (NOT "${${VARIABLE_NAME}}" STREQUAL "")
+    PRINT_VAR(${VARIABLE_NAME})
+  ENDIF()
+ENDFUNCTION()

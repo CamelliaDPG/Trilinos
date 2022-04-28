@@ -292,10 +292,7 @@ namespace ExponentialRandomFieldUnitTest {
     solverParams.set("Domain Upper Bounds", domain_upper);
     solverParams.set("Domain Lower Bounds", domain_lower);
     solverParams.set("Correlation Lengths", correlation_length);
-
-    // Since this test only runs on the host, instantiate the random field
-    // on the host
-    Stokhos::KL::ExponentialRandomField<double,Kokkos::DefaultHostExecutionSpace> rf(solverParams);
+    Stokhos::KL::ExponentialRandomField<double> rf(solverParams);
 
     int nqp = quad_weights.size();
     success = true;

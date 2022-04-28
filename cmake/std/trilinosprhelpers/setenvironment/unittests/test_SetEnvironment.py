@@ -18,14 +18,12 @@ from unittest import TestCase
 # and what is available.
 try:                                               # pragma: no cover
     import unittest.mock as mock                   # pragma: no cover
-    from unittest.mock import Mock
-    from unittest.mock import MagicMock
-    from unittest.mock import patch
 except:                                            # pragma: no cover
     import mock                                    # pragma: no cover
-    from mock import Mock
-    from mock import MagicMock
-    from mock import patch
+
+from mock import Mock
+from mock import MagicMock
+from mock import patch
 
 try:
     from cStringIO import StringIO
@@ -82,19 +80,19 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_001_truth = {
             'module-list': {
-                'sems-archive-gcc': True,
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-python': True
+                'sems-gcc': True,
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-python': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3'],
-                ['load', 'sems-archive-python/3.5.2']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3'],
+                ['load', 'sems-python/3.5.2']
             ],
             'setenv': [   {'key': 'OMP_NUM_THREADS', 'value': '2'},
                           {'key': 'CC', 'value': 'gcc'},
@@ -107,19 +105,19 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_002_truth = {
             'module-list': {
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-gcc': True,
-                'sems-archive-python': True
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-gcc': True,
+                'sems-python': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3'],
-                ['load', 'sems-archive-python/3.5.2']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3'],
+                ['load', 'sems-python/3.5.2']
             ],
             'setenv': [
                 {'key': 'OMP_NUM_THREADS', 'value': '2'},
@@ -134,17 +132,17 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_003_truth = {
             'module-list': {
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-gcc': True
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-gcc': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3']
             ],
             'setenv': [
                 {'key': 'OMP_NUM_THREADS', 'value': '2'},
@@ -158,19 +156,19 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_004_truth = {
             'module-list': {
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-gcc': True
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-gcc': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3'],
-                ['load', 'sems-archive-python/3.5.2'],
-                ['unload', 'sems-archive-python']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3'],
+                ['load', 'sems-python/3.5.2'],
+                ['unload', 'sems-python']
             ],
             'setenv': [
                 {'key': 'OMP_NUM_THREADS', 'value': '2'},
@@ -184,19 +182,19 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_005_truth = {
             'module-list': {
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-gcc': True,
-                'sems-archive-python': True
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-gcc': True,
+                'sems-python': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3'],
-                ['load', 'sems-archive-python/3.5.2']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3'],
+                ['load', 'sems-python/3.5.2']
             ],
             'setenv': [
                 {'key': 'OMP_NUM_THREADS', 'value': '2'},
@@ -211,20 +209,20 @@ class SetEnvironmentTest(TestCase):
 
         self._test_profile_006_truth = {
             'module-list': {
-                'sems-archive-boost': True,
-                'sems-archive-cmake': True,
-                'sems-archive-gcc': True,
-                'sems-archive-python': True
+                'sems-boost': True,
+                'sems-cmake': True,
+                'sems-gcc': True,
+                'sems-python': True
             },
             'module-op': [
                 ['purge', ''],
                 ['use', '/projects/sems/modulefiles/projects'],
-                ['load', 'sems-archive-env'],
-                ['load', 'sems-archive-gcc/7.3.0'],
-                ['load', 'sems-archive-boost/1.63.0/base'],
-                ['load', 'sems-archive-cmake/3.10.3'],
-                ['load', 'sems-archive-python/3.5.2'],
-                ['swap', 'sems-archive-python/3.5.2', 'sems-archive-python/3.8.0']
+                ['load', 'sems-env'],
+                ['load', 'sems-gcc/7.3.0'],
+                ['load', 'sems-boost/1.63.0/base'],
+                ['load', 'sems-cmake/3.10.3'],
+                ['load', 'sems-python/3.5.2'],
+                ['swap', 'sems-python/3.5.2', 'sems-python/3.8.0']
             ],
             'setenv': [
                 {'key': 'OMP_NUM_THREADS', 'value': '2'},
@@ -296,7 +294,7 @@ class SetEnvironmentTest(TestCase):
         Test loading Profile 003
         - the module() command(s) will be mocked and set to pass (return 0) during the apply() step.
         - Loads Profile_001
-        - module-remove sems-archive-python
+        - module-remove sems-python
         """
         filename    = self._filename
         profile     = "TEST_PROFILE_003"
@@ -310,7 +308,7 @@ class SetEnvironmentTest(TestCase):
         Test loading Profile 004
         - the module() command(s) will be mocked and set to pass (return 0) during the apply() step.
         - Loads Profile_001
-        - add a module-unload of sems-archive-python
+        - add a module-unload of sems-python
         """
         filename    = self._filename
         profile     = "TEST_PROFILE_004"
@@ -735,3 +733,5 @@ class SetEnvironmentTest(TestCase):
 
 if __name__ == "__main__":
     unittest.main()  # pragma nocover
+
+

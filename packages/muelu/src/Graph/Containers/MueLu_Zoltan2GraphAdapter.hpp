@@ -112,9 +112,9 @@ public:
     if(map.is_null()) map = graph_->GetDomainMap();
     return map;
   }
-  size_t getLocalNumEntries() const { return graph_->GetNodeNumEdges();}
-  size_t getLocalNumRows() const { return getRowMap()->getLocalNumElements();}
-  size_t getLocalNumCols() const { return getColMap()->getLocalNumElements();}
+  size_t getNodeNumEntries() const { return graph_->GetNodeNumEdges();}
+  size_t getNodeNumRows() const { return getRowMap()->getNodeNumElements();}
+  size_t getNodeNumCols() const { return getColMap()->getNodeNumElements();}
 
   void getLocalRowView(lno_t LocalRow, Teuchos::ArrayView< const lno_t > &indices) const {
    indices = graph_->getNeighborVertices(LocalRow);
@@ -163,7 +163,7 @@ public:
    *  The order of the vertex weights should match the order that
    *  vertices appear in the input data structure.
    *     \code
-   *       TheGraph->getRowMap()->getLocalElementList()
+   *       TheGraph->getRowMap()->getNodeElementList()
    *     \endcode
    */
 
@@ -196,7 +196,7 @@ public:
    *
    *  By vertex:
    *     \code
-   *       TheGraph->getRowMap()->getLocalElementList()
+   *       TheGraph->getRowMap()->getNodeElementList()
    *     \endcode
    *
    *  Then by vertex neighbor:
@@ -225,16 +225,16 @@ public:
 
   // TODO:  Assuming rows == objects; 
   // TODO:  Need to add option for columns or nonzeros?
-  size_t getLocalNumVertices() const { return getLocalNumRows(); }
+  size_t getLocalNumVertices() const { return getNodeNumRows(); }
 
   void getVertexIDsView(const gno_t *&ids) const 
   {
     ids = NULL;
     if (getLocalNumVertices())
-      ids = getRowMap()->getLocalElementList().getRawPtr();
+      ids = getRowMap()->getNodeElementList().getRawPtr();
   }
 
-  size_t getLocalNumEdges() const { return getLocalNumEntries(); }
+  size_t getLocalNumEdges() const { return getNodeNumEntries(); }
 
   void getEdgesView(const offset_t *&offsets, const gno_t *&adjIds) const
   {
@@ -331,8 +331,8 @@ template <typename User, typename UserCoord>
   graph_ = ingraph;
 
   comm_ = getRowMap()->getComm();
-  size_t nvtx = getLocalNumRows();
-  size_t nedges = getLocalNumEntries();
+  size_t nvtx = getNodeNumRows();
+  size_t nedges = getNodeNumEntries();
 
   // Unfortunately we have to copy the offsets and edge Ids
   // because edge Ids are not usually stored in vertex id order.

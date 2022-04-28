@@ -1,4 +1,4 @@
-tribits_repository_define_packages(
+TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   SimpleCxx          packages/simple_cxx         PT
   MixedLang          packages/mixed_lang         PT
   InsertedPkg        InsertedPkg                 ST
@@ -6,5 +6,5 @@ tribits_repository_define_packages(
   WrapExternal       packages/wrap_external      ST
   )
 
-tribits_disable_package_on_platforms(WrapExternal Windows)
-tribits_allow_missing_external_packages(InsertedPkg)
+TRIBITS_DISABLE_PACKAGE_ON_PLATFORMS(WrapExternal Windows)
+TRIBITS_ALLOW_MISSING_EXTERNAL_PACKAGES(InsertedPkg)

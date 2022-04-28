@@ -43,7 +43,6 @@
 #include "NOX_Abstract_Group.H"
 #include "NOX_SolverStats.hpp"
 #include "NOX_Utils.H"
-#include "NOX_Solver_LineSearchBased.H"
 
 NOX::ObserverPrint::ObserverPrint(const Teuchos::RCP<NOX::Utils>& os) :
   os_(os)
@@ -59,19 +58,12 @@ void NOX::ObserverPrint::runPreIterate(const NOX::Solver::Generic& solver)
     os.width(5);
     os << "N";
 
-    os.width(13);
+    os.width(12);
     os << "Status";
 
     os.setf(std::ios::left);
     os.width(14);
     os << "||F||";
-
-    const auto* is_linesearch = dynamic_cast<const NOX::Solver::LineSearchBased*>(&solver);
-    if (is_linesearch) {
-      os.setf(std::ios::left);
-      os.width(14);
-      os << "Step Size";
-    }
 
     os.setf(std::ios::left);
     os.width(11);
@@ -104,7 +96,7 @@ void NOX::ObserverPrint::printStep(const NOX::Solver::Generic& solver)
   os.setf(std::ios::left);
   os << stats.numNonlinearIterations;
 
-  os.width(13);
+  os.width(12);
   if (solver.getStatus() == NOX::StatusTest::Unconverged)
     os << "Unconverged";
   else if (solver.getStatus() == NOX::StatusTest::Converged)
@@ -119,14 +111,6 @@ void NOX::ObserverPrint::printStep(const NOX::Solver::Generic& solver)
   if (!grp.isF())
     const_cast<NOX::Abstract::Group&>(grp).computeF();
   os << grp.getNormF();
-
-  const auto* is_linesearch = dynamic_cast<const NOX::Solver::LineSearchBased*>(&solver);
-  if (is_linesearch) {
-    os.width(14);
-    os.setf(std::ios::left|std::ios::scientific);
-    os.precision(precision);
-    os << is_linesearch->getStepSize();
-  }
 
   os.width(11);
   os.setf(std::ios::left);

@@ -138,28 +138,22 @@ struct EquilibrationInfo {
   void
   assign (const EquilibrationInfo<ScalarType, SrcDeviceType>& src)
   {
-    using execution_space = typename device_type::execution_space;
-    // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-    Kokkos::deep_copy (execution_space(), rowNorms, src.rowNorms);
-    // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-    Kokkos::deep_copy (execution_space(), rowDiagonalEntries, src.rowDiagonalEntries);
-    // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-    Kokkos::deep_copy (execution_space(), colNorms, src.colNorms);
+    Kokkos::deep_copy (rowNorms, src.rowNorms);
+    Kokkos::deep_copy (rowDiagonalEntries, src.rowDiagonalEntries);
+    Kokkos::deep_copy (colNorms, src.colNorms);
     if (src.colDiagonalEntries.extent (0) == 0) {
       colDiagonalEntries =
         Kokkos::View<val_type*, device_type> ("colDiagonalEntries", 0);
     }
     else {
-      // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-      Kokkos::deep_copy (execution_space(), colDiagonalEntries, src.colDiagonalEntries);
+      Kokkos::deep_copy (colDiagonalEntries, src.colDiagonalEntries);
     }
     if (src.rowScaledColNorms.extent (0) == 0) {
       rowScaledColNorms =
         Kokkos::View<mag_type*, device_type> ("rowScaledColNorms", 0);
     }
     else {
-      // DEEP_COPY REVIEW - DEVICE-TO-DEVICE
-      Kokkos::deep_copy (execution_space(), rowScaledColNorms, src.rowScaledColNorms);
+      Kokkos::deep_copy (rowScaledColNorms, src.rowScaledColNorms);
     }
 
     assumeSymmetric = src.assumeSymmetric;

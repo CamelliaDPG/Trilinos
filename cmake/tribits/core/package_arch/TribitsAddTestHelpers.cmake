@@ -38,18 +38,18 @@
 # @HEADER
 
 
-include(TribitsAddExecutableTestHelpers)
-include(TribitsGeneralMacros)
-include(TribitsTestCategories)
+INCLUDE(TribitsAddExecutableTestHelpers)
+INCLUDE(TribitsGeneralMacros)
+INCLUDE(TribitsTestCategories)
 
-include(CMakeParseArguments)
-include(GlobalSet)
-include(AppendGlobalSet)
-include(AppendStringVarWithSep)
-include(PrintVar)
-include(AdvancedSet)
-include(MessageWrapper)
-include(TribitsGetCategoriesString)
+INCLUDE(CMakeParseArguments)
+INCLUDE(GlobalSet)
+INCLUDE(AppendGlobalSet)
+INCLUDE(AppendStringVarWithSep)
+INCLUDE(PrintVar)
+INCLUDE(AdvancedSet)
+INCLUDE(MessageWrapper)
+INCLUDE(TribitsGetCategoriesString)
 
 
 #
@@ -58,39 +58,39 @@ include(TribitsGetCategoriesString)
 # This must be run just before the packages define their tests and this macro
 # must be run in the base-level project scope.
 #
-macro(tribits_add_test_helpers_init)
-  if (TPL_ENABLE_CUDA)
-    set(TRIBITS_TEST_EXTRA_ENVIRONMENT CTEST_KOKKOS_DEVICE_TYPE=gpus)
-    set(TRIBITS_RESOURCES_PER_PROCESS gpus:1)
-  endif()
-endmacro()
+MACRO(TRIBITS_ADD_TEST_HELPERS_INIT)
+  IF (TPL_ENABLE_CUDA)
+    SET(TRIBITS_TEST_EXTRA_ENVIRONMENT CTEST_KOKKOS_DEVICE_TYPE=gpus)
+    SET(TRIBITS_RESOURCES_PER_PROCESS gpus:1)
+  ENDIF()
+ENDMACRO()
 
 
 #
-# Wrapper function for set_tests_properties() to be used in unit testing.
+# Wrapper function for SET_TESTS_PROPERTIES() to be used in unit testing.
 #
 
-function(tribits_set_tests_properties)
-  if (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
-    set_tests_properties(${ARGN})
-  endif()
-  if (TRIBITS_SET_TEST_PROPERTIES_CAPTURE_INPUT)
-    append_global_set(TRIBITS_SET_TEST_PROPERTIES_INPUT ${ARGN})
-  endif()
-endfunction()
+FUNCTION(TRIBITS_SET_TESTS_PROPERTIES)
+  IF (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
+    SET_TESTS_PROPERTIES(${ARGN})
+  ENDIF()
+  IF (TRIBITS_SET_TEST_PROPERTIES_CAPTURE_INPUT)
+    APPEND_GLOBAL_SET(TRIBITS_SET_TEST_PROPERTIES_INPUT ${ARGN})
+  ENDIF()
+ENDFUNCTION()
 
 #
-# Wrapper function for set_property(TEST ...) to be used in unit testing
+# Wrapper function for SET_PROPERTY(TEST ...) to be used in unit testing
 #
 
-function(tribits_set_test_property)
-  if (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
-    set_property(TEST ${ARGN})
-  endif()
-  if (TRIBITS_SET_TEST_PROPERTIES_CAPTURE_INPUT)
-    append_global_set(TRIBITS_SET_TEST_PROPERTIES_INPUT ${ARGN})
-  endif()
-endfunction()
+FUNCTION(TRIBITS_SET_TEST_PROPERTY)
+  IF (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
+    SET_PROPERTY(TEST ${ARGN})
+  ENDIF()
+  IF (TRIBITS_SET_TEST_PROPERTIES_CAPTURE_INPUT)
+    APPEND_GLOBAL_SET(TRIBITS_SET_TEST_PROPERTIES_INPUT ${ARGN})
+  ENDIF()
+ENDFUNCTION()
 
 
 #
@@ -98,114 +98,114 @@ endfunction()
 #
 # This function will truncate input TIMEOUT_IN but will allow for a simple
 # fractional scale factor.  It will also truncate the scale factor to just one
-# decimal place.  CMake math(EXPR ...) does not support floating point so I
+# decimal place.  CMake MATH(EXPR ...) does not support floating point so I
 # have to use just manual integer arithmetic.
 #
-function(tribits_scale_timeout  TIMEOUT_IN  SCALED_TIMEOUT_OUT)
+FUNCTION(TRIBITS_SCALE_TIMEOUT  TIMEOUT_IN  SCALED_TIMEOUT_OUT)
 
-  if (${PROJECT_NAME}_SCALE_TEST_TIMEOUT
+  IF (${PROJECT_NAME}_SCALE_TEST_TIMEOUT
     AND NOT "${${PROJECT_NAME}_SCALE_TEST_TIMEOUT}" EQUAL "1.0"
     )
 
     # Strip of any fractional part of the timeout
-    split("${TIMEOUT_IN}" "[.]" TIMEOUT_IN_ARRAY)
-    #print_var(TIMEOUT_IN_ARRAY)
-    list(GET TIMEOUT_IN_ARRAY 0 TIMEOUT_IN_TRUNCATED)
-    #print_var(TIMEOUT_IN_TRUNCATED)
+    SPLIT("${TIMEOUT_IN}" "[.]" TIMEOUT_IN_ARRAY)
+    #PRINT_VAR(TIMEOUT_IN_ARRAY)
+    LIST(GET TIMEOUT_IN_ARRAY 0 TIMEOUT_IN_TRUNCATED)
+    #PRINT_VAR(TIMEOUT_IN_TRUNCATED)
 
     # Split the factional part of the scaling factor into SCALE_TEST_INT and
     # SCALE_TEST_INT_FRAC and do the math ourself with integer floating pint
-    split("${${PROJECT_NAME}_SCALE_TEST_TIMEOUT}" "[.]" SCALE_TEST_ARRAY)
-    list(LENGTH SCALE_TEST_ARRAY SCALE_TEST_ARRAY_LEN)
-    #print_var(SCALE_TEST_ARRAY_LEN)
+    SPLIT("${${PROJECT_NAME}_SCALE_TEST_TIMEOUT}" "[.]" SCALE_TEST_ARRAY)
+    LIST(LENGTH SCALE_TEST_ARRAY SCALE_TEST_ARRAY_LEN)
+    #PRINT_VAR(SCALE_TEST_ARRAY_LEN)
 
-    list(GET SCALE_TEST_ARRAY 0 SCALE_TEST_INT)
-    #print_var(SCALE_TEST_INT)
+    LIST(GET SCALE_TEST_ARRAY 0 SCALE_TEST_INT)
+    #PRINT_VAR(SCALE_TEST_INT)
 
-    math(EXPR TIMEOUT_USED
+    MATH(EXPR TIMEOUT_USED
       "${TIMEOUT_IN_TRUNCATED} * ${SCALE_TEST_INT}")
-    #print_var(TIMEOUT_USED)
+    #PRINT_VAR(TIMEOUT_USED)
 
-    if ("${SCALE_TEST_ARRAY_LEN}" GREATER 1)
+    IF ("${SCALE_TEST_ARRAY_LEN}" GREATER 1)
       # Handle the factional part (only take the first digit)
-      list(GET SCALE_TEST_ARRAY 1 SCALE_TEST_INT_FRAC_FULL) # Could be more than 1 digit
-      #print_var(SCALE_TEST_INT_FRAC_FULL)
-      string(SUBSTRING "${SCALE_TEST_INT_FRAC_FULL}" 0 1 SCALE_TEST_INT_FRAC)
-      #print_var(SCALE_TEST_INT_FRAC)
-      math(EXPR TIMEOUT_USED
+      LIST(GET SCALE_TEST_ARRAY 1 SCALE_TEST_INT_FRAC_FULL) # Could be more than 1 digit
+      #PRINT_VAR(SCALE_TEST_INT_FRAC_FULL)
+      STRING(SUBSTRING "${SCALE_TEST_INT_FRAC_FULL}" 0 1 SCALE_TEST_INT_FRAC)
+      #PRINT_VAR(SCALE_TEST_INT_FRAC)
+      MATH(EXPR TIMEOUT_USED
         "${TIMEOUT_USED} + (${SCALE_TEST_INT_FRAC} * ${TIMEOUT_IN_TRUNCATED}) / 10")
-      #print_var(TIMEOUT_USED)
-    endif()
+      #PRINT_VAR(TIMEOUT_USED)
+    ENDIF()
 
-  else()
+  ELSE()
 
-    set(TIMEOUT_USED "${TIMEOUT_IN}")
+    SET(TIMEOUT_USED "${TIMEOUT_IN}")
 
-  endif()
+  ENDIF()
 
-  set(${SCALED_TIMEOUT_OUT} ${TIMEOUT_USED} PARENT_SCOPE)
+  SET(${SCALED_TIMEOUT_OUT} ${TIMEOUT_USED} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Function that converts a complete string of command-line arguments
-# into a form that add_test(...) can correctly deal with.
+# into a form that ADD_TEST(...) can correctly deal with.
 #
 # The main thing this function does is to replace spaces ' ' with
-# array separators ';' since this is how add_test(...) expects to deal
+# array separators ';' since this is how ADD_TEST(...) expects to deal
 # with command-line arguments, as array arguments.  However, this
 # function will not do a replacement of ' ' with ';' if a quote is
 # active.  This allows you to pass in quoted arguments and have them
 # treated as a single argument.
 #
 
-function(tribits_convert_cmnd_arg_string_to_add_test_arg_array CMND_ARG_STRING ARG_ARRAY_VARNAME)
+FUNCTION(TRIBITS_CONVERT_CMND_ARG_STRING_TO_ADD_TEST_ARG_ARRAY CMND_ARG_STRING ARG_ARRAY_VARNAME)
 
-  #message("TRIBITS_CONVERT_CMND_ARG_STRING_TO_ADD_TEST_ARG_ARRAY")
-  #print_var(CMND_ARG_STRING)
-  #print_var(ARG_ARRAY_VARNAME)
+  #MESSAGE("TRIBITS_CONVERT_CMND_ARG_STRING_TO_ADD_TEST_ARG_ARRAY")
+  #PRINT_VAR(CMND_ARG_STRING)
+  #PRINT_VAR(ARG_ARRAY_VARNAME)
 
-  string(LENGTH ${CMND_ARG_STRING} STR_LEN)
-  #print_var(STR_LEN)
+  STRING(LENGTH ${CMND_ARG_STRING} STR_LEN)
+  #PRINT_VAR(STR_LEN)
 
-  math(EXPR STR_LAST_IDX "${STR_LEN}-1")
+  MATH(EXPR STR_LAST_IDX "${STR_LEN}-1")
 
-  set(NEWSTR)
+  SET(NEWSTR)
 
-  set(ACTIVE_QUOTE OFF)
+  SET(ACTIVE_QUOTE OFF)
 
-  foreach(IDX RANGE ${STR_LAST_IDX})
+  FOREACH(IDX RANGE ${STR_LAST_IDX})
 
-    string(SUBSTRING ${CMND_ARG_STRING} ${IDX} 1 STR_CHAR)
-    #print_var(STR_CHAR)
+    STRING(SUBSTRING ${CMND_ARG_STRING} ${IDX} 1 STR_CHAR)
+    #PRINT_VAR(STR_CHAR)
 
-    if (STR_CHAR STREQUAL "\"")
-      if (NOT ACTIVE_QUOTE)
-        set(ACTIVE_QUOTE ON)
-      else()
-        set(ACTIVE_QUOTE OFF)
-      endif()
-      #print_var(ACTIVE_QUOTE)
-    endif()
+    IF (STR_CHAR STREQUAL "\"")
+      IF (NOT ACTIVE_QUOTE)
+        SET(ACTIVE_QUOTE ON)
+      ELSE()
+        SET(ACTIVE_QUOTE OFF)
+      ENDIF()
+      #PRINT_VAR(ACTIVE_QUOTE)
+    ENDIF()
 
-    if (NOT STR_CHAR STREQUAL " ")
-      set(NEWSTR "${NEWSTR}${STR_CHAR}")
-    else()
-      if (ACTIVE_QUOTE)
-        set(NEWSTR "${NEWSTR}${STR_CHAR}")
-      else()
-        set(NEWSTR "${NEWSTR};")
-      endif()
-    endif()
+    IF (NOT STR_CHAR STREQUAL " ")
+      SET(NEWSTR "${NEWSTR}${STR_CHAR}")
+    ELSE()
+      IF (ACTIVE_QUOTE)
+        SET(NEWSTR "${NEWSTR}${STR_CHAR}")
+      ELSE()
+        SET(NEWSTR "${NEWSTR};")
+      ENDIF()
+    ENDIF()
 
-  endforeach()
+  ENDFOREACH()
 
-  #print_var(NEWSTR)
+  #PRINT_VAR(NEWSTR)
 
-  set(${ARG_ARRAY_VARNAME} ${NEWSTR} PARENT_SCOPE)
+  SET(${ARG_ARRAY_VARNAME} ${NEWSTR} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
@@ -213,24 +213,24 @@ endfunction()
 # package or subpackage.
 #
 
-function(tribits_add_test_process_enable_tests  ADD_THE_TEST_OUT)
-  if(${PACKAGE_NAME}_ENABLE_TESTS OR ${PARENT_PACKAGE_NAME}_ENABLE_TESTS)
-   set(ADD_THE_TEST TRUE)
-  else()
-    if (PARENT_PACKAGE_NAME STREQUAL PACKAGE_NAME)
-      set(PARENT_EANBLE_TESTS_DISABLE_MSG)
-    else()
-      set(PARENT_EANBLE_TESTS_DISABLE_MSG
+FUNCTION(TRIBITS_ADD_TEST_PROCESS_ENABLE_TESTS  ADD_THE_TEST_OUT)
+  IF(${PACKAGE_NAME}_ENABLE_TESTS OR ${PARENT_PACKAGE_NAME}_ENABLE_TESTS)
+   SET(ADD_THE_TEST TRUE)
+  ELSE()
+    IF (PARENT_PACKAGE_NAME STREQUAL PACKAGE_NAME)
+      SET(PARENT_EANBLE_TESTS_DISABLE_MSG)
+    ELSE()
+      SET(PARENT_EANBLE_TESTS_DISABLE_MSG
 	", ${PARENT_PACKAGE_NAME}_ENABLE_TESTS='${${PARENT_PACKAGE_NAME}_ENABLE_TESTS}'"
 	)
-    endif()
-    message_wrapper(
+    ENDIF()
+    MESSAGE_WRAPPER(
       "-- ${TEST_NAME}: NOT added test because ${PACKAGE_NAME}_ENABLE_TESTS='${${PACKAGE_NAME}_ENABLE_TESTS}${PARENT_EANBLE_TESTS_DISABLE_MSG}'."
      )
-   set(ADD_THE_TEST FALSE)
-  endif()
-  set(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
-endfunction()
+   SET(ADD_THE_TEST FALSE)
+  ENDIF()
+  SET(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
+ENDFUNCTION()
 
 
 #
@@ -240,82 +240,82 @@ endfunction()
 # implicitly due to scoping of CMake.
 #
 
-function(tribits_add_test_process_host_hosttype  ADD_THE_TEST_OUT)
+FUNCTION(TRIBITS_ADD_TEST_PROCESS_HOST_HOSTTYPE  ADD_THE_TEST_OUT)
 
-  if ("${${PROJECT_NAME}_HOSTNAME}" STREQUAL "")
-    set(${PROJECT_NAME}_HOSTNAME dummy_host)
-  endif()
+  IF ("${${PROJECT_NAME}_HOSTNAME}" STREQUAL "")
+    SET(${PROJECT_NAME}_HOSTNAME dummy_host)
+  ENDIF()
 
-  set(ADD_THE_TEST TRUE)
+  SET(ADD_THE_TEST TRUE)
 
-  if (ADD_THE_TEST)
-    if (NOT PARSE_HOST)
-      set (PARSE_HOST ${${PROJECT_NAME}_HOSTNAME})
-    endif()
+  IF (ADD_THE_TEST)
+    IF (NOT PARSE_HOST)
+      SET (PARSE_HOST ${${PROJECT_NAME}_HOSTNAME})
+    ENDIF()
     LIST (FIND PARSE_HOST ${${PROJECT_NAME}_HOSTNAME} INDEX_OF_HOSTNAME_IN_HOST_LIST)
-    if (${INDEX_OF_HOSTNAME_IN_HOST_LIST} EQUAL -1)
-      set(ADD_THE_TEST FALSE)
-      set(HOST_MATCH_MSG 
+    IF (${INDEX_OF_HOSTNAME_IN_HOST_LIST} EQUAL -1)
+      SET(ADD_THE_TEST FALSE)
+      SET(HOST_MATCH_MSG 
         "-- ${TEST_NAME}: NOT added test because ${PROJECT_NAME}_HOSTNAME='${${PROJECT_NAME}_HOSTNAME}' does not match list HOST='${PARSE_HOST}'!"
         )
-    endif()
-  endif()
+    ENDIF()
+  ENDIF()
 
-  if (ADD_THE_TEST)
-    if (NOT PARSE_XHOST)
-      set (PARSE_XHOST NONE)
-    endif()
+  IF (ADD_THE_TEST)
+    IF (NOT PARSE_XHOST)
+      SET (PARSE_XHOST NONE)
+    ENDIF()
     LIST (FIND PARSE_XHOST ${${PROJECT_NAME}_HOSTNAME} INDEX_OF_HOSTNAME_IN_XHOST_LIST)
-    if (NOT ${INDEX_OF_HOSTNAME_IN_XHOST_LIST} EQUAL -1)
-      set(ADD_THE_TEST FALSE)
-      set(HOST_MATCH_MSG 
+    IF (NOT ${INDEX_OF_HOSTNAME_IN_XHOST_LIST} EQUAL -1)
+      SET(ADD_THE_TEST FALSE)
+      SET(HOST_MATCH_MSG 
         "-- ${TEST_NAME}: NOT added test because ${PROJECT_NAME}_HOSTNAME='${${PROJECT_NAME}_HOSTNAME}' matches list XHOST='${PARSE_XHOST}'!"
         )
-    endif()
-  endif()
+    ENDIF()
+  ENDIF()
 
-  if (ADD_THE_TEST)
-    if (NOT PARSE_HOSTTYPE)
-      set(PARSE_HOSTTYPE ${CMAKE_HOST_SYSTEM_NAME})
-    endif()
+  IF (ADD_THE_TEST)
+    IF (NOT PARSE_HOSTTYPE)
+      SET(PARSE_HOSTTYPE ${CMAKE_HOST_SYSTEM_NAME})
+    ENDIF()
     LIST (FIND PARSE_HOSTTYPE ${CMAKE_HOST_SYSTEM_NAME} INDEX_OF_HOSTSYSTEMNAME_IN_HOSTTYPE_LIST)
-    if (${INDEX_OF_HOSTSYSTEMNAME_IN_HOSTTYPE_LIST} EQUAL -1)
-      set(ADD_THE_TEST FALSE)
-      set(HOST_MATCH_MSG 
+    IF (${INDEX_OF_HOSTSYSTEMNAME_IN_HOSTTYPE_LIST} EQUAL -1)
+      SET(ADD_THE_TEST FALSE)
+      SET(HOST_MATCH_MSG 
         "-- ${TEST_NAME}: NOT added test because CMAKE_HOST_SYSTEM_NAME='${CMAKE_HOST_SYSTEM_NAME}' does not match list HOSTTYPE='${PARSE_HOSTTYPE}'!"
         )
-    endif()
-  endif()
+    ENDIF()
+  ENDIF()
 
-  if (ADD_THE_TEST)
-    if (NOT PARSE_XHOSTTYPE)
-      set(PARSE_XHOSTTYPE NONE)
-    endif()
+  IF (ADD_THE_TEST)
+    IF (NOT PARSE_XHOSTTYPE)
+      SET(PARSE_XHOSTTYPE NONE)
+    ENDIF()
     LIST (FIND PARSE_XHOSTTYPE ${CMAKE_HOST_SYSTEM_NAME} INDEX_OF_HOSTSYSTEMNAME_IN_XHOSTTYPE_LIST)
-    if (NOT ${INDEX_OF_HOSTSYSTEMNAME_IN_XHOSTTYPE_LIST} EQUAL -1)
-      set(ADD_THE_TEST FALSE)
-      set(HOST_MATCH_MSG 
+    IF (NOT ${INDEX_OF_HOSTSYSTEMNAME_IN_XHOSTTYPE_LIST} EQUAL -1)
+      SET(ADD_THE_TEST FALSE)
+      SET(HOST_MATCH_MSG 
         "-- ${TEST_NAME}: NOT added test because CMAKE_HOST_SYSTEM_NAME='${CMAKE_HOST_SYSTEM_NAME}' matches list XHOSTTYPE='${PARSE_XHOSTTYPE}'!"
         )
-    endif()
-  endif()
+    ENDIF()
+  ENDIF()
 
-  foreach(VAR_NAME ${PARSE_EXCLUDE_IF_NOT_TRUE})
-    if (ADD_THE_TEST AND NOT ${VAR_NAME})
-      set(ADD_THE_TEST FALSE)
-      set(HOST_MATCH_MSG 
+  FOREACH(VAR_NAME ${PARSE_EXCLUDE_IF_NOT_TRUE})
+    IF (ADD_THE_TEST AND NOT ${VAR_NAME})
+      SET(ADD_THE_TEST FALSE)
+      SET(HOST_MATCH_MSG 
         "-- ${TEST_NAME}: NOT added test because EXCLUDE_IF_NOT_TRUE ${VAR_NAME}='${${VAR_NAME}}'!"
       )
-    endif()
-  endforeach()
+    ENDIF()
+  ENDFOREACH()
 
-  if (HOST_MATCH_MSG AND ${PROJECT_NAME}_TRACE_ADD_TEST)
-    message_wrapper("${HOST_MATCH_MSG}")
-  endif()
+  IF (HOST_MATCH_MSG AND ${PROJECT_NAME}_TRACE_ADD_TEST)
+    MESSAGE_WRAPPER("${HOST_MATCH_MSG}")
+  ENDIF()
 
-  set(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
+  SET(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
@@ -324,81 +324,81 @@ endfunction()
 # Warning: Argument PARSE_CATEGORIES is passed in implicitly due to scoping of
 # CMake.
 #
-function(tribits_add_test_process_categories  ADD_THE_TEST_OUT)
+FUNCTION(TRIBITS_ADD_TEST_PROCESS_CATEGORIES  ADD_THE_TEST_OUT)
 
-  tribits_filter_and_assert_categories(PARSE_CATEGORIES)
-  set(PARSE_CATEGORIES ${PARSE_CATEGORIES} PARENT_SCOPE)
+  TRIBITS_FILTER_AND_ASSERT_CATEGORIES(PARSE_CATEGORIES)
+  SET(PARSE_CATEGORIES ${PARSE_CATEGORIES} PARENT_SCOPE)
 
-  set(ADD_THE_TEST FALSE)
+  SET(ADD_THE_TEST FALSE)
 
-  # Set the default test-specific category to basic if it is not set
-  if (NOT PARSE_CATEGORIES)
-    set (PARSE_CATEGORIES BASIC)
-  endif()
+  # Set the default test-specific cateogry to basic if it is not set
+  IF (NOT PARSE_CATEGORIES)
+    SET (PARSE_CATEGORIES BASIC)
+  ENDIF()
 
-  #print_var(${PROJECT_NAME}_TEST_CATEGORIES)
-  #print_var(PARSE_CATEGORIES)
+  #PRINT_VAR(${PROJECT_NAME}_TEST_CATEGORIES)
+  #PRINT_VAR(PARSE_CATEGORIES)
 
-  if ("${${PROJECT_NAME}_TEST_CATEGORIES}" STREQUAL "")
+  IF ("${${PROJECT_NAME}_TEST_CATEGORIES}" STREQUAL "")
     # In case this is not a TriBITS project!
-    set(${PROJECT_NAME}_TEST_CATEGORIES BASIC)
-  endif()
+    SET(${PROJECT_NAME}_TEST_CATEGORIES BASIC)
+  ENDIF()
 
   # Process the test categories
-  assert_defined(${PROJECT_NAME}_TEST_CATEGORIES)
-  foreach(CATEGORY_USR_SET ${${PROJECT_NAME}_TEST_CATEGORIES})
-    #print_var(CATEGORY_USR_SET)
-    #print_var(PARSE_CATEGORIES)
-    foreach(CATEGORY ${PARSE_CATEGORIES})
-      if (CATEGORY STREQUAL ${CATEGORY_USR_SET})
+  ASSERT_DEFINED(${PROJECT_NAME}_TEST_CATEGORIES)
+  FOREACH(CATEGORY_USR_SET ${${PROJECT_NAME}_TEST_CATEGORIES})
+    #PRINT_VAR(CATEGORY_USR_SET)
+    #PRINT_VAR(PARSE_CATEGORIES)
+    FOREACH(CATEGORY ${PARSE_CATEGORIES})
+      IF (CATEGORY STREQUAL ${CATEGORY_USR_SET})
         # Exact match for the category, add the test
-        set(ADD_THE_TEST TRUE)
-      elseif(CATEGORY STREQUAL "BASIC")
-        if (CATEGORY_USR_SET STREQUAL "CONTINUOUS" OR CATEGORY_USR_SET STREQUAL "NIGHTLY"
+        SET(ADD_THE_TEST TRUE)
+      ELSEIF(CATEGORY STREQUAL "BASIC")
+        IF (CATEGORY_USR_SET STREQUAL "CONTINUOUS" OR CATEGORY_USR_SET STREQUAL "NIGHTLY"
           OR CATEGORY_USR_SET STREQUAL "HEAVY"
           )
-          set(ADD_THE_TEST TRUE)
-        endif()
-      elseif(CATEGORY STREQUAL "CONTINUOUS")
-        if (CATEGORY_USR_SET STREQUAL "NIGHTLY" OR CATEGORY_USR_SET STREQUAL "HEAVY")
-          set(ADD_THE_TEST TRUE)
-        endif()
-      elseif(CATEGORY STREQUAL "NIGHTLY")
-        if (CATEGORY_USR_SET STREQUAL "HEAVY")
-          set(ADD_THE_TEST TRUE)
-        endif()
-      else()
+          SET(ADD_THE_TEST TRUE)
+        ENDIF()
+      ELSEIF(CATEGORY STREQUAL "CONTINUOUS")
+        IF (CATEGORY_USR_SET STREQUAL "NIGHTLY" OR CATEGORY_USR_SET STREQUAL "HEAVY")
+          SET(ADD_THE_TEST TRUE)
+        ENDIF()
+      ELSEIF(CATEGORY STREQUAL "NIGHTLY")
+        IF (CATEGORY_USR_SET STREQUAL "HEAVY")
+          SET(ADD_THE_TEST TRUE)
+        ENDIF()
+      ELSE()
         # No matches for the category, don't add the test
-      endif()
-    endforeach()
-  endforeach()
+      ENDIF()
+    ENDFOREACH()
+  ENDFOREACH()
 
-  #print_var(TEST_NAME)
-  #print_var(ADD_THE_TEST)
-  #print_var(${PROJECT_NAME}_TRACE_ADD_TEST)
+  #PRINT_VAR(TEST_NAME)
+  #PRINT_VAR(ADD_THE_TEST)
+  #PRINT_VAR(${PROJECT_NAME}_TRACE_ADD_TEST)
 
-  if (TEST_NAME AND NOT ADD_THE_TEST AND ${PROJECT_NAME}_TRACE_ADD_TEST)
-    message_wrapper(
+  IF (TEST_NAME AND NOT ADD_THE_TEST AND ${PROJECT_NAME}_TRACE_ADD_TEST)
+    MESSAGE_WRAPPER(
       "-- ${TEST_NAME}: NOT added test because ${PROJECT_NAME}_TEST_CATEGORIES='${${PROJECT_NAME}_TEST_CATEGORIES}' does not match this test's CATEGORIES='${PARSE_CATEGORIES}'!"
         )
-  endif()
+  ENDIF()
 
 
-  set(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
-  #print_var(${ADD_THE_TEST_OUT})
+  SET(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
+  #PRINT_VAR(${ADD_THE_TEST_OUT})
 
-endfunction()
+ENDFUNCTION()
 
 
 #
-# FUNCTION: tribits_add_test_get_exe_binary_name()
+# FUNCTION: TRIBITS_ADD_TEST_GET_EXE_BINARY_NAME()
 #
 # Get the full name of a package executable given its root name and other
 # arguments.
 #
 # Usage:
 #
-#   tribits_add_test_get_exe_binary_name(
+#   TRIBITS_ADD_TEST_GET_EXE_BINARY_NAME(
 #     <execRootName>
 #     NOEXEPREFIX_IN
 #     NOEXESUFFIX_IN
@@ -410,117 +410,117 @@ endfunction()
 #
 #   ${PACKAGE_NAME}_<execName>${${PROJECT_NAME}_CMAKE_EXECUTABLE_SUFFIX}
 #
-function(tribits_add_test_get_exe_binary_name  EXE_NAME_IN
+FUNCTION(TRIBITS_ADD_TEST_GET_EXE_BINARY_NAME  EXE_NAME_IN
   NOEXEPREFIX_IN  NOEXESUFFIX_IN ADD_DIR_TO_NAME EXE_BINARY_NAME_OUT
   )
-  set(EXE_BINARY_NAME "${EXE_NAME_IN}")
-  if(PARSE_ADD_DIR_TO_NAME)
-    set(DIRECTORY_NAME "")
-    tribits_create_name_from_current_source_directory(DIRECTORY_NAME)
-    set(EXE_BINARY_NAME "${DIRECTORY_NAME}_${EXE_BINARY_NAME}")
-  endif()
-  if (NOEXESUFFIX_IN)
-    set(EXECUTABLE_SUFFIX "")
-  else()
-    set(EXECUTABLE_SUFFIX ${${PROJECT_NAME}_CMAKE_EXECUTABLE_SUFFIX})
-  endif()
-  set(EXE_BINARY_NAME "${EXE_BINARY_NAME}${EXECUTABLE_SUFFIX}")
-  if(PACKAGE_NAME AND NOT NOEXEPREFIX_IN)
-    set(EXE_BINARY_NAME ${PACKAGE_NAME}_${EXE_BINARY_NAME})
-  endif()
-  set(${EXE_BINARY_NAME_OUT} ${EXE_BINARY_NAME} PARENT_SCOPE)
-endfunction()
+  SET(EXE_BINARY_NAME "${EXE_NAME_IN}")
+  IF(PARSE_ADD_DIR_TO_NAME)
+    SET(DIRECTORY_NAME "")
+    TRIBITS_CREATE_NAME_FROM_CURRENT_SOURCE_DIRECTORY(DIRECTORY_NAME)
+    SET(EXE_BINARY_NAME "${DIRECTORY_NAME}_${EXE_BINARY_NAME}")
+  ENDIF()
+  IF (NOEXESUFFIX_IN)
+    SET(EXECUTABLE_SUFFIX "")
+  ELSE()
+    SET(EXECUTABLE_SUFFIX ${${PROJECT_NAME}_CMAKE_EXECUTABLE_SUFFIX})
+  ENDIF()
+  SET(EXE_BINARY_NAME "${EXE_BINARY_NAME}${EXECUTABLE_SUFFIX}")
+  IF(PACKAGE_NAME AND NOT NOEXEPREFIX_IN)
+    SET(EXE_BINARY_NAME ${PACKAGE_NAME}_${EXE_BINARY_NAME})
+  ENDIF()
+  SET(${EXE_BINARY_NAME_OUT} ${EXE_BINARY_NAME} PARENT_SCOPE)
+ENDFUNCTION()
 
 
 #
 # Adjust the directory path to an executable for a test
 #
-function(tribits_add_test_adjust_directory  EXE_BINARY_NAME  DIRECTORY
+FUNCTION(TRIBITS_ADD_TEST_ADJUST_DIRECTORY  EXE_BINARY_NAME  DIRECTORY
   EXECUTABLE_PATH_OUT
   )
 
-   set(EXECUTABLE_PATH "${EXE_BINARY_NAME}")
+   SET(EXECUTABLE_PATH "${EXE_BINARY_NAME}")
 
-   if (NOT IS_ABSOLUTE ${EXECUTABLE_PATH})
+   IF (NOT IS_ABSOLUTE ${EXECUTABLE_PATH})
 
-     if (CMAKE_CONFIGURATION_TYPE)
-       set(EXECUTABLE_PATH "${CMAKE_CONFIGURATION_TYPE}/${EXECUTABLE_PATH}")
-     endif()
+     IF (CMAKE_CONFIGURATION_TYPE)
+       SET(EXECUTABLE_PATH "${CMAKE_CONFIGURATION_TYPE}/${EXECUTABLE_PATH}")
+     ENDIF()
 
-     if (DIRECTORY)
-       set(EXECUTABLE_PATH "${DIRECTORY}/${EXECUTABLE_PATH}")
-     endif()
+     IF (DIRECTORY)
+       SET(EXECUTABLE_PATH "${DIRECTORY}/${EXECUTABLE_PATH}")
+     ENDIF()
 
-     if (NOT IS_ABSOLUTE ${EXECUTABLE_PATH})
-       set(EXECUTABLE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE_PATH}")
-     endif()
+     IF (NOT IS_ABSOLUTE ${EXECUTABLE_PATH})
+       SET(EXECUTABLE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EXECUTABLE_PATH}")
+     ENDIF()
 
-   endif()
+   ENDIF()
 
-  set(${EXECUTABLE_PATH_OUT} ${EXECUTABLE_PATH} PARENT_SCOPE)
+  SET(${EXECUTABLE_PATH_OUT} ${EXECUTABLE_PATH} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Get the number of MPI processes to use
 #
-function(tribits_add_test_get_num_procs_used  NUM_MPI_PROCS_IN
+FUNCTION(TRIBITS_ADD_TEST_GET_NUM_PROCS_USED  NUM_MPI_PROCS_IN
   NUM_MPI_PROCS_VAR_NAME_IN  NUM_MPI_PROCS_USED_OUT
   NUM_MPI_PROCS_USED_NAME_OUT
   )
-  if (NOT TPL_ENABLE_MPI)
-    set(MPI_EXEC_DEFAULT_NUMPROCS 1)
-  elseif (NOT DEFINED MPI_EXEC_DEFAULT_NUMPROCS)
-    set(MPI_EXEC_DEFAULT_NUMPROCS 1)
-  endif()
-  if (NOT TPL_ENABLE_MPI)
-    set(MPI_EXEC_MAX_NUMPROCS 1)
-  elseif (NOT DEFINED MPI_EXEC_MAX_NUMPROCS)
-    set(MPI_EXEC_MAX_NUMPROCS 1)
-  endif()
-  if (NOT NUM_MPI_PROCS_IN)
-    set(NUM_MPI_PROCS_IN ${MPI_EXEC_DEFAULT_NUMPROCS})
-    set(NUM_PROCS_VAR_NAME "MPI_EXEC_DEFAULT_NUMPROCS") 
-  else()
-    set(NUM_PROCS_VAR_NAME "${NUM_MPI_PROCS_VAR_NAME_IN}") 
-  endif()
-  if (${NUM_MPI_PROCS_IN} MATCHES [0-9]+-[0-9]+)
-    string(REGEX REPLACE "([0-9]+)-([0-9]+)" "\\1" MIN_NP ${NUM_MPI_PROCS_IN} )
-    string(REGEX REPLACE "([0-9]+)-([0-9]+)" "\\2" MAX_NP ${NUM_MPI_PROCS_IN} )
-    if(${MIN_NP} LESS ${MPI_EXEC_MAX_NUMPROCS} AND
+  IF (NOT TPL_ENABLE_MPI)
+    SET(MPI_EXEC_DEFAULT_NUMPROCS 1)
+  ELSEIF (NOT DEFINED MPI_EXEC_DEFAULT_NUMPROCS)
+    SET(MPI_EXEC_DEFAULT_NUMPROCS 1)
+  ENDIF()
+  IF (NOT TPL_ENABLE_MPI)
+    SET(MPI_EXEC_MAX_NUMPROCS 1)
+  ELSEIF (NOT DEFINED MPI_EXEC_MAX_NUMPROCS)
+    SET(MPI_EXEC_MAX_NUMPROCS 1)
+  ENDIF()
+  IF (NOT NUM_MPI_PROCS_IN)
+    SET(NUM_MPI_PROCS_IN ${MPI_EXEC_DEFAULT_NUMPROCS})
+    SET(NUM_PROCS_VAR_NAME "MPI_EXEC_DEFAULT_NUMPROCS") 
+  ELSE()
+    SET(NUM_PROCS_VAR_NAME "${NUM_MPI_PROCS_VAR_NAME_IN}") 
+  ENDIF()
+  IF (${NUM_MPI_PROCS_IN} MATCHES [0-9]+-[0-9]+)
+    STRING(REGEX REPLACE "([0-9]+)-([0-9]+)" "\\1" MIN_NP ${NUM_MPI_PROCS_IN} )
+    STRING(REGEX REPLACE "([0-9]+)-([0-9]+)" "\\2" MAX_NP ${NUM_MPI_PROCS_IN} )
+    IF(${MIN_NP} LESS ${MPI_EXEC_MAX_NUMPROCS} AND
       ${MAX_NP} GREATER ${MPI_EXEC_MAX_NUMPROCS}
       )
-      set(NUM_PROCS_USED ${MPI_EXEC_MAX_NUMPROCS})
-    elseif (${MIN_NP} EQUAL ${MPI_EXEC_MAX_NUMPROCS})
-      set(NUM_PROCS_USED ${MIN_NP})
-    elseif (${MAX_NP} EQUAL ${MPI_EXEC_MAX_NUMPROCS})
-      set(NUM_PROCS_USED ${MAX_NP})
-    elseif (${MAX_NP} LESS ${MPI_EXEC_MAX_NUMPROCS})
-      set(NUM_PROCS_USED ${MAX_NP})
-    else()
+      SET(NUM_PROCS_USED ${MPI_EXEC_MAX_NUMPROCS})
+    ELSEIF (${MIN_NP} EQUAL ${MPI_EXEC_MAX_NUMPROCS})
+      SET(NUM_PROCS_USED ${MIN_NP})
+    ELSEIF (${MAX_NP} EQUAL ${MPI_EXEC_MAX_NUMPROCS})
+      SET(NUM_PROCS_USED ${MAX_NP})
+    ELSEIF (${MAX_NP} LESS ${MPI_EXEC_MAX_NUMPROCS})
+      SET(NUM_PROCS_USED ${MAX_NP})
+    ELSE()
       # The number of available processors is outside the given range so the
       # test should not be run.
-      set(NUM_PROCS_USED -1)
-    endif()
-  elseif (${NUM_MPI_PROCS_IN} MATCHES [0-9]+,[0-9]+)
-    message(SEND_ERROR "The test ${TEST_NAME} can not be added yet"
+      SET(NUM_PROCS_USED -1)
+    ENDIF()
+  ELSEIF (${NUM_MPI_PROCS_IN} MATCHES [0-9]+,[0-9]+)
+    MESSAGE(SEND_ERROR "The test ${TEST_NAME} can not be added yet"
       " because it we do not yet support the form of"
       " NUM_MPI_PROCS=${NUM_MPI_PROCS_IN}")
-      set(NUM_PROCS_USED -1)
-  else()
-    if(${NUM_MPI_PROCS_IN} GREATER ${MPI_EXEC_MAX_NUMPROCS})
-      set(NUM_PROCS_USED -1)
-      if (${PROJECT_NAME}_TRACE_ADD_TEST)
-        message_wrapper("-- ${TEST_NAME}: NOT added test because ${NUM_PROCS_VAR_NAME}='${NUM_MPI_PROCS_IN}' > MPI_EXEC_MAX_NUMPROCS='${MPI_EXEC_MAX_NUMPROCS}'!")
-      endif()
-    else()
-      set(NUM_PROCS_USED ${NUM_MPI_PROCS_IN})
-    endif()
-  endif()
-  set(${NUM_MPI_PROCS_USED_OUT}  ${NUM_PROCS_USED}  PARENT_SCOPE)
-  set(${NUM_MPI_PROCS_USED_NAME_OUT}  ${NUM_PROCS_VAR_NAME}  PARENT_SCOPE)
-endfunction()
+      SET(NUM_PROCS_USED -1)
+  ELSE()
+    IF(${NUM_MPI_PROCS_IN} GREATER ${MPI_EXEC_MAX_NUMPROCS})
+      SET(NUM_PROCS_USED -1)
+      IF (${PROJECT_NAME}_TRACE_ADD_TEST)
+        MESSAGE_WRAPPER("-- ${TEST_NAME}: NOT added test because ${NUM_PROCS_VAR_NAME}='${NUM_MPI_PROCS_IN}' > MPI_EXEC_MAX_NUMPROCS='${MPI_EXEC_MAX_NUMPROCS}'!")
+      ENDIF()
+    ELSE()
+      SET(NUM_PROCS_USED ${NUM_MPI_PROCS_IN})
+    ENDIF()
+  ENDIF()
+  SET(${NUM_MPI_PROCS_USED_OUT}  ${NUM_PROCS_USED}  PARENT_SCOPE)
+  SET(${NUM_MPI_PROCS_USED_NAME_OUT}  ${NUM_PROCS_VAR_NAME}  PARENT_SCOPE)
+ENDFUNCTION()
 
 
 #
@@ -528,11 +528,11 @@ endfunction()
 #
 # NOTE: The extra test program arguments are passed through ${ARGN}.
 #
-function( tribits_add_test_get_test_cmnd_array  CMND_ARRAY_OUT
+FUNCTION( TRIBITS_ADD_TEST_GET_TEST_CMND_ARRAY  CMND_ARRAY_OUT
   EXECUTABLE_PATH  NUM_PROCS_USED
   )
-  if (TPL_ENABLE_MPI)
-    set(${CMND_ARRAY_OUT}
+  IF (TPL_ENABLE_MPI)
+    SET(${CMND_ARRAY_OUT}
        "${MPI_EXEC}"
        ${MPI_EXEC_PRE_NUMPROCS_FLAGS}
        ${MPI_EXEC_NUMPROCS_FLAG} ${NUM_PROCS_USED}
@@ -541,111 +541,111 @@ function( tribits_add_test_get_test_cmnd_array  CMND_ARRAY_OUT
        ${ARGN}
        PARENT_SCOPE
        )
-  else()
-    set(${CMND_ARRAY_OUT}
+  ELSE()
+    SET(${CMND_ARRAY_OUT}
        "${EXECUTABLE_PATH}"
        ${ARGN}
        PARENT_SCOPE
        )
-  endif()
-endfunction()
+  ENDIF()
+ENDFUNCTION()
 
 
 #
 # Get the number of cores used by process
 #
-function(tribits_add_test_get_num_total_cores_used  TEST_NAME_IN
+FUNCTION(TRIBITS_ADD_TEST_GET_NUM_TOTAL_CORES_USED  TEST_NAME_IN
   NUM_TOTAL_CORES_USED_IN  NUM_TOTAL_CORES_USED_NAME_IN
   NUM_PROCS_USED_IN  NUM_PROCS_USED_NAME_IN
   NUM_TOTAL_CORES_USED_OUT  SKIP_TEST_OUT
   )
 
-  set(SKIP_TEST FALSE)
+  SET(SKIP_TEST FALSE)
 
-  if (NUM_TOTAL_CORES_USED_IN)
+  IF (NUM_TOTAL_CORES_USED_IN)
 
-    set(NUM_TOTAL_CORES_USED  ${NUM_TOTAL_CORES_USED_IN})
+    SET(NUM_TOTAL_CORES_USED  ${NUM_TOTAL_CORES_USED_IN})
 
-    if (NUM_TOTAL_CORES_USED_IN  GREATER  MPI_EXEC_MAX_NUMPROCS)
-      if (${PROJECT_NAME}_TRACE_ADD_TEST)
-        message_wrapper(
+    IF (NUM_TOTAL_CORES_USED_IN  GREATER  MPI_EXEC_MAX_NUMPROCS)
+      IF (${PROJECT_NAME}_TRACE_ADD_TEST)
+        MESSAGE_WRAPPER(
           "-- ${TEST_NAME_IN}: NOT added test because ${NUM_TOTAL_CORES_USED_NAME_IN}='${NUM_TOTAL_CORES_USED_IN}' > MPI_EXEC_MAX_NUMPROCS='${MPI_EXEC_MAX_NUMPROCS}'!"
           )
-      endif()
-      set(SKIP_TEST TRUE)
-    endif()
+      ENDIF()
+      SET(SKIP_TEST TRUE)
+    ENDIF()
 
-    if (NUM_PROCS_USED_IN  GREATER  NUM_TOTAL_CORES_USED_IN)
-      message_wrapper(
+    IF (NUM_PROCS_USED_IN  GREATER  NUM_TOTAL_CORES_USED_IN)
+      MESSAGE_WRAPPER(
         FATAL_ERROR
         "ERROR: ${TEST_NAME_IN}: ${NUM_PROCS_USED_NAME_IN}='${NUM_PROCS_USED}' > ${NUM_TOTAL_CORES_USED_NAME_IN}='${NUM_TOTAL_CORES_USED_IN}' not allowed!"
         )
-      set(SKIP_TEST TRUE) # For unit testing since above will not abort!
-    endif()
+      SET(SKIP_TEST TRUE) # For unit testing since above will not abort!
+    ENDIF()
 
-  else()
+  ELSE()
 
-    set(NUM_TOTAL_CORES_USED  ${NUM_PROCS_USED_IN})
+    SET(NUM_TOTAL_CORES_USED  ${NUM_PROCS_USED_IN})
 
-  endif()
+  ENDIF()
 
-  set(${NUM_TOTAL_CORES_USED_OUT}  ${NUM_TOTAL_CORES_USED}  PARENT_SCOPE)
-  set(${SKIP_TEST_OUT}  ${SKIP_TEST}  PARENT_SCOPE)
+  SET(${NUM_TOTAL_CORES_USED_OUT}  ${NUM_TOTAL_CORES_USED}  PARENT_SCOPE)
+  SET(${SKIP_TEST_OUT}  ${SKIP_TEST}  PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Read ${TEST_NAME_IN}_SET_DISABLED_AND_MSG and set output var
-# <setDisabledAndMsgOut> as used by the TRIBITS_ADD[_ADVANCED]_test()
+# <setDisabledAndMsgOut> as used by the TRIBITS_ADD[_ADVANCED]_TEST()
 # functions.
 #
 # Usage:
 #
-#    tribits_set_disabled_and_msg(
+#    TRIBITS_SET_DISABLED_AND_MSG(
 #      <testName>              # The full test name passed to add_test()
-#      "${PARSE_DISABLED}"     # From the input arg "DISABLED <msg>" to TA[A]t()
+#      "${PARSE_DISABLED}"     # From the input arg "DISABLED <msg>" to TA[A]T()
 #      <setDisabledAndMsgOut>  # Sets var of this name on output
 #      )
 #
-function(tribits_set_disabled_and_msg  TEST_NAME_IN  PARSE_DISABLED
+FUNCTION(TRIBITS_SET_DISABLED_AND_MSG  TEST_NAME_IN  PARSE_DISABLED
   SET_DISABLED_AND_MSG_OUT
   )
 
-  set(SET_DISABLED_AND_MSG "${PARSE_DISABLED}")
-  if (NOT "${${TEST_NAME_IN}_SET_DISABLED_AND_MSG}" STREQUAL "") # Override!
-    set(SET_DISABLED_AND_MSG "${${TEST_NAME_IN}_SET_DISABLED_AND_MSG}")
-  endif()
+  SET(SET_DISABLED_AND_MSG "${PARSE_DISABLED}")
+  IF (NOT "${${TEST_NAME_IN}_SET_DISABLED_AND_MSG}" STREQUAL "") # Override!
+    SET(SET_DISABLED_AND_MSG "${${TEST_NAME_IN}_SET_DISABLED_AND_MSG}")
+  ENDIF()
 
-  set(${SET_DISABLED_AND_MSG_OUT} "${SET_DISABLED_AND_MSG}" PARENT_SCOPE)
+  SET(${SET_DISABLED_AND_MSG_OUT} "${SET_DISABLED_AND_MSG}" PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Read ${TEST_NAME_IN}_SET_RUN_SERIAL and set output var SET_RUN_SERIAL_OUT as
-# used by the TRIBITS_ADD[_ADVANCED]_test() functions.
+# used by the TRIBITS_ADD[_ADVANCED]_TEST() functions.
 #
 # Usage:
 #
-#    tribits_set_run_serial(
+#    TRIBITS_SET_RUN_SERIAL(
 #      <testName>              # The full test name passed to add_test()
-#      "${PARSE_RUN_SERIAL}"   # From the input option "RUN_SERIAL" to TA[A]t()
+#      "${PARSE_RUN_SERIAL}"   # From the input option "RUN_SERIAL" to TA[A]T()
 #      <setRunSerialOut>       # Sets var of this name on output
 #      )
 #
-function(tribits_set_run_serial  TEST_NAME_IN  PARSE_RUN_SERIAL
+FUNCTION(TRIBITS_SET_RUN_SERIAL  TEST_NAME_IN  PARSE_RUN_SERIAL
   SET_RUN_SERIAL_OUT
   )
 
-  set(SET_RUN_SERIAL "${PARSE_RUN_SERIAL}")
-  if (NOT "${${TEST_NAME_IN}_SET_RUN_SERIAL}" STREQUAL "") # Override!
-    set(SET_RUN_SERIAL "${${TEST_NAME_IN}_SET_RUN_SERIAL}")
-  endif()
+  SET(SET_RUN_SERIAL "${PARSE_RUN_SERIAL}")
+  IF (NOT "${${TEST_NAME_IN}_SET_RUN_SERIAL}" STREQUAL "") # Override!
+    SET(SET_RUN_SERIAL "${${TEST_NAME_IN}_SET_RUN_SERIAL}")
+  ENDIF()
 
-  set(${SET_RUN_SERIAL_OUT} "${SET_RUN_SERIAL}" PARENT_SCOPE)
+  SET(${SET_RUN_SERIAL_OUT} "${SET_RUN_SERIAL}" PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
@@ -653,203 +653,203 @@ endfunction()
 #
 # Usage:
 #
-#   tribits_add_test_query_disable(
+#   TRIBITS_ADD_TEST_QUERY_DISABLE(
 #     <disableThisTestVarOut>  # Set var of this name on output
 #     )
 #
-function(tribits_add_test_query_disable  DISABLE_TEST_VAR_OUT)
+FUNCTION(TRIBITS_ADD_TEST_QUERY_DISABLE  DISABLE_TEST_VAR_OUT)
 
-  #message("tribits_add_test_query_disable(): ${DISABLE_TEST_VAR_OUT} ${ARGN}")
-  list(GET ARGN 0 TEST_NAME_IN)
-  set(TEST_NAME_DISABLE_VAR  ${TEST_NAME_IN}_DISABLE)
-  #print_var(${TEST_NAME_DISABLE_VAR})
-  if (${TEST_NAME_DISABLE_VAR})
-    if (${PROJECT_NAME}_TRACE_ADD_TEST)
-      message_wrapper(
+  #MESSAGE("TRIBITS_ADD_TEST_QUERY_DISABLE(): ${DISABLE_TEST_VAR_OUT} ${ARGN}")
+  LIST(GET ARGN 0 TEST_NAME_IN)
+  SET(TEST_NAME_DISABLE_VAR  ${TEST_NAME_IN}_DISABLE)
+  #PRINT_VAR(${TEST_NAME_DISABLE_VAR})
+  IF (${TEST_NAME_DISABLE_VAR})
+    IF (${PROJECT_NAME}_TRACE_ADD_TEST)
+      MESSAGE_WRAPPER(
         "-- ${TEST_NAME_IN}: NOT added test because ${TEST_NAME_DISABLE_VAR}='${${TEST_NAME_DISABLE_VAR}}'!")
-    endif()
-    set(${DISABLE_TEST_VAR_OUT} ON PARENT_SCOPE)
-  else()
-    set(${DISABLE_TEST_VAR_OUT} OFF PARENT_SCOPE)
-  endif()
+    ENDIF()
+    SET(${DISABLE_TEST_VAR_OUT} ON PARENT_SCOPE)
+  ELSE()
+    SET(${DISABLE_TEST_VAR_OUT} OFF PARENT_SCOPE)
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Determine if to disable test due to <Package>_SKIP_CTEST_ADD_TEST=ON
 #
-function(tribits_add_test_process_skip_ctest_add_test  ADD_THE_TEST_OUT)
-  if(${PACKAGE_NAME}_SKIP_CTEST_ADD_TEST OR ${PARENT_PACKAGE_NAME}_SKIP_CTEST_ADD_TEST)
-    if (PARENT_PACKAGE_NAME STREQUAL PACKAGE_NAME)
-      set(DISABLE_VAR_MSG
+FUNCTION(TRIBITS_ADD_TEST_PROCESS_SKIP_CTEST_ADD_TEST  ADD_THE_TEST_OUT)
+  IF(${PACKAGE_NAME}_SKIP_CTEST_ADD_TEST OR ${PARENT_PACKAGE_NAME}_SKIP_CTEST_ADD_TEST)
+    IF (PARENT_PACKAGE_NAME STREQUAL PACKAGE_NAME)
+      SET(DISABLE_VAR_MSG
 	"${PACKAGE_NAME}_SKIP_CTEST_ADD_TEST='${${PACKAGE_NAME}_SKIP_CTEST_ADD_TEST}'")
-    else()
-      set(DISABLE_VAR_MSG
+    ELSE()
+      SET(DISABLE_VAR_MSG
 	"${PARENT_PACKAGE_NAME}_SKIP_CTEST_ADD_TEST='${${PARENT_PACKAGE_NAME}_SKIP_CTEST_ADD_TEST}'")
-    endif()
-    message_wrapper(
+    ENDIF()
+    MESSAGE_WRAPPER(
       "-- ${TEST_NAME}: NOT added test because ${DISABLE_VAR_MSG}!")
-   set(ADD_THE_TEST FALSE)
-  else()
-   set(ADD_THE_TEST TRUE)
-  endif()
-  set(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
-endfunction()
+   SET(ADD_THE_TEST FALSE)
+  ELSE()
+   SET(ADD_THE_TEST TRUE)
+  ENDIF()
+  SET(${ADD_THE_TEST_OUT} ${ADD_THE_TEST} PARENT_SCOPE)
+ENDFUNCTION()
 
 
 #
 # Wrapper for adding a test to facilitate unit testing
 #
-function(tribits_add_test_add_test TEST_NAME EXE_NAME)
+FUNCTION(TRIBITS_ADD_TEST_ADD_TEST TEST_NAME EXE_NAME)
 
-  if (TRIBITS_ADD_TEST_ADD_TEST_CAPTURE)
-    append_global_set(TRIBITS_ADD_TEST_ADD_TEST_INPUT NAME ${TEST_NAME} COMMAND ${ARGN})
-  endif()
+  IF (TRIBITS_ADD_TEST_ADD_TEST_CAPTURE)
+    APPEND_GLOBAL_SET(TRIBITS_ADD_TEST_ADD_TEST_INPUT NAME ${TEST_NAME} COMMAND ${ARGN})
+  ENDIF()
 
-  if (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
-    add_test(NAME ${TEST_NAME} COMMAND ${ARGN})
-  endif()
+  IF (NOT TRIBITS_ADD_TEST_ADD_TEST_UNITTEST)
+    ADD_TEST(NAME ${TEST_NAME} COMMAND ${ARGN})
+  ENDIF()
 
-  tribits_set_tests_properties(${TEST_NAME} PROPERTIES REQUIRED_FILES ${EXE_NAME})
+  TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME} PROPERTIES REQUIRED_FILES ${EXE_NAME})
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Set the pass/fail properties of a test that has already been added
 #
 
-function(tribits_private_add_test_set_passfail_properties TEST_NAME_IN)
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_SET_PASSFAIL_PROPERTIES TEST_NAME_IN)
 
   # PASS_REGULAR_EXPRESSION
 
-  if (PARSE_STANDARD_PASS_OUTPUT)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES PASS_REGULAR_EXPRESSION
+  IF (PARSE_STANDARD_PASS_OUTPUT)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES PASS_REGULAR_EXPRESSION
       "End Result: TEST PASSED")
-  endif()
+  ENDIF()
 
-  if (PARSE_PASS_REGULAR_EXPRESSION)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES PASS_REGULAR_EXPRESSION
+  IF (PARSE_PASS_REGULAR_EXPRESSION)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES PASS_REGULAR_EXPRESSION
       ${PARSE_PASS_REGULAR_EXPRESSION})
-  endif()
+  ENDIF()
 
-  if (PARSE_WILL_FAIL)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES WILL_FAIL ON)
-  endif()
+  IF (PARSE_WILL_FAIL)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES WILL_FAIL ON)
+  ENDIF()
 
   # FAIL_REGULAR_EXPRESSION
 
-  if (PARSE_FAIL_REGULAR_EXPRESSION)
-    tribits_set_test_property(${TEST_NAME_IN} APPEND PROPERTY FAIL_REGULAR_EXPRESSION
+  IF (PARSE_FAIL_REGULAR_EXPRESSION)
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} APPEND PROPERTY FAIL_REGULAR_EXPRESSION
       "${PARSE_FAIL_REGULAR_EXPRESSION}")
-  endif()
+  ENDIF()
 
-  if (${PACKAGE_NAME}_ENABLE_CIRCULAR_REF_DETECTION_FAILURE OR
+  IF (${PACKAGE_NAME}_ENABLE_CIRCULAR_REF_DETECTION_FAILURE OR
     ${PROJECT_NAME}_ENABLE_CIRCULAR_REF_DETECTION_FAILURE
     )
-    tribits_set_test_property(${TEST_NAME_IN} APPEND PROPERTY FAIL_REGULAR_EXPRESSION
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} APPEND PROPERTY FAIL_REGULAR_EXPRESSION
       "The following Teuchos::RCPNode objects were created")
     # NOTE: The above string must be kept in sync with the C++ code!
-  endif()
+  ENDIF()
   # ToDo: Make a variable ${PROJECT_NAME}_EXTRA_FAIL_REGULAR_EXPRESSION and
   # move the above logic to Trilinos somehow.
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Set the timeout for a test already aded
 #
-function(tribits_private_add_test_set_timeout  TEST_NAME_IN   TIMEOUT_USED_OUT)
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_SET_TIMEOUT  TEST_NAME_IN   TIMEOUT_USED_OUT)
 
-  if (PARSE_TIMEOUT)
-    tribits_scale_timeout("${PARSE_TIMEOUT}" TIMEOUT_USED)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES TIMEOUT ${TIMEOUT_USED})
-  else()
-    set(TIMEOUT_USED "")
-  endif()
+  IF (PARSE_TIMEOUT)
+    TRIBITS_SCALE_TIMEOUT("${PARSE_TIMEOUT}" TIMEOUT_USED)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES TIMEOUT ${TIMEOUT_USED})
+  ELSE()
+    SET(TIMEOUT_USED "")
+  ENDIF()
 
-  set(${TIMEOUT_USED_OUT} ${TIMEOUT_USED} PARENT_SCOPE)
+  SET(${TIMEOUT_USED_OUT} ${TIMEOUT_USED} PARENT_SCOPE)
 
-endfunction()
-
-
-#
-# Set the environment for a test already aded
-#
-function(tribits_private_add_test_set_environment  TEST_NAME_IN)
-
-  if (PARSE_ENVIRONMENT)
-    tribits_set_test_property(${TEST_NAME_IN} PROPERTY ENVIRONMENT ${PARSE_ENVIRONMENT})
-  endif()
-
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Set the environment for a test already aded
 #
-function(tribits_private_add_test_set_processors  TEST_NAME_IN
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_SET_ENVIRONMENT  TEST_NAME_IN)
+
+  IF (PARSE_ENVIRONMENT)
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} PROPERTY ENVIRONMENT ${PARSE_ENVIRONMENT})
+  ENDIF()
+
+ENDFUNCTION()
+
+
+#
+# Set the environment for a test already aded
+#
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_SET_PROCESSORS  TEST_NAME_IN
   NUM_TOTAL_CORES_USED_IN  PROCESSORS_OUT
   )
 
-  set(PROCESSORS_USED ${NUM_TOTAL_CORES_USED_IN})
+  SET(PROCESSORS_USED ${NUM_TOTAL_CORES_USED_IN})
 
-  tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES PROCESSORS
+  TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES PROCESSORS
     "${PROCESSORS_USED}")
 
-  set(${PROCESSORS_OUT} ${PROCESSORS_USED} PARENT_SCOPE)
+  SET(${PROCESSORS_OUT} ${PROCESSORS_USED} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Print test added message!
 #
-function(tribits_private_add_test_print_added  TEST_NAME_IN  CATEGORIES_IN
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_PRINT_ADDED  TEST_NAME_IN  CATEGORIES_IN
   NUM_MPI_PROCS_IN  PROCESSORS_IN  TIMEOUT_IN  RUN_SERIAL_IN  DISABLED_MSG_IN
   )
 
-  set(ADDED_TEST_PROPS "")
-  tribits_get_categories_string("${CATEGORIES_IN}" CATEGORIES_IN_COMMAS)
-  append_string_var_with_sep(ADDED_TEST_PROPS
+  SET(ADDED_TEST_PROPS "")
+  TRIBITS_GET_CATEGORIES_STRING("${CATEGORIES_IN}" CATEGORIES_IN_COMMAS)
+  APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
      ", "  "${CATEGORIES_IN_COMMAS}")
-  if (NUM_MPI_PROCS_IN AND TPL_ENABLE_MPI)
-    append_string_var_with_sep(ADDED_TEST_PROPS
+  IF (NUM_MPI_PROCS_IN AND TPL_ENABLE_MPI)
+    APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
       ", "  "NUM_MPI_PROCS=${NUM_MPI_PROCS_IN}")
-  endif()
-  if (PROCESSORS_IN)
-    append_string_var_with_sep(ADDED_TEST_PROPS
+  ENDIF()
+  IF (PROCESSORS_IN)
+    APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
       ", "  "PROCESSORS=${PROCESSORS_IN}")
-  endif()
-  if (TIMEOUT_IN)
-    append_string_var_with_sep(ADDED_TEST_PROPS
+  ENDIF()
+  IF (TIMEOUT_IN)
+    APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
       ", "  "TIMEOUT=${TIMEOUT_IN}")
-  endif()
+  ENDIF()
 
-  if (RUN_SERIAL_IN)
-    append_string_var_with_sep(ADDED_TEST_PROPS
+  IF (RUN_SERIAL_IN)
+    APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
       ", "  "RUN_SERIAL")
-  endif()
+  ENDIF()
 
-  if (DISABLED_MSG_IN)
-    append_string_var_with_sep(ADDED_TEST_PROPS
+  IF (DISABLED_MSG_IN)
+    APPEND_STRING_VAR_WITH_SEP(ADDED_TEST_PROPS
       ", "  "DISABLED")
-  endif()
+  ENDIF()
 
-  if (ADDED_TEST_PROPS)
-   set(ADDED_TEST_PROPS " (${ADDED_TEST_PROPS})") 
-  endif()
+  IF (ADDED_TEST_PROPS)
+   SET(ADDED_TEST_PROPS " (${ADDED_TEST_PROPS})") 
+  ENDIF()
 
-  if (${PROJECT_NAME}_TRACE_ADD_TEST)
-    message_wrapper("-- ${TEST_NAME_IN}: Added test${ADDED_TEST_PROPS}!")
-    if (DISABLED_MSG_IN)
-     message_wrapper("--  => Reason DISABLED: ${DISABLED_MSG_IN}")
-    endif()
-  endif()
+  IF (${PROJECT_NAME}_TRACE_ADD_TEST)
+    MESSAGE_WRAPPER("-- ${TEST_NAME_IN}: Added test${ADDED_TEST_PROPS}!")
+    IF (DISABLED_MSG_IN)
+     MESSAGE_WRAPPER("--  => Reason DISABLED: ${DISABLED_MSG_IN}")
+    ENDIF()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
@@ -857,105 +857,105 @@ endfunction()
 #
 # NOTE: Pass the command arguments on the end in ARGSN.
 #
-function(tribits_add_test_add_test_all  TEST_NAME_IN
+FUNCTION(TRIBITS_ADD_TEST_ADD_TEST_ALL  TEST_NAME_IN
   EXECUTABLE_PATH_IN  CATEGORIES_IN  NUM_PROCS_USED_IN  NUM_TOTAL_CORES_USED_IN
   RUN_SERIAL_IN  DISABLED_MSG_IN
   ADDED_TEST_NAME_OUT
   )
 
-  tribits_add_test_get_test_cmnd_array( CMND_ARRAY
+  TRIBITS_ADD_TEST_GET_TEST_CMND_ARRAY( CMND_ARRAY
     "${EXECUTABLE_PATH_IN}"  "${NUM_PROCS_USED_IN}" ${ARGN} )
 
-  tribits_add_test_query_disable(DISABLE_THIS_TEST  ${TEST_NAME_IN})
+  TRIBITS_ADD_TEST_QUERY_DISABLE(DISABLE_THIS_TEST  ${TEST_NAME_IN})
 
-  if (NOT  DISABLE_THIS_TEST)
+  IF (NOT  DISABLE_THIS_TEST)
 
-    tribits_add_test_add_test(${TEST_NAME_IN}  ${EXECUTABLE_PATH_IN}  ${CMND_ARRAY})
-    set(${ADDED_TEST_NAME_OUT}  ${TEST_NAME_IN}  PARENT_SCOPE)
+    TRIBITS_ADD_TEST_ADD_TEST(${TEST_NAME_IN}  ${EXECUTABLE_PATH_IN}  ${CMND_ARRAY})
+    SET(${ADDED_TEST_NAME_OUT}  ${TEST_NAME_IN}  PARENT_SCOPE)
 
-    tribits_private_add_test_post_process_added_test(${TEST_NAME_IN}
+    TRIBITS_PRIVATE_ADD_TEST_POST_PROCESS_ADDED_TEST(${TEST_NAME_IN}
       "${CATEGORIES_IN}" ${NUM_PROCS_USED_IN}  "${NUM_TOTAL_CORES_USED_IN}"
       "${RUN_SERIAL_IN}" "${DISABLED_MSG_IN}")
 
-  else()
+  ELSE()
 
-    set(${ADDED_TEST_NAME_OUT} "" PARENT_SCOPE)
+    SET(${ADDED_TEST_NAME_OUT} "" PARENT_SCOPE)
 
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Set the label and keywords
 #
 
-function(tribits_private_add_test_add_label_and_keywords  TEST_NAME_IN)
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_ADD_LABEL_AND_KEYWORDS  TEST_NAME_IN)
 
-  tribits_set_test_property(${TEST_NAME_IN} APPEND PROPERTY
+  TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} APPEND PROPERTY
     LABELS ${PARENT_PACKAGE_NAME})
 
-  if(PARSE_KEYWORDS)
-    tribits_set_test_property(${TEST_NAME_IN} APPEND PROPERTY
+  IF(PARSE_KEYWORDS)
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} APPEND PROPERTY
       LABELS ${PARSE_KEYWORDS})
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Postprocess a test that was added
 #
 
-function(tribits_private_add_test_post_process_added_test  TEST_NAME_IN
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_POST_PROCESS_ADDED_TEST  TEST_NAME_IN
   CATEGORIES_IN  NUM_PROCS_USED_IN  NUM_TOTAL_CORES_USED_IN
   RUN_SERIAL_IN  DISABLED_MSG_IN
   )
 
-  tribits_private_add_test_set_passfail_properties(${TEST_NAME_IN})
-  tribits_private_add_test_set_environment(${TEST_NAME_IN})
-  tribits_private_add_test_set_processors(${TEST_NAME_IN}
+  TRIBITS_PRIVATE_ADD_TEST_SET_PASSFAIL_PROPERTIES(${TEST_NAME_IN})
+  TRIBITS_PRIVATE_ADD_TEST_SET_ENVIRONMENT(${TEST_NAME_IN})
+  TRIBITS_PRIVATE_ADD_TEST_SET_PROCESSORS(${TEST_NAME_IN}
     "${NUM_TOTAL_CORES_USED_IN}"  PROCESSORS_USED)
-  tribits_private_add_test_set_timeout(${TEST_NAME_IN}  TIMEOUT_USED)
+  TRIBITS_PRIVATE_ADD_TEST_SET_TIMEOUT(${TEST_NAME_IN}  TIMEOUT_USED)
 
-  if(RUN_SERIAL_IN)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES RUN_SERIAL ON)
-  endif()
+  IF(RUN_SERIAL_IN)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES RUN_SERIAL ON)
+  ENDIF()
 
-  if(DISABLED_MSG_IN)
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES DISABLED ON)
-  endif()
+  IF(DISABLED_MSG_IN)
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES DISABLED ON)
+  ENDIF()
 
-  tribits_private_add_test_add_environment_and_resource(${TEST_NAME_IN}
+  TRIBITS_PRIVATE_ADD_TEST_ADD_ENVIRONMENT_AND_RESOURCE(${TEST_NAME_IN}
      ${NUM_PROCS_USED_IN})
 
-  tribits_private_add_test_add_label_and_keywords(${TEST_NAME_IN})
+  TRIBITS_PRIVATE_ADD_TEST_ADD_LABEL_AND_KEYWORDS(${TEST_NAME_IN})
 
-  tribits_private_add_test_print_added(${TEST_NAME_IN}
+  TRIBITS_PRIVATE_ADD_TEST_PRINT_ADDED(${TEST_NAME_IN}
     "${CATEGORIES_IN}"  "${NUM_PROCS_USED_IN}"  "${PROCESSORS_USED}"
     "${TIMEOUT_USED}" "${RUN_SERIAL_IN}" "${DISABLED_MSG_IN}")
 
-endfunction()
+ENDFUNCTION()
 
 
 #
 # Add environment and resource properties to a test
 #
 
-function(tribits_private_add_test_add_environment_and_resource  TEST_NAME_IN
+FUNCTION(TRIBITS_PRIVATE_ADD_TEST_ADD_ENVIRONMENT_AND_RESOURCE  TEST_NAME_IN
   NUM_PROCS_USED_IN
   )
-  if(TRIBITS_TEST_EXTRA_ENVIRONMENT)
-    tribits_set_test_property(${TEST_NAME_IN} APPEND PROPERTY ENVIRONMENT
+  IF(TRIBITS_TEST_EXTRA_ENVIRONMENT)
+    TRIBITS_SET_TEST_PROPERTY(${TEST_NAME_IN} APPEND PROPERTY ENVIRONMENT
       "${TRIBITS_TEST_EXTRA_ENVIRONMENT}")
-  endif()
+  ENDIF()
 
-  if(TRIBITS_RESOURCES_PER_PROCESS)
-    set(NUM_PROCESSES ${NUM_PROCS_USED_IN})
-    if(NOT NUM_PROCESSES OR NUM_PROCESSES LESS 1)
-      set(NUM_PROCESSES 1)
-    endif()
-    tribits_set_tests_properties(${TEST_NAME_IN} PROPERTIES RESOURCE_GROUPS
+  IF(TRIBITS_RESOURCES_PER_PROCESS)
+    SET(NUM_PROCESSES ${NUM_PROCS_USED_IN})
+    IF(NOT NUM_PROCESSES OR NUM_PROCESSES LESS 1)
+      SET(NUM_PROCESSES 1)
+    ENDIF()
+    TRIBITS_SET_TESTS_PROPERTIES(${TEST_NAME_IN} PROPERTIES RESOURCE_GROUPS
       "${NUM_PROCESSES},${TRIBITS_RESOURCES_PER_PROCESS}")
-  endif()
-endfunction()
+  ENDIF()
+ENDFUNCTION()

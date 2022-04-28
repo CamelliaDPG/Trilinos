@@ -68,7 +68,7 @@
 namespace Piro {
 
 template <typename Scalar>
-Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > SolverFactory::createSolverAdaptive(
+Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > SolverFactory::createSolver(
     const Teuchos::RCP<Teuchos::ParameterList> &piroParams,
     const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> > &model,
     const Teuchos::RCP<Thyra::AdaptiveSolutionManager> &solMgr,
@@ -104,7 +104,7 @@ Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > SolverFactory::crea
 #endif /* HAVE_PIRO_RYTHMOS */
 #ifdef HAVE_PIRO_TEMPUS
   if (solverType == "Tempus") {
-    result = tempusSolver<Scalar>(piroParams, model, Teuchos::null, observer);
+    result = tempusSolver<Scalar>(piroParams, model, observer);
   } else
 #endif /* HAVE_PIRO_TEMPUS */
   {
@@ -126,7 +126,6 @@ template <typename Scalar>
 Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > SolverFactory::createSolver(
     const Teuchos::RCP<Teuchos::ParameterList> &piroParams,
     const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> > &model,
-    const Teuchos::RCP<Thyra::ModelEvaluator<Scalar> > &adjointModel,
     const Teuchos::RCP<Piro::ObserverBase<Scalar> > &observer)
 {
   Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > result;
@@ -156,7 +155,7 @@ Teuchos::RCP<Thyra::ResponseOnlyModelEvaluatorBase<Scalar> > SolverFactory::crea
 #endif /* HAVE_PIRO_RYTHMOS */
 #ifdef HAVE_PIRO_TEMPUS
   if (solverType == "Tempus") {
-    result = tempusSolver<Scalar>(piroParams, model, adjointModel, observer);
+    result = tempusSolver<Scalar>(piroParams, model, observer);
   } else
 #endif /* HAVE_PIRO_TEMPUS */
   {

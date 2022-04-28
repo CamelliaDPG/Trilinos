@@ -170,7 +170,7 @@ struct GpuGatherFlatScratchData
     return meshIndex.bucket_id * bucketCapacity + meshIndex.bucket_ord;
   }
 
-  KOKKOS_FUNCTION unsigned get_index(stk::mesh::Entity entity) const
+  STK_FUNCTION unsigned get_index(stk::mesh::Entity entity) const
   {
     const stk::mesh::FastMeshIndex& meshIndex = constMeshIndices(entity.local_offset());
     return meshIndex.bucket_id * bucketCapacity + meshIndex.bucket_ord;

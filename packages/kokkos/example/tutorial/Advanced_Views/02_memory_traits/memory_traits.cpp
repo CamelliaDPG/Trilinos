@@ -43,7 +43,7 @@
 */
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Timer.hpp>
+#include <impl/Kokkos_Timer.hpp>
 #include <cstdio>
 #include <cstdlib>
 

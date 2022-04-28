@@ -9,7 +9,7 @@
 #include <stk_mesh/base/MetaData.hpp>
 #include <stk_mesh/base/BulkData.hpp>
 #include <stk_mesh/base/GetNgpMesh.hpp>
-#include <stk_util/ngp/NgpSpaces.hpp>
+#include <stk_mesh/base/NgpSpaces.hpp>
 #include <stk_unit_test_utils/TextMesh.hpp>
 #include <stk_unit_test_utils/GetMeshSpec.hpp>
 
@@ -62,28 +62,6 @@ inline void setup_mesh_2hex_2block(stk::mesh::BulkData& bulk, unsigned bucketCap
   stk::unit_test_util::setup_text_mesh(bulk, meshDesc);
 }
 
-struct CheckElementMembership {
-  using BucketPartOrdinalType = Kokkos::View<stk::mesh::PartOrdinal*, stk::ngp::MemSpace>;
-  CheckElementMembership(
-      const stk::mesh::NgpMesh& _ngpMesh, BucketPartOrdinalType _bucketPartOrdinals, size_t _numBuckets)
-      : ngpMesh(_ngpMesh), bucketPartOrdinals(_bucketPartOrdinals), numBuckets(_numBuckets)
-  {
-  }
-
-  KOKKOS_FUNCTION
-  void operator()(size_t) const
-  {
-    for (unsigned i = 0; i < numBuckets; ++i) {
-      NGP_EXPECT_TRUE(ngpMesh.get_bucket(stk::topology::ELEM_RANK, i).member(bucketPartOrdinals[i]));
-    }
-  }
-
- private:
-  stk::mesh::NgpMesh ngpMesh;
-  BucketPartOrdinalType bucketPartOrdinals;
-  size_t numBuckets;
-};
-
 inline void check_bucket_layout(const stk::mesh::BulkData& bulk, const std::vector<BucketContents> & expectedBucketLayout)
 {
   const stk::mesh::MetaData& meta = bulk.mesh_meta_data();
@@ -106,7 +84,7 @@ inline void check_bucket_layout(const stk::mesh::BulkData& bulk, const std::vect
     }
   }
 
-  using BucketPartOrdinalType = Kokkos::View<stk::mesh::PartOrdinal*, stk::ngp::MemSpace>;
+  using BucketPartOrdinalType = Kokkos::View<stk::mesh::PartOrdinal*, stk::mesh::MemSpace>;
   BucketPartOrdinalType bucketPartOrdinals("bucketPartOrdinals", numBuckets);
   BucketPartOrdinalType::HostMirror hostBucketPartOrdinals = Kokkos::create_mirror_view(bucketPartOrdinals);
   for (size_t i = 0; i < buckets.size(); ++i) {
@@ -115,10 +93,14 @@ inline void check_bucket_layout(const stk::mesh::BulkData& bulk, const std::vect
   Kokkos::deep_copy(bucketPartOrdinals, hostBucketPartOrdinals);
 
   stk::mesh::NgpMesh & ngpMesh = stk::mesh::get_updated_ngp_mesh(bulk);
-  CheckElementMembership checkElementMembership(ngpMesh, bucketPartOrdinals, numBuckets);
-  Kokkos::parallel_for(1, checkElementMembership);
+  Kokkos::parallel_for(1, KOKKOS_LAMBDA(size_t /*index*/) {
+                         NGP_ASSERT_EQ(ngpMesh.num_buckets(stk::topology::ELEM_RANK), numBuckets);
+                         for (unsigned i = 0; i < numBuckets; ++i) {
+                           NGP_EXPECT_TRUE(ngpMesh.get_bucket(stk::topology::ELEM_RANK, i).member(bucketPartOrdinals[i]));
+                         }
+                       });
 
-  using BucketEntitiesType = Kokkos::View<stk::mesh::EntityId*, stk::ngp::MemSpace>;
+  using BucketEntitiesType = Kokkos::View<stk::mesh::EntityId*, stk::mesh::MemSpace>;
   BucketEntitiesType bucketEntities("bucketEntities", numElemsAcrossBuckets+numBuckets);
   BucketEntitiesType::HostMirror hostBucketEntities = Kokkos::create_mirror_view(bucketEntities);
   size_t index = 0;

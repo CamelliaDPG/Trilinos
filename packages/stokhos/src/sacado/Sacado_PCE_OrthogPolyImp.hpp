@@ -49,21 +49,17 @@ namespace PCE {
 template <typename T, typename Storage> 
 OrthogPoly<T,Storage>::
 OrthogPoly() :
-  expansion_(),
+  expansion_(const_expansion_),
   th(new Stokhos::OrthogPolyApprox<int,value_type,Storage>)
-{
-  const_expansion_ = Teuchos::rcp(new Stokhos::ConstantOrthogPolyExpansion<int,T>);
-  expansion_ = const_expansion_;
+{ 
 }
 
 template <typename T, typename Storage> 
 OrthogPoly<T,Storage>::
 OrthogPoly(const typename OrthogPoly<T,Storage>::value_type& x) :
-  expansion_(),
+  expansion_(const_expansion_),
   th(new Stokhos::OrthogPolyApprox<int,value_type,Storage>(Teuchos::null, 1, &x))
 {
-  const_expansion_ = Teuchos::rcp(new Stokhos::ConstantOrthogPolyExpansion<int,T>);
-  expansion_ = const_expansion_;
 }
 
 template <typename T, typename Storage> 
@@ -72,7 +68,6 @@ OrthogPoly(const Teuchos::RCP<expansion_type>& expansion) :
   expansion_(expansion),
   th(new Stokhos::OrthogPolyApprox<int,value_type,Storage>(expansion_->getBasis()))
 {
-  const_expansion_ = Teuchos::rcp(new Stokhos::ConstantOrthogPolyExpansion<int,T>);
 }
 
 template <typename T, typename Storage> 
@@ -82,7 +77,6 @@ OrthogPoly(const Teuchos::RCP<expansion_type>& expansion,
   expansion_(expansion),
   th(new Stokhos::OrthogPolyApprox<int,value_type,Storage>(expansion_->getBasis(), sz))
 {
-  const_expansion_ = Teuchos::rcp(new Stokhos::ConstantOrthogPolyExpansion<int,T>);
 }
 
 template <typename T, typename Storage> 
@@ -91,7 +85,6 @@ OrthogPoly(const OrthogPoly<T,Storage>& x) :
   expansion_(x.expansion_),
   th(x.th)
 {
-  const_expansion_ = Teuchos::rcp(new Stokhos::ConstantOrthogPolyExpansion<int,T>);
 }
 
 template <typename T, typename Storage> 
@@ -148,7 +141,7 @@ isEqualTo(const OrthogPoly& x) const {
     if (x.size() != 1)
       return false;
     if ((expansion_ != const_expansion_) && 
-	(x.expansion_ != x.const_expansion_))
+	(x.expansion_ != const_expansion_))
       return false;
   }
   bool eq = true;

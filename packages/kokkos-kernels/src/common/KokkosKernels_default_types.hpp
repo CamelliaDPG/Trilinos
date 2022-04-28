@@ -45,56 +45,51 @@
 #ifndef KOKKOSKERNELS_DEFAULT_TYPES_H
 #define KOKKOSKERNELS_DEFAULT_TYPES_H
 
-#include "Kokkos_Core.hpp"         //for LayoutLeft/LayoutRight
-#include <KokkosKernels_config.h>  //for all the ETI #cmakedefine macros
+#include "Kokkos_Core.hpp"        //for LayoutLeft/LayoutRight
+#include <KokkosKernels_config.h> //for all the ETI #cmakedefine macros
 
 #if defined(KOKKOSKERNELS_INST_ORDINAL_INT)
-using default_lno_t = int;
+  typedef int default_lno_t;
 #elif defined(KOKKOSKERNELS_INST_ORDINAL_INT64_T)
-using default_lno_t     = int64_t;
+  typedef int64_t default_lno_t;
 #else
-using default_lno_t     = int;
+  #error "Expect INT and/or INT64_T to be enabled as ORDINAL (lno_t) types"
 #endif
-// Prefer int as the default offset type, because cuSPARSE doesn't support
-// size_t for rowptrs.
+  //Prefer int as the default offset type, because cuSPARSE doesn't support size_t for rowptrs.
 #if defined(KOKKOSKERNELS_INST_OFFSET_INT)
-using default_size_type = int;
+  typedef int default_size_type;
 #elif defined(KOKKOSKERNELS_INST_OFFSET_SIZE_T)
-using default_size_type = size_t;
+  typedef size_t default_size_type;
 #else
-using default_size_type = int;
+  #error "Expect SIZE_T and/or INT to be enabled as OFFSET (size_type) types"
 #endif
 
 #if defined(KOKKOSKERNELS_INST_LAYOUTLEFT)
-using default_layout = Kokkos::LayoutLeft;
+  typedef Kokkos::LayoutLeft default_layout;
 #elif defined(KOKKOSKERNELS_INST_LAYOUTRIGHT)
-using default_layout    = Kokkos::LayoutRight;
+  typedef Kokkos::LayoutRight default_layout;
 #else
-using default_layout    = Kokkos::LayoutLeft;
+  #error "Expect LAYOUTLEFT and/or LAYOUTRIGHT to be enabled as layout types"
 #endif
 
 #if defined(KOKKOSKERNELS_INST_DOUBLE)
-using default_scalar = double;
+  typedef double default_scalar;
 #elif defined(KOKKOSKERNELS_INST_FLOAT)
-using default_scalar    = float;
-#elif defined(KOKKOSKERNELS_INST_HALF)
-using default_scalar    = Kokkos::Experimental::half_t;
+  typedef float default_scalar;
 #else
-using default_scalar = double;
+  #error "Expect at least one real-valued scalar type (double or float) to be enabled"
 #endif
 
 #if defined(KOKKOS_ENABLE_CUDA)
-using default_device = Kokkos::Cuda;
+  typedef Kokkos::Cuda default_device;
 #elif defined(KOKKOS_ENABLE_HIP)
-using default_device    = Kokkos::Experimental::HIP;
-#elif defined(KOKKOS_ENABLE_OPENMPTARGET)
-using default_device    = Kokkos::Experimental::OpenMPTarget;
+  typedef Kokkos::Experimental::HIP default_device;
 #elif defined(KOKKOS_ENABLE_OPENMP)
-using default_device = Kokkos::OpenMP;
+  typedef Kokkos::OpenMP default_device;
 #elif defined(KOKKOS_ENABLE_PTHREAD) || defined(KOKKOS_ENABLE_THREADS)
-using default_device = Kokkos::Threads;
+  typedef Kokkos::Threads default_device;
 #else
-using default_device = Kokkos::Serial;
+  typedef Kokkos::Serial default_device;
 #endif
 
-#endif  // KOKKOSKERNELS_DEFAULT_TYPES_H
+#endif // KOKKOSKERNELS_DEFAULT_TYPES_H

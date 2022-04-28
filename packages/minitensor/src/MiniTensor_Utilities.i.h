@@ -55,26 +55,18 @@ namespace minitensor {
 //
 template<typename T>
 KOKKOS_INLINE_FUNCTION
-T
-abs(T const & a)
-{
-  return a < T(0) ? -a : a;
-}
-
-//
-//
-//
-template<typename T>
-KOKKOS_INLINE_FUNCTION
 void
 swap(T & a, T & b)
 {
   // Guard against the same memory location.
   if (&a == &b) return;
 
-  auto const c = a;
-  a = b;
-  b = c;
+  // XOR algorithm
+  a ^= b;
+  b ^= a;
+  a ^= b;
+
+  return;
 }
 
 //
@@ -83,7 +75,7 @@ swap(T & a, T & b)
 template<typename T>
 KOKKOS_INLINE_FUNCTION
 T
-max(T const & a, T const & b)
+max(const T & a, const T & b)
 {
   return a > b ? a : b;
 }
@@ -94,7 +86,7 @@ max(T const & a, T const & b)
 template<typename T>
 KOKKOS_INLINE_FUNCTION
 T
-min(T const & a, T const & b)
+min(const T & a, const T & b)
 {
   return a < b ? a : b;
 }
@@ -195,7 +187,11 @@ tau()
 //
 // Random number generation. Teuchos [-1,1]
 //
-template <typename T> typename Sacado::ScalarType<T>::type random() {
+template<typename T>
+KOKKOS_INLINE_FUNCTION
+typename Sacado::ScalarType<T>::type
+random()
+{
   using S = typename Sacado::ScalarType<T>::type;
   return Teuchos::ScalarTraits<S>().random();
 }
@@ -203,7 +199,11 @@ template <typename T> typename Sacado::ScalarType<T>::type random() {
 //
 // Uniform [0,1] random number generation.
 //
-template <typename T> typename Sacado::ScalarType<T>::type random_uniform() {
+template<typename T>
+KOKKOS_INLINE_FUNCTION
+typename Sacado::ScalarType<T>::type
+random_uniform()
+{
   using S = typename Sacado::ScalarType<T>::type;
   return static_cast<S>(0.5 * random<S>() + 0.5);
 }
@@ -211,7 +211,11 @@ template <typename T> typename Sacado::ScalarType<T>::type random_uniform() {
 //
 // Normal N(0,1) random number generation.
 //
-template <typename T> typename Sacado::ScalarType<T>::type random_normal() {
+template<typename T>
+KOKKOS_INLINE_FUNCTION
+typename Sacado::ScalarType<T>::type
+random_normal()
+{
   using S = typename Sacado::ScalarType<T>::type;
 
   S const

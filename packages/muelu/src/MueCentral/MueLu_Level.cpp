@@ -388,10 +388,8 @@ namespace MueLu {
         //         std::stringstream ss1;
         //         ss1 << (*kt)->description();
         //         outputter.outputField((ss1.str()).substr(0,30));
-        if(factory == 0) {
-          outputter.outputField("Null");
-        }
-        else if (factory == NoFactory::get()) {
+
+        if (factory == NoFactory::get()) {
           outputter.outputField("NoFactory");
         }
         else {

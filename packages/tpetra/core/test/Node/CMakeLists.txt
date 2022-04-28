@@ -4,7 +4,7 @@
 TRIBITS_ADD_EXECUTABLE_AND_TEST(
   Issue510
   SOURCES
-    Issue510.cpp
+    Issue510
     ${TEUCHOS_STD_UNIT_TEST_MAIN}
   COMM serial mpi
   NUM_MPI_PROCS 1

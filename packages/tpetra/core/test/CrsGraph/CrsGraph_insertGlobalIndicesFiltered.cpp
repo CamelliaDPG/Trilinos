@@ -134,8 +134,9 @@ namespace { // (anonymous)
     // Buffer for storing output of getGlobalRowCopy.
     gids_type gblColIndsBuf("gcids",maxNumEntPerRow);
 
-    {
-      crs_graph_type graph_src (rowMap_src, maxNumEntPerRow);
+    const Tpetra::ProfileType profileTypes[1] = {Tpetra::StaticProfile};
+    for (auto profileType_src : profileTypes) {
+      crs_graph_type graph_src (rowMap_src, maxNumEntPerRow, profileType_src);
       for (LO lclRow = 0; lclRow < lclNumRows; ++lclRow) {
         const GO gblRow = rowMap_src->getGlobalElement (lclRow);
         // Every row of the source graph gets the same column indices.
@@ -143,10 +144,10 @@ namespace { // (anonymous)
       }
       graph_src.fillComplete (domMap, ranMap);
 
-      {
+      for (auto profileType_tgt : profileTypes) {
         // Filtering only happens if the target graph has a column
         // Map, so we must give it a column Map.
-        crs_graph_type graph_tgt (rowMap_tgt, colMap_tgt, maxNumEntPerRow);
+        crs_graph_type graph_tgt (rowMap_tgt, colMap_tgt, maxNumEntPerRow, profileType_tgt);
 
         // mfh 20 Jul 2017: If we clone this test in order to test
         // CrsMatrix column index filtering, then we should include
@@ -166,8 +167,8 @@ namespace { // (anonymous)
             }
           }
         }
-      } 
-    } 
+      } // for each target graph profile type
+    } // for each source graph profile type
 
     // Make sure that the test succeeded on all processes.
     lclSuccess = success ? 1 : 0;

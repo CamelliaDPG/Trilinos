@@ -80,6 +80,11 @@ template<class T> class ArrayView;
 
 namespace Tpetra {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// Forward declaration of Distributor
+class Distributor;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
 //
 // Users must never rely on anything in the Details namespace.
 //
@@ -111,6 +116,8 @@ namespace Details {
 ///   to expect a possibly /// different ("nonconstant") number of packets per local index
 ///   (i.e., a possibly different number of entries per row).
 ///
+/// \param distor [in] The distributor (not used)
+///
 /// This is the public interface to the pack machinery
 /// converts passed Teuchos::ArrayView objects to Kokkos::View objects (and
 /// copies back in to the Teuchos::ArrayView objects, if needed).  When
@@ -122,7 +129,8 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                Teuchos::Array<char>& exports,
                const Teuchos::ArrayView<size_t>& numPacketsPerLID,
                const Teuchos::ArrayView<const LO>& exportLIDs,
-               size_t& constantNumPackets);
+               size_t& constantNumPackets,
+               Distributor& distor);
 
 /// \brief Pack specified entries of the given local sparse matrix for
 ///   communication, for "new" DistObject interface.
@@ -150,6 +158,8 @@ packCrsMatrix (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
 ///   output argument of Tpetra::DistObject::packAndPrepare (which
 ///   see).
 ///
+/// \param distor [in] (Not used.)
+///
 /// This method implements CrsMatrix::packNew, and thus
 /// CrsMatrix::packAndPrepare, for the case where the matrix to
 /// pack has a valid KokkosSparse::CrsMatrix.
@@ -162,7 +172,8 @@ packCrsMatrixNew (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                     typename DistObject<char, LO, GO, NT>::buffer_device_type>& numPacketsPerLID,
                   const Kokkos::DualView<const LO*,
                     typename DistObject<char, LO, GO, NT>::buffer_device_type>& exportLIDs,
-                  size_t& constantNumPackets);
+                  size_t& constantNumPackets,
+                  Distributor& distor);
 
 /// \brief Pack specified entries of the given local sparse matrix for
 ///   communication.
@@ -190,6 +201,8 @@ packCrsMatrixNew (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
 ///   to expect a possibly /// different ("nonconstant") number of packets per local index
 ///   (i.e., a possibly different number of entries per row).
 ///
+/// \param distor [in] The distributor (not used)
+///
 /// This is the public interface to the pack machinery
 /// converts passed Teuchos::ArrayView objects to Kokkos::View objects (and
 /// copies back in to the Teuchos::ArrayView objects, if needed).  When
@@ -202,7 +215,8 @@ packCrsMatrixWithOwningPIDs (const CrsMatrix<ST, LO, GO, NT>& sourceMatrix,
                              const Teuchos::ArrayView<size_t>& numPacketsPerLID,
                              const Teuchos::ArrayView<const LO>& exportLIDs,
                              const Teuchos::ArrayView<const int>& sourcePIDs,
-                             size_t& constantNumPackets);
+                             size_t& constantNumPackets,
+                             Distributor& distor);
 
 } // namespace Details
 } // namespace Tpetra

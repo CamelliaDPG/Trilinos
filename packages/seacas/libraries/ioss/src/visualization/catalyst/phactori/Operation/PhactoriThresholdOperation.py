@@ -226,13 +226,7 @@ Rather than "keep between" with a min/max range you can also have "keep above" w
         myDebugPrint3(inInputFilter.CellData.GetArray(ii).Name + "\n")
 
     newParaViewFilter = Threshold(inInputFilter)
-    global gParaViewCatalystVersionFlag
-    if gParaViewCatalystVersionFlag < 51000:
-      newParaViewFilter.ThresholdRange = self.mRange
-    else:
-      newParaViewFilter.LowerThreshold = self.mRange[0]
-      newParaViewFilter.UpperThreshold = self.mRange[1]
-      newParaViewFilter.ThresholdMethod = vtk.vtkThreshold.THRESHOLD_BETWEEN
+    newParaViewFilter.ThresholdRange = self.mRange
 
     self.HandleVariableNeedingDetection(inInputFilter, newParaViewFilter)
 

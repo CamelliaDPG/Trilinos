@@ -1,10 +1,11 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#pragma once
+#ifndef IOSS_Ioss_Tri3_h
+#define IOSS_Ioss_Tri3_h
 
 #include <Ioss_CodeTypes.h>       // for IntVector
 #include <Ioss_ElementTopology.h> // for ElementTopology
@@ -19,7 +20,7 @@ namespace Ioss {
     static const char *name;
 
     static void factory();
-    ~Tri3() override = default;
+    ~Tri3() override;
 
     ElementShape shape() const override { return ElementShape::TRI; }
     int          spatial_dimension() const override;
@@ -52,3 +53,4 @@ namespace Ioss {
     Tri3(const Tri3 &) = delete;
   };
 } // namespace Ioss
+#endif

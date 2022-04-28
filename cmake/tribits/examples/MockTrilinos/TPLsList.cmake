@@ -1,4 +1,4 @@
-tribits_repository_define_tpls(
+TRIBITS_REPOSITORY_DEFINE_TPLS(
   MPI            "${${PROJECT_NAME}_TRIBITS_DIR}/tpls/"    PT
   BLAS           cmake/TPLs/    PT
   LAPACK         cmake/TPLs/    PT

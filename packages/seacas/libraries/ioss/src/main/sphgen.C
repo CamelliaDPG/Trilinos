@@ -1,4 +1,4 @@
-// Copyright(C) 1999-2022 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
@@ -171,10 +171,11 @@ namespace {
         << "\t\t which gives the half-side-length of a cube with that volume\n"
         << "\t\t use 4*pi/3 = 4.18879 for the radius of a sphere with that volume.\n";
 
-    Ioss::NameList db_types = Ioss::IOFactory::describe();
+    Ioss::NameList db_types;
+    Ioss::IOFactory::describe(&db_types);
     DO_OUTPUT << "\nSupports database types:\n\t";
-    for (const auto &db : db_types) {
-      DO_OUTPUT << db << "  ";
+    for (Ioss::NameList::const_iterator IF = db_types.begin(); IF != db_types.end(); ++IF) {
+      DO_OUTPUT << *IF << "  ";
     }
     DO_OUTPUT << "\n\n";
   }
@@ -186,8 +187,8 @@ namespace {
     // INPUT ...
     // NOTE: The "READ_RESTART" mode ensures that the node and element ids will be mapped.
     //========================================================================
-    Ioss::DatabaseIO *dbi = Ioss::IOFactory::create(input_type, inpfile, Ioss::READ_RESTART,
-                                                    Ioss::ParallelUtils::comm_world());
+    Ioss::DatabaseIO *dbi =
+        Ioss::IOFactory::create(input_type, inpfile, Ioss::READ_RESTART, (MPI_Comm)MPI_COMM_WORLD);
     if (dbi == nullptr || !dbi->ok(true)) {
       std::exit(EXIT_FAILURE);
     }
@@ -203,7 +204,7 @@ namespace {
     // OUTPUT ...
     //========================================================================
     Ioss::DatabaseIO *dbo = Ioss::IOFactory::create(output_type, outfile, Ioss::WRITE_RESTART,
-                                                    Ioss::ParallelUtils::comm_world());
+                                                    (MPI_Comm)MPI_COMM_WORLD);
     if (dbo == nullptr || !dbo->ok(true)) {
       std::exit(EXIT_FAILURE);
     }
@@ -233,7 +234,7 @@ namespace {
     // that will be the number of output element and nodes in the
     // sphere mesh.
     size_t                                      sph_node_count = 0;
-    const Ioss::ElementBlockContainer          &ebs            = region.get_element_blocks();
+    const Ioss::ElementBlockContainer &         ebs            = region.get_element_blocks();
     Ioss::ElementBlockContainer::const_iterator I              = ebs.begin();
     while (I != ebs.end()) {
       Ioss::ElementBlock *eb = *I;
@@ -275,7 +276,7 @@ namespace {
 
     output_region.begin_mode(Ioss::STATE_MODEL);
 
-    Ioss::NodeBlock    *nb = region.get_node_blocks()[0];
+    Ioss::NodeBlock *   nb = region.get_node_blocks()[0];
     std::vector<double> coordinates;
     nb->get_field_data("mesh_model_coordinates", coordinates);
 

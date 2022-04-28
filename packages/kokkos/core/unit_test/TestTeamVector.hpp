@@ -44,7 +44,7 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <Kokkos_Timer.hpp>
+#include <impl/Kokkos_Timer.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cstdint>
@@ -111,7 +111,7 @@ struct functor_team_for {
 
         if (test != value) {
           KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-              "FAILED team_parallel_for %i %i %lf %lf\n", team.league_rank(),
+              "FAILED team_parallel_for %i %i %f %f\n", team.league_rank(),
               team.team_rank(), static_cast<double>(test),
               static_cast<double>(value));
           flag() = 1;
@@ -321,9 +321,10 @@ struct functor_team_vector_for {
 
         if (test != value) {
           KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-              "FAILED team_vector_parallel_for %i %i %lf %lf\n",
+              "FAILED team_vector_parallel_for %i %i %f %f\n",
               team.league_rank(), team.team_rank(), static_cast<double>(test),
               static_cast<double>(value));
+
           flag() = 1;
         }
       });
@@ -371,7 +372,7 @@ struct functor_team_vector_reduce {
       if (test != value) {
         if (team.league_rank() == 0) {
           KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-              "FAILED team_vector_parallel_reduce %i %i %lf %lf %lu\n",
+              "FAILED team_vector_parallel_reduce %i %i %f %f %lu\n",
               team.league_rank(), team.team_rank(), static_cast<double>(test),
               static_cast<double>(value),
               static_cast<unsigned long>(sizeof(Scalar)));
@@ -423,7 +424,7 @@ struct functor_team_vector_reduce_reducer {
 
       if (test != value) {
         KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-            "FAILED team_vector_parallel_reduce_reducer %i %i %lf %lf\n",
+            "FAILED team_vector_parallel_reduce_reducer %i %i %f %f\n",
             team.league_rank(), team.team_rank(), static_cast<double>(test),
             static_cast<double>(value));
 
@@ -470,9 +471,8 @@ struct functor_vec_single {
 
     if (value2 != (value * Scalar(nEnd - nStart))) {
       KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-          "FAILED vector_single broadcast %i %i %lf %lf\n", team.league_rank(),
-          team.team_rank(), static_cast<double>(value2),
-          static_cast<double>(value));
+          "FAILED vector_single broadcast %i %i %f %f\n", team.league_rank(),
+          team.team_rank(), (double)value2, (double)value);
 
       flag() = 1;
     }
@@ -523,7 +523,7 @@ struct functor_vec_for {
         }
 
         if (test != value) {
-          KOKKOS_IMPL_DO_NOT_USE_PRINTF("FAILED vector_par_for %i %i %lf %lf\n",
+          KOKKOS_IMPL_DO_NOT_USE_PRINTF("FAILED vector_par_for %i %i %f %f\n",
                                         team.league_rank(), team.team_rank(),
                                         static_cast<double>(test),
                                         static_cast<double>(value));
@@ -560,9 +560,10 @@ struct functor_vec_red {
       for (int i = 0; i < 13; i++) test += i;
 
       if (test != value) {
-        KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-            "FAILED vector_par_reduce %i %i %lf %lf\n", team.league_rank(),
-            team.team_rank(), (double)test, (double)value);
+        KOKKOS_IMPL_DO_NOT_USE_PRINTF("FAILED vector_par_reduce %i %i %f %f\n",
+                                      team.league_rank(), team.team_rank(),
+                                      (double)test, (double)value);
+
         flag() = 1;
       }
     });
@@ -599,7 +600,7 @@ struct functor_vec_red_reducer {
 
       if (test != value) {
         KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-            "FAILED vector_par_reduce_reducer %i %i %lf %lf\n",
+            "FAILED vector_par_reduce_reducer %i %i %f %f\n",
             team.league_rank(), team.team_rank(), (double)test, (double)value);
 
         flag() = 1;
@@ -629,10 +630,9 @@ struct functor_vec_scan {
 
                               if (test != val) {
                                 KOKKOS_IMPL_DO_NOT_USE_PRINTF(
-                                    "FAILED vector_par_scan %i %i %lf %lf\n",
+                                    "FAILED vector_par_scan %i %i %f %f\n",
                                     team.league_rank(), team.team_rank(),
-                                    static_cast<double>(test),
-                                    static_cast<double>(val));
+                                    (double)test, (double)val);
 
                                 flag() = 1;
                               }
@@ -723,12 +723,7 @@ template <class ExecutionSpace>
 bool Test(int test) {
   bool passed = true;
 
-// With SYCL 33*8 exceeds the maximum work group size
-#ifdef KOKKOS_ENABLE_SYCL
-  int team_size = 31;
-#else
   int team_size = 33;
-#endif
   if (team_size > int(ExecutionSpace::concurrency()))
     team_size = int(ExecutionSpace::concurrency());
   passed = passed && test_scalar<int, ExecutionSpace>(317, team_size, test);
@@ -861,7 +856,7 @@ template <typename ScalarType, class DeviceType>
 class TestTripleNestedReduce {
  public:
   using execution_space = DeviceType;
-  using size_type = typename execution_space::size_type;
+  using size_type       = typename execution_space::size_type;
 
   TestTripleNestedReduce(const size_type &, const size_type, const size_type &,
                          const size_type) {}
@@ -1005,24 +1000,17 @@ TEST(TEST_CATEGORY, triple_nested_parallelism) {
 // With KOKKOS_ENABLE_DEBUG enabled, the functor uses too many registers to run
 // with a team size of 32 on GPUs, 16 is the max possible (at least on a K80
 // GPU) See https://github.com/kokkos/kokkos/issues/1513
-// For Intel GPUs, the requested workgroup size is just too large here.
 #if defined(KOKKOS_ENABLE_DEBUG) && defined(KOKKOS_ENABLE_CUDA)
-  if (!std::is_same<TEST_EXECSPACE, Kokkos::Cuda>::value)
-#elif defined(KOKKOS_ENABLE_SYCL)
-  if (!std::is_same<TEST_EXECSPACE, Kokkos::Experimental::SYCL>::value)
+  if (!std::is_same<TEST_EXECSPACE, Kokkos::Cuda>::value) {
 #endif
-  {
     TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 32, 32);
     TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 32, 16);
+#if defined(KOKKOS_ENABLE_DEBUG) && defined(KOKKOS_ENABLE_CUDA)
   }
-#if defined(KOKKOS_ENABLE_SYCL)
-  if (!std::is_same<TEST_EXECSPACE, Kokkos::Experimental::SYCL>::value)
 #endif
-  {
-    TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 16, 33);
-    TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 16, 19);
-  }
   TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 16, 16);
+  TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 16, 33);
+  TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 16, 19);
   TestTripleNestedReduce<double, TEST_EXECSPACE>(8192, 2048, 7, 16);
 }
 #endif

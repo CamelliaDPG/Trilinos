@@ -47,9 +47,8 @@ namespace BaskerNS
      //printf("before allow workspace\n");
      //Allocate workspace
      #ifdef BASKER_KOKKOS
-     bool flag = true;
      typedef Kokkos::TeamPolicy<Exe_Space>      TeamPolicy;
-     kokkos_sfactor_init_workspace<Int,Entry,Exe_Space> iWS(flag, this);
+     kokkos_sfactor_init_workspace<Int,Entry,Exe_Space> iWS(this);
      Kokkos::parallel_for(TeamPolicy(num_threads,1), iWS);
      Kokkos::fence();
      #else
@@ -126,7 +125,9 @@ namespace BaskerNS
       //printf("============SFACTOR INC SEP=======\n");
       for(Int lvl = 0; lvl < tree.nlvls; lvl++)
       {
-        for(Int pp=0; pp < pow(tree.nparts, tree.nlvls-lvl-1); pp++)
+        Int p = pow(tree.nparts, tree.nlvls-lvl-1);
+
+        for(Int pp=0; pp < p; pp++)
         {
           Int ppp = pp*pow(tree.nparts, lvl+1);
           Int U_col = S(lvl+1)(ppp);

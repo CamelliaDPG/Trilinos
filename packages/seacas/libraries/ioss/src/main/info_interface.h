@@ -1,11 +1,12 @@
 /*
- * Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
  * See packages/seacas/LICENSE for details
  */
-#pragma once
+#ifndef info_SystemInterface_h
+#define info_SystemInterface_h
 
 #include "Ioss_GetLongOpt.h" // for GetLongOption
 #include <iosfwd>            // for ostream
@@ -64,6 +65,7 @@ namespace Info {
 
     char fieldSuffixSeparator_{'_'};
 
-    int surfaceSplitScheme_{-1};
+    int surfaceSplitScheme_{1};
   };
 } // namespace Info
+#endif

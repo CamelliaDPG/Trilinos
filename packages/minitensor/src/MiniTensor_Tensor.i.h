@@ -1650,19 +1650,22 @@ transpose(Tensor<T, N> const & A)
   default:
     for (Index i = 0; i < dimension; ++i) {
       for (Index j = i + 1; j < dimension; ++j) {
-        minitensor::swap(B(i, j), B(j, i));
+        std::swap(B(i, j), B(j, i));
       }
     }
     break;
 
   case 3:
-    minitensor::swap(B(0, 1), B(1, 0));
-    minitensor::swap(B(0, 2), B(2, 0));
-    minitensor::swap(B(1, 2), B(2, 1));
+    std::swap(B(0, 1), B(1, 0));
+    std::swap(B(0, 2), B(2, 0));
+
+    std::swap(B(1, 2), B(2, 1));
+
     break;
 
   case 2:
-    minitensor::swap(B(0, 1), B(1, 0));
+    std::swap(B(0, 1), B(1, 0));
+
     break;
   }
 

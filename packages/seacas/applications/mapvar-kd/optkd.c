@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2021 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -25,17 +25,16 @@
 
 #if defined ADDC_
 #define KDRECTQUERY kdrectquery_
-#define KDKILLTREE  kdkilltree_
+#define KDKILLTREE kdkilltree_
 #define KDBUILDTREE kdbuildtree_
 #else
 #define KDRECTQUERY kdrectquery
-#define KDKILLTREE  kdkilltree
+#define KDKILLTREE kdkilltree
 #define KDBUILDTREE kdbuildtree
 #endif
 
 #include <float.h>
 #include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,7 +58,9 @@
   }
 
 static optkdNode *Root = NULL;
-static int       *perm = NULL; /* permutation array */
+static int *      perm = NULL; /* permutation array */
+
+extern double fabs();
 
 /***************************************************************************/
 /* Makes the perm partition the array Values along the element k.          */
@@ -67,13 +68,16 @@ static int       *perm = NULL; /* permutation array */
 /***************************************************************************/
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))
-#define sign(x)   ((x) >= 0 ? 1 : -1)
+#define sign(x) ((x) >= 0 ? 1 : -1)
 
 /*
  * Floyd and Rivest SELECT Algorithm (CACM Algorithm 489)
  */
 void rf_select(real *a, int count, int l, int r, int k, int discrim)
 {
+  real z, t;
+  int  n, i, j, s, sd, ll, rr, tmp;
+
   while (r > l) {
     if (r - l > 600) {
       /*
@@ -82,28 +86,28 @@ void rf_select(real *a, int count, int l, int r, int k, int discrim)
        * that the (K-L+1)-th element is expected to lie in the smaller set
        * after partitioning
        */
-      int  n  = r - l + 1;
-      int  i  = k - l + 1;
-      real z  = log(n);
-      int  s  = 0.5 * exp(2.0 * z / 3.0);
-      int  sd = 0.1 * sqrt(z * s * (n - s) / n) * sign(i - n / 2.0);
+      n  = r - l + 1;
+      i  = k - l + 1;
+      z  = log(n);
+      s  = 0.5 * exp(2.0 * z / 3.0);
+      sd = 0.1 * sqrt(z * s * (n - s) / n) * sign(i - n / 2.0);
 
-      int tmp = k - (i * s / n) + sd;
-      int ll  = max(l, tmp);
-      tmp     = k + (n - i) * s / n + sd;
-      int rr  = min(r, tmp);
+      tmp = k - (i * s / n) + sd;
+      ll  = max(l, tmp);
+      tmp = k + (n - i) * s / n + sd;
+      rr  = min(r, tmp);
       rf_select(a, count, ll, rr, k, discrim);
     }
-    real t = a[discrim * count + perm[k]];
+    t = a[discrim * count + perm[k]];
 
     /* The following code partitions a[L:R] about T. It is similar to
        PARTITION, but will run faster on most machines since subscript
        range checking on I and J has been eliminated.
     */
-    int i = l;
-    int j = r;
+    i = l;
+    j = r;
     /* exchange(x[l], x[k]); */
-    int tmp = perm[l];
+    tmp     = perm[l];
     perm[l] = perm[k];
     perm[k] = tmp;
     if (a[discrim * count + perm[r]] > t) {
@@ -149,12 +153,15 @@ void rf_select(real *a, int count, int l, int r, int k, int discrim)
 int findmaxspread(int l, int u, int dimension, real *points, int N)
 {
   int  maxdim    = 0;
+  real max       = -FLT_MAX;
+  real min       = FLT_MAX;
   real maxspread = -FLT_MAX;
+  int  i, j;
 
-  for (int i = 0; i < dimension; i++) {
-    real max = -FLT_MAX;
-    real min = FLT_MAX;
-    for (int j = l; j <= u; j++) {
+  for (i = 0; i < dimension; i++) {
+    max = -FLT_MAX;
+    min = FLT_MAX;
+    for (j = l; j <= u; j++) {
       real val = points[N * i + perm[j]];
       if (max < val) {
         max = val;
@@ -175,15 +182,17 @@ int findmaxvariance(int l, int u, int dimension, real *points, int N)
 {
   int  maxdim  = 0;
   real max_var = 0.0;
+  int  i, j;
 
-  for (int i = 0; i < dimension; i++) {
-    real mean     = 0.0;
-    real variance = 0.0;
-    real count    = 0.0;
+  for (i = 0; i < dimension; i++) {
+    real prev_mean = 0.0;
+    real mean      = 0.0;
+    real variance  = 0.0;
+    real count     = 0.0;
 
-    for (int j = l; j <= u; j++) {
-      real val       = points[N * i + perm[j]];
-      real prev_mean = mean;
+    for (j = l; j <= u; j++) {
+      real val  = points[N * i + perm[j]];
+      prev_mean = mean;
       count += 1.0;
       mean += (val - prev_mean) / count;
       variance += (val - prev_mean) * (val - mean);
@@ -201,9 +210,10 @@ int findmaxvariance(int l, int u, int dimension, real *points, int N)
 /*******************************************************************************/
 int check(real *points, int N, int l, int u, int m, int discrim)
 {
-  for (int i = l; i < m; i++)
+  int i;
+  for (i = l; i < m; i++)
     assert(points[discrim * N + perm[i]] <= points[discrim * N + perm[m]]);
-  for (int i = m; i < u; i++)
+  for (i = m; i < u; i++)
     assert(points[discrim * N + perm[i]] >= points[discrim * N + perm[m]]);
   return 1;
 }
@@ -211,6 +221,7 @@ int check(real *points, int N, int l, int u, int m, int discrim)
 optkdNode *BuildkdTree(real *points, int N, int l, int u, int dimension)
 {
   optkdNode *p;
+  int        m;
 
   NEWTREE(p);
   if (u - l + 1 <= BUCKETSIZE) {
@@ -229,7 +240,7 @@ optkdNode *BuildkdTree(real *points, int N, int l, int u, int dimension)
     p->discrim = findmaxvariance(l, u, dimension, points, N);
 #endif
 
-    int m = (l + u) / 2;
+    m = (l + u) / 2;
 
     rf_select(points, N, l, u, m, p->discrim);
     assert(check(points, N, l, u, m, p->discrim));
@@ -244,11 +255,14 @@ optkdNode *BuildkdTree(real *points, int N, int l, int u, int dimension)
 /*******************************************************************************/
 void KDBUILDTREE(real *points, int *numPoints, int *dimension)
 {
+
+  int j;
+
   /* initialize perm array */
   assert(perm == NULL);
   perm = (int *)malloc(*numPoints * sizeof(int));
   assert(perm != NULL);
-  for (int j = 0; j < *numPoints; j++) {
+  for (j = 0; j < *numPoints; j++) {
     perm[j] = j;
   }
   assert(Root == NULL);
@@ -275,7 +289,7 @@ void KillOptTree(optkdNode *P)
   free(P);
 }
 
-void KDKILLTREE(void)
+void KDKILLTREE()
 {
   if (perm != NULL) {
     free(perm);
@@ -294,8 +308,10 @@ void KDKILLTREE(void)
 void optInRegion(optkdNode *P, int Dimension, real *Points, int N, real *xmin, real *xmax,
                  int *found, int *count)
 {
-  for (int index = P->lopt; index <= P->hipt; index++) {
-    bool InsideRange = true;
+  int index, dc, InsideRange;
+
+  for (index = P->lopt; index <= P->hipt; index++) {
+    InsideRange = 1;
 
     if (Dimension == 3) {
       int inval = perm[index];
@@ -303,14 +319,14 @@ void optInRegion(optkdNode *P, int Dimension, real *Points, int N, real *xmin, r
           Points[1 * N + inval] < xmin[1] || Points[1 * N + inval] > xmax[1] ||
           Points[2 * N + inval] < xmin[2] ||
           Points[2 * N + inval] > xmax[2]) { /* P is not in the region */
-        InsideRange = false;
+        InsideRange = 0;
       }
     }
     else {
-      for (int dc = 0; dc < Dimension; dc++) {
+      for (dc = 0; dc < Dimension; dc++) {
         if (Points[dc * N + perm[index]] < xmin[dc] ||
             Points[dc * N + perm[index]] > xmax[dc]) { /* P is not in the region */
-          InsideRange = false;
+          InsideRange = 0;
           break;
         }
       }
@@ -328,7 +344,9 @@ void optInRegion(optkdNode *P, int Dimension, real *Points, int N, real *xmin, r
 /***************************************************************************/
 void optAddRegion(optkdNode *P, int Dimension, int *found, int *count)
 {
-  for (int index = P->lopt; index <= P->hipt; index++) {
+  int index;
+
+  for (index = P->lopt; index <= P->hipt; index++) {
     found[(*count)++] = perm[index] + 1;
   }
 }
@@ -390,6 +408,8 @@ void optRangeSearch(optkdNode *P, real *Points, int N, int Dimension, real *xmin
   static real BLow[MAX_DEPTH][6];
   static real BHigh[MAX_DEPTH][6];
 
+  int disc;
+
   if (depth >= MAX_DEPTH) {
     fprintf(stderr, "Internal Error in optRangeSearch -- recursion depth too large.\n");
     abort();
@@ -411,7 +431,7 @@ void optRangeSearch(optkdNode *P, real *Points, int N, int Dimension, real *xmin
   }
 
   /* Claim: P is not a bucket node */
-  int disc = P->discrim;
+  disc = P->discrim;
   /* copy the region B into BLow, BHigh */
 
   if (Dimension == 3) {
@@ -441,7 +461,14 @@ void optRangeSearch(optkdNode *P, real *Points, int N, int Dimension, real *xmin
 void KDRECTQUERY(real *Points, int *N, int *Dimension, real *xmin, real *xmax, int *found,
                  int *count)
 {
-  real B[6] = {-FLT_MAX, FLT_MAX, -FLT_MAX, FLT_MAX, -FLT_MAX, FLT_MAX};
-  *count    = 0;
+  static real B[6];
+
+  switch (*Dimension) {
+  case 3: B[5] = FLT_MAX; B[4] = -FLT_MAX; /* fall through */
+  case 2: B[3] = FLT_MAX; B[2] = -FLT_MAX; /* fall through */
+  case 1: B[1] = FLT_MAX; B[0] = -FLT_MAX;
+  }
+
+  *count = 0;
   optRangeSearch(Root, Points, *N, *Dimension, xmin, xmax, B, found, count, 0);
 }

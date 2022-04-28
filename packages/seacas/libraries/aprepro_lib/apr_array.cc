@@ -4,10 +4,8 @@
 //
 // See packages/seacas/LICENSE for details
 
-#include "apr_symrec.h"
 #include "aprepro.h" // for array, Aprepro, etc
-
-#include <vector> // for vector
+#include <vector>    // for vector
 
 namespace SEAMS {
   extern SEAMS::Aprepro *aprepro;
@@ -20,13 +18,18 @@ namespace SEAMS {
      * (0.0 -> rows-1) (0.0 -> cols-1)
      */
 
-    int cols = arr->cols;
-    int rows = arr->rows;
+    if (aprepro->ap_options.one_based_index) {
+      row--;
+      col--;
+    }
 
     int irl = row;
-    int irh = rows > 1 ? irl + 1 : irl;
+    int irh = irl + 1;
     int icl = col;
-    int ich = cols > 1 ? icl + 1 : icl;
+    int ich = icl + 1;
+
+    int cols = arr->cols;
+    int rows = arr->rows;
 
     double value = 0.0;
 
@@ -35,16 +38,8 @@ namespace SEAMS {
       double v21 = arr->data[irh * cols + icl];
       double v12 = arr->data[irl * cols + ich];
       double v22 = arr->data[irh * cols + ich];
-      if (rows > 1 && cols > 1) {
-        value = (v11 * (irh - row) + v21 * (row - irl)) * (ich - col) +
-                (v12 * (irh - row) * v22 * (row - irl)) * (col - icl);
-      }
-      else if (rows > 1 && cols == 1) {
-        value = v11 * (irh - row) + v21 * (row - irl);
-      }
-      else if (cols > 1 && rows == 1) {
-        value = v11 * (ich - col) + v12 * (col - icl);
-      }
+      value      = v11 * (irh - row) * (ich - col) + v21 * (row - irl) * (ich - col) +
+              v12 * (irh - row) * (col - icl) + v22 * (row - irl) * (col - icl);
     }
     else {
       aprepro->error("Row or Column index out of range");

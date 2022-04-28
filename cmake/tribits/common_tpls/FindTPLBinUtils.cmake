@@ -61,7 +61,7 @@
 
 
 
-tribits_tpl_find_include_dirs_and_libraries( BinUtils
+TRIBITS_TPL_FIND_INCLUDE_DIRS_AND_LIBRARIES( BinUtils
   REQUIRED_HEADERS link.h bfd.h
   MUST_FIND_ALL_HEADERS
   REQUIRED_LIBS_NAMES bfd iberty
@@ -75,14 +75,14 @@ tribits_tpl_find_include_dirs_and_libraries( BinUtils
 #
 
 
-include(CheckCXXSourceCompiles)
-include(MultilineSet)
-include(PrintVar)
+INCLUDE(CheckCXXSourceCompiles)
+INCLUDE(MultilineSet)
+INCLUDE(PrintVar)
 
 
-function(check_for_binutils_stacktrace  VARNAME)
+FUNCTION(CHECK_FOR_BINUTILS_STACKTRACE  VARNAME)
 
-  set(SOURCE
+  SET(SOURCE
   "
 #include <string>
 #include <iostream>
@@ -169,25 +169,25 @@ int main()
 "
   )
   
-  set(CMAKE_REQUIRED_INCLUDES ${TPL_BinUtils_INCLUDE_DIRS})
-  set(CMAKE_REQUIRED_LIBRARIES ${TPL_BinUtils_LIBRARIES})
-  check_cxx_source_compiles("${SOURCE}" ${VARNAME})
+  SET(CMAKE_REQUIRED_INCLUDES ${TPL_BinUtils_INCLUDE_DIRS})
+  SET(CMAKE_REQUIRED_LIBRARIES ${TPL_BinUtils_LIBRARIES})
+  CHECK_CXX_SOURCE_COMPILES("${SOURCE}" ${VARNAME})
   
-endfunction()
+ENDFUNCTION()
 
 
-if (TPL_ENABLE_BinUtils)
+IF (TPL_ENABLE_BinUtils)
 
-  check_for_binutils_stacktrace(HAS_TPL_BINUNTILS_STACKTRACE)
+  CHECK_FOR_BINUTILS_STACKTRACE(HAS_TPL_BINUNTILS_STACKTRACE)
 
-  if (HAS_TPL_BINUNTILS_STACKTRACE)
-    message(STATUS "Extended attempt to enable tentatively enabled TPL 'BinUtils' passed!")
-  else()
-    message(STATUS "Extended attempt to enable tentatively enabled TPL 'BinUtils' failed!  Setting TPL_ENABLE_BinUtils=OFF")
-    set(TPL_ENABLE_BinUtils OFF CACHE STRING "autoset" FORCE)
-  endif()
+  IF (HAS_TPL_BINUNTILS_STACKTRACE)
+    MESSAGE(STATUS "Extended attempt to enable tentatively enabled TPL 'BinUtils' passed!")
+  ELSE()
+    MESSAGE(STATUS "Extended attempt to enable tentatively enabled TPL 'BinUtils' failed!  Setting TPL_ENABLE_BinUtils=OFF")
+    SET(TPL_ENABLE_BinUtils OFF CACHE STRING "autoset" FORCE)
+  ENDIF()
 
-endif()
+ENDIF()
 
 
-print_var(TPL_ENABLE_BinUtils)
+PRINT_VAR(TPL_ENABLE_BinUtils)

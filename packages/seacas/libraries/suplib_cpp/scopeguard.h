@@ -35,7 +35,6 @@ protected:
   {
     other.Dismiss();
   }
-
   template <typename J> static void SafeExecute(J &j)
   {
     if (!j.dismissed_) {
@@ -54,11 +53,7 @@ public:
   void Dismiss() const { dismissed_ = true; }
 };
 
-// typedef const ScopeGuardImplBase& ScopeGuard;
-#ifndef _MSC_VER
-__attribute__((unused))
-#endif
-typedef const ScopeGuardImplBase &ScopeGuard;
+using ScopeGuard = const ScopeGuardImplBase &;
 
 template <typename F> class ScopeGuardImpl0 : public ScopeGuardImplBase
 {

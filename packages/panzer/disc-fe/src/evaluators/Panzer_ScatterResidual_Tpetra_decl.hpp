@@ -244,8 +244,7 @@ private:
 
   ScatterResidual_Tpetra();
 
-  Kokkos::View<LO**, Kokkos::LayoutRight, PHX::Device> scratch_lids_;
-  Kokkos::View<typename Sacado::ScalarType<ScalarT>::type**, Kokkos::LayoutRight, PHX::Device> scratch_vals_;
+  PHX::View<int**> scratch_lids_;
   std::vector<PHX::View<int*> > scratch_offsets_;
 
   int my_derivative_size_;

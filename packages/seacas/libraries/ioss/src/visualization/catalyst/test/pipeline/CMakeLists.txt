@@ -1,7 +1,3 @@
-ADD_EXECUTABLE(CatalystLoggingPipelineTests
-               CatalystLoggingPipelineTests.cxx)
-TARGET_LINK_LIBRARIES(CatalystLoggingPipelineTests
-                      catalystiosstest)
 
 ADD_EXECUTABLE(ExodusToCatalystToScriptTests
                ExodusToCatalystToScriptTests.cxx)
@@ -33,9 +29,6 @@ ADD_EXECUTABLE(CatalystV2ScriptFromParaViewGuiTest1
 TARGET_LINK_LIBRARIES(CatalystV2ScriptFromParaViewGuiTest1
                       catalystiosstest)
 
-addCatalystTest("Catalyst_Logging_Pipeline" "1;4"
-    ${CMAKE_CURRENT_BINARY_DIR}/CatalystLoggingPipelineTests "")
-
 addCatalystTest("Exodus_Catalyst_Script" "1;4"
     ${CMAKE_CURRENT_BINARY_DIR}/ExodusToCatalystToScriptTests "")
 
@@ -53,3 +46,5 @@ addCatalystTest("Two_Grids_Catalyst_Script3" "1;4"
 
 addCatalystTest("CatalystV2ScriptFromParaViewGuiTest1" "1;4"
     ${CMAKE_CURRENT_BINARY_DIR}/CatalystV2ScriptFromParaViewGuiTest1 "")
+
+

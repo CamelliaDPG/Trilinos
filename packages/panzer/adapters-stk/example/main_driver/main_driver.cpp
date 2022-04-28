@@ -43,7 +43,6 @@
 #include "Teuchos_ConfigDefs.hpp"
 #include "Teuchos_RCP.hpp"
 #include "Teuchos_TimeMonitor.hpp"
-#include "Teuchos_StackedTimer.hpp"
 #include "Teuchos_DefaultComm.hpp"
 #include "Teuchos_CommHelpers.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
@@ -72,9 +71,6 @@
 #include "user_app_BCStrategy_Factory.hpp"
 #include "user_app_NOXObserverFactory.hpp"
 #include "user_app_RythmosObserverFactory.hpp"
-#ifdef PANZER_HAVE_TEMPUS
-#include "user_app_TempusObserverFactory.hpp"
-#endif
 #include "user_app_ResponseEvaluatorFactory_HOFlux.hpp"
 
 #include <Ioss_SerializeIO.h>
@@ -103,8 +99,11 @@ int main(int argc, char *argv[])
 #endif
 
   try {
-     const auto stackedTimer = Teuchos::rcp(new Teuchos::StackedTimer("Panzer Main Driver"));
-     Teuchos::TimeMonitor::setStackedTimer(stackedTimer);
+    
+    Teuchos::RCP<Teuchos::Time> total_time = 
+      Teuchos::TimeMonitor::getNewTimer("User App: Total Time");
+    
+    Teuchos::TimeMonitor timer(*total_time); 
     
     Teuchos::RCP<const Teuchos::Comm<int> > comm = Teuchos::DefaultComm<int>::getComm();
     
@@ -246,16 +245,7 @@ int main(int argc, char *argv[])
 	}
 
         // solver = me_factory.getResponseOnlyModelEvaluator();
-#ifdef PANZER_HAVE_TEMPUS
-        Teuchos::RCP<const panzer_stk::TempusObserverFactory> tof;
-	{
-          tof = Teuchos::rcp(new user_app::TempusObserverFactory(stkIOResponseLibrary,rLibrary->getWorksetContainer()));
-	}
-
-        solver = me_factory.buildResponseOnlyModelEvaluator(physics,global_data,Teuchos::null,Teuchos::null,nof.ptr(),rof.ptr(),tof.ptr());
-#else
         solver = me_factory.buildResponseOnlyModelEvaluator(physics,global_data,Teuchos::null,nof.ptr(),rof.ptr());
-#endif
       } 
 
     }
@@ -403,17 +393,6 @@ int main(int argc, char *argv[])
         }
       }
     }
-
-    stackedTimer->stopBaseTimer();
-    {
-      Teuchos::StackedTimer::OutputOptions options;
-      options.output_fraction = true;
-      options.output_minmax = true;
-      options.output_histogram = true;
-      options.num_histogram = 5;
-      stackedTimer->report(std::cout, Teuchos::DefaultComm<int>::getComm(), options);
-    }
-
   }
   catch (std::exception& e) {
     *out << "*********** Caught Exception: Begin Error Report ***********" << std::endl;

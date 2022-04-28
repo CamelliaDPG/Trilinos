@@ -113,13 +113,9 @@ int main(int narg, char *arg[]) {
   const int nWeights = 1;
   Kokkos::View<scalar_t **, typename node_t::device_type>
     weights("weights", localCount, nWeights);
-  auto host_weights = Kokkos::create_mirror_view(weights);
-
   for (int index = 0; index < localCount; index++) {
-    host_weights(index, 0) = 1; // Error check relies on uniform weights
+    weights(index, 0) = 1; // Error check relies on uniform weights
   }
-
-  Kokkos::deep_copy(weights, host_weights);
 
   inputAdapter_t ia(globalIds, weights);
 

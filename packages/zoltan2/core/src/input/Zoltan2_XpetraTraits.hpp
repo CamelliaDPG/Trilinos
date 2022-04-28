@@ -177,7 +177,7 @@ struct XpetraTraits<Tpetra::CrsMatrix<scalar_t, lno_t, gno_t, node_t> >
 
     //// Original way we did it:
     ////
-    //int oldNumElts = smap->getLocalNumElements();
+    //int oldNumElts = smap->getNodeNumElements();
     //int newNumElts = numLocalRows;
 
     //// number of non zeros in my new rows
@@ -422,7 +422,7 @@ struct XpetraTraits<Tpetra::CrsGraph<lno_t, gno_t, node_t> >
 
     // source map
     const RCP<const map_t> &smap = from.getRowMap();
-    int oldNumElts = smap->getLocalNumElements();
+    int oldNumElts = smap->getNodeNumElements();
     gno_t numGlobalRows = smap->getGlobalNumElements();
     gno_t base = smap->getMinAllGlobalIndex();
 
@@ -444,7 +444,7 @@ struct XpetraTraits<Tpetra::CrsGraph<lno_t, gno_t, node_t> >
     }
     numNew.doImport(numOld, importer, Tpetra::INSERT);
 
-    size_t numElts = tmap->getLocalNumElements();
+    size_t numElts = tmap->getNodeNumElements();
     ArrayRCP<const gno_t> nnz;
     if (numElts > 0)
       nnz = numNew.getData(0);    // hangs if vector len == 0
@@ -463,7 +463,7 @@ struct XpetraTraits<Tpetra::CrsGraph<lno_t, gno_t, node_t> >
     }
 
     // target graph
-    RCP<tgraph_t> G = rcp(new tgraph_t(tmap, nnz_size_t()));
+    RCP<tgraph_t> G = rcp(new tgraph_t(tmap, nnz_size_t(), Tpetra::StaticProfile));
 
     G->doImport(from, importer, Tpetra::INSERT);
     G->fillComplete();

@@ -148,8 +148,8 @@ ThetaStepper<Scalar>::unSetInterpolator()
 {
   RCP<InterpolatorBase<Scalar> > temp_interpolator = interpolator_;
   interpolator_ = Teuchos::null;
-  //isInitialized_ = false;
-  return temp_interpolator;
+  return(temp_interpolator);
+  isInitialized_ = false;
 }
 
 

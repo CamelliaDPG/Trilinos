@@ -68,20 +68,23 @@ class Constant
 {
   public:
 
-    Constant(const Teuchos::ParameterList& p);
+    Constant(
+      const Teuchos::ParameterList& p);
 
     void
-    postRegistrationSetup(typename Traits::SetupData d,
-			  PHX::FieldManager<Traits>& fm);
+    postRegistrationSetup(
+      typename Traits::SetupData d,
+      PHX::FieldManager<Traits>& fm);
 
     void
-    evaluateFields(typename Traits::EvalData d);
+    evaluateFields(
+      typename Traits::EvalData d);
 
   private:
 
-  using ScalarT = typename EvalT::ScalarT;
+    using ScalarT = typename EvalT::ScalarT;
   
-  double value;
+  ScalarT value;
   
   PHX::MDField<ScalarT> constant;
   

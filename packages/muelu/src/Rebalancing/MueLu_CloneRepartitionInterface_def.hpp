@@ -134,7 +134,7 @@ namespace MueLu {
 
     // plausibility check!
     size_t inLocalLength  = decomposition->getLocalLength();
-    size_t outLocalLength = A->getRowMap()->getLocalNumElements();
+    size_t outLocalLength = A->getRowMap()->getNodeNumElements();
 
     // only for non-strided maps
     size_t numLocalNodes = outLocalLength / blkSize;

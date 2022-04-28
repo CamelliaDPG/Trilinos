@@ -457,21 +457,21 @@ public:
   ///   it, by calling the modify() method with the appropriate
   ///   template parameter.
   template<class TargetMemorySpace>
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void sync () {
-    mv_.view_.getOriginalDualView().template sync<typename TargetMemorySpace::memory_space> ();
+    mv_.template sync<typename TargetMemorySpace::memory_space> ();
   }
 
   /// \brief Update data to the host
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void sync_host() {
-    mv_.view_.getOriginalDualView().sync_host ();
+    mv_.sync_host();
   }
 
   /// \brief Update data to the device
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void sync_device() {
-    mv_.view_.getOriginalDualView().sync_device ();
+    mv_.sync_device();
   }
 
 #endif // TPETRA_ENABLE_DEPRECATED_CODE
@@ -500,21 +500,21 @@ public:
   /// object's memory space, then mark the device's data as modified.
   /// Otherwise, mark the host's data as modified.
   template<class TargetMemorySpace>
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void modify () {
-    mv_.view_.getOriginalDualView().template modify<typename TargetMemorySpace::memory_space> ();
+    mv_.template modify<typename TargetMemorySpace::memory_space> ();
   }
 
   /// \brief Mark data as modified on the host
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void modify_host() {
-    mv_.view_.getOriginalDualView().modify_host ();
+    mv_.modify_host();
   }
 
   /// \brief Mark data as modified on the device
-  TPETRA_DEPRECATED
+  //TPETRA_DEPRECATED
   void modify_device() {
-    mv_.view_.getOriginalDualView().modify_device ();
+    mv_.modify_device();
   }
 
 #endif // TPETRA_ENABLE_DEPRECATED_CODE
@@ -588,7 +588,7 @@ public:
   /// \return true if successful, else false.  This method will
   ///   <i>not</i> succeed if the given local index of the mesh point
   ///   is invalid on the calling process.
-  TPETRA_DEPRECATED
+  // TPETRA_DEPRECATED
   bool getLocalRowView (const LO localRowIndex, const LO colIndex, Scalar*& vals);
 
   /// \brief Get a writeable view of the entries at the given mesh
@@ -601,7 +601,7 @@ public:
   /// \return true if successful, else false.  This method will
   ///   <i>not</i> succeed if the given global index of the mesh point
   ///   is invalid on the calling process.
-  TPETRA_DEPRECATED
+  // TPETRA_DEPRECATED
   bool getGlobalRowView (const GO globalRowIndex, const LO colIndex, Scalar*& vals);
 
   /// \brief Get a host view of the degrees of freedom at the given
@@ -612,7 +612,7 @@ public:
   /// future.  If you insist not to use \c auto, then please use the
   /// \c little_vec_type typedef to deduce the correct return type;
   /// don't try to hard-code the return type yourself.
-  TPETRA_DEPRECATED 
+  //TPETRA_DEPRECATED 
   little_host_vec_type getLocalBlock (const LO localRowIndex, const LO colIndex);
 
 #endif // TPETRA_ENABLE_DEPRECATED_CODE
@@ -665,7 +665,8 @@ protected:
      buffer_device_type>& exports,
    Kokkos::DualView<size_t*,
      buffer_device_type> numPacketsPerLID,
-   size_t& constantNumPackets);
+   size_t& constantNumPackets,
+   Distributor& distor);
 
   virtual void
   unpackAndCombine
@@ -676,6 +677,7 @@ protected:
    Kokkos::DualView<size_t*,
      buffer_device_type> numPacketsPerLID,
    const size_t constantNumPackets,
+   Distributor& distor,
    const CombineMode combineMode);
 
   //@}
@@ -702,12 +704,7 @@ protected:
   ///   index in the mesh Map.
   bool isValidLocalMeshIndex (const LO meshLocalIndex) const;
 
-#ifdef TPETRA_ENABLE_DEPRECATED_CODE
-// Allow BlockVector to access meshMap_
-protected:
-#else
 private:
-#endif // TPETRA_ENABLE_DEPRECATED_CODE
   /// \brief Mesh Map given to constructor.
   ///
   /// This is stored by value, not as a Teuchos::RCP, because the
@@ -715,7 +712,6 @@ private:
   /// thread-safe.
   map_type meshMap_;
 
-private:
   //! The point Map (describing the distribution of degrees of freedom).
   map_type pointMap_;
 

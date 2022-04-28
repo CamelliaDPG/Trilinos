@@ -47,6 +47,10 @@
 #define KOKKOS_ATOMIC_GENERIC_HPP
 #include <Kokkos_Macros.hpp>
 
+#if defined(KOKKOS_ENABLE_CUDA)
+#include <Cuda/Kokkos_Cuda_Version_9_8_Compatibility.hpp>
+#endif
+
 // Combination operands to be used in an Compare and Exchange based atomic
 // operation
 namespace Kokkos {
@@ -297,8 +301,12 @@ KOKKOS_INLINE_FUNCTION T atomic_fetch_oper(
   // This is a way to (hopefully) avoid dead lock in a warp
   T return_val;
   int done                 = 0;
-  unsigned int mask        = __activemask();
-  unsigned int active      = __ballot_sync(mask, 1);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+  unsigned int mask        = KOKKOS_IMPL_CUDA_ACTIVEMASK;
+  unsigned int active      = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, 1);
+#else
+  unsigned int active = KOKKOS_IMPL_CUDA_BALLOT(1);
+#endif
   unsigned int done_active = 0;
   while (active != done_active) {
     if (!done) {
@@ -311,7 +319,11 @@ KOKKOS_INLINE_FUNCTION T atomic_fetch_oper(
         done = 1;
       }
     }
-    done_active = __ballot_sync(mask, done);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+    done_active = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, done);
+#else
+    done_active = KOKKOS_IMPL_CUDA_BALLOT(done);
+#endif
   }
   return return_val;
 #elif defined(__HIP_DEVICE_COMPILE__)
@@ -365,8 +377,12 @@ atomic_oper_fetch(const Oper& op, volatile T* const dest,
   T return_val;
   // This is a way to (hopefully) avoid dead lock in a warp
   int done                 = 0;
-  unsigned int mask        = __activemask();
-  unsigned int active      = __ballot_sync(mask, 1);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+  unsigned int mask        = KOKKOS_IMPL_CUDA_ACTIVEMASK;
+  unsigned int active      = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, 1);
+#else
+  unsigned int active = KOKKOS_IMPL_CUDA_BALLOT(1);
+#endif
   unsigned int done_active = 0;
   while (active != done_active) {
     if (!done) {
@@ -379,7 +395,11 @@ atomic_oper_fetch(const Oper& op, volatile T* const dest,
         done = 1;
       }
     }
-    done_active = __ballot_sync(mask, done);
+#ifdef KOKKOS_IMPL_CUDA_SYNCWARP_NEEDS_MASK
+    done_active = KOKKOS_IMPL_CUDA_BALLOT_MASK(mask, done);
+#else
+    done_active = KOKKOS_IMPL_CUDA_BALLOT(done);
+#endif
   }
   return return_val;
 #elif defined(__HIP_DEVICE_COMPILE__)

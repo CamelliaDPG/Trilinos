@@ -37,30 +37,30 @@
 # ************************************************************************
 # @HEADER
 
-include(PrintVar)
+INCLUDE(PrintVar)
 
 
 #
-# @FUNCTION: concat_strings()
+# @FUNCTION: CONCAT_STRINGS()
 #
 # Concatenate a set of string arguments.
 #
 # Usage::
 #
-#   concat_strings(<outputVar> "<str0>" "<str1>" ...)
+#   CONCAT_STRINGS(<outputVar> "<str0>" "<str1>" ...)
 #
 # On output, ``<outputVar>`` is set to ``"<str0><str1>..."``.  This makes it
 # easier to format a long string over multiple CMake source code lines.
 #
-function(concat_strings OUTPUT_STRING_VAR)
-  #message("CONCAT_STRINGS OUTPUT_STRING_VAR: ${OUTPUT_STRING_VAR} {${ARGN}}")
-  #print_var(${OUTPUT_STRING_VAR})
-  set(OUTPUT_STRING "")
-  #print_var(OUTPUT_STRING)
-  foreach(STRING_VAL ${ARGN})
-    #print_var(STRING_VAL)
-    set(OUTPUT_STRING "${OUTPUT_STRING}${STRING_VAL}")
-    #print_var(OUTPUT_STRING)
-  endforeach()
-  set(${OUTPUT_STRING_VAR} "${OUTPUT_STRING}" PARENT_SCOPE)
-endfunction()
+FUNCTION(CONCAT_STRINGS OUTPUT_STRING_VAR)
+  #MESSAGE("CONCAT_STRINGS OUTPUT_STRING_VAR: ${OUTPUT_STRING_VAR} {${ARGN}}")
+  #PRINT_VAR(${OUTPUT_STRING_VAR})
+  SET(OUTPUT_STRING "")
+  #PRINT_VAR(OUTPUT_STRING)
+  FOREACH(STRING_VAL ${ARGN})
+    #PRINT_VAR(STRING_VAL)
+    SET(OUTPUT_STRING "${OUTPUT_STRING}${STRING_VAL}")
+    #PRINT_VAR(OUTPUT_STRING)
+  ENDFOREACH()
+  SET(${OUTPUT_STRING_VAR} "${OUTPUT_STRING}" PARENT_SCOPE)
+ENDFUNCTION()

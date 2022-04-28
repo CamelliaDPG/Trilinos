@@ -37,8 +37,8 @@
 # ************************************************************************
 # @HEADER
 
-include(PrintVar)
-include(AppendSet)
+INCLUDE(PrintVar)
+INCLUDE(AppendSet)
 
 #
 # Function that does an in-place sort of a list of items according to the
@@ -49,28 +49,28 @@ include(AppendSet)
 # number of packages/TPLs and n is the number of passed-in packages/TPLs.
 # However, since N is not likely to ever be more than a few hundred, this is
 # likely not going to be a big performance problem.  If this does become a
-# performance problem, list(SORT ...) could be used but would require some
+# performance problem, LIST(SORT ...) could be used but would require some
 # work to build up the datastructures to make this very efficient.
 #
 
-function(tribits_sort_list_according_to_master_list  MASTER_LIST  LIST_VAR_INOUT)
+FUNCTION(TRIBITS_SORT_LIST_ACCORDING_TO_MASTER_LIST  MASTER_LIST  LIST_VAR_INOUT)
 
-  #message("TRIBITS_SORT_LIST_ACCORDING_TO_MASTER_LIST:")
-  #print_var(MASTER_LIST)
-  #print_var(LIST_VAR_INOUT)
-  #print_var(${LIST_VAR_INOUT})
+  #MESSAGE("TRIBITS_SORT_LIST_ACCORDING_TO_MASTER_LIST:")
+  #PRINT_VAR(MASTER_LIST)
+  #PRINT_VAR(LIST_VAR_INOUT)
+  #PRINT_VAR(${LIST_VAR_INOUT})
 
-  set(SORTED_LIST)
+  SET(SORTED_LIST)
 
-  foreach(ITEM ${MASTER_LIST})
-    list(FIND ${LIST_VAR_INOUT} ${ITEM} ITEM_IDX)
-     if (NOT ITEM_IDX EQUAL -1)
-      list(APPEND SORTED_LIST ${ITEM})
-    endif()
-  endforeach()
+  FOREACH(ITEM ${MASTER_LIST})
+    LIST(FIND ${LIST_VAR_INOUT} ${ITEM} ITEM_IDX)
+     IF (NOT ITEM_IDX EQUAL -1)
+      LIST(APPEND SORTED_LIST ${ITEM})
+    ENDIF()
+  ENDFOREACH()
 
-  #print_var(SORTED_LIST)
+  #PRINT_VAR(SORTED_LIST)
 
-  set(${LIST_VAR_INOUT} ${SORTED_LIST} PARENT_SCOPE)
+  SET(${LIST_VAR_INOUT} ${SORTED_LIST} PARENT_SCOPE)
 
-endfunction()
+ENDFUNCTION()

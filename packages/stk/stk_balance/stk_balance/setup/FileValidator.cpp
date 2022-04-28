@@ -37,8 +37,6 @@
 
 #include "stk_util/parallel/Parallel.hpp"
 #include "stk_util/util/ReportHandler.hpp"
-#include "stk_io/StkIoUtils.hpp"
-#include "stk_balance/setup/Parser.hpp"
 
 namespace stk {
 namespace balance {
@@ -48,29 +46,21 @@ FileValidator::FileValidator(MPI_Comm comm)
   m_isSerial(stk::parallel_machine_size(m_comm) == 1)
 { }
 
-void FileValidator::require_file_exists(const std::string& filename, unsigned numProcs) const
+void FileValidator::require_file_exists(const std::string& filename) const
 {
-  ThrowRequireMsg(does_file_exist(filename, numProcs), "Input file '" +
-                  construct_generic_parallel_file_name(filename, numProcs) + "' does not exist.\n");
-}
-
-bool FileValidator::input_equals_output(const std::string& infile, const std::string& outfile) const
-{
-  return trim_filename(infile) == trim_filename(outfile);
+  ThrowRequireMsg(does_file_exist(filename), "Input file does not exist.\n");
 }
 
 bool FileValidator::serial_input_equals_output(const std::string& infile, const std::string& outfile) const
 {
-  return m_isSerial && input_equals_output(infile, outfile);
+  return m_isSerial && (trim_filename(infile) == trim_filename(outfile));
 }
 
-bool FileValidator::does_file_exist(const std::string& filename, unsigned numProcs) const
+bool FileValidator::does_file_exist(const std::string& filename) const
 {
   bool exists = true;
-  for (unsigned proc = 0; proc < numProcs; ++proc) {
-    if (!std::ifstream(stk::io::construct_filename_for_serial_or_parallel(filename, numProcs, proc))) {
-      exists = false;
-    }
+  if (!std::ifstream(filename)) {
+    exists = false;
   }
   return exists;
 }

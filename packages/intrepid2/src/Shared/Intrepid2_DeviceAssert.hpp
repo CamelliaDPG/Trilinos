@@ -64,8 +64,7 @@ namespace Intrepid2 {
   KOKKOS_INLINE_FUNCTION
   void device_assert(bool val) {
     if (!val)
-      /// KK: this assert header does not need to be separated from utils.hpp
-#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+#ifdef KOKKOS_ENABLE_CUDA
       Kokkos::abort("ASSERT IN CUDA CALL, SHOULD ABORT\n");
 #else
     assert(false);

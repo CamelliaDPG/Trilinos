@@ -58,7 +58,7 @@
 #include "Intrepid2_ProjectedGeometry.hpp"
 #include "Intrepid2_ProjectedGeometryExamples.hpp"
 #include "Intrepid2_ScalarView.hpp"
-#include "Intrepid2_TransformedBasisValues.hpp"
+#include "Intrepid2_TransformedVectorData.hpp"
 #include "Intrepid2_Types.hpp"
 #include "Intrepid2_TestUtils.hpp"
 
@@ -249,6 +249,7 @@ namespace
     using DeviceType = Intrepid2::DefaultTestDeviceType;
     using Basis = HierarchicalBasisFamily<DeviceType>::HGRAD_QUAD;
     
+    // for now, the BasisValues path only supports the standard exact-sequence operators
     std::vector<EOperator> opsToTest {OPERATOR_VALUE, OPERATOR_GRAD};
     
     const double relTol=1e-13;
@@ -284,6 +285,7 @@ namespace
     using DeviceType = Intrepid2::DefaultTestDeviceType;
     using Basis = HierarchicalBasisFamily<DeviceType>::HGRAD_HEX;
     
+    // for now, the BasisValues path only supports the standard exact-sequence operators
     std::vector<EOperator> opsToTest {OPERATOR_VALUE, OPERATOR_GRAD};
     
     const double relTol=1e-13;
@@ -445,6 +447,7 @@ namespace
     using DeviceType = Intrepid2::DefaultTestDeviceType;
     using Basis = HierarchicalBasisFamily<DeviceType>::HVOL_QUAD;
     
+    // for now, the BasisValues path only supports the standard exact-sequence operators
     std::vector<EOperator> opsToTest {OPERATOR_VALUE};
     
     const double relTol=1e-13;
@@ -462,6 +465,7 @@ namespace
     using DeviceType = Intrepid2::DefaultTestDeviceType;
     using Basis = HierarchicalBasisFamily<DeviceType>::HVOL_HEX;
     
+    // for now, the BasisValues path only supports the standard exact-sequence operators
     std::vector<EOperator> opsToTest {OPERATOR_VALUE};
     
     const double relTol=1e-13;

@@ -132,7 +132,7 @@ namespace Details {
       if (verbose) {
         std::ostringstream os;
         os << *verboseHeader << "Domain Map GIDs: [";
-        const LO domMapLclNumInds = static_cast<LO> (domMap.getLocalNumElements ());
+        const LO domMapLclNumInds = static_cast<LO> (domMap.getNodeNumElements ());
         for (LO lid = 0; lid < domMapLclNumInds; ++lid) {
           const GO gid = domMap.getGlobalElement (lid);
           os << gid;
@@ -144,7 +144,7 @@ namespace Details {
         out << os.str ();
       }
 
-      const LO colMapLclNumInds = static_cast<LO> (colMap.getLocalNumElements ());
+      const LO colMapLclNumInds = static_cast<LO> (colMap.getNodeNumElements ());
 
       if (verbose) {
         std::ostringstream os;

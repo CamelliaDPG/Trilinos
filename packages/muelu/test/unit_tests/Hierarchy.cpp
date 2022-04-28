@@ -73,7 +73,9 @@
 #include <MueLu_DirectSolver.hpp>
 #include <MueLu_CreateXpetraPreconditioner.hpp>
 
+#ifdef HAVE_MUELU_KOKKOSCORE
 #include <KokkosCompat_ClassicNodeAPI_Wrapper.hpp>
+#endif
 
 namespace MueLuTests {
 
@@ -118,6 +120,7 @@ namespace MueLuTests {
 
     Teuchos::ParameterList MueLuList;
     MueLuList.set("verbosity","none");
+    //MueLuList.set("verbosity","high");
     MueLuList.set("coarse: max size",numRows-1); // make it so we want two levels
     MueLuList.set("max levels",2);
 

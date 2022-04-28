@@ -49,7 +49,11 @@
 #include <Teuchos_RCP.hpp>
 
 #include <Xpetra_ConfigDefs.hpp>
-#include <KokkosCompat_ClassicNodeAPI_Wrapper.hpp>
+#ifdef HAVE_XPETRA_KOKKOSCORE
+#  include <KokkosCompat_ClassicNodeAPI_Wrapper.hpp>
+#else
+#  include <Kokkos_SerialNode.hpp>
+#endif
 
 // forward declaration for (fake) KokkosSerialWrapperNode
 // This is the node definition used if Epetra is enabled only

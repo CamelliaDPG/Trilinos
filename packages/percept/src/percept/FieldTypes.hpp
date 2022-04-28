@@ -32,9 +32,9 @@ namespace percept {
   typedef ScalarIntFieldType      TransitionElementType;
   typedef ScalarFieldType         ParentElementType;
   typedef ScalarIntFieldType      NewNodesType;
-  typedef ScalarFieldType         ErrorFieldType;
+  typedef GenericFieldType        ErrorFieldType;
   typedef ScalarFieldType         WeightsFieldType;
-  typedef ScalarFieldType         GregoryControlPointsType;
+  typedef ArrayDimType            GregoryControlPointsType;
   typedef VectorFieldType         CoordinatesFieldType;
   typedef ArrayDimType            UnprojectedCoordinatesFieldType;
   typedef CoordinatesFieldType    NormalsFieldType;

@@ -37,6 +37,6 @@
 # ************************************************************************
 # @HEADER
 
-tribits_repository_define_packages(
+TRIBITS_REPOSITORY_DEFINE_PACKAGES(
   extraRepoOnePackageThreeSubpackages   .     PT
   )

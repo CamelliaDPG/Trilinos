@@ -40,8 +40,7 @@ namespace KokkosBatched {
            const IntType   * p, const int ps0,
            /* */ ValueType * B, const int bs0, const int bs1,
            /* */ ValueType * X, const int xs0, const int xs1,
-           /* */ ValueType * w, ValueType * wq, 
-           const bool implicit_RHS) {
+           /* */ ValueType * w, ValueType * wq) {
     
         typedef ValueType value_type;
     
@@ -73,7 +72,7 @@ namespace KokkosBatched {
             // T is matrix_rank x matrix_rank
             // V is matrix_rank x n
             // W = U^T B
-            if (!implicit_RHS) { // LU case
+            if (m==n) { // LU case
                 TeamVectorGemmInternal<Algo::Gemm::Unblocked>
                   ::invoke(member,
                        matrix_rank, nrhs, m,
@@ -157,7 +156,7 @@ namespace KokkosBatched {
                 });
             }
         } else {
-            if (!implicit_RHS) { // LU case
+            if (m==n) { // LU case
                 /// W = U^T B
                 TeamVectorGemmInternal<Algo::Gemm::Unblocked>
                   ::invoke(member,

@@ -264,7 +264,8 @@ void testCompareToLocalSolve (bool& success, Teuchos::FancyOStream& out,
       out << "Construct the test matrix A" << endl;
       RCP<crs_matrix_type> A =
         rcp (new crs_matrix_type (rowMap, colMap,
-                                  static_cast<std::size_t> (maxNumEntPerRow)));
+                                  static_cast<std::size_t> (maxNumEntPerRow),
+                                  Tpetra::StaticProfile));
 
       out << "Fill the test matrix A" << endl;
       // Pick the entries of the matrix so that triangular solves are

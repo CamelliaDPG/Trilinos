@@ -249,9 +249,8 @@ int main(int argc, char *argv[]) {
     //
     Belos::ReturnType ret = solver->solve();
     //
-    std::cout << "Belos::GmresPolySolMgr returned achievedTol: " << solver->achievedTol() << std::endl << std::endl;
-    //
     // Compute actual residuals.
+    //
     RCP<MyMultiVec<ST> > temp = rcp( new MyMultiVec<ST>(dim,numrhs) );
     OPT::Apply( *A, *soln, *temp );
     MVT::MvAddMv( one, *rhs, -one, *temp, *temp );

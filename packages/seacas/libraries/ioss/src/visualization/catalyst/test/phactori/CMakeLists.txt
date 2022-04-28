@@ -1,19 +1,13 @@
 
 function(generatePhactoriUnitTests)
   set(PhactoriClassUnitTests
-    test_PhactoriClipPlaneOperation
-    test_PhactoriContourOperation
-    test_PhactoriDataArtifactMetaDataControl
-    test_PhactoriGeometricCellSampler1
-    test_PhactoriMarkCellSurfaceStatus2
-    test_PhactoriPointSourceFromJsonList
-    test_PhactoriSampledCellInfo
     test_PhactoriSegmentCellSampler3
     test_PhactoriSegment
-    test_PhactoriSliceWithPlaneOperation
-    test_PhactoriThresholdOperation
+    test_PhactoriPointSourceFromJsonList
+    test_PhactoriSampledCellInfo
+    test_PhactoriGeometricCellSampler1
     test_PhactoriVtkCellOperations
-    test_PhactoriVtkDataExportOperation
+    test_PhactoriDataArtifactMetaDataControl
   )
 
   set(PhactoriTestDirectory

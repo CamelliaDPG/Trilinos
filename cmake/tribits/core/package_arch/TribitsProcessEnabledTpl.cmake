@@ -39,86 +39,86 @@
 
 
 # Standard TriBITS Includes
-include(TribitsTplFindIncludeDirsAndLibraries)
-include(TribitsGeneralMacros)
+INCLUDE(TribitsTplFindIncludeDirsAndLibraries)
+INCLUDE(TribitsGeneralMacros)
 
 # Standard TriBITS utilities includes
-include(AppendStringVar)
-include(TribitsStandardizePaths)
+INCLUDE(AppendStringVar)
+INCLUDE(TribitsStandardizePaths)
 
 
 #
-# @FUNCTION: tribits_process_enabled_tpl()
+# @FUNCTION: TRIBITS_PROCESS_ENABLED_TPL()
 #
 # Process an enabled TPL's FindTPL${TPL_NAME}.cmake module.
 #
-function(tribits_process_enabled_tpl  TPL_NAME)
+FUNCTION(TRIBITS_PROCESS_ENABLED_TPL  TPL_NAME)
 
   # Setup the processing string
-  set(PROCESSING_MSG_STRING "Processing enabled TPL: ${TPL_NAME} (")
-  if (TPL_${TPL_NAME}_ENABLING_PKG)
-    append_string_var(PROCESSING_MSG_STRING
+  SET(PROCESSING_MSG_STRING "Processing enabled TPL: ${TPL_NAME} (")
+  IF (TPL_${TPL_NAME}_ENABLING_PKG)
+    APPEND_STRING_VAR(PROCESSING_MSG_STRING
       "enabled by ${TPL_${TPL_NAME}_ENABLING_PKG}," )
-  else()
-    append_string_var(PROCESSING_MSG_STRING
+  ELSE()
+    APPEND_STRING_VAR(PROCESSING_MSG_STRING
       "enabled explicitly," )
-  endif()
-    append_string_var(PROCESSING_MSG_STRING 
+  ENDIF()
+    APPEND_STRING_VAR(PROCESSING_MSG_STRING 
       " disable with -DTPL_ENABLE_${TPL_NAME}=OFF)" )
 
   # Print the processing header
-  message("${PROCESSING_MSG_STRING}")
+  MESSAGE("${PROCESSING_MSG_STRING}")
 
-  if (NOT ${PROJECT_NAME}_TRACE_DEPENDENCY_HANDLING_ONLY)
+  IF (NOT ${PROJECT_NAME}_TRACE_DEPENDENCY_HANDLING_ONLY)
 
     # Locate the FindTPL${TPL_NAME}.cmake module
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      print_var(${TPL_NAME}_FINDMOD)
-    endif()
-    #print_var(${TPL_NAME}_FINDMOD)
-    if (${TPL_NAME}_FINDMOD STREQUAL "TRIBITS_PKG")
-      set(TPL_${TPL_NAME}_PARTS_ALREADY_SET FALSE)  # ToDo: Take out?
-      if (NOT TPL_${TPL_NAME}_PARTS_ALREADY_SET)
-        find_package(${TPL_NAME} CONFIG REQUIRED)
-        #print_var(${TPL_NAME}_INCLUDE_DIRS)
-        #print_var(${TPL_NAME}_LIBRARIES)
-        tribits_standardize_abs_paths(THIS_TPL_INCLUDE_DIRS
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      PRINT_VAR(${TPL_NAME}_FINDMOD)
+    ENDIF()
+    #PRINT_VAR(${TPL_NAME}_FINDMOD)
+    IF (${TPL_NAME}_FINDMOD STREQUAL "TRIBITS_PKG")
+      SET(TPL_${TPL_NAME}_PARTS_ALREADY_SET FALSE)  # ToDo: Take out?
+      IF (NOT TPL_${TPL_NAME}_PARTS_ALREADY_SET)
+        FIND_PACKAGE(${TPL_NAME} CONFIG REQUIRED)
+        #PRINT_VAR(${TPL_NAME}_INCLUDE_DIRS)
+        #PRINT_VAR(${TPL_NAME}_LIBRARIES)
+        TRIBITS_STANDARDIZE_ABS_PATHS(THIS_TPL_INCLUDE_DIRS
           ${${TPL_NAME}_INCLUDE_DIRS} ${${TPL_NAME}_TPL_INCLUDE_DIRS})
-        global_set(TPL_${TPL_NAME}_INCLUDE_DIRS ${THIS_TPL_INCLUDE_DIRS})
-        global_set(TPL_${TPL_NAME}_LIBRARIES
+        GLOBAL_SET(TPL_${TPL_NAME}_INCLUDE_DIRS ${THIS_TPL_INCLUDE_DIRS})
+        GLOBAL_SET(TPL_${TPL_NAME}_LIBRARIES
           "${${TPL_NAME}_LIBRARIES}" "${${TPL_NAME}_TPL_LIBRARIES}")
-        global_set(TPL_${TPL_NAME}_PARTS_ALREADY_SET TRUE)
-      endif()
-      #print_var(TPL_${TPL_NAME}_INCLUDE_DIRS)
-      #print_var(TPL_${TPL_NAME}_LIBRARIES)
-      return()
-    elseif (IS_ABSOLUTE ${${TPL_NAME}_FINDMOD})
-      #message("${${TPL_NAME}_FINDMOD} is absolute!")
-      set(CURRENT_TPL_PATH "${${TPL_NAME}_FINDMOD}")
-    else()
-      #message("${${TPL_NAME}_FINDMOD} is *NOT* absolute!")
-      set(CURRENT_TPL_PATH "${PROJECT_SOURCE_DIR}/${${TPL_NAME}_FINDMOD}")
-    endif()
-    #print_var(CURRENT_TPL_PATH)
+        GLOBAL_SET(TPL_${TPL_NAME}_PARTS_ALREADY_SET TRUE)
+      ENDIF()
+      #PRINT_VAR(TPL_${TPL_NAME}_INCLUDE_DIRS)
+      #PRINT_VAR(TPL_${TPL_NAME}_LIBRARIES)
+      RETURN()
+    ELSEIF (IS_ABSOLUTE ${${TPL_NAME}_FINDMOD})
+      #MESSAGE("${${TPL_NAME}_FINDMOD} is absolute!")
+      SET(CURRENT_TPL_PATH "${${TPL_NAME}_FINDMOD}")
+    ELSE()
+      #MESSAGE("${${TPL_NAME}_FINDMOD} is *NOT* absolute!")
+      SET(CURRENT_TPL_PATH "${PROJECT_SOURCE_DIR}/${${TPL_NAME}_FINDMOD}")
+    ENDIF()
+    #PRINT_VAR(CURRENT_TPL_PATH)
 
     # Process the FindTPL${TPL_NAME}.cmake module
-    tribits_trace_file_processing(TPL  INCLUDE  "${CURRENT_TPL_PATH}")
-    include("${CURRENT_TPL_PATH}")
+    TRIBITS_TRACE_FILE_PROCESSING(TPL  INCLUDE  "${CURRENT_TPL_PATH}")
+    INCLUDE("${CURRENT_TPL_PATH}")
 
-    if (${PROJECT_NAME}_VERBOSE_CONFIGURE)
-      print_var(TPL_${TPL_NAME}_NOT_FOUND)
-    endif()
+    IF (${PROJECT_NAME}_VERBOSE_CONFIGURE)
+      PRINT_VAR(TPL_${TPL_NAME}_NOT_FOUND)
+    ENDIF()
 
     # Address failed find of the TPL
-    if (TPL_${TPL_NAME}_NOT_FOUND AND NOT TPL_TENTATIVE_ENABLE_${TPL_NAME})
-      message(
+    IF (TPL_${TPL_NAME}_NOT_FOUND AND NOT TPL_TENTATIVE_ENABLE_${TPL_NAME})
+      MESSAGE(
         "-- NOTE: The find module file for this failed TPL '${TPL_NAME}' is:\n"
         "     ${CURRENT_TPL_PATH}\n"
         "   which is pointed to in the file:\n"
         "     ${${TPL_NAME}_TPLS_LIST_FILE}\n"
         )
-      if (TPL_${TPL_NAME}_ENABLING_PKG)
-        message(
+      IF (TPL_${TPL_NAME}_ENABLING_PKG)
+        MESSAGE(
           "TIP: One way to get past the configure failure for the\n"
           "TPL '${TPL_NAME}' is to simply disable it with:\n"
           "  -DTPL_ENABLE_${TPL_NAME}=OFF\n"
@@ -129,8 +129,8 @@ function(tribits_process_enabled_tpl  TPL_NAME)
           "and then follow the disables that occur as a result to see what impact\n"
           "this TPL disable has on the configuration of ${PROJECT_NAME}.\n"
           )
-      else()
-        message(
+      ELSE()
+        MESSAGE(
           "TIP: Even though the TPL '${TPL_NAME}' was explicitly enabled in input,\n"
           "it can be disabled with:\n"
           "  -DTPL_ENABLE_${TPL_NAME}=OFF\n"
@@ -140,18 +140,18 @@ function(tribits_process_enabled_tpl  TPL_NAME)
           "and then follow the disables that occur as a result to see what impact\n"
           "this TPL disable has on the configuration of ${PROJECT_NAME}.\n"
           )
-      endif()
-      message(FATAL_ERROR
+      ENDIF()
+      MESSAGE(FATAL_ERROR
         "ERROR: TPL_${TPL_NAME}_NOT_FOUND=${TPL_${TPL_NAME}_NOT_FOUND}, aborting!")
-    endif()
+    ENDIF()
 
-    # Assert that the TPL correctly defined all of these variables
-    assert_defined(TPL_${TPL_NAME}_INCLUDE_DIRS)
-    assert_defined(TPL_${TPL_NAME}_LIBRARIES)
-    assert_defined(TPL_${TPL_NAME}_LIBRARY_DIRS)
+    # Assert that the TPL correctly defined all of these varaibles.
+    ASSERT_DEFINED(TPL_${TPL_NAME}_INCLUDE_DIRS)
+    ASSERT_DEFINED(TPL_${TPL_NAME}_LIBRARIES)
+    ASSERT_DEFINED(TPL_${TPL_NAME}_LIBRARY_DIRS)
     # ToDo: Make TPL_${TPL_NAME}_LIBRARY_DIRS go away.  It is not needed for
     # anything.
 
-  endif()
+  ENDIF()
 
-endfunction()
+ENDFUNCTION()

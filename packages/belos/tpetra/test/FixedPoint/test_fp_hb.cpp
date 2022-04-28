@@ -71,7 +71,8 @@ using std::vector;
 using Teuchos::tuple;
 
 int main(int argc, char *argv[]) {
-  typedef Tpetra::MultiVector<>::scalar_type ST;
+
+  typedef double                           ST;
   typedef ScalarTraits<ST>                SCT;
   typedef SCT::magnitudeType               MT;
   typedef Tpetra::Operator<ST>             OP;
@@ -162,7 +163,7 @@ int main(int argc, char *argv[]) {
       {
         Teuchos::ArrayRCP<ST> dd=diag.getDataNonConst();
 
-        auto GlobalElements = A->getRowMap()->getLocalElementList();
+        auto GlobalElements = A->getRowMap()->getNodeElementList();
         A->resumeFill();
         for(int i=0; i<(int)dd.size(); i++) {
           dd[i]=dd[i]*1e4;
@@ -213,10 +214,10 @@ int main(int argc, char *argv[]) {
       VV diagonal(A->getRowMap());
       A->getLocalDiagCopy(diagonal);
 
-      int NumMyElements    = diagonal.getMap()->getLocalNumElements();
-      auto MyGlobalElements = diagonal.getMap()->getLocalElementList();
+      int NumMyElements    = diagonal.getMap()->getNodeNumElements();
+      auto MyGlobalElements = diagonal.getMap()->getNodeElementList();
       Teuchos::ArrayRCP<ST> dd=diagonal.getDataNonConst();
-      RCP<CrsMatrix<ST> > invDiagMatrix = Teuchos::rcp(new CrsMatrix<ST>(A->getRowMap(), 1));
+      RCP<CrsMatrix<ST> > invDiagMatrix = Teuchos::rcp(new CrsMatrix<ST>(A->getRowMap(), 1, Tpetra::StaticProfile));
 
       for (Teuchos_Ordinal i=0; i<NumMyElements; ++i) {
         invDiagMatrix->insertGlobalValues(MyGlobalElements[i],

@@ -56,7 +56,7 @@ namespace MueLu {
 Teuchos::ArrayRCP<Scalar>
 UtilitiesBase<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
  GetMatrixDiagonal(const Xpetra::Matrix<Scalar,LocalOrdinal,GlobalOrdinal,Node>& A) {
-  size_t numRows = A.getRowMap()->getLocalNumElements();
+  size_t numRows = A.getRowMap()->getNodeNumElements();
   Teuchos::ArrayRCP<Scalar> diag(numRows);
   Teuchos::ArrayView<const LocalOrdinal> cols;
   Teuchos::ArrayView<const Scalar> vals;

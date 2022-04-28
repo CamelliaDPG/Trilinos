@@ -124,7 +124,7 @@ TEUCHOS_UNIT_TEST(DIRK, SinCos_ASA)
       pl->sublist("Default Integrator")
          .sublist("Time Step Control").set("Initial Time Step", dt);
       RCP<Tempus::IntegratorAdjointSensitivity<double> > integrator =
-        Tempus::createIntegratorAdjointSensitivity<double>(pl, model);
+        Tempus::integratorAdjointSensitivity<double>(pl, model);
       order = integrator->getStepper()->getOrder();
 
       // Initial Conditions

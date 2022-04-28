@@ -74,9 +74,6 @@ public:
     int getNumberOfFileNames();
     void addFileName(const std::string& name);
 
-    void setAdditionalProperties(Ioss::PropertyManager *additionalProperties);
-    Ioss::PropertyManager* getAdditionalProperties(); 
-
 private:
 
     int getMyRank();
@@ -96,7 +93,6 @@ private:
 
     void initialize();
     void SetUpDefaultProperties(Ioss::PropertyManager *outputProperties);
-    void addAdditionalProperties(Ioss::PropertyManager* outputProperties);
     void callCatalystIOSSDatabaseOnRank();
     void callCatalystIOSSDatabaseOnRankOneGrid();
     void callCatalystIOSSDatabaseOnRankMultiGrid();
@@ -145,7 +141,6 @@ private:
     std::string iossReportFileName = "IossRegionReport";
     const std::string applicationName = "ioss2catalyst";
     std::vector<Ioss::Region *> inputIOSSRegion;
-    Ioss::PropertyManager *additionalProperties;
 
 #if defined(__APPLE__)
     const char *CATALYST_PLUGIN_DYNAMIC_LIBRARY =\

@@ -416,10 +416,10 @@ elementWiseMultiply( Scalar /* scalarAB */,
     XPETRA_TEST_FOR_EXCEPTION(B.getMap()->isSameAs(*(this->getMap())) == false,
                               Xpetra::Exceptions::RuntimeError,
                               "BlockedVector::elementWiseMultipy: B must have same blocked map than this.");
-    TEUCHOS_TEST_FOR_EXCEPTION(A.getMap()->getLocalNumElements() != B.getMap()->getLocalNumElements(),
+    TEUCHOS_TEST_FOR_EXCEPTION(A.getMap()->getNodeNumElements() != B.getMap()->getNodeNumElements(),
                                Xpetra::Exceptions::RuntimeError,
                                "BlockedVector::elementWiseMultipy: A has "
-                                 << A.getMap()->getLocalNumElements() << " elements, B has " << B.getMap()->getLocalNumElements()
+                                 << A.getMap()->getNodeNumElements() << " elements, B has " << B.getMap()->getNodeNumElements()
                                  << ".");
     TEUCHOS_TEST_FOR_EXCEPTION(A.getMap()->getGlobalNumElements() != B.getMap()->getGlobalNumElements(),
                                Xpetra::Exceptions::RuntimeError,
@@ -591,33 +591,10 @@ randomize(bool bUseXpetraImplementation)
 template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
 void
 BlockedVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
-randomize(const Scalar& minVal, const Scalar& maxVal, bool bUseXpetraImplementation)
-{
-    for(size_t r = 0; r < this->getBlockedMap()->getNumMaps(); ++r)
-    {
-        getMultiVector(r)->randomize(minVal, maxVal, bUseXpetraImplementation);
-    }
-}
-
-
-template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
-void
-BlockedVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
 Xpetra_randomize()
 {
     {
         Xpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Xpetra_randomize();
-    }
-}
-
-
-template<class Scalar, class LocalOrdinal, class GlobalOrdinal, class Node>
-void
-BlockedVector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::
-Xpetra_randomize(const Scalar& minVal, const Scalar& maxVal)
-{
-    {
-        Xpetra::Vector<Scalar, LocalOrdinal, GlobalOrdinal, Node>::Xpetra_randomize(minVal, maxVal);
     }
 }
 

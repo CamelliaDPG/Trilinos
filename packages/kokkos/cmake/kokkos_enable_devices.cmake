@@ -19,13 +19,10 @@ KOKKOS_CFG_DEPENDS(DEVICES NONE)
 KOKKOS_DEPRECATED_LIST(DEVICES ENABLE)
 
 
-KOKKOS_DEVICE_OPTION(THREADS OFF HOST "Whether to build C++ threads backend")
-IF(Kokkos_ENABLE_PTHREAD)  # for backward compatibility
-  SET(Kokkos_ENABLE_THREADS ON CACHE BOOL "Whether to build C++ threads backend" FORCE)
+KOKKOS_DEVICE_OPTION(PTHREAD       OFF HOST "Whether to build Pthread backend")
+IF (KOKKOS_ENABLE_PTHREAD)
+  #patch the naming here
   SET(KOKKOS_ENABLE_THREADS ON)
-  LIST(APPEND KOKKOS_ENABLED_DEVICES THREADS)
-  SET(KOKKOS_HAS_HOST ON)
-  MESSAGE(DEPRECATION "The Kokkos_ENABLE_PTHREAD option is deprecated. Use Kokkos_ENABLE_THREADS instead!")
 ENDIF()
 
 # detect clang++ / cl / clang-cl clashes
@@ -65,7 +62,7 @@ IF(KOKKOS_ENABLE_OPENMP)
       COMPILER_ID KOKKOS_CXX_HOST_COMPILER_ID
       Clang      -Xcompiler ${ClangOpenMPFlag}
       IntelLLVM  -Xcompiler -fiopenmp
-      NVHPC      -Xcompiler -mp
+      PGI        -Xcompiler -mp
       Cray       NO-VALUE-SPECIFIED
       XL         -Xcompiler -qsmp=omp
       DEFAULT    -Xcompiler -fopenmp
@@ -75,7 +72,7 @@ IF(KOKKOS_ENABLE_OPENMP)
       Clang      ${ClangOpenMPFlag}
       IntelLLVM  -fiopenmp
       AppleClang -Xpreprocessor -fopenmp
-      NVHPC      -mp
+      PGI        -mp
       Cray       NO-VALUE-SPECIFIED
       XL         -qsmp=omp
       DEFAULT    -fopenmp
@@ -97,7 +94,7 @@ IF (KOKKOS_ENABLE_OPENMPTARGET)
     Clang      ${ClangOpenMPFlag} -Wno-openmp-mapping
     IntelLLVM  -fiopenmp -Wno-openmp-mapping
     XL         -qsmp=omp -qoffload -qnoeh
-    NVHPC      -mp=gpu
+    PGI        -mp=gpu
     DEFAULT    -fopenmp
   )
   COMPILER_SPECIFIC_DEFS(
@@ -122,6 +119,9 @@ KOKKOS_DEVICE_OPTION(CUDA ${CUDA_DEFAULT} DEVICE "Whether to build CUDA backend"
 
 IF (KOKKOS_ENABLE_CUDA)
   GLOBAL_SET(KOKKOS_DONT_ALLOW_EXTENSIONS "CUDA enabled")
+  IF(WIN32 AND NOT KOKKOS_CXX_COMPILER_ID STREQUAL Clang)
+    GLOBAL_APPEND(KOKKOS_COMPILE_OPTIONS -x cu)
+  ENDIF()
 ## Cuda has extra setup requirements, turn on Kokkos_Setup_Cuda.hpp in macros
   LIST(APPEND DEVICE_SETUP_LIST Cuda)
 ENDIF()

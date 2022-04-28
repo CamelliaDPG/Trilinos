@@ -465,7 +465,7 @@ int feAssemblyHex(int argc, char *argv[]) {
     globalIndexer->getOwnedAndGhostedIndices(ownedAndGhostedIndices);
     Teuchos::RCP<const map_t> ownedAndGhostedMap = Teuchos::rcp(new const map_t(Teuchos::OrdinalTraits<global_ordinal_t>::invalid(),ownedAndGhostedIndices,0,Teuchos::rcpFromRef(comm)));
 
-     *outStream << "Total number of DoFs: " << ownedMap->getGlobalNumElements() << ", number of owned DoFs: " << ownedMap->getLocalNumElements() << "\n";
+     *outStream << "Total number of DoFs: " << ownedMap->getGlobalNumElements() << ", number of owned DoFs: " << ownedMap->getNodeNumElements() << "\n";
 
     mapsTimer = Teuchos::null;
     auto graphGenerationTimer =  Teuchos::rcp(new Teuchos::TimeMonitor(*Teuchos::TimeMonitor::getNewTimer("Graph Generation")));
@@ -534,7 +534,7 @@ int feAssemblyHex(int argc, char *argv[]) {
 
     auto localColMap  = A->getColMap()->getLocalMap();
     auto localMap  = ownedAndGhostedMap->getLocalMap();
-    auto localMatrix  = A->getLocalMatrixDevice();
+    auto localMatrix  = A->getLocalMatrix();
     auto localRHS     = b->getLocalViewDevice(Tpetra::Access::ReadWrite);
 
     //fill matrix

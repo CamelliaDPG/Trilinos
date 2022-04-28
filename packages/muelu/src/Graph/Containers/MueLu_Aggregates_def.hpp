@@ -71,7 +71,7 @@ namespace MueLu {
     procWinner_ = LOVectorFactory::Build(graph.GetImportMap());
     procWinner_->putScalar(MUELU_UNASSIGNED);
 
-    isRoot_ = Teuchos::ArrayRCP<bool>(graph.GetImportMap()->getLocalNumElements(), false);
+    isRoot_ = Teuchos::ArrayRCP<bool>(graph.GetImportMap()->getNodeNumElements(), false);
 
     // slow but safe, force TentativePFactory to build column map for P itself
     aggregatesIncludeGhosts_ = true;
@@ -88,7 +88,7 @@ namespace MueLu {
     procWinner_ = LOVectorFactory::Build(map);
     procWinner_->putScalar(MUELU_UNASSIGNED);
 
-    isRoot_ = Teuchos::ArrayRCP<bool>(map->getLocalNumElements(), false);
+    isRoot_ = Teuchos::ArrayRCP<bool>(map->getNodeNumElements(), false);
 
     // slow but safe, force TentativePFactory to build column map for P itself
     aggregatesIncludeGhosts_ = true;

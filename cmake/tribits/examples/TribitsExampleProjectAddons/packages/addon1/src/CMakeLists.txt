@@ -1,5 +1,5 @@
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-tribits_add_library(addon1
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+TRIBITS_ADD_LIBRARY(addon1
   SOURCES Addon1.cpp
   HEADERS Addon1.hpp
   NOINSTALLHEADERS 

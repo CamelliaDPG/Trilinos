@@ -159,7 +159,7 @@ namespace MueLu {
     int numProcs = comm->getSize();
     int myRank   = comm->getRank();
 
-    int numPoints = colMap->getLocalNumElements();
+    int numPoints = colMap->getNodeNumElements();
 
     bx_ = pL.get<int>("aggregation: brick x size");
     by_ = pL.get<int>("aggregation: brick y size");
