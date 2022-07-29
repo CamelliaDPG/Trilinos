@@ -7,16 +7,15 @@ namespace
 {
   using namespace Intrepid2;
 
-  using NodalBasisFamily = NodalBasisFamily<typename Kokkos::DefaultExecutionSpace::device_type>;
+  using LineBasis = Basis_HGRAD_LINE_Cn_FEM<typename Kokkos::DefaultExecutionSpace::device_type,double,double>;
+  using BasisBase = typename LineBasis::BasisBase;
+  using BasisPtr = Teuchos::RCP<BasisBase>;
 
-  static typename NodalBasisFamily::BasisPtr getHypercubeBasis_HGRAD2(int polyOrder, int spaceDim) //, const EPointType pointType=POINTTYPE_DEFAULT)
+  static BasisPtr getHypercubeBasis_HGRAD2(int polyOrder, int spaceDim)
   {
     using Teuchos::rcp;
 
-    using BasisBase = typename NodalBasisFamily::HGRAD_LINE::BasisBase;
-    using BasisPtr = typename NodalBasisFamily::BasisPtr;
-
-    BasisPtr lineBasis = getLineBasis<NodalBasisFamily>(FUNCTION_SPACE_HGRAD, polyOrder);
+    BasisPtr lineBasis = Teuchos::rcp(new LineBasis(polyOrder) );
     BasisPtr tensorBasis = lineBasis;
 
     for (int d=1; d<spaceDim; d++)
@@ -39,3 +38,4 @@ namespace
   }
 
 } // namespace
+
