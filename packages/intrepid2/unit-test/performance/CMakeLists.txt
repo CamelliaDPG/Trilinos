@@ -1,3 +1,4 @@
 ADD_SUBDIRECTORY(DataCombination)
+ADD_SUBDIRECTORY(Minimal-Failure)
 ADD_SUBDIRECTORY(StructuredIntegration)
 
