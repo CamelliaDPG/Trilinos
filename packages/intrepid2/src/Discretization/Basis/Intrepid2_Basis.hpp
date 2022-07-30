@@ -56,6 +56,7 @@
 
 #include "Intrepid2_BasisValues.hpp"
 #include "Intrepid2_CellTopologyTags.hpp"
+#include "Intrepid2_OperatorTensorDecomposition.hpp"
 #include "Intrepid2_TensorPoints.hpp"
 #include "Kokkos_Vector.hpp"
 #include "Shards_CellTopology.hpp"
@@ -880,6 +881,13 @@ using HostBasisPtr = BasisPtr<typename Kokkos::HostSpace::device_type, OutputTyp
       return r_val;
     }
     
+    /** \brief Returns a full decomposition of the specified operator.  (Full meaning that all TensorBasis components are expanded into their non-TensorBasis components.)
+      */
+    virtual OperatorTensorDecomposition getOperatorDecomposition(const EOperator operatorType) const
+    {
+      return OperatorTensorDecomposition(std::vector<EOperator> {operatorType});
+    }
+    
     /** \brief returns the number of tensorial extrusions relative to the cell topology returned by getBaseCellTopology().  Base class returns 0; overridden by TensorBasis.
      */
     virtual int getNumTensorialExtrusions() const
@@ -887,6 +895,14 @@ using HostBasisPtr = BasisPtr<typename Kokkos::HostSpace::device_type, OutputTyp
       return 0;
     }
 
+    /** \brief returns the component bases for a tensor basis; returns a single-element vector with a weak pointer to this for all others.
+     */
+    virtual std::vector<BasisPtr<Device, outputValueType, pointValueType>> getTensorBasisComponents() const
+    {
+      BasisPtr<Device, outputValueType, pointValueType> thisWeakPtr = Teuchos::rcp(this,false);
+      return std::vector<BasisPtr<Device, outputValueType, pointValueType>> {thisWeakPtr};
+    }
+    
     /** \brief DoF tag to ordinal data structure */
     const OrdinalTypeArray3DHost
     getAllDofOrdinal() const {
