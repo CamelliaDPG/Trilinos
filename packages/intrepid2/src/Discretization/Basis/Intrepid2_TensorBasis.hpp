@@ -544,335 +544,23 @@ struct OperatorTensorDecomposition
         \return Dk enumeration index for the composite basis, corresponding to operator order operatorOrder1 + operatorOrder2.
      */
     ordinal_type getTensorDkEnumeration(ordinal_type dkEnum1, ordinal_type operatorOrder1,
-                                        ordinal_type dkEnum2, ordinal_type operatorOrder2) const
-    {
-      ordinal_type spaceDim1 = basis1_->getDomainDimension();
-      ordinal_type spaceDim2 = basis2_->getDomainDimension();
-      
-      // We support total spaceDim <= 7.
-      switch (spaceDim1)
-      {
-        case 0:
-        {
-          INTREPID2_TEST_FOR_EXCEPTION(operatorOrder1 > 0, std::invalid_argument, "For spaceDim1 = 0, operatorOrder1 must be 0.");
-          return dkEnum2;
-        }
-        case 1:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<1, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 2: return getDkTensorIndex<1, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 3: return getDkTensorIndex<1, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 4: return getDkTensorIndex<1, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 5: return getDkTensorIndex<1, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 6: return getDkTensorIndex<1, 6>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        case 2:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<2, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 2: return getDkTensorIndex<2, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 3: return getDkTensorIndex<2, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 4: return getDkTensorIndex<2, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 5: return getDkTensorIndex<2, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        case 3:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<3, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 2: return getDkTensorIndex<3, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 3: return getDkTensorIndex<3, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 4: return getDkTensorIndex<3, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        case 4:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<4, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 2: return getDkTensorIndex<4, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 3: return getDkTensorIndex<4, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        case 5:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<5, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          case 2: return getDkTensorIndex<5, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        case 6:
-          switch (spaceDim2)
-        {
-          case 1: return getDkTensorIndex<6, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-          default:
-            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-        }
-        default:
-          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-      }
-    }
+                                        ordinal_type dkEnum2, ordinal_type operatorOrder2) const;
     
     /** \brief Returns a simple decomposition of the specified operator: what operator(s) should be applied to basis1, and what operator(s) to basis2.  A one-element OperatorTensorDecomposition corresponds to a single TensorData entry; a multiple-element OperatorTensorDecomposition corresponds to a VectorData object with axialComponents = false.
      
      Subclasses must override this method.
     */
-    virtual OperatorTensorDecomposition getSimpleOperatorDecomposition(const EOperator operatorType) const
-    {
-      const int spaceDim  = this->getDomainDimension();
-      
-      const EOperator VALUE = Intrepid2::OPERATOR_VALUE;
-      
-      std::vector< std::vector<EOperator> > opsVALUE{{VALUE, VALUE}};
-      
-      std::vector< std::vector<EOperator> > ops(spaceDim);
-      
-      switch (operatorType)
-      {
-        case VALUE:
-          ops = opsVALUE;
-          break;
-        case OPERATOR_DIV:
-        case OPERATOR_CURL:
-          // DIV and CURL are multi-family bases; subclasses are required to override
-          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported operator type - TensorBasis subclass should override");
-          break;
-        case OPERATOR_GRAD:
-        case OPERATOR_D1:
-        case OPERATOR_D2:
-        case OPERATOR_D3:
-        case OPERATOR_D4:
-        case OPERATOR_D5:
-        case OPERATOR_D6:
-        case OPERATOR_D7:
-        case OPERATOR_D8:
-        case OPERATOR_D9:
-        case OPERATOR_D10:
-        case OPERATOR_Dn:
-        {
-          auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
-          const int dkCardinality = getDkCardinality(operatorType, 2); // 2 because we have two tensor component bases, basis1_ and basis2_
-          
-          ops = std::vector< std::vector<EOperator> >(dkCardinality);
-          
-          // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
-          // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
-          for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
-          {
-            int derivativeCountComp1=opOrder-derivativeCountComp2;
-            EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
-            EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
-            
-            int dkCardinality1 = getDkCardinality(op1, 1); // use dim = 1 because this is a "simple" decomposition -- full decomposition will expand within the dimensions of basis1_
-            int dkCardinality2 = getDkCardinality(op2, 1); // use dim = 1 because this is a "simple" decomposition -- full decomposition will expand within the dimensions of basis2_
-            
-            for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
-            {
-              for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
-              {
-                ordinal_type dkTensorIndex = getDkTensorIndex<1, 1>(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
-                ops[dkTensorIndex] = std::vector<EOperator>{op1, op2};
-              }
-            }
-          }
-        }
-          break;
-      }
-      
-      std::vector<double> weights(ops.size(), 1.0);
-      return OperatorTensorDecomposition(ops, weights);
-    }
+    virtual OperatorTensorDecomposition getSimpleOperatorDecomposition(const EOperator operatorType) const;
     
     /** \brief Returns a full decomposition of the specified operator.  (Full meaning that all TensorBasis components are expanded into their non-TensorBasis components.)
       */
-    virtual OperatorTensorDecomposition getOperatorDecomposition(const EOperator operatorType) const
-    {
-      if (((operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10)) || (operatorType == OPERATOR_GRAD))
-      {
-        // ordering of the operators is reverse-lexicographic, reading left to right (highest-dimension is fastest-moving).
-        // first entry will be (operatorType, VALUE, …, VALUE)
-        // next will be (operatorType - 1, OP_D1, VALUE, …, VALUE)
-        // then         (operatorType - 1, VALUE, OP_D1, …, VALUE)
-        
-        ordinal_type numBasisComponents = tensorComponents_.size();
-        
-        auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
-        const int dkCardinality = getDkCardinality(operatorType, numBasisComponents);
-        
-        std::vector< std::vector<EOperator> > ops(dkCardinality);
-        
-        std::vector<EOperator> prevEntry(numBasisComponents, OPERATOR_VALUE);
-        prevEntry[0] = operatorType;
-        
-        ops[0] = prevEntry;
-        
-        for (ordinal_type dkOrdinal=1; dkOrdinal<dkCardinality; dkOrdinal++)
-        {
-          std::vector<EOperator> entry = prevEntry;
-          
-          // decrement to follow reverse lexicographic ordering:
-          /*
-           How to tell when it is time to decrement the nth entry:
-           1. Let a be the sum of the opOrders for entries 0 through n-1.
-           2. Let b be the sum of the nth entry and the final entry.
-           3. If opOrder == a + b, then the nth entry should be decremented.
-           */
-          ordinal_type cumulativeOpOrder = 0;
-          ordinal_type finalOpOrder = getOperatorOrder(entry[numBasisComponents-1]);
-          for (ordinal_type compOrdinal=0; compOrdinal<numBasisComponents; compOrdinal++)
-          {
-            const ordinal_type thisOpOrder = getOperatorOrder(entry[compOrdinal]);
-            cumulativeOpOrder += thisOpOrder;
-            if (cumulativeOpOrder + finalOpOrder == opOrder)
-            {
-              // decrement this
-              EOperator decrementedOp;
-              if (thisOpOrder == 1)
-              {
-                decrementedOp = OPERATOR_VALUE;
-              }
-              else
-              {
-                decrementedOp = static_cast<EOperator>(OPERATOR_D1 + ((thisOpOrder - 1) - 1));
-              }
-              entry[compOrdinal]   = decrementedOp;
-              const ordinal_type remainingOpOrder = opOrder - cumulativeOpOrder + 1;
-              entry[compOrdinal+1] = static_cast<EOperator>(OPERATOR_D1 + (remainingOpOrder - 1));
-              for (ordinal_type i=compOrdinal+2; i<numBasisComponents; i++)
-              {
-                entry[i] = OPERATOR_VALUE;
-              }
-              break;
-            }
-          }
-          ops[dkOrdinal] = entry;
-          prevEntry = entry;
-        }
-        std::vector<double> weights(dkCardinality, 1.0);
-        
-        return OperatorTensorDecomposition(ops, weights);
-      }
-      else
-      {
-        OperatorTensorDecomposition opSimpleDecomposition = this->getSimpleOperatorDecomposition(operatorType);
-        std::vector<BasisPtr> componentBases {basis1_, basis2_};
-        return opSimpleDecomposition.expandedDecomposition(componentBases);
-      }
-    }
+    virtual OperatorTensorDecomposition getOperatorDecomposition(const EOperator operatorType) const;
     
     /** \brief Allocate BasisValues container suitable for passing to the getValues() variant that takes a TensorPoints container as argument.
      
         The basic exact-sequence operators are supported (VALUE, GRAD, DIV, CURL), as are the Dn operators (OPERATOR_D1 through OPERATOR_D10).
      */
-    virtual BasisValues<OutputValueType,DeviceType> allocateBasisValues( TensorPoints<PointValueType,DeviceType> points, const EOperator operatorType = OPERATOR_VALUE) const override
-    {
-      const bool operatorIsDk = (operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10);
-      const bool operatorSupported = (operatorType == OPERATOR_VALUE) || (operatorType == OPERATOR_GRAD) || (operatorType == OPERATOR_CURL) || (operatorType == OPERATOR_DIV) || operatorIsDk;
-      INTREPID2_TEST_FOR_EXCEPTION(!operatorSupported, std::invalid_argument, "operator is not supported by allocateBasisValues");
-      
-      // check that points's spatial dimension matches the basis
-      const int spaceDim = this->getDomainDimension();
-      INTREPID2_TEST_FOR_EXCEPTION(spaceDim != points.extent_int(1), std::invalid_argument, "points must be shape (P,D), with D equal to the dimension of the basis domain");
-      
-      // check that points has enough tensor components
-      ordinal_type numBasisComponents = tensorComponents_.size();
-      if (numBasisComponents > points.numTensorComponents())
-      {
-        // Then we require points to have a trivial tensor structure.  (Subclasses could be more sophisticated.)
-        // (More sophisticated approaches are possible here, too, but likely the most common use case in which there is not a one-to-one correspondence
-        //  between basis components and point components will involve trivial tensor structure in the points...)
-        INTREPID2_TEST_FOR_EXCEPTION(points.numTensorComponents() != 1, std::invalid_argument, "If points does not have the same number of tensor components as the basis, then it should have trivial tensor structure.");
-        const ordinal_type numPoints = points.extent_int(0);
-        auto outputView = this->allocateOutputView(numPoints, operatorType);
-        
-        Data<OutputValueType,DeviceType> outputData(outputView);
-        TensorData<OutputValueType,DeviceType> outputTensorData(outputData);
-        
-        return BasisValues<OutputValueType,DeviceType>(outputTensorData);
-      }
-      INTREPID2_TEST_FOR_EXCEPTION(numBasisComponents > points.numTensorComponents(), std::invalid_argument, "points must have at least as many tensorial components as basis.");
-      
-      OperatorTensorDecomposition opDecomposition = getOperatorDecomposition(operatorType);
-            
-      ordinal_type numVectorComponents = opDecomposition.numVectorComponents();
-      const bool useVectorData = numVectorComponents > 1;
-      
-      std::vector<ordinal_type> componentPointCounts(numBasisComponents);
-      ordinal_type pointComponentNumber = 0;
-      for (ordinal_type r=0; r<numBasisComponents; r++)
-      {
-        const ordinal_type compSpaceDim = tensorComponents_[r]->getDomainDimension();
-        ordinal_type dimsSoFar = 0;
-        ordinal_type numPointsForBasisComponent = 1;
-        while (dimsSoFar < compSpaceDim)
-        {
-          INTREPID2_TEST_FOR_EXCEPTION(pointComponentNumber >= points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-          const int numComponentPoints = points.componentPointCount(pointComponentNumber);
-          const int numComponentDims = points.getTensorComponent(pointComponentNumber).extent_int(1);
-          numPointsForBasisComponent *= numComponentPoints;
-          dimsSoFar += numComponentDims;
-          INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-          pointComponentNumber++;
-        }
-        componentPointCounts[r] = numPointsForBasisComponent;
-      }
-      
-      if (useVectorData)
-      {
-        const int numFamilies = 1;
-        std::vector< std::vector<TensorData<OutputValueType,DeviceType> > > vectorComponents(numFamilies, std::vector<TensorData<OutputValueType,DeviceType> >(numVectorComponents));
-        
-        const int familyOrdinal = 0;
-        for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
-        {
-          if (!opDecomposition.identicallyZeroComponent(vectorComponentOrdinal))
-          {
-            std::vector< Data<OutputValueType,DeviceType> > componentData;
-            for (ordinal_type r=0; r<numBasisComponents; r++)
-            {
-              const int numComponentPoints = componentPointCounts[r];
-              const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
-              auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
-              componentData.push_back(Data<OutputValueType,DeviceType>(componentView));
-            }
-            vectorComponents[familyOrdinal][vectorComponentOrdinal] = TensorData<OutputValueType,DeviceType>(componentData);
-          }
-        }
-        VectorData<OutputValueType,DeviceType> vectorData(vectorComponents);
-        return BasisValues<OutputValueType,DeviceType>(vectorData);
-      }
-      else
-      {
-        // TensorData: single tensor product
-        std::vector< Data<OutputValueType,DeviceType> > componentData;
-        
-        const ordinal_type vectorComponentOrdinal = 0;
-        for (ordinal_type r=0; r<numBasisComponents; r++)
-        {
-          const int numComponentPoints = componentPointCounts[r];
-          const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
-          auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
-          
-          const int rank = 2; // (F,P) -- TensorData-only BasisValues are always scalar-valued.  Use VectorData for vector-valued.
-          // (we need to be explicit about the rank argument because GRAD, even in 1D, elevates to rank 3), so e.g. DIV of HDIV uses a componentView that is rank 3;
-          //  we want Data to insulate us from that fact)
-          const Kokkos::Array<int,7> extents {componentView.extent_int(0), componentView.extent_int(1), 1,1,1,1,1};
-          Kokkos::Array<DataVariationType,7> variationType {GENERAL, GENERAL, CONSTANT, CONSTANT, CONSTANT, CONSTANT, CONSTANT };
-          componentData.push_back(Data<OutputValueType,DeviceType>(componentView, rank, extents, variationType));
-        }
-        
-        TensorData<OutputValueType,DeviceType> tensorData(componentData);
-        
-        std::vector< TensorData<OutputValueType,DeviceType> > tensorDataEntries {tensorData};
-        return BasisValues<OutputValueType,DeviceType>(tensorDataEntries);
-      }
-    }
+    virtual BasisValues<OutputValueType,DeviceType> allocateBasisValues( TensorPoints<PointValueType,DeviceType> points, const EOperator operatorType = OPERATOR_VALUE) const override;
     
     // since the getValues() below only overrides the FEM variant, we specify that
     // we use the base class's getValues(), which implements the FVD variant by throwing an exception.
@@ -891,40 +579,7 @@ struct OperatorTensorDecomposition
      in computation of tensor bases.
      */
     void getComponentPoints(const PointViewType inputPoints, const bool attemptTensorDecomposition,
-                            PointViewType & inputPoints1, PointViewType & inputPoints2, bool &tensorDecompositionSucceeded) const
-    {
-      INTREPID2_TEST_FOR_EXCEPTION(attemptTensorDecomposition, std::invalid_argument, "tensor decomposition not yet supported");
-      
-      // for inputPoints that are actually tensor-product of component quadrature points (say),
-      // having just the one input (which will have a lot of redundant point data) is suboptimal
-      // The general case can have unique x/y/z coordinates at every point, though, so we have to support that
-      // when this interface is used.  But we may try detecting that the data is tensor-product and compressing
-      // from there...  Ultimately, we should also add a getValues() variant that takes multiple input point containers,
-      // one for each tensorial dimension.
-      
-      // this initial implementation is intended to simplify development of 2D and 3D bases, while also opening
-      // the possibility of higher-dimensional bases.  It is not necessarily optimized for speed/memory.  There
-      // are things we can do in this regard, which may become important for matrix-free computations wherein
-      // basis values don't get stored but are computed dynamically.
-      
-      int spaceDim1 = basis1_->getDomainDimension();
-      int spaceDim2 = basis2_->getDomainDimension();
-      
-      int totalSpaceDim   = inputPoints.extent_int(1);
-      
-      TEUCHOS_ASSERT(spaceDim1 + spaceDim2 == totalSpaceDim);
-      
-      // first pass: just take subviews to get input points -- this will result in redundant computations when points are themselves tensor product (i.e., inputPoints itself contains redundant data)
-      
-      inputPoints1 = Kokkos::subview(inputPoints,Kokkos::ALL(),std::make_pair(0,spaceDim1));
-      inputPoints2 = Kokkos::subview(inputPoints,Kokkos::ALL(),std::make_pair(spaceDim1,totalSpaceDim));
-      
-      //      std::cout << "inputPoints : " << inputPoints.extent(0) << " x " << inputPoints.extent(1) << std::endl;
-      //      std::cout << "inputPoints1 : " << inputPoints1.extent(0) << " x " << inputPoints1.extent(1) << std::endl;
-      //      std::cout << "inputPoints2 : " << inputPoints2.extent(0) << " x " << inputPoints2.extent(1) << std::endl;
-      
-      tensorDecompositionSucceeded = false;
-    }
+                            PointViewType & inputPoints1, PointViewType & inputPoints2, bool &tensorDecompositionSucceeded) const;
     
     /** \brief  Fills in spatial locations (coordinates) of degrees of freedom (nodes) on the reference cell
         \param [out] dofCoords - the container into which to place the degrees of freedom.
@@ -934,41 +589,7 @@ struct OperatorTensorDecomposition
      
      Note that getDofCoords() is not supported by all bases; in particular, hierarchical bases do not generally support this.
      */
-    virtual void getDofCoords( typename BasisBase::ScalarViewType dofCoords ) const override
-    {
-      int spaceDim1 = basis1_->getBaseCellTopology().getDimension();
-      int spaceDim2 = basis2_->getBaseCellTopology().getDimension();
-      
-      using ValueType    = typename BasisBase::ScalarViewType::value_type;
-      using ResultLayout = typename DeduceLayout< typename BasisBase::ScalarViewType >::result_layout;
-      using ViewType     = Kokkos::DynRankView<ValueType, ResultLayout, DeviceType >;
-      
-      const ordinal_type basisCardinality1 = basis1_->getCardinality();
-      const ordinal_type basisCardinality2 = basis2_->getCardinality();
-
-      ViewType dofCoords1("dofCoords1",basisCardinality1,spaceDim1);
-      ViewType dofCoords2("dofCoords2",basisCardinality2,spaceDim2);
-      
-      basis1_->getDofCoords(dofCoords1);
-      basis2_->getDofCoords(dofCoords2);
-      
-      Kokkos::RangePolicy<ExecutionSpace> policy(0, basisCardinality2);
-      Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const int fieldOrdinal2)
-       {
-         for (int fieldOrdinal1=0; fieldOrdinal1<basisCardinality1; fieldOrdinal1++)
-         {
-           const ordinal_type fieldOrdinal = fieldOrdinal1 + fieldOrdinal2 * basisCardinality1;
-           for (int d1=0; d1<spaceDim1; d1++)
-           {
-             dofCoords(fieldOrdinal,d1) = dofCoords1(fieldOrdinal1,d1);
-           }
-           for (int d2=0; d2<spaceDim2; d2++)
-           {
-             dofCoords(fieldOrdinal,spaceDim1+d2) = dofCoords2(fieldOrdinal2,d2);
-           }
-         }
-       });
-    }
+    virtual void getDofCoords( typename BasisBase::ScalarViewType dofCoords ) const override;
     
 
     /** \brief  Fills in coefficients of degrees of freedom on the reference cell
@@ -978,32 +599,7 @@ struct OperatorTensorDecomposition
 
      Note that getDofCoeffs() is not supported by all bases; in particular, hierarchical bases do not generally support this.
      */
-    virtual void getDofCoeffs( typename BasisBase::ScalarViewType dofCoeffs ) const override
-    {
-      using ValueType    = typename BasisBase::ScalarViewType::value_type;
-      using ResultLayout = typename DeduceLayout< typename BasisBase::ScalarViewType >::result_layout;
-      using ViewType     = Kokkos::DynRankView<ValueType, ResultLayout, DeviceType >;
-
-      ViewType dofCoeffs1("dofCoeffs1",basis1_->getCardinality());
-      ViewType dofCoeffs2("dofCoeffs2",basis2_->getCardinality());
-
-      basis1_->getDofCoeffs(dofCoeffs1);
-      basis2_->getDofCoeffs(dofCoeffs2);
-
-      const ordinal_type basisCardinality1 = basis1_->getCardinality();
-      const ordinal_type basisCardinality2 = basis2_->getCardinality();
-
-      Kokkos::RangePolicy<ExecutionSpace> policy(0, basisCardinality2);
-      Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const int fieldOrdinal2)
-       {
-         for (int fieldOrdinal1=0; fieldOrdinal1<basisCardinality1; fieldOrdinal1++)
-         {
-           const ordinal_type fieldOrdinal = fieldOrdinal1 + fieldOrdinal2 * basisCardinality1;
-           dofCoeffs(fieldOrdinal) = dofCoeffs1(fieldOrdinal1);
-           dofCoeffs(fieldOrdinal) = dofCoeffs2(fieldOrdinal2);
-         }
-       });
-    }
+    virtual void getDofCoeffs( typename BasisBase::ScalarViewType dofCoeffs ) const override;
 
     /** \brief  Returns basis name
      
@@ -1011,14 +607,9 @@ struct OperatorTensorDecomposition
      */
     virtual
     const char*
-    getName() const override {
-      return name_.c_str();
-    }
+    getName() const override;
     
-    std::vector<BasisPtr> getTensorBasisComponents() const
-    {
-      return tensorComponents_;
-    }
+    std::vector<BasisPtr> getTensorBasisComponents() const;
     
     /** \brief  Evaluation of a FEM basis on a <strong>reference cell</strong>, using point and output value containers that allow preservation of tensor-product structure.
 
@@ -1035,121 +626,7 @@ struct OperatorTensorDecomposition
     void
     getValues(       BasisValues<OutputValueType,DeviceType> outputValues,
                const TensorPoints<PointValueType,DeviceType>  inputPoints,
-               const EOperator operatorType = OPERATOR_VALUE ) const override
-    {
-      const ordinal_type numTensorComponents = tensorComponents_.size();
-      if (inputPoints.numTensorComponents() < numTensorComponents)
-      {
-        // then we require that both inputPoints and outputValues trivial tensor structure
-        INTREPID2_TEST_FOR_EXCEPTION( inputPoints.numTensorComponents() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, then inputPoints must have trivial tensor product structure" );
-        INTREPID2_TEST_FOR_EXCEPTION( outputValues.numFamilies() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, outputValues must have a single family with trivial tensor product structure" );
-        INTREPID2_TEST_FOR_EXCEPTION( outputValues.tensorData().numTensorComponents() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, outputValues must have a single family with trivial tensor product structure" );
-        
-        OutputViewType outputView = outputValues.tensorData().getTensorComponent(0).getUnderlyingView();
-        PointViewType   pointView = inputPoints.getTensorComponent(0);
-        this->getValues(outputView, pointView, operatorType);
-        return;
-      }
-      
-      OperatorTensorDecomposition operatorDecomposition = getOperatorDecomposition(operatorType);
-      
-      const ordinal_type numVectorComponents = operatorDecomposition.numVectorComponents();
-      const bool               useVectorData = numVectorComponents > 1;
-      const ordinal_type  numBasisComponents = operatorDecomposition.numBasisComponents();
-      
-      for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
-      {
-        const double weight = operatorDecomposition.weight(vectorComponentOrdinal);
-        ordinal_type pointComponentOrdinal = 0;
-        for (ordinal_type basisOrdinal=0; basisOrdinal<numBasisComponents; basisOrdinal++, pointComponentOrdinal++)
-        {
-          const EOperator op = operatorDecomposition.op(vectorComponentOrdinal, basisOrdinal);
-          // by convention, op == OPERATOR_MAX signals a zero component; skip
-          if (op != OPERATOR_MAX)
-          {
-            const int vectorFamily = 0; // TensorBasis always has just a single family; multiple families arise in DirectSumBasis
-            auto tensorData = useVectorData ? outputValues.vectorData().getComponent(vectorFamily,vectorComponentOrdinal) : outputValues.tensorData();
-            INTREPID2_TEST_FOR_EXCEPTION( ! tensorData.getTensorComponent(basisOrdinal).isValid(), std::invalid_argument, "Invalid output component encountered");
-                        
-            const Data<OutputValueType,DeviceType> & outputData = tensorData.getTensorComponent(basisOrdinal);
-            
-            auto basisValueView = outputData.getUnderlyingView();
-            PointViewType  pointView = inputPoints.getTensorComponent(pointComponentOrdinal);
-            const ordinal_type basisDomainDimension = tensorComponents_[basisOrdinal]->getDomainDimension();
-            if (pointView.extent_int(1) == basisDomainDimension)
-            {
-              tensorComponents_[basisOrdinal]->getValues(basisValueView, pointView, op);
-            }
-            else
-            {
-              // we need to wrap the basisValueView in a BasisValues container, and to wrap the point components in a TensorPoints container.
-              
-              // combine point components to build up to basisDomainDimension
-              ordinal_type dimsSoFar = 0;
-              std::vector< ScalarView<PointValueType,DeviceType> > basisPointComponents;
-              while (dimsSoFar < basisDomainDimension)
-              {
-                INTREPID2_TEST_FOR_EXCEPTION(pointComponentOrdinal >= inputPoints.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-                const auto & pointComponent = inputPoints.getTensorComponent(pointComponentOrdinal);
-                const ordinal_type numComponentDims   = pointComponent.extent_int(1);
-                dimsSoFar += numComponentDims;
-                INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > inputPoints.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-                basisPointComponents.push_back(pointComponent);
-                if (dimsSoFar < basisDomainDimension)
-                {
-                  // we will pass through this loop again, so we should increment the point component ordinal
-                  pointComponentOrdinal++;
-                }
-              }
-              
-              TensorPoints<PointValueType, DeviceType> basisPoints(basisPointComponents);
-              
-              bool useVectorData = (basisValueView.rank() == 3);
-
-              BasisValues<OutputValueType,DeviceType> basisValues;
-              if (useVectorData)
-              {
-                VectorData<OutputValueType,DeviceType> vectorData(outputData);
-                basisValues = BasisValues<OutputValueType,DeviceType>(vectorData);
-              }
-              else
-              {
-                TensorData<OutputValueType,DeviceType> tensorData(outputData);
-                basisValues = BasisValues<OutputValueType,DeviceType>(tensorData);
-              }
-              
-              tensorComponents_[basisOrdinal]->getValues(basisValues, basisPoints, op);
-            }
-            
-            // if weight is non-trivial (not 1.0), then we need to multiply one of the component views by weight.
-            // we do that for the first basisOrdinal's values
-            if ((weight != 1.0) && (basisOrdinal == 0))
-            {
-              if (basisValueView.rank() == 2)
-              {
-                auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{basisValueView.extent_int(0),basisValueView.extent_int(1)});
-                Kokkos::parallel_for("multiply basisValueView by weight", policy,
-                KOKKOS_LAMBDA (const int &fieldOrdinal, const int &pointOrdinal) {
-                  basisValueView(fieldOrdinal,pointOrdinal) *= weight;
-                });
-              }
-              else if (basisValueView.rank() == 3)
-              {
-                auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{basisValueView.extent_int(0),basisValueView.extent_int(1),basisValueView.extent_int(2)});
-                Kokkos::parallel_for("multiply basisValueView by weight", policy,
-                KOKKOS_LAMBDA (const int &fieldOrdinal, const int &pointOrdinal, const int &d) {
-                  basisValueView(fieldOrdinal,pointOrdinal,d) *= weight;
-                });
-              }
-              else
-              {
-                INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported rank for basisValueView");
-              }
-            }
-          }
-        }
-      }
-    }
+               const EOperator operatorType = OPERATOR_VALUE ) const override;
     
     /** \brief  Evaluation of a FEM basis on a <strong>reference cell</strong>.
 
@@ -1199,10 +676,7 @@ struct OperatorTensorDecomposition
     */
     virtual void getValues(OutputViewType outputValues, const EOperator operatorType,
                            const PointViewType  inputPoints1, const PointViewType  inputPoints2,
-                           bool tensorPoints) const
-    {
-      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "one-operator, two-inputPoints getValues should be overridden by TensorBasis subclasses");
-    }
+                           bool tensorPoints) const;
     
     /** \brief  Evaluation of a tensor FEM basis on a <strong>reference cell</strong>.
 
@@ -1237,9 +711,7 @@ struct OperatorTensorDecomposition
         \return Pointer to the new Basis object.
      */
     virtual HostBasisPtr<OutputValueType, PointValueType>
-    getHostBasis() const override {
-      TEUCHOS_TEST_FOR_EXCEPTION(true, std::invalid_argument, "TensorBasis subclasses must override getHostBasis");
-    }
+    getHostBasis() const override;
   }; // Basis_TensorBasis
   
   /** \struct Intrepid2::TensorBasis3_Functor
@@ -2295,9 +1767,9 @@ void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::Outp
 }
 
 template<class BasisBase>
-void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::OutputViewType outputValues,
-                                              const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints1, const EOperator operatorType1,
-                                              const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints2, const EOperator operatorType2,
+void Basis_TensorBasis<BasisBase>::getValues( typename BasisBase::OutputViewType outputValues,
+                                              const typename BasisBase::PointViewType  inputPoints1, const EOperator operatorType1,
+                                              const typename BasisBase::PointViewType  inputPoints2, const EOperator operatorType2,
                                               bool tensorPoints, double weight) const
 {
   int basisCardinality1 = basis1_->getCardinality();
@@ -2366,6 +1838,583 @@ void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::Outp
   
   FunctorType functor(outputValues, outputValues1, outputValues2, tensorPoints, weight);
   Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
+}
+
+template<class BasisBase>
+ordinal_type Basis_TensorBasis<BasisBase>::getTensorDkEnumeration(ordinal_type dkEnum1, ordinal_type operatorOrder1,
+                                                                  ordinal_type dkEnum2, ordinal_type operatorOrder2) const
+{
+  ordinal_type spaceDim1 = basis1_->getDomainDimension();
+  ordinal_type spaceDim2 = basis2_->getDomainDimension();
+  
+  // We support total spaceDim <= 7.
+  switch (spaceDim1)
+  {
+    case 0:
+    {
+      INTREPID2_TEST_FOR_EXCEPTION(operatorOrder1 > 0, std::invalid_argument, "For spaceDim1 = 0, operatorOrder1 must be 0.");
+      return dkEnum2;
+    }
+    case 1:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<1, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 2: return getDkTensorIndex<1, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 3: return getDkTensorIndex<1, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 4: return getDkTensorIndex<1, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 5: return getDkTensorIndex<1, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 6: return getDkTensorIndex<1, 6>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    case 2:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<2, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 2: return getDkTensorIndex<2, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 3: return getDkTensorIndex<2, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 4: return getDkTensorIndex<2, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 5: return getDkTensorIndex<2, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    case 3:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<3, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 2: return getDkTensorIndex<3, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 3: return getDkTensorIndex<3, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 4: return getDkTensorIndex<3, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    case 4:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<4, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 2: return getDkTensorIndex<4, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 3: return getDkTensorIndex<4, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    case 5:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<5, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      case 2: return getDkTensorIndex<5, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    case 6:
+      switch (spaceDim2)
+    {
+      case 1: return getDkTensorIndex<6, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+      default:
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+    }
+    default:
+      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+  }
+}
+
+template<class BasisBase>
+OperatorTensorDecomposition Basis_TensorBasis<BasisBase>::getSimpleOperatorDecomposition(const EOperator operatorType) const
+{
+  const int spaceDim  = this->getDomainDimension();
+  
+  const EOperator VALUE = Intrepid2::OPERATOR_VALUE;
+  
+  std::vector< std::vector<EOperator> > opsVALUE{{VALUE, VALUE}};
+  
+  std::vector< std::vector<EOperator> > ops(spaceDim);
+  
+  switch (operatorType)
+  {
+    case VALUE:
+      ops = opsVALUE;
+      break;
+    case OPERATOR_DIV:
+    case OPERATOR_CURL:
+      // DIV and CURL are multi-family bases; subclasses are required to override
+      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported operator type - TensorBasis subclass should override");
+      break;
+    case OPERATOR_GRAD:
+    case OPERATOR_D1:
+    case OPERATOR_D2:
+    case OPERATOR_D3:
+    case OPERATOR_D4:
+    case OPERATOR_D5:
+    case OPERATOR_D6:
+    case OPERATOR_D7:
+    case OPERATOR_D8:
+    case OPERATOR_D9:
+    case OPERATOR_D10:
+    case OPERATOR_Dn:
+    {
+      auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
+      const int dkCardinality = getDkCardinality(operatorType, 2); // 2 because we have two tensor component bases, basis1_ and basis2_
+      
+      ops = std::vector< std::vector<EOperator> >(dkCardinality);
+      
+      // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
+      // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
+      for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
+      {
+        int derivativeCountComp1=opOrder-derivativeCountComp2;
+        EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
+        EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
+        
+        int dkCardinality1 = getDkCardinality(op1, 1); // use dim = 1 because this is a "simple" decomposition -- full decomposition will expand within the dimensions of basis1_
+        int dkCardinality2 = getDkCardinality(op2, 1); // use dim = 1 because this is a "simple" decomposition -- full decomposition will expand within the dimensions of basis2_
+        
+        for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
+        {
+          for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
+          {
+            ordinal_type dkTensorIndex = getDkTensorIndex<1, 1>(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
+            ops[dkTensorIndex] = std::vector<EOperator>{op1, op2};
+          }
+        }
+      }
+    }
+      break;
+  }
+  
+  std::vector<double> weights(ops.size(), 1.0);
+  return OperatorTensorDecomposition(ops, weights);
+}
+
+template<class BasisBase>
+OperatorTensorDecomposition
+Basis_TensorBasis<BasisBase>::getOperatorDecomposition(const EOperator operatorType) const
+{
+  if (((operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10)) || (operatorType == OPERATOR_GRAD))
+  {
+    // ordering of the operators is reverse-lexicographic, reading left to right (highest-dimension is fastest-moving).
+    // first entry will be (operatorType, VALUE, …, VALUE)
+    // next will be (operatorType - 1, OP_D1, VALUE, …, VALUE)
+    // then         (operatorType - 1, VALUE, OP_D1, …, VALUE)
+    
+    ordinal_type numBasisComponents = tensorComponents_.size();
+    
+    auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
+    const int dkCardinality = getDkCardinality(operatorType, numBasisComponents);
+    
+    std::vector< std::vector<EOperator> > ops(dkCardinality);
+    
+    std::vector<EOperator> prevEntry(numBasisComponents, OPERATOR_VALUE);
+    prevEntry[0] = operatorType;
+    
+    ops[0] = prevEntry;
+    
+    for (ordinal_type dkOrdinal=1; dkOrdinal<dkCardinality; dkOrdinal++)
+    {
+      std::vector<EOperator> entry = prevEntry;
+      
+      // decrement to follow reverse lexicographic ordering:
+      /*
+       How to tell when it is time to decrement the nth entry:
+       1. Let a be the sum of the opOrders for entries 0 through n-1.
+       2. Let b be the sum of the nth entry and the final entry.
+       3. If opOrder == a + b, then the nth entry should be decremented.
+       */
+      ordinal_type cumulativeOpOrder = 0;
+      ordinal_type finalOpOrder = getOperatorOrder(entry[numBasisComponents-1]);
+      for (ordinal_type compOrdinal=0; compOrdinal<numBasisComponents; compOrdinal++)
+      {
+        const ordinal_type thisOpOrder = getOperatorOrder(entry[compOrdinal]);
+        cumulativeOpOrder += thisOpOrder;
+        if (cumulativeOpOrder + finalOpOrder == opOrder)
+        {
+          // decrement this
+          EOperator decrementedOp;
+          if (thisOpOrder == 1)
+          {
+            decrementedOp = OPERATOR_VALUE;
+          }
+          else
+          {
+            decrementedOp = static_cast<EOperator>(OPERATOR_D1 + ((thisOpOrder - 1) - 1));
+          }
+          entry[compOrdinal]   = decrementedOp;
+          const ordinal_type remainingOpOrder = opOrder - cumulativeOpOrder + 1;
+          entry[compOrdinal+1] = static_cast<EOperator>(OPERATOR_D1 + (remainingOpOrder - 1));
+          for (ordinal_type i=compOrdinal+2; i<numBasisComponents; i++)
+          {
+            entry[i] = OPERATOR_VALUE;
+          }
+          break;
+        }
+      }
+      ops[dkOrdinal] = entry;
+      prevEntry = entry;
+    }
+    std::vector<double> weights(dkCardinality, 1.0);
+    
+    return OperatorTensorDecomposition(ops, weights);
+  }
+  else
+  {
+    OperatorTensorDecomposition opSimpleDecomposition = this->getSimpleOperatorDecomposition(operatorType);
+    std::vector<BasisPtr> componentBases {basis1_, basis2_};
+    return opSimpleDecomposition.expandedDecomposition(componentBases);
+  }
+}
+
+template<class BasisBase>
+BasisValues<typename BasisBase::OutputValueType, typename BasisBase::DeviceType>
+Basis_TensorBasis<BasisBase>::allocateBasisValues(TensorPoints<typename BasisBase::PointValueType,
+                                                  typename BasisBase::DeviceType> points,
+                                                  const EOperator operatorType) const
+{
+  const bool operatorIsDk = (operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10);
+  const bool operatorSupported = (operatorType == OPERATOR_VALUE) || (operatorType == OPERATOR_GRAD) || (operatorType == OPERATOR_CURL) || (operatorType == OPERATOR_DIV) || operatorIsDk;
+  INTREPID2_TEST_FOR_EXCEPTION(!operatorSupported, std::invalid_argument, "operator is not supported by allocateBasisValues");
+  
+  // check that points's spatial dimension matches the basis
+  const int spaceDim = this->getDomainDimension();
+  INTREPID2_TEST_FOR_EXCEPTION(spaceDim != points.extent_int(1), std::invalid_argument, "points must be shape (P,D), with D equal to the dimension of the basis domain");
+  
+  // check that points has enough tensor components
+  ordinal_type numBasisComponents = tensorComponents_.size();
+  if (numBasisComponents > points.numTensorComponents())
+  {
+    // Then we require points to have a trivial tensor structure.  (Subclasses could be more sophisticated.)
+    // (More sophisticated approaches are possible here, too, but likely the most common use case in which there is not a one-to-one correspondence
+    //  between basis components and point components will involve trivial tensor structure in the points...)
+    INTREPID2_TEST_FOR_EXCEPTION(points.numTensorComponents() != 1, std::invalid_argument, "If points does not have the same number of tensor components as the basis, then it should have trivial tensor structure.");
+    const ordinal_type numPoints = points.extent_int(0);
+    auto outputView = this->allocateOutputView(numPoints, operatorType);
+    
+    Data<OutputValueType,DeviceType> outputData(outputView);
+    TensorData<OutputValueType,DeviceType> outputTensorData(outputData);
+    
+    return BasisValues<OutputValueType,DeviceType>(outputTensorData);
+  }
+  INTREPID2_TEST_FOR_EXCEPTION(numBasisComponents > points.numTensorComponents(), std::invalid_argument, "points must have at least as many tensorial components as basis.");
+  
+  OperatorTensorDecomposition opDecomposition = getOperatorDecomposition(operatorType);
+        
+  ordinal_type numVectorComponents = opDecomposition.numVectorComponents();
+  const bool useVectorData = numVectorComponents > 1;
+  
+  std::vector<ordinal_type> componentPointCounts(numBasisComponents);
+  ordinal_type pointComponentNumber = 0;
+  for (ordinal_type r=0; r<numBasisComponents; r++)
+  {
+    const ordinal_type compSpaceDim = tensorComponents_[r]->getDomainDimension();
+    ordinal_type dimsSoFar = 0;
+    ordinal_type numPointsForBasisComponent = 1;
+    while (dimsSoFar < compSpaceDim)
+    {
+      INTREPID2_TEST_FOR_EXCEPTION(pointComponentNumber >= points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+      const int numComponentPoints = points.componentPointCount(pointComponentNumber);
+      const int numComponentDims = points.getTensorComponent(pointComponentNumber).extent_int(1);
+      numPointsForBasisComponent *= numComponentPoints;
+      dimsSoFar += numComponentDims;
+      INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+      pointComponentNumber++;
+    }
+    componentPointCounts[r] = numPointsForBasisComponent;
+  }
+  
+  if (useVectorData)
+  {
+    const int numFamilies = 1;
+    std::vector< std::vector<TensorData<OutputValueType,DeviceType> > > vectorComponents(numFamilies, std::vector<TensorData<OutputValueType,DeviceType> >(numVectorComponents));
+    
+    const int familyOrdinal = 0;
+    for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
+    {
+      if (!opDecomposition.identicallyZeroComponent(vectorComponentOrdinal))
+      {
+        std::vector< Data<OutputValueType,DeviceType> > componentData;
+        for (ordinal_type r=0; r<numBasisComponents; r++)
+        {
+          const int numComponentPoints = componentPointCounts[r];
+          const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
+          auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
+          componentData.push_back(Data<OutputValueType,DeviceType>(componentView));
+        }
+        vectorComponents[familyOrdinal][vectorComponentOrdinal] = TensorData<OutputValueType,DeviceType>(componentData);
+      }
+    }
+    VectorData<OutputValueType,DeviceType> vectorData(vectorComponents);
+    return BasisValues<OutputValueType,DeviceType>(vectorData);
+  }
+  else
+  {
+    // TensorData: single tensor product
+    std::vector< Data<OutputValueType,DeviceType> > componentData;
+    
+    const ordinal_type vectorComponentOrdinal = 0;
+    for (ordinal_type r=0; r<numBasisComponents; r++)
+    {
+      const int numComponentPoints = componentPointCounts[r];
+      const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
+      auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
+      
+      const int rank = 2; // (F,P) -- TensorData-only BasisValues are always scalar-valued.  Use VectorData for vector-valued.
+      // (we need to be explicit about the rank argument because GRAD, even in 1D, elevates to rank 3), so e.g. DIV of HDIV uses a componentView that is rank 3;
+      //  we want Data to insulate us from that fact)
+      const Kokkos::Array<int,7> extents {componentView.extent_int(0), componentView.extent_int(1), 1,1,1,1,1};
+      Kokkos::Array<DataVariationType,7> variationType {GENERAL, GENERAL, CONSTANT, CONSTANT, CONSTANT, CONSTANT, CONSTANT };
+      componentData.push_back(Data<OutputValueType,DeviceType>(componentView, rank, extents, variationType));
+    }
+    
+    TensorData<OutputValueType,DeviceType> tensorData(componentData);
+    
+    std::vector< TensorData<OutputValueType,DeviceType> > tensorDataEntries {tensorData};
+    return BasisValues<OutputValueType,DeviceType>(tensorDataEntries);
+  }
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getComponentPoints(const typename BasisBase::PointViewType inputPoints, const bool attemptTensorDecomposition,
+                                                      typename BasisBase::PointViewType & inputPoints1, typename BasisBase::PointViewType & inputPoints2,
+                                                      bool &tensorDecompositionSucceeded) const
+{
+  INTREPID2_TEST_FOR_EXCEPTION(attemptTensorDecomposition, std::invalid_argument, "tensor decomposition not yet supported");
+  
+  // for inputPoints that are actually tensor-product of component quadrature points (say),
+  // having just the one input (which will have a lot of redundant point data) is suboptimal
+  // The general case can have unique x/y/z coordinates at every point, though, so we have to support that
+  // when this interface is used.  But we may try detecting that the data is tensor-product and compressing
+  // from there...  Ultimately, we should also add a getValues() variant that takes multiple input point containers,
+  // one for each tensorial dimension.
+  
+  // this initial implementation is intended to simplify development of 2D and 3D bases, while also opening
+  // the possibility of higher-dimensional bases.  It is not necessarily optimized for speed/memory.  There
+  // are things we can do in this regard, which may become important for matrix-free computations wherein
+  // basis values don't get stored but are computed dynamically.
+  
+  int spaceDim1 = basis1_->getDomainDimension();
+  int spaceDim2 = basis2_->getDomainDimension();
+  
+  int totalSpaceDim   = inputPoints.extent_int(1);
+  
+  TEUCHOS_ASSERT(spaceDim1 + spaceDim2 == totalSpaceDim);
+  
+  // first pass: just take subviews to get input points -- this will result in redundant computations when points are themselves tensor product (i.e., inputPoints itself contains redundant data)
+  
+  inputPoints1 = Kokkos::subview(inputPoints,Kokkos::ALL(),std::make_pair(0,spaceDim1));
+  inputPoints2 = Kokkos::subview(inputPoints,Kokkos::ALL(),std::make_pair(spaceDim1,totalSpaceDim));
+  
+  //      std::cout << "inputPoints : " << inputPoints.extent(0) << " x " << inputPoints.extent(1) << std::endl;
+  //      std::cout << "inputPoints1 : " << inputPoints1.extent(0) << " x " << inputPoints1.extent(1) << std::endl;
+  //      std::cout << "inputPoints2 : " << inputPoints2.extent(0) << " x " << inputPoints2.extent(1) << std::endl;
+  
+  tensorDecompositionSucceeded = false;
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getDofCoords( typename BasisBase::ScalarViewType dofCoords ) const
+{
+  int spaceDim1 = basis1_->getBaseCellTopology().getDimension();
+  int spaceDim2 = basis2_->getBaseCellTopology().getDimension();
+  
+  using ValueType    = typename BasisBase::ScalarViewType::value_type;
+  using ResultLayout = typename DeduceLayout< typename BasisBase::ScalarViewType >::result_layout;
+  using ViewType     = Kokkos::DynRankView<ValueType, ResultLayout, DeviceType >;
+  
+  const ordinal_type basisCardinality1 = basis1_->getCardinality();
+  const ordinal_type basisCardinality2 = basis2_->getCardinality();
+
+  ViewType dofCoords1("dofCoords1",basisCardinality1,spaceDim1);
+  ViewType dofCoords2("dofCoords2",basisCardinality2,spaceDim2);
+  
+  basis1_->getDofCoords(dofCoords1);
+  basis2_->getDofCoords(dofCoords2);
+  
+  Kokkos::RangePolicy<ExecutionSpace> policy(0, basisCardinality2);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const int fieldOrdinal2)
+   {
+     for (int fieldOrdinal1=0; fieldOrdinal1<basisCardinality1; fieldOrdinal1++)
+     {
+       const ordinal_type fieldOrdinal = fieldOrdinal1 + fieldOrdinal2 * basisCardinality1;
+       for (int d1=0; d1<spaceDim1; d1++)
+       {
+         dofCoords(fieldOrdinal,d1) = dofCoords1(fieldOrdinal1,d1);
+       }
+       for (int d2=0; d2<spaceDim2; d2++)
+       {
+         dofCoords(fieldOrdinal,spaceDim1+d2) = dofCoords2(fieldOrdinal2,d2);
+       }
+     }
+   });
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getDofCoeffs( typename BasisBase::ScalarViewType dofCoeffs ) const
+{
+  using ValueType    = typename BasisBase::ScalarViewType::value_type;
+  using ResultLayout = typename DeduceLayout< typename BasisBase::ScalarViewType >::result_layout;
+  using ViewType     = Kokkos::DynRankView<ValueType, ResultLayout, DeviceType >;
+
+  ViewType dofCoeffs1("dofCoeffs1",basis1_->getCardinality());
+  ViewType dofCoeffs2("dofCoeffs2",basis2_->getCardinality());
+
+  basis1_->getDofCoeffs(dofCoeffs1);
+  basis2_->getDofCoeffs(dofCoeffs2);
+
+  const ordinal_type basisCardinality1 = basis1_->getCardinality();
+  const ordinal_type basisCardinality2 = basis2_->getCardinality();
+
+  Kokkos::RangePolicy<ExecutionSpace> policy(0, basisCardinality2);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const int fieldOrdinal2)
+   {
+     for (int fieldOrdinal1=0; fieldOrdinal1<basisCardinality1; fieldOrdinal1++)
+     {
+       const ordinal_type fieldOrdinal = fieldOrdinal1 + fieldOrdinal2 * basisCardinality1;
+       dofCoeffs(fieldOrdinal) = dofCoeffs1(fieldOrdinal1);
+       dofCoeffs(fieldOrdinal) = dofCoeffs2(fieldOrdinal2);
+     }
+   });
+}
+
+template<class BasisBase>
+const char*
+Basis_TensorBasis<BasisBase>::getName() const {
+  return name_.c_str();
+}
+
+template<class BasisBase>
+std::vector<typename Basis_TensorBasis<BasisBase>::BasisPtr> Basis_TensorBasis<BasisBase>::getTensorBasisComponents() const
+{
+  return tensorComponents_;
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getValues(      BasisValues<typename BasisBase::OutputValueType,typename BasisBase::DeviceType> outputValues,
+                                             const TensorPoints<typename BasisBase::PointValueType,typename BasisBase::DeviceType>  inputPoints,
+                                             const EOperator operatorType) const
+{
+  const ordinal_type numTensorComponents = tensorComponents_.size();
+  if (inputPoints.numTensorComponents() < numTensorComponents)
+  {
+    // then we require that both inputPoints and outputValues trivial tensor structure
+    INTREPID2_TEST_FOR_EXCEPTION( inputPoints.numTensorComponents() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, then inputPoints must have trivial tensor product structure" );
+    INTREPID2_TEST_FOR_EXCEPTION( outputValues.numFamilies() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, outputValues must have a single family with trivial tensor product structure" );
+    INTREPID2_TEST_FOR_EXCEPTION( outputValues.tensorData().numTensorComponents() != 1, std::invalid_argument, "If inputPoints differs from the tensor basis in component count, outputValues must have a single family with trivial tensor product structure" );
+    
+    OutputViewType outputView = outputValues.tensorData().getTensorComponent(0).getUnderlyingView();
+    PointViewType   pointView = inputPoints.getTensorComponent(0);
+    this->getValues(outputView, pointView, operatorType);
+    return;
+  }
+  
+  OperatorTensorDecomposition operatorDecomposition = getOperatorDecomposition(operatorType);
+  
+  const ordinal_type numVectorComponents = operatorDecomposition.numVectorComponents();
+  const bool               useVectorData = numVectorComponents > 1;
+  const ordinal_type  numBasisComponents = operatorDecomposition.numBasisComponents();
+  
+  for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
+  {
+    const double weight = operatorDecomposition.weight(vectorComponentOrdinal);
+    ordinal_type pointComponentOrdinal = 0;
+    for (ordinal_type basisOrdinal=0; basisOrdinal<numBasisComponents; basisOrdinal++, pointComponentOrdinal++)
+    {
+      const EOperator op = operatorDecomposition.op(vectorComponentOrdinal, basisOrdinal);
+      // by convention, op == OPERATOR_MAX signals a zero component; skip
+      if (op != OPERATOR_MAX)
+      {
+        const int vectorFamily = 0; // TensorBasis always has just a single family; multiple families arise in DirectSumBasis
+        auto tensorData = useVectorData ? outputValues.vectorData().getComponent(vectorFamily,vectorComponentOrdinal) : outputValues.tensorData();
+        INTREPID2_TEST_FOR_EXCEPTION( ! tensorData.getTensorComponent(basisOrdinal).isValid(), std::invalid_argument, "Invalid output component encountered");
+                    
+        const Data<OutputValueType,DeviceType> & outputData = tensorData.getTensorComponent(basisOrdinal);
+        
+        auto basisValueView = outputData.getUnderlyingView();
+        PointViewType  pointView = inputPoints.getTensorComponent(pointComponentOrdinal);
+        const ordinal_type basisDomainDimension = tensorComponents_[basisOrdinal]->getDomainDimension();
+        if (pointView.extent_int(1) == basisDomainDimension)
+        {
+          tensorComponents_[basisOrdinal]->getValues(basisValueView, pointView, op);
+        }
+        else
+        {
+          // we need to wrap the basisValueView in a BasisValues container, and to wrap the point components in a TensorPoints container.
+          
+          // combine point components to build up to basisDomainDimension
+          ordinal_type dimsSoFar = 0;
+          std::vector< ScalarView<PointValueType,DeviceType> > basisPointComponents;
+          while (dimsSoFar < basisDomainDimension)
+          {
+            INTREPID2_TEST_FOR_EXCEPTION(pointComponentOrdinal >= inputPoints.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+            const auto & pointComponent = inputPoints.getTensorComponent(pointComponentOrdinal);
+            const ordinal_type numComponentDims   = pointComponent.extent_int(1);
+            dimsSoFar += numComponentDims;
+            INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > inputPoints.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+            basisPointComponents.push_back(pointComponent);
+            if (dimsSoFar < basisDomainDimension)
+            {
+              // we will pass through this loop again, so we should increment the point component ordinal
+              pointComponentOrdinal++;
+            }
+          }
+          
+          TensorPoints<PointValueType, DeviceType> basisPoints(basisPointComponents);
+          
+          bool useVectorData = (basisValueView.rank() == 3);
+
+          BasisValues<OutputValueType,DeviceType> basisValues;
+          if (useVectorData)
+          {
+            VectorData<OutputValueType,DeviceType> vectorData(outputData);
+            basisValues = BasisValues<OutputValueType,DeviceType>(vectorData);
+          }
+          else
+          {
+            TensorData<OutputValueType,DeviceType> tensorData(outputData);
+            basisValues = BasisValues<OutputValueType,DeviceType>(tensorData);
+          }
+          
+          tensorComponents_[basisOrdinal]->getValues(basisValues, basisPoints, op);
+        }
+        
+        // if weight is non-trivial (not 1.0), then we need to multiply one of the component views by weight.
+        // we do that for the first basisOrdinal's values
+        if ((weight != 1.0) && (basisOrdinal == 0))
+        {
+          if (basisValueView.rank() == 2)
+          {
+            auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{basisValueView.extent_int(0),basisValueView.extent_int(1)});
+            Kokkos::parallel_for("multiply basisValueView by weight", policy,
+            KOKKOS_LAMBDA (const int &fieldOrdinal, const int &pointOrdinal) {
+              basisValueView(fieldOrdinal,pointOrdinal) *= weight;
+            });
+          }
+          else if (basisValueView.rank() == 3)
+          {
+            auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{basisValueView.extent_int(0),basisValueView.extent_int(1),basisValueView.extent_int(2)});
+            Kokkos::parallel_for("multiply basisValueView by weight", policy,
+            KOKKOS_LAMBDA (const int &fieldOrdinal, const int &pointOrdinal, const int &d) {
+              basisValueView(fieldOrdinal,pointOrdinal,d) *= weight;
+            });
+          }
+          else
+          {
+            INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported rank for basisValueView");
+          }
+        }
+      }
+    }
+  }
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getValues(OutputViewType outputValues, const EOperator operatorType,
+                                             const PointViewType  inputPoints1, const PointViewType  inputPoints2,
+                                             bool tensorPoints) const
+{
+  INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "one-operator, two-inputPoints getValues should be overridden by TensorBasis subclasses");
+}
+
+template<class BasisBase>
+HostBasisPtr<typename BasisBase::OutputValueType, typename BasisBase::PointValueType>
+Basis_TensorBasis<BasisBase>::getHostBasis() const {
+  TEUCHOS_TEST_FOR_EXCEPTION(true, std::invalid_argument, "TensorBasis subclasses must override getHostBasis");
 }
 
 } // end namespace Intrepid2
