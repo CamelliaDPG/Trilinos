@@ -897,7 +897,7 @@ using HostBasisPtr = BasisPtr<typename Kokkos::HostSpace::device_type, OutputTyp
 
     /** \brief returns the component bases for a tensor basis; returns a single-element vector with a weak pointer to this for all others.
      */
-    virtual std::vector<BasisPtr<Device, outputValueType, pointValueType>> getTensorBasisComponents() const
+    virtual std::vector<BasisPtr<Device, outputValueType, pointValueType>> getTensorBasisComponents()
     {
       BasisPtr<Device, outputValueType, pointValueType> thisWeakPtr = Teuchos::rcp(this,false);
       return std::vector<BasisPtr<Device, outputValueType, pointValueType>> {thisWeakPtr};

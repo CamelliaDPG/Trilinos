@@ -363,7 +363,7 @@ class Basis_TensorBasis;
     const char*
     getName() const override;
     
-    std::vector<BasisPtr> getTensorBasisComponents() const;
+    std::vector<BasisPtr> getTensorBasisComponents() override;
     
     /** \brief  Evaluation of a FEM basis on a <strong>reference cell</strong>, using point and output value containers that allow preservation of tensor-product structure.
 
@@ -2033,7 +2033,7 @@ Basis_TensorBasis<BasisBase>::getName() const {
 }
 
 template<class BasisBase>
-std::vector<typename Basis_TensorBasis<BasisBase>::BasisPtr> Basis_TensorBasis<BasisBase>::getTensorBasisComponents() const
+std::vector<typename Basis_TensorBasis<BasisBase>::BasisPtr> Basis_TensorBasis<BasisBase>::getTensorBasisComponents()
 {
   return tensorComponents_;
 }
