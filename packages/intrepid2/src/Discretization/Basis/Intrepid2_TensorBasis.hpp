@@ -475,143 +475,6 @@ struct OperatorTensorDecomposition
     return OperatorTensorDecomposition(expandedOps, expandedWeights);
   }
 };
-
-  /** \class  Intrepid2::TensorViewFunctor
-      \brief  Functor for computing values for the TensorBasis class.
-   
-   This functor is not intended for use outside of \ref Intrepid2::Basis_TensorBasis.
-  */
-  template<class ExecutionSpace, class OutputScalar, class OutputFieldType>
-  class TensorViewFunctor
-  {
-    using ScratchSpace       = typename ExecutionSpace::scratch_memory_space;
-    using OutputScratchView  = Kokkos::View<OutputScalar*,ScratchSpace,Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-    
-    using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
-    using TeamMember = typename TeamPolicy::member_type;
-    
-    using TensorViewIteratorType = ::Intrepid2::TensorViewIterator<OutputFieldType, OutputFieldType, OutputFieldType, OutputScalar>;
-    using RankCombinationType = typename TensorViewIteratorType::RankCombinationType;
-    
-    OutputFieldType  output_; // F,P[,D…]
-    OutputFieldType  input1_; // F1,P[,D…] or F1,P1[,D…]
-    OutputFieldType  input2_; // F2,P[,D…] or F2,P2[,D…]
-    
-    int numFields_, numPoints_;
-    int numFields1_, numPoints1_;
-    int numFields2_, numPoints2_;
-    
-    bool tensorPoints_; // if true, input1 and input2 refer to values at decomposed points, and P = P1 * P2.  If false, then the two inputs refer to points in the full-dimensional space, and their point lengths are the same as that of the final output.
-    
-    using RankCombinationViewType = typename TensorViewIteratorType::RankCombinationViewType;
-    RankCombinationViewType rank_combinations_;// indicates the policy by which the input views will be combined in output view
-    
-    double weight_;
-    
-  public:
-    
-    TensorViewFunctor(OutputFieldType output, OutputFieldType inputValues1, OutputFieldType inputValues2,
-                      bool tensorPoints, double weight)
-    : output_(output), input1_(inputValues1), input2_(inputValues2), tensorPoints_(tensorPoints), weight_(weight)
-    {
-      numFields_ = output.extent_int(0);
-      numPoints_ = output.extent_int(1);
-      
-      numFields1_ = inputValues1.extent_int(0);
-      numPoints1_ = inputValues1.extent_int(1);
-      
-      numFields2_ = inputValues2.extent_int(0);
-      numPoints2_ = inputValues2.extent_int(1);
-      
-      if (!tensorPoints_)
-      {
-        // then the point counts should all match
-        INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints1_, std::invalid_argument, "incompatible point counts");
-        INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints2_, std::invalid_argument, "incompatible point counts");
-      }
-      else
-      {
-        INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints1_ * numPoints2_, std::invalid_argument, "incompatible point counts");
-      }
-      
-      INTREPID2_TEST_FOR_EXCEPTION(numFields_ != numFields1_ * numFields2_, std::invalid_argument, "incompatible field sizes");
-      
-      const ordinal_type max_rank = std::max(inputValues1.rank(),inputValues2.rank());
-      // at present, no supported case will result in an output rank greater than both input ranks
-      
-      const ordinal_type outputRank = output.rank();
-      INTREPID2_TEST_FOR_EXCEPTION(outputRank > max_rank, std::invalid_argument, "Unsupported view combination.");
-      rank_combinations_ = RankCombinationViewType("Rank_combinations_", max_rank);
-      auto rank_combinations_host = Kokkos::create_mirror_view(rank_combinations_);
-      
-      rank_combinations_host[0] = TensorViewIteratorType::TENSOR_PRODUCT; // field combination is always tensor product
-      rank_combinations_host[1] = tensorPoints ? TensorViewIteratorType::TENSOR_PRODUCT : TensorViewIteratorType::DIMENSION_MATCH; // tensorPoints controls interpretation of the point dimension
-      for (ordinal_type d=2; d<max_rank; d++)
-      {
-        // d >= 2 have the interpretation of spatial dimensions (gradients, etc.)
-        // we let the extents of the containers determine what we're doing here
-        if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == 1))
-        {
-          rank_combinations_host[d] = TensorViewIteratorType::TENSOR_CONTRACTION;
-        }
-        else if (((inputValues1.extent_int(d) == output.extent_int(d)) && (inputValues2.extent_int(d) == 1))
-                 || ((inputValues2.extent_int(d) == output.extent_int(d)) && (inputValues1.extent_int(d) == 1))
-                 )
-        {
-          // this looks like multiplication of a vector by a scalar, resulting in a vector
-          // this can be understood as a tensor product
-          rank_combinations_host[d] = TensorViewIteratorType::TENSOR_PRODUCT;
-        }
-        else if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == inputValues1.extent_int(d) * inputValues2.extent_int(d)))
-        {
-          // this is actually a generalization of the above case: a tensor product, something like a vector outer product
-          rank_combinations_host[d] = TensorViewIteratorType::TENSOR_PRODUCT;
-        }
-        else if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == inputValues1.extent_int(d)))
-        {
-          // it's a bit weird (I'm not aware of the use case, in the present context), but we can handle this case by adopting DIMENSION_MATCH here
-          // this is something like MATLAB's .* and .+ operators, which operate entry-wise
-          rank_combinations_host[d] = TensorViewIteratorType::DIMENSION_MATCH;
-        }
-        else
-        {
-          std::cout << "inputValues1.extent_int(" << d << ") = " << inputValues1.extent_int(d) << std::endl;
-          std::cout << "inputValues2.extent_int(" << d << ") = " << inputValues2.extent_int(d) << std::endl;
-          std::cout << "output.extent_int("       << d << ") = " << output.extent_int(d) << std::endl;
-          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "unable to find an interpretation for this combination of views");
-        }
-      }
-      Kokkos::deep_copy(rank_combinations_,rank_combinations_host);
-    }
-    
-    KOKKOS_INLINE_FUNCTION
-    void operator()( const TeamMember & teamMember ) const
-    {
-      auto fieldOrdinal1 = teamMember.league_rank();
-      
-      Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember,0,numFields2_), [&] (const int& fieldOrdinal2) {
-        TensorViewIteratorType it(output_,input1_,input2_,rank_combinations_);
-        const int FIELD_ORDINAL_DIMENSION = 0;
-        it.setLocation({fieldOrdinal1,0,0,0,0,0,0},{fieldOrdinal2,0,0,0,0,0,0});
-        int next_increment_rank = FIELD_ORDINAL_DIMENSION; // used to initialize prev_increment_rank at the start of the do/while loop.  Notionally, we last incremented in the field ordinal rank to get to the {fieldOrdinal1,0,0,0,0,0,0},{fieldOrdinal2,0,0,0,0,0,0} location.
-        OutputScalar accumulator = 0;
-        
-        do
-        {
-          accumulator += weight_ * it.getView1Entry() * it.getView2Entry();
-          next_increment_rank = it.nextIncrementRank();
-          
-          if ((next_increment_rank < 0) || (rank_combinations_[next_increment_rank] != TensorViewIteratorType::TENSOR_CONTRACTION))
-          {
-            // then we've finished the accumulation and should set the value
-            it.set(accumulator);
-            // reset the accumulator:
-            accumulator = 0;
-          }
-        } while (it.increment() > FIELD_ORDINAL_DIMENSION);
-      });
-    }
-  };
   
   /** \class  Intrepid2::Basis_TensorBasis
       \brief  Basis defined as the tensor product of two component bases.
@@ -1307,121 +1170,7 @@ struct OperatorTensorDecomposition
         degree of the basis, the output array is filled with the appropriate number of zeros.
     */
     void getValues( OutputViewType outputValues, const PointViewType  inputPoints,
-                   const EOperator operatorType = OPERATOR_VALUE ) const override
-    {
-      bool tensorPoints;  // true would mean that we take the tensor product of inputPoints1 and inputPoints2 (and that this would be equivalent to inputPoints as given -- i.e., inputPoints1 and inputPoints2 would be a tensor decomposition of inputPoints)
-      bool attemptTensorDecomposition = false; // support for this not yet implemented
-      PointViewType inputPoints1, inputPoints2;
-      getComponentPoints(inputPoints, attemptTensorDecomposition, inputPoints1, inputPoints2, tensorPoints);
-      
-      const auto functionSpace = this->getFunctionSpace();
-      
-      if ((functionSpace == FUNCTION_SPACE_HVOL) || (functionSpace == FUNCTION_SPACE_HGRAD))
-      {
-        // then we can handle VALUE, GRAD, and Op_Dn without reference to subclass
-        switch (operatorType)
-        {
-          case OPERATOR_VALUE:
-          case OPERATOR_GRAD:
-          case OPERATOR_D1:
-          case OPERATOR_D2:
-          case OPERATOR_D3:
-          case OPERATOR_D4:
-          case OPERATOR_D5:
-          case OPERATOR_D6:
-          case OPERATOR_D7:
-          case OPERATOR_D8:
-          case OPERATOR_D9:
-          case OPERATOR_D10:
-          {
-            auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
-            // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
-            // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
-            for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
-            {
-              int derivativeCountComp1=opOrder-derivativeCountComp2;
-              EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
-              EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
-              
-              int spaceDim1 = inputPoints1.extent_int(1);
-              int spaceDim2 = inputPoints2.extent_int(1);
-              
-              int dkCardinality1 = (op1 != OPERATOR_VALUE) ? getDkCardinality(op1, spaceDim1) : 1;
-              int dkCardinality2 = (op2 != OPERATOR_VALUE) ? getDkCardinality(op2, spaceDim2) : 1;
-              
-              int basisCardinality1 = basis1_->getCardinality();
-              int basisCardinality2 = basis2_->getCardinality();
-              
-              int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
-              
-              int pointCount1, pointCount2;
-              if (tensorPoints)
-              {
-                pointCount1 = inputPoints1.extent_int(0);
-                pointCount2 = inputPoints2.extent_int(0);
-              }
-              else
-              {
-                pointCount1 = totalPointCount;
-                pointCount2 = totalPointCount;
-              }
-              
-              OutputViewType outputValues1, outputValues2;
-              if (op1 == OPERATOR_VALUE)
-                outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1);
-              else
-                outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1,dkCardinality1);
-              
-              if (op2 == OPERATOR_VALUE)
-                outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2);
-              else
-                outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2,dkCardinality2);
-                
-              basis1_->getValues(outputValues1,inputPoints1,op1);
-              basis2_->getValues(outputValues2,inputPoints2,op2);
-              
-              const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
-              const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
-              const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-              
-              auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
-              
-              double weight = 1.0;
-              using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
-              
-              for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
-              {
-                auto outputValues1_dkEnum1 = (op1 != OPERATOR_VALUE) ? Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL(),dkEnum1)
-                : Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL());
-                for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
-                {
-                  auto outputValues2_dkEnum2 = (op2 != OPERATOR_VALUE) ? Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL(),dkEnum2)
-                  : Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL());
-                  
-                  ordinal_type dkTensorIndex = getTensorDkEnumeration(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
-                  auto outputValues_dkTensor = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),dkTensorIndex);
-                  // Note that there may be performance optimizations available here:
-                  // - could eliminate interior for loop in favor of having a vector-valued outputValues1_dk
-                  // - could add support to TensorViewFunctor (and probably TensorViewIterator) for this kind of tensor Dk type of traversal
-                  //   (this would allow us to eliminate both for loops here)
-                  // At the moment, we defer such optimizations on the idea that this may not ever become a performance bottleneck.
-                  FunctorType functor(outputValues_dkTensor, outputValues1_dkEnum1, outputValues2_dkEnum2, tensorPoints, weight);
-                  Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
-                }
-              }
-            }
-          }
-            break;
-          default: // non-OPERATOR_Dn case must be handled by subclass.
-            this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
-        }
-      }
-      else
-      {
-        // not HVOL or HGRAD; subclass must handle
-        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
-      }
-    }
+                   const EOperator operatorType = OPERATOR_VALUE ) const override;
     
     /** \brief  Evaluation of a tensor FEM basis on a <strong>reference cell</strong>; subclasses should override this.
 
@@ -1481,75 +1230,7 @@ struct OperatorTensorDecomposition
     void getValues( OutputViewType outputValues,
                    const PointViewType  inputPoints1, const EOperator operatorType1,
                    const PointViewType  inputPoints2, const EOperator operatorType2,
-                   bool tensorPoints, double weight=1.0) const
-    {
-      int basisCardinality1 = basis1_->getCardinality();
-      int basisCardinality2 = basis2_->getCardinality();
-      
-      int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
-      
-      int pointCount1, pointCount2;
-      if (tensorPoints)
-      {
-        pointCount1 = inputPoints1.extent_int(0);
-        pointCount2 = inputPoints2.extent_int(0);
-      }
-      else
-      {
-        pointCount1 = totalPointCount;
-        pointCount2 = totalPointCount;
-      }
-      
-      int spaceDim1 = inputPoints1.extent_int(1);
-      int spaceDim2 = inputPoints2.extent_int(1);
-      
-      INTREPID2_TEST_FOR_EXCEPTION(!tensorPoints && (totalPointCount != inputPoints2.extent_int(0)),
-                                   std::invalid_argument, "If tensorPoints is false, the point counts must match!");
-            
-      int opRank1 = getOperatorRank(basis1_->getFunctionSpace(), operatorType1, spaceDim1);
-      int opRank2 = getOperatorRank(basis2_->getFunctionSpace(), operatorType2, spaceDim2);
-      
-      OutputViewType outputValues1, outputValues2;
-      if (opRank1 == 0)
-      {
-        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1);
-      }
-      else if (opRank1 == 1)
-      {
-        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1,spaceDim1);
-      }
-      else
-      {
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank1");
-      }
-      
-      if (opRank2 == 0)
-      {
-        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2);
-      }
-      else if (opRank2 == 1)
-      {
-        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2,spaceDim2);
-      }
-      else
-      {
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank2");
-      }
-      
-      basis1_->getValues(outputValues1,inputPoints1,operatorType1);
-      basis2_->getValues(outputValues2,inputPoints2,operatorType2);
-      
-      const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
-      const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
-      const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-      
-      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
-      
-      using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
-      
-      FunctorType functor(outputValues, outputValues1, outputValues2, tensorPoints, weight);
-      Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
-    }
+                   bool tensorPoints, double weight=1.0) const;
     
     /** \brief Creates and returns a Basis object whose DeviceType template argument is Kokkos::HostSpace::device_type, but is otherwise identical to this.
      
@@ -2080,6 +1761,143 @@ struct OperatorTensorDecomposition
 
 // TODO: what follows should be moved inte TensorBasisDef.hpp (supposing it works…)
 
+/** \class  Intrepid2::TensorViewFunctor
+    \brief  Functor for computing values for the TensorBasis class.
+ 
+ This functor is not intended for use outside of \ref Intrepid2::Basis_TensorBasis.
+*/
+template<class ExecutionSpace, class OutputScalar, class OutputFieldType>
+class TensorViewFunctor
+{
+  using ScratchSpace       = typename ExecutionSpace::scratch_memory_space;
+  using OutputScratchView  = Kokkos::View<OutputScalar*,ScratchSpace,Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
+  
+  using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
+  using TeamMember = typename TeamPolicy::member_type;
+  
+  using TensorViewIteratorType = ::Intrepid2::TensorViewIterator<OutputFieldType, OutputFieldType, OutputFieldType, OutputScalar>;
+  using RankCombinationType = typename TensorViewIteratorType::RankCombinationType;
+  
+  OutputFieldType  output_; // F,P[,D…]
+  OutputFieldType  input1_; // F1,P[,D…] or F1,P1[,D…]
+  OutputFieldType  input2_; // F2,P[,D…] or F2,P2[,D…]
+  
+  int numFields_, numPoints_;
+  int numFields1_, numPoints1_;
+  int numFields2_, numPoints2_;
+  
+  bool tensorPoints_; // if true, input1 and input2 refer to values at decomposed points, and P = P1 * P2.  If false, then the two inputs refer to points in the full-dimensional space, and their point lengths are the same as that of the final output.
+  
+  using RankCombinationViewType = typename TensorViewIteratorType::RankCombinationViewType;
+  RankCombinationViewType rank_combinations_;// indicates the policy by which the input views will be combined in output view
+  
+  double weight_;
+  
+public:
+  
+  TensorViewFunctor(OutputFieldType output, OutputFieldType inputValues1, OutputFieldType inputValues2,
+                    bool tensorPoints, double weight)
+  : output_(output), input1_(inputValues1), input2_(inputValues2), tensorPoints_(tensorPoints), weight_(weight)
+  {
+    numFields_ = output.extent_int(0);
+    numPoints_ = output.extent_int(1);
+    
+    numFields1_ = inputValues1.extent_int(0);
+    numPoints1_ = inputValues1.extent_int(1);
+    
+    numFields2_ = inputValues2.extent_int(0);
+    numPoints2_ = inputValues2.extent_int(1);
+    
+    if (!tensorPoints_)
+    {
+      // then the point counts should all match
+      INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints1_, std::invalid_argument, "incompatible point counts");
+      INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints2_, std::invalid_argument, "incompatible point counts");
+    }
+    else
+    {
+      INTREPID2_TEST_FOR_EXCEPTION(numPoints_ != numPoints1_ * numPoints2_, std::invalid_argument, "incompatible point counts");
+    }
+    
+    INTREPID2_TEST_FOR_EXCEPTION(numFields_ != numFields1_ * numFields2_, std::invalid_argument, "incompatible field sizes");
+    
+    const ordinal_type max_rank = std::max(inputValues1.rank(),inputValues2.rank());
+    // at present, no supported case will result in an output rank greater than both input ranks
+    
+    const ordinal_type outputRank = output.rank();
+    INTREPID2_TEST_FOR_EXCEPTION(outputRank > max_rank, std::invalid_argument, "Unsupported view combination.");
+    rank_combinations_ = RankCombinationViewType("Rank_combinations_", max_rank);
+    auto rank_combinations_host = Kokkos::create_mirror_view(rank_combinations_);
+    
+    rank_combinations_host[0] = TensorViewIteratorType::TENSOR_PRODUCT; // field combination is always tensor product
+    rank_combinations_host[1] = tensorPoints ? TensorViewIteratorType::TENSOR_PRODUCT : TensorViewIteratorType::DIMENSION_MATCH; // tensorPoints controls interpretation of the point dimension
+    for (ordinal_type d=2; d<max_rank; d++)
+    {
+      // d >= 2 have the interpretation of spatial dimensions (gradients, etc.)
+      // we let the extents of the containers determine what we're doing here
+      if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == 1))
+      {
+        rank_combinations_host[d] = TensorViewIteratorType::TENSOR_CONTRACTION;
+      }
+      else if (((inputValues1.extent_int(d) == output.extent_int(d)) && (inputValues2.extent_int(d) == 1))
+               || ((inputValues2.extent_int(d) == output.extent_int(d)) && (inputValues1.extent_int(d) == 1))
+               )
+      {
+        // this looks like multiplication of a vector by a scalar, resulting in a vector
+        // this can be understood as a tensor product
+        rank_combinations_host[d] = TensorViewIteratorType::TENSOR_PRODUCT;
+      }
+      else if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == inputValues1.extent_int(d) * inputValues2.extent_int(d)))
+      {
+        // this is actually a generalization of the above case: a tensor product, something like a vector outer product
+        rank_combinations_host[d] = TensorViewIteratorType::TENSOR_PRODUCT;
+      }
+      else if ((inputValues1.extent_int(d) == inputValues2.extent_int(d)) && (output.extent_int(d) == inputValues1.extent_int(d)))
+      {
+        // it's a bit weird (I'm not aware of the use case, in the present context), but we can handle this case by adopting DIMENSION_MATCH here
+        // this is something like MATLAB's .* and .+ operators, which operate entry-wise
+        rank_combinations_host[d] = TensorViewIteratorType::DIMENSION_MATCH;
+      }
+      else
+      {
+        std::cout << "inputValues1.extent_int(" << d << ") = " << inputValues1.extent_int(d) << std::endl;
+        std::cout << "inputValues2.extent_int(" << d << ") = " << inputValues2.extent_int(d) << std::endl;
+        std::cout << "output.extent_int("       << d << ") = " << output.extent_int(d) << std::endl;
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "unable to find an interpretation for this combination of views");
+      }
+    }
+    Kokkos::deep_copy(rank_combinations_,rank_combinations_host);
+  }
+  
+  KOKKOS_INLINE_FUNCTION
+  void operator()( const TeamMember & teamMember ) const
+  {
+    auto fieldOrdinal1 = teamMember.league_rank();
+    
+    Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember,0,numFields2_), [&] (const int& fieldOrdinal2) {
+      TensorViewIteratorType it(output_,input1_,input2_,rank_combinations_);
+      const int FIELD_ORDINAL_DIMENSION = 0;
+      it.setLocation({fieldOrdinal1,0,0,0,0,0,0},{fieldOrdinal2,0,0,0,0,0,0});
+      int next_increment_rank = FIELD_ORDINAL_DIMENSION; // used to initialize prev_increment_rank at the start of the do/while loop.  Notionally, we last incremented in the field ordinal rank to get to the {fieldOrdinal1,0,0,0,0,0,0},{fieldOrdinal2,0,0,0,0,0,0} location.
+      OutputScalar accumulator = 0;
+      
+      do
+      {
+        accumulator += weight_ * it.getView1Entry() * it.getView2Entry();
+        next_increment_rank = it.nextIncrementRank();
+        
+        if ((next_increment_rank < 0) || (rank_combinations_[next_increment_rank] != TensorViewIteratorType::TENSOR_CONTRACTION))
+        {
+          // then we've finished the accumulation and should set the value
+          it.set(accumulator);
+          // reset the accumulator:
+          accumulator = 0;
+        }
+      } while (it.increment() > FIELD_ORDINAL_DIMENSION);
+    });
+  }
+};
+
 template<class BasisBase>
 void Basis_TensorBasis<BasisBase>::setShardsTopologyAndTags()
 {
@@ -2355,6 +2173,199 @@ basis1_(basis1),basis2_(basis2)
                             posScOrd,
                             posDfOrd);
   }
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::OutputViewType outputValues,
+                                             const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints,
+                                             const EOperator operatorType ) const
+{
+  bool tensorPoints;  // true would mean that we take the tensor product of inputPoints1 and inputPoints2 (and that this would be equivalent to inputPoints as given -- i.e., inputPoints1 and inputPoints2 would be a tensor decomposition of inputPoints)
+  bool attemptTensorDecomposition = false; // support for this not yet implemented
+  PointViewType inputPoints1, inputPoints2;
+  getComponentPoints(inputPoints, attemptTensorDecomposition, inputPoints1, inputPoints2, tensorPoints);
+  
+  const auto functionSpace = this->getFunctionSpace();
+  
+  if ((functionSpace == FUNCTION_SPACE_HVOL) || (functionSpace == FUNCTION_SPACE_HGRAD))
+  {
+    // then we can handle VALUE, GRAD, and Op_Dn without reference to subclass
+    switch (operatorType)
+    {
+      case OPERATOR_VALUE:
+      case OPERATOR_GRAD:
+      case OPERATOR_D1:
+      case OPERATOR_D2:
+      case OPERATOR_D3:
+      case OPERATOR_D4:
+      case OPERATOR_D5:
+      case OPERATOR_D6:
+      case OPERATOR_D7:
+      case OPERATOR_D8:
+      case OPERATOR_D9:
+      case OPERATOR_D10:
+      {
+        auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
+        // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
+        // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
+        for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
+        {
+          int derivativeCountComp1=opOrder-derivativeCountComp2;
+          EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
+          EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
+          
+          int spaceDim1 = inputPoints1.extent_int(1);
+          int spaceDim2 = inputPoints2.extent_int(1);
+          
+          int dkCardinality1 = (op1 != OPERATOR_VALUE) ? getDkCardinality(op1, spaceDim1) : 1;
+          int dkCardinality2 = (op2 != OPERATOR_VALUE) ? getDkCardinality(op2, spaceDim2) : 1;
+          
+          int basisCardinality1 = basis1_->getCardinality();
+          int basisCardinality2 = basis2_->getCardinality();
+          
+          int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
+          
+          int pointCount1, pointCount2;
+          if (tensorPoints)
+          {
+            pointCount1 = inputPoints1.extent_int(0);
+            pointCount2 = inputPoints2.extent_int(0);
+          }
+          else
+          {
+            pointCount1 = totalPointCount;
+            pointCount2 = totalPointCount;
+          }
+          
+          OutputViewType outputValues1, outputValues2;
+          if (op1 == OPERATOR_VALUE)
+            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1);
+          else
+            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1,dkCardinality1);
+          
+          if (op2 == OPERATOR_VALUE)
+            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2);
+          else
+            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2,dkCardinality2);
+            
+          basis1_->getValues(outputValues1,inputPoints1,op1);
+          basis2_->getValues(outputValues2,inputPoints2,op2);
+          
+          const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
+          const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
+          const int vectorSize = std::max(outputVectorSize,pointVectorSize);
+          
+          auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
+          
+          double weight = 1.0;
+          using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
+          
+          for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
+          {
+            auto outputValues1_dkEnum1 = (op1 != OPERATOR_VALUE) ? Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL(),dkEnum1)
+            : Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL());
+            for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
+            {
+              auto outputValues2_dkEnum2 = (op2 != OPERATOR_VALUE) ? Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL(),dkEnum2)
+              : Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL());
+              
+              ordinal_type dkTensorIndex = getTensorDkEnumeration(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
+              auto outputValues_dkTensor = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),dkTensorIndex);
+              // Note that there may be performance optimizations available here:
+              // - could eliminate interior for loop in favor of having a vector-valued outputValues1_dk
+              // - could add support to TensorViewFunctor (and probably TensorViewIterator) for this kind of tensor Dk type of traversal
+              //   (this would allow us to eliminate both for loops here)
+              // At the moment, we defer such optimizations on the idea that this may not ever become a performance bottleneck.
+              FunctorType functor(outputValues_dkTensor, outputValues1_dkEnum1, outputValues2_dkEnum2, tensorPoints, weight);
+              Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
+            }
+          }
+        }
+      }
+        break;
+      default: // non-OPERATOR_Dn case must be handled by subclass.
+        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
+    }
+  }
+  else
+  {
+    // not HVOL or HGRAD; subclass must handle
+    this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
+  }
+}
+
+template<class BasisBase>
+void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::OutputViewType outputValues,
+                                              const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints1, const EOperator operatorType1,
+                                              const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints2, const EOperator operatorType2,
+                                              bool tensorPoints, double weight) const
+{
+  int basisCardinality1 = basis1_->getCardinality();
+  int basisCardinality2 = basis2_->getCardinality();
+  
+  int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
+  
+  int pointCount1, pointCount2;
+  if (tensorPoints)
+  {
+    pointCount1 = inputPoints1.extent_int(0);
+    pointCount2 = inputPoints2.extent_int(0);
+  }
+  else
+  {
+    pointCount1 = totalPointCount;
+    pointCount2 = totalPointCount;
+  }
+  
+  int spaceDim1 = inputPoints1.extent_int(1);
+  int spaceDim2 = inputPoints2.extent_int(1);
+  
+  INTREPID2_TEST_FOR_EXCEPTION(!tensorPoints && (totalPointCount != inputPoints2.extent_int(0)),
+                               std::invalid_argument, "If tensorPoints is false, the point counts must match!");
+        
+  int opRank1 = getOperatorRank(basis1_->getFunctionSpace(), operatorType1, spaceDim1);
+  int opRank2 = getOperatorRank(basis2_->getFunctionSpace(), operatorType2, spaceDim2);
+  
+  OutputViewType outputValues1, outputValues2;
+  if (opRank1 == 0)
+  {
+    outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1);
+  }
+  else if (opRank1 == 1)
+  {
+    outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1,spaceDim1);
+  }
+  else
+  {
+    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank1");
+  }
+  
+  if (opRank2 == 0)
+  {
+    outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2);
+  }
+  else if (opRank2 == 1)
+  {
+    outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2,spaceDim2);
+  }
+  else
+  {
+    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank2");
+  }
+  
+  basis1_->getValues(outputValues1,inputPoints1,operatorType1);
+  basis2_->getValues(outputValues2,inputPoints2,operatorType2);
+  
+  const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
+  const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
+  const int vectorSize = std::max(outputVectorSize,pointVectorSize);
+  
+  auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
+  
+  using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
+  
+  FunctorType functor(outputValues, outputValues1, outputValues2, tensorPoints, weight);
+  Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
 }
 
 } // end namespace Intrepid2
