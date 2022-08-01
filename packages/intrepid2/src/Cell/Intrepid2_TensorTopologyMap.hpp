@@ -118,9 +118,9 @@ namespace Intrepid2
         for (unsigned subcellOrdinal1=0; subcellOrdinal1<subcellCount1; subcellOrdinal1++)
         {
           Subcell subcell1 = {d1, subcellOrdinal1};
-          std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
-          unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
-          // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
+//          std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
+//          unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
+//          // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
 //          if (d1 == 0)
 //          {
 //            subcell1Nodes.insert(subcellOrdinal1);
