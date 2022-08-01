@@ -1528,9 +1528,9 @@ void Basis_TensorBasis<BasisBase>::getValues( typename BasisBase::OutputViewType
 {
 //  int basisCardinality1 = basis1_->getCardinality();
 //  int basisCardinality2 = basis2_->getCardinality();
-//  
+//
 //  int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
-//  
+//
 //  int pointCount1, pointCount2;
 //  if (tensorPoints)
 //  {
@@ -1542,16 +1542,16 @@ void Basis_TensorBasis<BasisBase>::getValues( typename BasisBase::OutputViewType
 //    pointCount1 = totalPointCount;
 //    pointCount2 = totalPointCount;
 //  }
-//  
+//
 //  int spaceDim1 = inputPoints1.extent_int(1);
 //  int spaceDim2 = inputPoints2.extent_int(1);
-//  
+//
 //  INTREPID2_TEST_FOR_EXCEPTION(!tensorPoints && (totalPointCount != inputPoints2.extent_int(0)),
 //                               std::invalid_argument, "If tensorPoints is false, the point counts must match!");
-//        
+//
 //  int opRank1 = getOperatorRank(basis1_->getFunctionSpace(), operatorType1, spaceDim1);
 //  int opRank2 = getOperatorRank(basis2_->getFunctionSpace(), operatorType2, spaceDim2);
-//  
+//
 //  OutputViewType outputValues1, outputValues2;
 //  if (opRank1 == 0)
 //  {
@@ -1565,7 +1565,7 @@ void Basis_TensorBasis<BasisBase>::getValues( typename BasisBase::OutputViewType
 //  {
 //    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank1");
 //  }
-//  
+//
 //  if (opRank2 == 0)
 //  {
 //    outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2);
@@ -1578,18 +1578,18 @@ void Basis_TensorBasis<BasisBase>::getValues( typename BasisBase::OutputViewType
 //  {
 //    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported opRank2");
 //  }
-//  
+//
 //  basis1_->getValues(outputValues1,inputPoints1,operatorType1);
 //  basis2_->getValues(outputValues2,inputPoints2,operatorType2);
-//  
+//
 //  const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
 //  const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
 //  const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-//  
+//
 //  auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
-//  
+//
 //  using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
-//  
+//
 //  FunctorType functor(outputValues, outputValues1, outputValues2, tensorPoints, weight);
 //  Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
 }
@@ -1598,77 +1598,77 @@ template<class BasisBase>
 ordinal_type Basis_TensorBasis<BasisBase>::getTensorDkEnumeration(ordinal_type dkEnum1, ordinal_type operatorOrder1,
                                                                   ordinal_type dkEnum2, ordinal_type operatorOrder2) const
 {
-  ordinal_type spaceDim1 = basis1_->getDomainDimension();
-  ordinal_type spaceDim2 = basis2_->getDomainDimension();
-  
-  // We support total spaceDim <= 7.
-  switch (spaceDim1)
-  {
-    case 0:
-    {
-      INTREPID2_TEST_FOR_EXCEPTION(operatorOrder1 > 0, std::invalid_argument, "For spaceDim1 = 0, operatorOrder1 must be 0.");
-      return dkEnum2;
-    }
-    case 1:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<1, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 2: return getDkTensorIndex<1, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 3: return getDkTensorIndex<1, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 4: return getDkTensorIndex<1, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 5: return getDkTensorIndex<1, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 6: return getDkTensorIndex<1, 6>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    case 2:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<2, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 2: return getDkTensorIndex<2, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 3: return getDkTensorIndex<2, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 4: return getDkTensorIndex<2, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 5: return getDkTensorIndex<2, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    case 3:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<3, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 2: return getDkTensorIndex<3, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 3: return getDkTensorIndex<3, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 4: return getDkTensorIndex<3, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    case 4:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<4, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 2: return getDkTensorIndex<4, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 3: return getDkTensorIndex<4, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    case 5:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<5, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      case 2: return getDkTensorIndex<5, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    case 6:
-      switch (spaceDim2)
-    {
-      case 1: return getDkTensorIndex<6, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-    }
-    default:
-      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
-  }
+//  ordinal_type spaceDim1 = basis1_->getDomainDimension();
+//  ordinal_type spaceDim2 = basis2_->getDomainDimension();
+//  
+//  // We support total spaceDim <= 7.
+//  switch (spaceDim1)
+//  {
+//    case 0:
+//    {
+//      INTREPID2_TEST_FOR_EXCEPTION(operatorOrder1 > 0, std::invalid_argument, "For spaceDim1 = 0, operatorOrder1 must be 0.");
+//      return dkEnum2;
+//    }
+//    case 1:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<1, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 2: return getDkTensorIndex<1, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 3: return getDkTensorIndex<1, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 4: return getDkTensorIndex<1, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 5: return getDkTensorIndex<1, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 6: return getDkTensorIndex<1, 6>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    case 2:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<2, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 2: return getDkTensorIndex<2, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 3: return getDkTensorIndex<2, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 4: return getDkTensorIndex<2, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 5: return getDkTensorIndex<2, 5>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    case 3:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<3, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 2: return getDkTensorIndex<3, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 3: return getDkTensorIndex<3, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 4: return getDkTensorIndex<3, 4>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    case 4:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<4, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 2: return getDkTensorIndex<4, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 3: return getDkTensorIndex<4, 3>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    case 5:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<5, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      case 2: return getDkTensorIndex<5, 2>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    case 6:
+//      switch (spaceDim2)
+//    {
+//      case 1: return getDkTensorIndex<6, 1>(dkEnum1, operatorOrder1, dkEnum2, operatorOrder2);
+//      default:
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//    }
+//    default:
+//      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported dimension combination");
+//  }
 }
 
 template<class BasisBase>
