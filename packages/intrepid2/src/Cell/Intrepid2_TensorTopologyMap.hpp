@@ -213,12 +213,12 @@ namespace Intrepid2
     */
     unsigned getCompositeSubcellOrdinal(unsigned subcell1Dim, unsigned subcell1Ordinal, unsigned subcell2Dim, unsigned subcell2Ordinal)
     {
-//      Subcell subcell1 = {subcell1Dim, subcell1Ordinal};
-//      Subcell subcell2 = {subcell2Dim, subcell2Ordinal};
-//      auto entry = subcellMap_.find({subcell1,subcell2});
-//      INTREPID2_TEST_FOR_EXCEPTION(entry == subcellMap_.end(), std::invalid_argument, "entry not found");
-//      auto subcell = entry->second;
-//      return subcell.second; // subcell ordinal
+      Subcell subcell1 = {subcell1Dim, subcell1Ordinal};
+      Subcell subcell2 = {subcell2Dim, subcell2Ordinal};
+      auto entry = subcellMap_.find({subcell1,subcell2});
+      INTREPID2_TEST_FOR_EXCEPTION(entry == subcellMap_.end(), std::invalid_argument, "entry not found");
+      auto subcell = entry->second;
+      return subcell.second; // subcell ordinal
       return 0;
     }
     
