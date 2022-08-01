@@ -127,10 +127,10 @@ namespace Intrepid2
           }
           else
           {
-            for (unsigned nodeOrdinal1=0; nodeOrdinal1<nodeCount1; nodeOrdinal1++)
-            {
-              subcell1Nodes.insert(cellTopo1_.getNodeMap(d1, subcellOrdinal1, nodeOrdinal1));
-            }
+//            for (unsigned nodeOrdinal1=0; nodeOrdinal1<nodeCount1; nodeOrdinal1++)
+//            {
+//              subcell1Nodes.insert(cellTopo1_.getNodeMap(d1, subcellOrdinal1, nodeOrdinal1));
+//            }
           }
 //          for (unsigned d2=0; d2<=spaceDim2; d2++)
 //          {
