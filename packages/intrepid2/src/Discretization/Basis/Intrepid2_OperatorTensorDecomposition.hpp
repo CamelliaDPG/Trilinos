@@ -10,6 +10,8 @@
 
 #include "Intrepid2_Types.hpp"
 
+#include <Teuchos_RCP.hpp>
+
 #include <vector>
 
 namespace Intrepid2
