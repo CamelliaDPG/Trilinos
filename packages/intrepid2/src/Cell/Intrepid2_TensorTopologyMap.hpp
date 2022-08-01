@@ -108,10 +108,10 @@ namespace Intrepid2
       auto spaceDim  = compositeCellTopo.getDimension();
       INTREPID2_TEST_FOR_EXCEPTION(spaceDim1 + spaceDim2 != spaceDim, std::invalid_argument, "incompatible spatial dimensions");
       std::map<std::pair<unsigned,unsigned>,unsigned> compositeNodeOrdinalMap;
-//      for (unsigned compositeNodeOrdinal=0; compositeNodeOrdinal<nodePairs.size(); compositeNodeOrdinal++)
-//      {
-//        compositeNodeOrdinalMap[nodePairs[compositeNodeOrdinal]] = compositeNodeOrdinal;
-//      }
+      for (unsigned compositeNodeOrdinal=0; compositeNodeOrdinal<nodePairs.size(); compositeNodeOrdinal++)
+      {
+        compositeNodeOrdinalMap.insert({nodePairs[compositeNodeOrdinal],compositeNodeOrdinal});
+      }
 //      for (unsigned d1=0; d1<=spaceDim1; d1++)
 //      {
 //        unsigned subcellCount1 = cellTopo1.getSubcellCount(d1);
