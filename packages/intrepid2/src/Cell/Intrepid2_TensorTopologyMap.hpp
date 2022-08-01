@@ -112,89 +112,89 @@ namespace Intrepid2
       {
         compositeNodeOrdinalMap.insert({nodePairs[compositeNodeOrdinal],compositeNodeOrdinal});
       }
-//      for (unsigned d1=0; d1<=spaceDim1; d1++)
-//      {
-//        unsigned subcellCount1 = cellTopo1.getSubcellCount(d1);
-//        for (unsigned subcellOrdinal1=0; subcellOrdinal1<subcellCount1; subcellOrdinal1++)
-//        {
-//          Subcell subcell1 = {d1, subcellOrdinal1};
-//          std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
-//          unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
-//          // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
-//          if (d1 == 0)
-//          {
-//            subcell1Nodes.insert(subcellOrdinal1);
-//          }
-//          else
-//          {
-//            for (unsigned nodeOrdinal1=0; nodeOrdinal1<nodeCount1; nodeOrdinal1++)
-//            {
-//              subcell1Nodes.insert(cellTopo1_.getNodeMap(d1, subcellOrdinal1, nodeOrdinal1));
-//            }
-//          }
-//          for (unsigned d2=0; d2<=spaceDim2; d2++)
-//          {
-//            unsigned subcellCount2 = cellTopo2.getSubcellCount(d2);
-//            for (unsigned subcellOrdinal2=0; subcellOrdinal2<subcellCount2; subcellOrdinal2++)
-//            {
-//              Subcell subcell2 = {d2, subcellOrdinal2};
-//              std::set<unsigned> subcell2Nodes; // set because we don't care about ordering
-//              unsigned nodeCount2 = cellTopo2_.getNodeCount(d2, subcellOrdinal2);
-//              // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
-//              if (d2 == 0)
-//              {
-//                subcell2Nodes.insert(subcellOrdinal2);
-//              }
-//              else
-//              {
-//                for (unsigned nodeOrdinal2=0; nodeOrdinal2<nodeCount2; nodeOrdinal2++)
-//                {
-//                  subcell2Nodes.insert(cellTopo2_.getNodeMap(d2, subcellOrdinal2, nodeOrdinal2));
-//                }
-//              }
-//
-//              std::set<unsigned> compositeNodes; // all the nodes from subcell1 times nodes from subcell2
-//              for (auto subcellNode1 : subcell1Nodes)
-//              {
-//                for (auto subcellNode2 : subcell2Nodes)
-//                {
-//                  INTREPID2_TEST_FOR_EXCEPTION(compositeNodeOrdinalMap.find({subcellNode1,subcellNode2}) == compositeNodeOrdinalMap.end(),
-//                                             std::invalid_argument, "Node combination not found in map");
-//                  compositeNodes.insert(compositeNodeOrdinalMap[{subcellNode1,subcellNode2}]);
-//                }
-//              }
-//              // now, search the composite topology for the unique subcell that involves all those nodes
-//              // we do a brute-force search; we'll never have very big topologies, so the cost is not an issue
-//              unsigned compositeSubcellDim = d1 + d2;
-//              unsigned compositeSubcellCount = compositeCellTopo.getSubcellCount(compositeSubcellDim);
-//              bool compositeSubcellFound = false;
-//              for (unsigned compositeSubcellOrdinal=0; compositeSubcellOrdinal<compositeSubcellCount; compositeSubcellOrdinal++)
-//              {
-//                unsigned compositeSubcellNodeCount = (compositeSubcellDim > 0) ? compositeCellTopo.getNodeCount(compositeSubcellDim, compositeSubcellOrdinal)
-//                                                                               : 1; // again, dealing with the fact that the node count for vertices is defined as 0, not 1
-//                if (compositeSubcellNodeCount != compositeNodes.size()) continue; // node counts don't match, so this is not the subcell we're looking for
-//                bool matches = true; // if we don't find a node that isn't contained in compositeNodes, then this is the subcell we're looking for
-//                for (unsigned compositeSubcellNode=0; compositeSubcellNode<compositeSubcellNodeCount; compositeSubcellNode++)
-//                {
-//                  unsigned nodeInCell = compositeCellTopo.getNodeMap(compositeSubcellDim, compositeSubcellOrdinal, compositeSubcellNode);
-//                  if (compositeNodes.find(nodeInCell) == compositeNodes.end())
-//                  {
-//                    matches = false;
-//                    break;
-//                  }
-//                }
-//                if (matches)
-//                {
-//                  compositeSubcellFound = true;
-//                  subcellMap_[{subcell1,subcell2}] = {compositeSubcellDim, compositeSubcellOrdinal};
-//                  break;
-//                }
-//              }
-//              INTREPID2_TEST_FOR_EXCEPTION(!compositeSubcellFound, std::invalid_argument, "Composite subcell not found");
-//            }
-//          }
-//        }
-//      }
+      for (unsigned d1=0; d1<=spaceDim1; d1++)
+      {
+        unsigned subcellCount1 = cellTopo1.getSubcellCount(d1);
+        for (unsigned subcellOrdinal1=0; subcellOrdinal1<subcellCount1; subcellOrdinal1++)
+        {
+          Subcell subcell1 = {d1, subcellOrdinal1};
+          std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
+          unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
+          // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
+          if (d1 == 0)
+          {
+            subcell1Nodes.insert(subcellOrdinal1);
+          }
+          else
+          {
+            for (unsigned nodeOrdinal1=0; nodeOrdinal1<nodeCount1; nodeOrdinal1++)
+            {
+              subcell1Nodes.insert(cellTopo1_.getNodeMap(d1, subcellOrdinal1, nodeOrdinal1));
+            }
+          }
+          for (unsigned d2=0; d2<=spaceDim2; d2++)
+          {
+            unsigned subcellCount2 = cellTopo2.getSubcellCount(d2);
+            for (unsigned subcellOrdinal2=0; subcellOrdinal2<subcellCount2; subcellOrdinal2++)
+            {
+              Subcell subcell2 = {d2, subcellOrdinal2};
+              std::set<unsigned> subcell2Nodes; // set because we don't care about ordering
+              unsigned nodeCount2 = cellTopo2_.getNodeCount(d2, subcellOrdinal2);
+              // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
+              if (d2 == 0)
+              {
+                subcell2Nodes.insert(subcellOrdinal2);
+              }
+              else
+              {
+                for (unsigned nodeOrdinal2=0; nodeOrdinal2<nodeCount2; nodeOrdinal2++)
+                {
+                  subcell2Nodes.insert(cellTopo2_.getNodeMap(d2, subcellOrdinal2, nodeOrdinal2));
+                }
+              }
+
+              std::set<unsigned> compositeNodes; // all the nodes from subcell1 times nodes from subcell2
+              for (auto subcellNode1 : subcell1Nodes)
+              {
+                for (auto subcellNode2 : subcell2Nodes)
+                {
+                  INTREPID2_TEST_FOR_EXCEPTION(compositeNodeOrdinalMap.find({subcellNode1,subcellNode2}) == compositeNodeOrdinalMap.end(),
+                                             std::invalid_argument, "Node combination not found in map");
+                  compositeNodes.insert(compositeNodeOrdinalMap[{subcellNode1,subcellNode2}]);
+                }
+              }
+              // now, search the composite topology for the unique subcell that involves all those nodes
+              // we do a brute-force search; we'll never have very big topologies, so the cost is not an issue
+              unsigned compositeSubcellDim = d1 + d2;
+              unsigned compositeSubcellCount = compositeCellTopo.getSubcellCount(compositeSubcellDim);
+              bool compositeSubcellFound = false;
+              for (unsigned compositeSubcellOrdinal=0; compositeSubcellOrdinal<compositeSubcellCount; compositeSubcellOrdinal++)
+              {
+                unsigned compositeSubcellNodeCount = (compositeSubcellDim > 0) ? compositeCellTopo.getNodeCount(compositeSubcellDim, compositeSubcellOrdinal)
+                                                                               : 1; // again, dealing with the fact that the node count for vertices is defined as 0, not 1
+                if (compositeSubcellNodeCount != compositeNodes.size()) continue; // node counts don't match, so this is not the subcell we're looking for
+                bool matches = true; // if we don't find a node that isn't contained in compositeNodes, then this is the subcell we're looking for
+                for (unsigned compositeSubcellNode=0; compositeSubcellNode<compositeSubcellNodeCount; compositeSubcellNode++)
+                {
+                  unsigned nodeInCell = compositeCellTopo.getNodeMap(compositeSubcellDim, compositeSubcellOrdinal, compositeSubcellNode);
+                  if (compositeNodes.find(nodeInCell) == compositeNodes.end())
+                  {
+                    matches = false;
+                    break;
+                  }
+                }
+                if (matches)
+                {
+                  compositeSubcellFound = true;
+                  subcellMap_[{subcell1,subcell2}] = {compositeSubcellDim, compositeSubcellOrdinal};
+                  break;
+                }
+              }
+              INTREPID2_TEST_FOR_EXCEPTION(!compositeSubcellFound, std::invalid_argument, "Composite subcell not found");
+            }
+          }
+        }
+      }
     }
     TensorTopologyMap(const ::shards::CellTopology &cellTopo1, const ::shards::CellTopology &cellTopo2)
     :
