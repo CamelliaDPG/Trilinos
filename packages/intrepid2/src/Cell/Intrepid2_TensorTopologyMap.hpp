@@ -121,17 +121,17 @@ namespace Intrepid2
           std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
           unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
           // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
-          if (d1 == 0)
-          {
-            subcell1Nodes.insert(subcellOrdinal1);
-          }
-          else
-          {
+//          if (d1 == 0)
+//          {
+//            subcell1Nodes.insert(subcellOrdinal1);
+//          }
+//          else
+//          {
 //            for (unsigned nodeOrdinal1=0; nodeOrdinal1<nodeCount1; nodeOrdinal1++)
 //            {
 //              subcell1Nodes.insert(cellTopo1_.getNodeMap(d1, subcellOrdinal1, nodeOrdinal1));
 //            }
-          }
+//          }
 //          for (unsigned d2=0; d2<=spaceDim2; d2++)
 //          {
 //            unsigned subcellCount2 = cellTopo2.getSubcellCount(d2);
