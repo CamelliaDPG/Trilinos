@@ -760,9 +760,9 @@ class Basis_TensorBasis;
     */
     virtual OperatorTensorDecomposition getOperatorDecomposition(const EOperator operatorType) const override
     {
-      OperatorTensorDecomposition opSimpleDecomposition = this->getSimpleOperatorDecomposition(operatorType);
-      std::vector<BasisPtr> componentBases {basis1_, basis2_, basis3_};
-      return opSimpleDecomposition.expandedDecomposition(componentBases);
+//      OperatorTensorDecomposition opSimpleDecomposition = this->getSimpleOperatorDecomposition(operatorType);
+//      std::vector<BasisPtr> componentBases {basis1_, basis2_, basis3_};
+//      return opSimpleDecomposition.expandedDecomposition(componentBases);
     }
     
     using TensorBasis::getValues;
@@ -795,29 +795,29 @@ class Basis_TensorBasis;
                            const PointViewType inputPoints12, const PointViewType  inputPoints3,
                            bool tensorPoints) const override
     {
-      // TODO: rework this to use superclass's getComponentPoints.
-      
-      int spaceDim1 = basis1_->getDomainDimension();
-      int spaceDim2 = basis2_->getDomainDimension();
-      
-      int totalSpaceDim12 = inputPoints12.extent_int(1);
-      
-      TEUCHOS_ASSERT(spaceDim1 + spaceDim2 == totalSpaceDim12);
-      
-      if (!tensorPoints)
-      {
-        auto inputPoints1 = Kokkos::subview(inputPoints12,Kokkos::ALL(),std::make_pair(0,spaceDim1));
-        auto inputPoints2 = Kokkos::subview(inputPoints12,Kokkos::ALL(),std::make_pair(spaceDim1,totalSpaceDim12));
-        
-        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, inputPoints3, tensorPoints);
-      }
-      else
-      {
-        // superclass doesn't (yet) have a clever way to detect tensor points in a single container
-        // we'd need something along those lines here to detect them in inputPoints12.
-        // if we do add such a mechanism to superclass, it should be simple enough to call that from here
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "This method does not yet handle tensorPoints=true");
-      }
+//      // TODO: rework this to use superclass's getComponentPoints.
+//
+//      int spaceDim1 = basis1_->getDomainDimension();
+//      int spaceDim2 = basis2_->getDomainDimension();
+//
+//      int totalSpaceDim12 = inputPoints12.extent_int(1);
+//
+//      TEUCHOS_ASSERT(spaceDim1 + spaceDim2 == totalSpaceDim12);
+//
+//      if (!tensorPoints)
+//      {
+//        auto inputPoints1 = Kokkos::subview(inputPoints12,Kokkos::ALL(),std::make_pair(0,spaceDim1));
+//        auto inputPoints2 = Kokkos::subview(inputPoints12,Kokkos::ALL(),std::make_pair(spaceDim1,totalSpaceDim12));
+//
+//        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, inputPoints3, tensorPoints);
+//      }
+//      else
+//      {
+//        // superclass doesn't (yet) have a clever way to detect tensor points in a single container
+//        // we'd need something along those lines here to detect them in inputPoints12.
+//        // if we do add such a mechanism to superclass, it should be simple enough to call that from here
+//        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "This method does not yet handle tensorPoints=true");
+//      }
     }
     
     /** \brief  Evaluation of a tensor FEM basis on a <strong>reference cell</strong>; subclasses should override this.
@@ -884,95 +884,95 @@ class Basis_TensorBasis;
                    const PointViewType  inputPoints3, const EOperator operatorType3,
                    bool tensorPoints, double weight=1.0) const
     {
-      int basisCardinality1 = basis1_->getCardinality();
-      int basisCardinality2 = basis2_->getCardinality();
-      int basisCardinality3 = basis3_->getCardinality();
-      
-      int spaceDim1 = inputPoints1.extent_int(1);
-      int spaceDim2 = inputPoints2.extent_int(1);
-      int spaceDim3 = inputPoints3.extent_int(1);
-      
-      int totalPointCount;
-      int pointCount1, pointCount2, pointCount3;
-      if (tensorPoints)
-      {
-        pointCount1 = inputPoints1.extent_int(0);
-        pointCount2 = inputPoints2.extent_int(0);
-        pointCount3 = inputPoints3.extent_int(0);
-        totalPointCount = pointCount1 * pointCount2 * pointCount3;
-      }
-      else
-      {
-        totalPointCount = inputPoints1.extent_int(0);
-        pointCount1 = totalPointCount;
-        pointCount2 = totalPointCount;
-        pointCount3 = totalPointCount;
-        
-        INTREPID2_TEST_FOR_EXCEPTION((totalPointCount != inputPoints2.extent_int(0)) || (totalPointCount != inputPoints3.extent_int(0)),
-                                     std::invalid_argument, "If tensorPoints is false, the point counts must match!");
-      }
-      
-      // structure of this implementation:
-      /*
-       - allocate output1, output2, output3 containers
-       - either:
-       1. split off the tensor functor call into its own method in TensorBasis, and
-       - call it once with output1, output2, placing these in another newly allocated output12, then
-       - call it again with output12, output3
-       OR
-       2. create a 3-argument tensor functor and call it with output1,output2,output3
-       
-       At the moment, the 3-argument functor seems like a better approach.  It's likely more code, but somewhat
-       more efficient and easier to understand/debug.  And the code is fairly straightforward to produce.
-       */
-      
-      // copied from the 2-argument TensorBasis implementation:
-      
-      OutputViewType outputValues1, outputValues2, outputValues3;
-
-      //Note: the gradient of HGRAD basis on a line has an output vector of rank 3, the last dimension being of size 1.
-      //      in particular this holds even when computing the divergence of an HDIV basis, which is scalar and has rank 2.
-      if ((spaceDim1 == 1) && (operatorType1 == OPERATOR_VALUE))
-      {
-        // use a rank 2 container for basis1
-        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1);
-      }
-      else
-      {
-        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1,spaceDim1);
-      }
-      if ((spaceDim2 == 1) && (operatorType2 == OPERATOR_VALUE))
-      {
-        // use a rank 2 container for basis2
-        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2);
-      }
-      else
-      {
-        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2,spaceDim2);
-      }
-      if ((spaceDim3 == 1) && (operatorType3 == OPERATOR_VALUE))
-      {
-        // use a rank 2 container for basis2
-        outputValues3 = getMatchingViewWithLabel(outputValues,"output values - basis 3",basisCardinality3,pointCount3);
-      }
-      else
-      {
-        outputValues3 = getMatchingViewWithLabel(outputValues,"output values - basis 3",basisCardinality3,pointCount3,spaceDim3);
-      }
-
-      basis1_->getValues(outputValues1,inputPoints1,operatorType1);
-      basis2_->getValues(outputValues2,inputPoints2,operatorType2);
-      basis3_->getValues(outputValues3,inputPoints3,operatorType3);
-      
-      const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
-      const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
-      const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-
-      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
-      
-      using FunctorType = TensorBasis3_Functor<ExecutionSpace, OutputValueType, OutputViewType>;
-      FunctorType functor(outputValues, outputValues1, outputValues2, outputValues3, tensorPoints, weight);
-      Kokkos::parallel_for( policy , functor, "TensorBasis3_Functor");
+//      int basisCardinality1 = basis1_->getCardinality();
+//      int basisCardinality2 = basis2_->getCardinality();
+//      int basisCardinality3 = basis3_->getCardinality();
+//
+//      int spaceDim1 = inputPoints1.extent_int(1);
+//      int spaceDim2 = inputPoints2.extent_int(1);
+//      int spaceDim3 = inputPoints3.extent_int(1);
+//
+//      int totalPointCount;
+//      int pointCount1, pointCount2, pointCount3;
+//      if (tensorPoints)
+//      {
+//        pointCount1 = inputPoints1.extent_int(0);
+//        pointCount2 = inputPoints2.extent_int(0);
+//        pointCount3 = inputPoints3.extent_int(0);
+//        totalPointCount = pointCount1 * pointCount2 * pointCount3;
+//      }
+//      else
+//      {
+//        totalPointCount = inputPoints1.extent_int(0);
+//        pointCount1 = totalPointCount;
+//        pointCount2 = totalPointCount;
+//        pointCount3 = totalPointCount;
+//
+//        INTREPID2_TEST_FOR_EXCEPTION((totalPointCount != inputPoints2.extent_int(0)) || (totalPointCount != inputPoints3.extent_int(0)),
+//                                     std::invalid_argument, "If tensorPoints is false, the point counts must match!");
+//      }
+//
+//      // structure of this implementation:
+//      /*
+//       - allocate output1, output2, output3 containers
+//       - either:
+//       1. split off the tensor functor call into its own method in TensorBasis, and
+//       - call it once with output1, output2, placing these in another newly allocated output12, then
+//       - call it again with output12, output3
+//       OR
+//       2. create a 3-argument tensor functor and call it with output1,output2,output3
+//
+//       At the moment, the 3-argument functor seems like a better approach.  It's likely more code, but somewhat
+//       more efficient and easier to understand/debug.  And the code is fairly straightforward to produce.
+//       */
+//
+//      // copied from the 2-argument TensorBasis implementation:
+//
+//      OutputViewType outputValues1, outputValues2, outputValues3;
+//
+//      //Note: the gradient of HGRAD basis on a line has an output vector of rank 3, the last dimension being of size 1.
+//      //      in particular this holds even when computing the divergence of an HDIV basis, which is scalar and has rank 2.
+//      if ((spaceDim1 == 1) && (operatorType1 == OPERATOR_VALUE))
+//      {
+//        // use a rank 2 container for basis1
+//        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1);
+//      }
+//      else
+//      {
+//        outputValues1 = getMatchingViewWithLabel(outputValues,"output values - basis 1",basisCardinality1,pointCount1,spaceDim1);
+//      }
+//      if ((spaceDim2 == 1) && (operatorType2 == OPERATOR_VALUE))
+//      {
+//        // use a rank 2 container for basis2
+//        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2);
+//      }
+//      else
+//      {
+//        outputValues2 = getMatchingViewWithLabel(outputValues,"output values - basis 2",basisCardinality2,pointCount2,spaceDim2);
+//      }
+//      if ((spaceDim3 == 1) && (operatorType3 == OPERATOR_VALUE))
+//      {
+//        // use a rank 2 container for basis2
+//        outputValues3 = getMatchingViewWithLabel(outputValues,"output values - basis 3",basisCardinality3,pointCount3);
+//      }
+//      else
+//      {
+//        outputValues3 = getMatchingViewWithLabel(outputValues,"output values - basis 3",basisCardinality3,pointCount3,spaceDim3);
+//      }
+//
+//      basis1_->getValues(outputValues1,inputPoints1,operatorType1);
+//      basis2_->getValues(outputValues2,inputPoints2,operatorType2);
+//      basis3_->getValues(outputValues3,inputPoints3,operatorType3);
+//
+//      const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
+//      const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
+//      const int vectorSize = std::max(outputVectorSize,pointVectorSize);
+//
+//      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
+//
+//      using FunctorType = TensorBasis3_Functor<ExecutionSpace, OutputValueType, OutputViewType>;
+//      FunctorType functor(outputValues, outputValues1, outputValues2, outputValues3, tensorPoints, weight);
+//      Kokkos::parallel_for( policy , functor, "TensorBasis3_Functor");
     }
     
     /** \brief Creates and returns a Basis object whose DeviceType template argument is Kokkos::HostSpace::device_type, but is otherwise identical to this.
