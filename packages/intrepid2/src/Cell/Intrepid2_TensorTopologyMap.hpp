@@ -91,7 +91,7 @@ namespace Intrepid2
      
      The higher-dimensional subcell mappings are inferred from the node map.
      */
-    TensorTopologyMap(shards::CellTopology cellTopo1, shards::CellTopology cellTopo2, shards::CellTopology compositeCellTopo,
+    TensorTopologyMap(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2, const shards::CellTopology &compositeCellTopo,
                       std::vector< std::pair<unsigned,unsigned> > nodePairs = std::vector< std::pair<unsigned,unsigned> >())
     :
     cellTopo1_(cellTopo1),
@@ -196,7 +196,7 @@ namespace Intrepid2
         }
       }
     }
-    TensorTopologyMap(shards::CellTopology cellTopo1, shards::CellTopology cellTopo2)
+    TensorTopologyMap(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2)
     :
     TensorTopologyMap(cellTopo1, cellTopo2, compositeCellTopology(cellTopo1,cellTopo2)) {}
     
@@ -233,7 +233,7 @@ namespace Intrepid2
        This method gives the cell coordinates as integers, to emphasize that these are not coordinates in reference space,
        but rather a representation of the geometry concerned with x/y/z orientation but little else.
     */
-    static std::vector< std::vector<int> > referenceCellGeometry(shards::CellTopology cellTopo)
+    static std::vector< std::vector<int> > referenceCellGeometry(const shards::CellTopology &cellTopo)
     {
       std::vector< std::vector<int> > nodes(cellTopo.getVertexCount());
       auto key = cellTopo.getKey();
@@ -294,7 +294,8 @@ namespace Intrepid2
         any pair of component cell topologies that generate those composite topologies.  For example, the hexahedron could
         be generated from line x quad, quad x line, node x hexahedron, hexahedron x node.
     */
-    static std::vector< std::pair<unsigned,unsigned> > defaultNodePairs(shards::CellTopology cellTopo1, shards::CellTopology cellTopo2, shards::CellTopology compositeCellTopo)
+    static std::vector< std::pair<unsigned,unsigned> > defaultNodePairs(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2,
+                                                                        const shards::CellTopology &compositeCellTopo)
     {
       unsigned compositeNodeCount = compositeCellTopo.getVertexCount();
       unsigned nodeCount1 = cellTopo1.getVertexCount();
@@ -332,7 +333,7 @@ namespace Intrepid2
      
         \return The composite cell topology.
     */
-    static shards::CellTopology compositeCellTopology(shards::CellTopology cellTopo1, shards::CellTopology cellTopo2)
+    static shards::CellTopology compositeCellTopology(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2)
     {
       if (cellTopo1.getBaseKey() == shards::Node::key)
       {
