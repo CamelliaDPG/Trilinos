@@ -1234,7 +1234,7 @@ Basis_TensorBasis<BasisBase>::Basis_TensorBasis(BasisPtr basis1, BasisPtr basis2
 basis1_(basis1),basis2_(basis2)
 {
 //  this->functionSpace_ = functionSpace;
-//  
+//
 //  Basis_TensorBasis* basis1AsTensor = dynamic_cast<Basis_TensorBasis*>(basis1_.get());
 //  if (basis1AsTensor)
 //  {
@@ -1245,7 +1245,7 @@ basis1_(basis1),basis2_(basis2)
 //  {
 //    tensorComponents_.push_back(basis1_);
 //  }
-//  
+//
 //  Basis_TensorBasis* basis2AsTensor = dynamic_cast<Basis_TensorBasis*>(basis2_.get());
 //  if (basis2AsTensor)
 //  {
@@ -1256,41 +1256,41 @@ basis1_(basis1),basis2_(basis2)
 //  {
 //    tensorComponents_.push_back(basis2_);
 //  }
-//  
+//
 //  this->basisCardinality_  = basis1->getCardinality() * basis2->getCardinality();
 //  this->basisDegree_       = std::max(basis1->getDegree(), basis2->getDegree());
-//  
+//
 //  {
 //    std::ostringstream basisName;
 //    basisName << basis1->getName() << " x " << basis2->getName();
 //    name_ = basisName.str();
 //  }
-//  
+//
 //  // set cell topology
 //  this->basisCellTopology_ = tensorComponents_[0]->getBaseCellTopology();
 //  this->numTensorialExtrusions_ = tensorComponents_.size() - 1;
-//  
+//
 //  this->basisType_         = basis1_->getBasisType();
 //  this->basisCoordinates_  = COORDINATES_CARTESIAN;
-//  
+//
 //  ordinal_type spaceDim1 = basis1_->getDomainDimension();
 //  ordinal_type spaceDim2 = basis2_->getDomainDimension();
-//  
+//
 //  INTREPID2_TEST_FOR_EXCEPTION(spaceDim2 != 1, std::invalid_argument, "TensorBasis only supports 1D bases in basis2_ position");
-//  
+//
 //  if (this->getBasisType() == BASIS_FEM_HIERARCHICAL)
 //  {
 //    // fill in degree lookup:
 //    int degreeSize = basis1_->getPolynomialDegreeLength() + basis2_->getPolynomialDegreeLength();
 //    this->fieldOrdinalPolynomialDegree_   = OrdinalTypeArray2DHost("TensorBasis - field ordinal polynomial degree", this->basisCardinality_, degreeSize);
 //    this->fieldOrdinalH1PolynomialDegree_ = OrdinalTypeArray2DHost("TensorBasis - field ordinal polynomial H^1 degree", this->basisCardinality_, degreeSize);
-//    
+//
 //    const ordinal_type basis1Cardinality = basis1_->getCardinality();
 //    const ordinal_type basis2Cardinality = basis2_->getCardinality();
-//    
+//
 //    int degreeLengthField1 = basis1_->getPolynomialDegreeLength();
 //    int degreeLengthField2 = basis2_->getPolynomialDegreeLength();
-//    
+//
 //    for (ordinal_type fieldOrdinal1 = 0; fieldOrdinal1 < basis1Cardinality; fieldOrdinal1++)
 //    {
 //      OrdinalTypeArray1DHost degreesField1   = basis1_->getPolynomialDegreeOfField(fieldOrdinal1);
@@ -1300,7 +1300,7 @@ basis1_(basis1),basis2_(basis2)
 //        OrdinalTypeArray1DHost degreesField2   = basis2_->getPolynomialDegreeOfField(fieldOrdinal2);
 //        OrdinalTypeArray1DHost h1DegreesField2 = basis2_->getH1PolynomialDegreeOfField(fieldOrdinal2);
 //        const ordinal_type tensorFieldOrdinal = fieldOrdinal2 * basis1Cardinality + fieldOrdinal1;
-//        
+//
 //        for (int d3=0; d3<degreeLengthField1; d3++)
 //        {
 //          this->fieldOrdinalPolynomialDegree_  (tensorFieldOrdinal,d3) =   degreesField1(d3);
@@ -1314,7 +1314,7 @@ basis1_(basis1),basis2_(basis2)
 //      }
 //    }
 //  }
-//  
+//
 //  if (useShardsCellTopologyAndTags)
 //  {
 //    setShardsTopologyAndTags();
@@ -1337,13 +1337,13 @@ basis1_(basis1),basis2_(basis2)
 //    // we assume that basis2_ is defined on a line, and that basis1_ is defined on a domain that is once-extruded in by that line.
 //    auto cellTopo = CellTopology::cellTopology(this->basisCellTopology_, numTensorialExtrusions_);
 //    auto basis1Topo = cellTopo->getTensorialComponent();
-//    
+//
 //    const ordinal_type spaceDim = spaceDim1 + spaceDim2;
 //    const ordinal_type sideDim   = spaceDim - 1;
-//    
+//
 //    const OrdinalTypeArray2DHost ordinalToTag1 = basis1_->getAllDofTags();
 //    const OrdinalTypeArray2DHost ordinalToTag2 = basis2_->getAllDofTags();
-//            
+//
 //    for (int fieldOrdinal1=0; fieldOrdinal1<basis1_->getCardinality(); fieldOrdinal1++)
 //    {
 //      ordinal_type subcellDim1   = ordinalToTag1(fieldOrdinal1,posScDim);
@@ -1354,7 +1354,7 @@ basis1_(basis1),basis2_(basis2)
 //        ordinal_type subcellDim2   = ordinalToTag2(fieldOrdinal2,posScDim);
 //        ordinal_type subcellOrd2   = ordinalToTag2(fieldOrdinal2,posScOrd);
 //        ordinal_type subcellDfCnt2 = ordinalToTag2(fieldOrdinal2,posDfCnt);
-//        
+//
 //        ordinal_type subcellDim = subcellDim1 + subcellDim2;
 //        ordinal_type subcellOrd;
 //        if (subcellDim2 == 0)
@@ -1387,7 +1387,7 @@ basis1_(basis1),basis2_(basis2)
 //        tagView(tagSize*tensorFieldOrdinal + posDfCnt) = subcellDfCnt1 * subcellDfCnt2; // total number of DoFs associated with the subcell
 //      }
 //    }
-//    
+//
 //    //        // Basis-independent function sets tag and enum data in tagToOrdinal_ and ordinalToTag_ arrays:
 //    //        // tags are constructed on host
 //    this->setOrdinalTagData(this->tagToOrdinal_,
@@ -1821,106 +1821,107 @@ Basis_TensorBasis<BasisBase>::allocateBasisValues(TensorPoints<typename BasisBas
                                                   typename BasisBase::DeviceType> points,
                                                   const EOperator operatorType) const
 {
-  const bool operatorIsDk = (operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10);
-  const bool operatorSupported = (operatorType == OPERATOR_VALUE) || (operatorType == OPERATOR_GRAD) || (operatorType == OPERATOR_CURL) || (operatorType == OPERATOR_DIV) || operatorIsDk;
-  INTREPID2_TEST_FOR_EXCEPTION(!operatorSupported, std::invalid_argument, "operator is not supported by allocateBasisValues");
-  
-  // check that points's spatial dimension matches the basis
-  const int spaceDim = this->getDomainDimension();
-  INTREPID2_TEST_FOR_EXCEPTION(spaceDim != points.extent_int(1), std::invalid_argument, "points must be shape (P,D), with D equal to the dimension of the basis domain");
-  
-  // check that points has enough tensor components
-  ordinal_type numBasisComponents = tensorComponents_.size();
-  if (numBasisComponents > points.numTensorComponents())
-  {
-    // Then we require points to have a trivial tensor structure.  (Subclasses could be more sophisticated.)
-    // (More sophisticated approaches are possible here, too, but likely the most common use case in which there is not a one-to-one correspondence
-    //  between basis components and point components will involve trivial tensor structure in the points...)
-    INTREPID2_TEST_FOR_EXCEPTION(points.numTensorComponents() != 1, std::invalid_argument, "If points does not have the same number of tensor components as the basis, then it should have trivial tensor structure.");
-    const ordinal_type numPoints = points.extent_int(0);
-    auto outputView = this->allocateOutputView(numPoints, operatorType);
-    
-    Data<OutputValueType,DeviceType> outputData(outputView);
-    TensorData<OutputValueType,DeviceType> outputTensorData(outputData);
-    
-    return BasisValues<OutputValueType,DeviceType>(outputTensorData);
-  }
-  INTREPID2_TEST_FOR_EXCEPTION(numBasisComponents > points.numTensorComponents(), std::invalid_argument, "points must have at least as many tensorial components as basis.");
-  
-  OperatorTensorDecomposition opDecomposition = getOperatorDecomposition(operatorType);
-        
-  ordinal_type numVectorComponents = opDecomposition.numVectorComponents();
-  const bool useVectorData = numVectorComponents > 1;
-  
-  std::vector<ordinal_type> componentPointCounts(numBasisComponents);
-  ordinal_type pointComponentNumber = 0;
-  for (ordinal_type r=0; r<numBasisComponents; r++)
-  {
-    const ordinal_type compSpaceDim = tensorComponents_[r]->getDomainDimension();
-    ordinal_type dimsSoFar = 0;
-    ordinal_type numPointsForBasisComponent = 1;
-    while (dimsSoFar < compSpaceDim)
-    {
-      INTREPID2_TEST_FOR_EXCEPTION(pointComponentNumber >= points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-      const int numComponentPoints = points.componentPointCount(pointComponentNumber);
-      const int numComponentDims = points.getTensorComponent(pointComponentNumber).extent_int(1);
-      numPointsForBasisComponent *= numComponentPoints;
-      dimsSoFar += numComponentDims;
-      INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
-      pointComponentNumber++;
-    }
-    componentPointCounts[r] = numPointsForBasisComponent;
-  }
-  
-  if (useVectorData)
-  {
-    const int numFamilies = 1;
-    std::vector< std::vector<TensorData<OutputValueType,DeviceType> > > vectorComponents(numFamilies, std::vector<TensorData<OutputValueType,DeviceType> >(numVectorComponents));
-    
-    const int familyOrdinal = 0;
-    for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
-    {
-      if (!opDecomposition.identicallyZeroComponent(vectorComponentOrdinal))
-      {
-        std::vector< Data<OutputValueType,DeviceType> > componentData;
-        for (ordinal_type r=0; r<numBasisComponents; r++)
-        {
-          const int numComponentPoints = componentPointCounts[r];
-          const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
-          auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
-          componentData.push_back(Data<OutputValueType,DeviceType>(componentView));
-        }
-        vectorComponents[familyOrdinal][vectorComponentOrdinal] = TensorData<OutputValueType,DeviceType>(componentData);
-      }
-    }
-    VectorData<OutputValueType,DeviceType> vectorData(vectorComponents);
-    return BasisValues<OutputValueType,DeviceType>(vectorData);
-  }
-  else
-  {
-    // TensorData: single tensor product
-    std::vector< Data<OutputValueType,DeviceType> > componentData;
-    
-    const ordinal_type vectorComponentOrdinal = 0;
-    for (ordinal_type r=0; r<numBasisComponents; r++)
-    {
-      const int numComponentPoints = componentPointCounts[r];
-      const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
-      auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
-      
-      const int rank = 2; // (F,P) -- TensorData-only BasisValues are always scalar-valued.  Use VectorData for vector-valued.
-      // (we need to be explicit about the rank argument because GRAD, even in 1D, elevates to rank 3), so e.g. DIV of HDIV uses a componentView that is rank 3;
-      //  we want Data to insulate us from that fact)
-      const Kokkos::Array<int,7> extents {componentView.extent_int(0), componentView.extent_int(1), 1,1,1,1,1};
-      Kokkos::Array<DataVariationType,7> variationType {GENERAL, GENERAL, CONSTANT, CONSTANT, CONSTANT, CONSTANT, CONSTANT };
-      componentData.push_back(Data<OutputValueType,DeviceType>(componentView, rank, extents, variationType));
-    }
-    
-    TensorData<OutputValueType,DeviceType> tensorData(componentData);
-    
-    std::vector< TensorData<OutputValueType,DeviceType> > tensorDataEntries {tensorData};
-    return BasisValues<OutputValueType,DeviceType>(tensorDataEntries);
-  }
+//  const bool operatorIsDk = (operatorType >= OPERATOR_D1) && (operatorType <= OPERATOR_D10);
+//  const bool operatorSupported = (operatorType == OPERATOR_VALUE) || (operatorType == OPERATOR_GRAD) || (operatorType == OPERATOR_CURL) || (operatorType == OPERATOR_DIV) || operatorIsDk;
+//  INTREPID2_TEST_FOR_EXCEPTION(!operatorSupported, std::invalid_argument, "operator is not supported by allocateBasisValues");
+//
+//  // check that points's spatial dimension matches the basis
+//  const int spaceDim = this->getDomainDimension();
+//  INTREPID2_TEST_FOR_EXCEPTION(spaceDim != points.extent_int(1), std::invalid_argument, "points must be shape (P,D), with D equal to the dimension of the basis domain");
+//
+//  // check that points has enough tensor components
+//  ordinal_type numBasisComponents = tensorComponents_.size();
+//  if (numBasisComponents > points.numTensorComponents())
+//  {
+//    // Then we require points to have a trivial tensor structure.  (Subclasses could be more sophisticated.)
+//    // (More sophisticated approaches are possible here, too, but likely the most common use case in which there is not a one-to-one correspondence
+//    //  between basis components and point components will involve trivial tensor structure in the points...)
+//    INTREPID2_TEST_FOR_EXCEPTION(points.numTensorComponents() != 1, std::invalid_argument, "If points does not have the same number of tensor components as the basis, then it should have trivial tensor structure.");
+//    const ordinal_type numPoints = points.extent_int(0);
+//    auto outputView = this->allocateOutputView(numPoints, operatorType);
+//
+//    Data<OutputValueType,DeviceType> outputData(outputView);
+//    TensorData<OutputValueType,DeviceType> outputTensorData(outputData);
+//
+//    return BasisValues<OutputValueType,DeviceType>(outputTensorData);
+//  }
+//  INTREPID2_TEST_FOR_EXCEPTION(numBasisComponents > points.numTensorComponents(), std::invalid_argument, "points must have at least as many tensorial components as basis.");
+//
+//  OperatorTensorDecomposition opDecomposition = getOperatorDecomposition(operatorType);
+//
+//  ordinal_type numVectorComponents = opDecomposition.numVectorComponents();
+//  const bool useVectorData = numVectorComponents > 1;
+//
+//  std::vector<ordinal_type> componentPointCounts(numBasisComponents);
+//  ordinal_type pointComponentNumber = 0;
+//  for (ordinal_type r=0; r<numBasisComponents; r++)
+//  {
+//    const ordinal_type compSpaceDim = tensorComponents_[r]->getDomainDimension();
+//    ordinal_type dimsSoFar = 0;
+//    ordinal_type numPointsForBasisComponent = 1;
+//    while (dimsSoFar < compSpaceDim)
+//    {
+//      INTREPID2_TEST_FOR_EXCEPTION(pointComponentNumber >= points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+//      const int numComponentPoints = points.componentPointCount(pointComponentNumber);
+//      const int numComponentDims = points.getTensorComponent(pointComponentNumber).extent_int(1);
+//      numPointsForBasisComponent *= numComponentPoints;
+//      dimsSoFar += numComponentDims;
+//      INTREPID2_TEST_FOR_EXCEPTION(dimsSoFar > points.numTensorComponents(), std::invalid_argument, "Error in processing points container; perhaps it is mis-sized?");
+//      pointComponentNumber++;
+//    }
+//    componentPointCounts[r] = numPointsForBasisComponent;
+//  }
+//
+//  if (useVectorData)
+//  {
+//    const int numFamilies = 1;
+//    std::vector< std::vector<TensorData<OutputValueType,DeviceType> > > vectorComponents(numFamilies, std::vector<TensorData<OutputValueType,DeviceType> >(numVectorComponents));
+//
+//    const int familyOrdinal = 0;
+//    for (ordinal_type vectorComponentOrdinal=0; vectorComponentOrdinal<numVectorComponents; vectorComponentOrdinal++)
+//    {
+//      if (!opDecomposition.identicallyZeroComponent(vectorComponentOrdinal))
+//      {
+//        std::vector< Data<OutputValueType,DeviceType> > componentData;
+//        for (ordinal_type r=0; r<numBasisComponents; r++)
+//        {
+//          const int numComponentPoints = componentPointCounts[r];
+//          const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
+//          auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
+//          componentData.push_back(Data<OutputValueType,DeviceType>(componentView));
+//        }
+//        vectorComponents[familyOrdinal][vectorComponentOrdinal] = TensorData<OutputValueType,DeviceType>(componentData);
+//      }
+//    }
+//    VectorData<OutputValueType,DeviceType> vectorData(vectorComponents);
+//    return BasisValues<OutputValueType,DeviceType>(vectorData);
+//  }
+//  else
+//  {
+//    // TensorData: single tensor product
+//    std::vector< Data<OutputValueType,DeviceType> > componentData;
+//
+//    const ordinal_type vectorComponentOrdinal = 0;
+//    for (ordinal_type r=0; r<numBasisComponents; r++)
+//    {
+//      const int numComponentPoints = componentPointCounts[r];
+//      const EOperator op = opDecomposition.op(vectorComponentOrdinal, r);
+//      auto componentView = tensorComponents_[r]->allocateOutputView(numComponentPoints, op);
+//
+//      const int rank = 2; // (F,P) -- TensorData-only BasisValues are always scalar-valued.  Use VectorData for vector-valued.
+//      // (we need to be explicit about the rank argument because GRAD, even in 1D, elevates to rank 3), so e.g. DIV of HDIV uses a componentView that is rank 3;
+//      //  we want Data to insulate us from that fact)
+//      const Kokkos::Array<int,7> extents {componentView.extent_int(0), componentView.extent_int(1), 1,1,1,1,1};
+//      Kokkos::Array<DataVariationType,7> variationType {GENERAL, GENERAL, CONSTANT, CONSTANT, CONSTANT, CONSTANT, CONSTANT };
+//      componentData.push_back(Data<OutputValueType,DeviceType>(componentView, rank, extents, variationType));
+//    }
+//
+//    TensorData<OutputValueType,DeviceType> tensorData(componentData);
+//
+//    std::vector< TensorData<OutputValueType,DeviceType> > tensorDataEntries {tensorData};
+//    return BasisValues<OutputValueType,DeviceType>(tensorDataEntries);
+//  }
+  return BasisValues<typename BasisBase::OutputValueType, typename BasisBase::DeviceType>();
 }
 
 template<class BasisBase>
