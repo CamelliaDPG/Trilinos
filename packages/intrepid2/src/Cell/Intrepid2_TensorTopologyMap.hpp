@@ -69,9 +69,9 @@ namespace Intrepid2
      */
   class TensorTopologyMap
   {
-    shards::CellTopology cellTopo1_;
-    shards::CellTopology cellTopo2_;
-    shards::CellTopology compositeCellTopo_;
+    ::shards::CellTopology cellTopo1_;
+    ::shards::CellTopology cellTopo2_;
+    ::shards::CellTopology compositeCellTopo_;
     
     using Subcell     = std::pair<unsigned,unsigned>; // first: dimension, second: subcell ordinal
     using SubcellPair = std::pair<Subcell,Subcell>;   // first: subcell in cellTopo1_, second: subcell in cellTopo2_
@@ -91,7 +91,7 @@ namespace Intrepid2
      
      The higher-dimensional subcell mappings are inferred from the node map.
      */
-    TensorTopologyMap(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2, const shards::CellTopology &compositeCellTopo,
+    TensorTopologyMap(const ::shards::CellTopology &cellTopo1, const ::shards::CellTopology &cellTopo2, const ::shards::CellTopology &compositeCellTopo,
                       std::vector< std::pair<unsigned,unsigned> > nodePairs = std::vector< std::pair<unsigned,unsigned> >())
     :
     cellTopo1_(cellTopo1),
@@ -120,7 +120,7 @@ namespace Intrepid2
           Subcell subcell1 = {d1, subcellOrdinal1};
           std::set<unsigned> subcell1Nodes; // set because we don't care about ordering
           unsigned nodeCount1 = cellTopo1_.getNodeCount(d1, subcellOrdinal1);
-          // unfortunately, the node count for vertices is given as 0 by shards::CellTopology.  This seems like a bug.
+          // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
           if (d1 == 0)
           {
             subcell1Nodes.insert(subcellOrdinal1);
@@ -140,7 +140,7 @@ namespace Intrepid2
               Subcell subcell2 = {d2, subcellOrdinal2};
               std::set<unsigned> subcell2Nodes; // set because we don't care about ordering
               unsigned nodeCount2 = cellTopo2_.getNodeCount(d2, subcellOrdinal2);
-              // unfortunately, the node count for vertices is given as 0 by shards::CellTopology.  This seems like a bug.
+              // unfortunately, the node count for vertices is given as 0 by ::shards::CellTopology.  This seems like a bug.
               if (d2 == 0)
               {
                 subcell2Nodes.insert(subcellOrdinal2);
@@ -196,7 +196,7 @@ namespace Intrepid2
         }
       }
     }
-    TensorTopologyMap(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2)
+    TensorTopologyMap(const ::shards::CellTopology &cellTopo1, const ::shards::CellTopology &cellTopo2)
     :
     TensorTopologyMap(cellTopo1, cellTopo2, compositeCellTopology(cellTopo1,cellTopo2)) {}
     
@@ -233,7 +233,7 @@ namespace Intrepid2
        This method gives the cell coordinates as integers, to emphasize that these are not coordinates in reference space,
        but rather a representation of the geometry concerned with x/y/z orientation but little else.
     */
-    static std::vector< std::vector<int> > referenceCellGeometry(const shards::CellTopology &cellTopo)
+    static std::vector< std::vector<int> > referenceCellGeometry(const ::shards::CellTopology &cellTopo)
     {
       std::vector< std::vector<int> > nodes(cellTopo.getVertexCount());
       auto key = cellTopo.getKey();
@@ -294,8 +294,8 @@ namespace Intrepid2
         any pair of component cell topologies that generate those composite topologies.  For example, the hexahedron could
         be generated from line x quad, quad x line, node x hexahedron, hexahedron x node.
     */
-    static std::vector< std::pair<unsigned,unsigned> > defaultNodePairs(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2,
-                                                                        const shards::CellTopology &compositeCellTopo)
+    static std::vector< std::pair<unsigned,unsigned> > defaultNodePairs(const ::shards::CellTopology &cellTopo1, const ::shards::CellTopology &cellTopo2,
+                                                                        const ::shards::CellTopology &compositeCellTopo)
     {
       unsigned compositeNodeCount = compositeCellTopo.getVertexCount();
       unsigned nodeCount1 = cellTopo1.getVertexCount();
@@ -333,7 +333,7 @@ namespace Intrepid2
      
         \return The composite cell topology.
     */
-    static shards::CellTopology compositeCellTopology(const shards::CellTopology &cellTopo1, const shards::CellTopology &cellTopo2)
+    static ::shards::CellTopology compositeCellTopology(const ::shards::CellTopology &cellTopo1, const ::shards::CellTopology &cellTopo2)
     {
       if (cellTopo1.getBaseKey() == shards::Node::key)
       {
@@ -353,12 +353,12 @@ namespace Intrepid2
           switch (key2)
         {
           case shards::Line<2>::key:
-            return shards::CellTopology(shards::getCellTopologyData<shards::Quadrilateral<> >() );
+            return ::shards::CellTopology(shards::getCellTopologyData<shards::Quadrilateral<> >() );
           case shards::Triangle<3>::key:
             // unsupported:
             INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"line x triangle is not supported at present.  Wedge is triangle x line.");
           case shards::Quadrilateral<4>::key:
-            return shards::CellTopology(shards::getCellTopologyData<shards::Hexahedron<> >() );
+            return ::shards::CellTopology(shards::getCellTopologyData<shards::Hexahedron<> >() );
           default:
             INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"Unsupported cell topology pair");
         }
@@ -366,7 +366,7 @@ namespace Intrepid2
           switch (key2)
         {
           case shards::Line<2>::key:
-            return shards::CellTopology(shards::getCellTopologyData<shards::Wedge<> >() );
+            return ::shards::CellTopology(shards::getCellTopologyData<shards::Wedge<> >() );
           default:
             INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"Unsupported cell topology pair");
         }
@@ -374,7 +374,7 @@ namespace Intrepid2
           switch (key2)
         {
           case shards::Line<2>::key:
-            return shards::CellTopology(shards::getCellTopologyData<shards::Hexahedron<> >() );
+            return ::shards::CellTopology(shards::getCellTopologyData<shards::Hexahedron<> >() );
           default:
             INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"Unsupported cell topology pair");
         }
