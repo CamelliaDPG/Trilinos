@@ -1129,10 +1129,10 @@ void Basis_TensorBasis<BasisBase>::setShardsTopologyAndTags()
 {
 //  shards::CellTopology cellTopo1 = basis1_->getBaseCellTopology();
 //  shards::CellTopology cellTopo2 = basis2_->getBaseCellTopology();
-//  
+//
 //  auto cellKey1 = basis1_->getBaseCellTopology().getKey();
 //  auto cellKey2 = basis2_->getBaseCellTopology().getKey();
-//  
+//
 //  const int numTensorialExtrusions = basis1_->getNumTensorialExtrusions() + basis2_->getNumTensorialExtrusions();
 //  if ((cellKey1 == shards::Line<2>::key) && (cellKey2 == shards::Line<2>::key) && (numTensorialExtrusions == 0))
 //  {
@@ -1149,30 +1149,30 @@ void Basis_TensorBasis<BasisBase>::setShardsTopologyAndTags()
 //  {
 //    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Cell topology combination not yet supported");
 //  }
-//  
+//
 //  // numTensorialExtrusions_ is relative to the basisCellTopology_; what we've just done is found a cell topology of the same spatial dimension as the extruded topology, so now numTensorialExtrusions_ should be 0.
 //  numTensorialExtrusions_ = 0;
-//  
+//
 //  // initialize tags
 //  {
 //    const auto & cardinality = this->basisCardinality_;
-//    
+//
 //    // Basis-dependent initializations
 //    const ordinal_type tagSize  = 4;        // size of DoF tag, i.e., number of fields in the tag
 //    const ordinal_type posScDim = 0;        // position in the tag, counting from 0, of the subcell dim
 //    const ordinal_type posScOrd = 1;        // position in the tag, counting from 0, of the subcell ordinal
 //    const ordinal_type posDfOrd = 2;        // position in the tag, counting from 0, of DoF ordinal relative to the subcell
-//    
+//
 //    OrdinalTypeArray1DHost tagView("tag view", cardinality*tagSize);
-//    
+//
 //    shards::CellTopology cellTopo = this->basisCellTopology_;
-//    
+//
 //    ordinal_type tensorSpaceDim  = cellTopo.getDimension();
 //    ordinal_type spaceDim1       = cellTopo1.getDimension();
 //    ordinal_type spaceDim2       = cellTopo2.getDimension();
-//    
+//
 //    TensorTopologyMap topoMap(cellTopo1, cellTopo2);
-//    
+//
 //    for (ordinal_type d=0; d<=tensorSpaceDim; d++) // d: tensorial dimension
 //    {
 //      ordinal_type d2_max = std::min(spaceDim2,d);
@@ -1181,7 +1181,7 @@ void Basis_TensorBasis<BasisBase>::setShardsTopologyAndTags()
 //      {
 //        ordinal_type d1 = d-d2;
 //        if (d1 > spaceDim1) continue;
-//        
+//
 //        ordinal_type subcellCount2 = cellTopo2.getSubcellCount(d2);
 //        ordinal_type subcellCount1 = cellTopo1.getSubcellCount(d1);
 //        for (ordinal_type subcellOrdinal2=0; subcellOrdinal2<subcellCount2; subcellOrdinal2++)
@@ -1212,7 +1212,7 @@ void Basis_TensorBasis<BasisBase>::setShardsTopologyAndTags()
 //        subcellOffset += subcellCount1 * subcellCount2;
 //      }
 //    }
-//    
+//
 //    //        // Basis-independent function sets tag and enum data in tagToOrdinal_ and ordinalToTag_ arrays:
 //    //        // tags are constructed on host
 //    this->setOrdinalTagData(this->tagToOrdinal_,
@@ -1406,118 +1406,118 @@ void Basis_TensorBasis<BasisBase>::getValues( Basis_TensorBasis<BasisBase>::Outp
                                              const Basis_TensorBasis<BasisBase>::PointViewType  inputPoints,
                                              const EOperator operatorType ) const
 {
-  bool tensorPoints;  // true would mean that we take the tensor product of inputPoints1 and inputPoints2 (and that this would be equivalent to inputPoints as given -- i.e., inputPoints1 and inputPoints2 would be a tensor decomposition of inputPoints)
-  bool attemptTensorDecomposition = false; // support for this not yet implemented
-  PointViewType inputPoints1, inputPoints2;
-  getComponentPoints(inputPoints, attemptTensorDecomposition, inputPoints1, inputPoints2, tensorPoints);
-  
-  const auto functionSpace = this->getFunctionSpace();
-  
-  if ((functionSpace == FUNCTION_SPACE_HVOL) || (functionSpace == FUNCTION_SPACE_HGRAD))
-  {
-    // then we can handle VALUE, GRAD, and Op_Dn without reference to subclass
-    switch (operatorType)
-    {
-      case OPERATOR_VALUE:
-      case OPERATOR_GRAD:
-      case OPERATOR_D1:
-      case OPERATOR_D2:
-      case OPERATOR_D3:
-      case OPERATOR_D4:
-      case OPERATOR_D5:
-      case OPERATOR_D6:
-      case OPERATOR_D7:
-      case OPERATOR_D8:
-      case OPERATOR_D9:
-      case OPERATOR_D10:
-      {
-        auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
-        // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
-        // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
-        for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
-        {
-          int derivativeCountComp1=opOrder-derivativeCountComp2;
-          EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
-          EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
-          
-          int spaceDim1 = inputPoints1.extent_int(1);
-          int spaceDim2 = inputPoints2.extent_int(1);
-          
-          int dkCardinality1 = (op1 != OPERATOR_VALUE) ? getDkCardinality(op1, spaceDim1) : 1;
-          int dkCardinality2 = (op2 != OPERATOR_VALUE) ? getDkCardinality(op2, spaceDim2) : 1;
-          
-          int basisCardinality1 = basis1_->getCardinality();
-          int basisCardinality2 = basis2_->getCardinality();
-          
-          int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
-          
-          int pointCount1, pointCount2;
-          if (tensorPoints)
-          {
-            pointCount1 = inputPoints1.extent_int(0);
-            pointCount2 = inputPoints2.extent_int(0);
-          }
-          else
-          {
-            pointCount1 = totalPointCount;
-            pointCount2 = totalPointCount;
-          }
-          
-          OutputViewType outputValues1, outputValues2;
-          if (op1 == OPERATOR_VALUE)
-            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1);
-          else
-            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1,dkCardinality1);
-          
-          if (op2 == OPERATOR_VALUE)
-            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2);
-          else
-            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2,dkCardinality2);
-            
-          basis1_->getValues(outputValues1,inputPoints1,op1);
-          basis2_->getValues(outputValues2,inputPoints2,op2);
-          
-          const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
-          const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
-          const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-          
-          auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
-          
-          double weight = 1.0;
-          using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
-          
-          for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
-          {
-            auto outputValues1_dkEnum1 = (op1 != OPERATOR_VALUE) ? Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL(),dkEnum1)
-            : Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL());
-            for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
-            {
-              auto outputValues2_dkEnum2 = (op2 != OPERATOR_VALUE) ? Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL(),dkEnum2)
-              : Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL());
-              
-              ordinal_type dkTensorIndex = getTensorDkEnumeration(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
-              auto outputValues_dkTensor = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),dkTensorIndex);
-              // Note that there may be performance optimizations available here:
-              // - could eliminate interior for loop in favor of having a vector-valued outputValues1_dk
-              // - could add support to TensorViewFunctor (and probably TensorViewIterator) for this kind of tensor Dk type of traversal
-              //   (this would allow us to eliminate both for loops here)
-              // At the moment, we defer such optimizations on the idea that this may not ever become a performance bottleneck.
-              FunctorType functor(outputValues_dkTensor, outputValues1_dkEnum1, outputValues2_dkEnum2, tensorPoints, weight);
-              Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
-            }
-          }
-        }
-      }
-        break;
-      default: // non-OPERATOR_Dn case must be handled by subclass.
-        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
-    }
-  }
-  else
-  {
-    // not HVOL or HGRAD; subclass must handle
-    this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
-  }
+//  bool tensorPoints;  // true would mean that we take the tensor product of inputPoints1 and inputPoints2 (and that this would be equivalent to inputPoints as given -- i.e., inputPoints1 and inputPoints2 would be a tensor decomposition of inputPoints)
+//  bool attemptTensorDecomposition = false; // support for this not yet implemented
+//  PointViewType inputPoints1, inputPoints2;
+//  getComponentPoints(inputPoints, attemptTensorDecomposition, inputPoints1, inputPoints2, tensorPoints);
+//  
+//  const auto functionSpace = this->getFunctionSpace();
+//  
+//  if ((functionSpace == FUNCTION_SPACE_HVOL) || (functionSpace == FUNCTION_SPACE_HGRAD))
+//  {
+//    // then we can handle VALUE, GRAD, and Op_Dn without reference to subclass
+//    switch (operatorType)
+//    {
+//      case OPERATOR_VALUE:
+//      case OPERATOR_GRAD:
+//      case OPERATOR_D1:
+//      case OPERATOR_D2:
+//      case OPERATOR_D3:
+//      case OPERATOR_D4:
+//      case OPERATOR_D5:
+//      case OPERATOR_D6:
+//      case OPERATOR_D7:
+//      case OPERATOR_D8:
+//      case OPERATOR_D9:
+//      case OPERATOR_D10:
+//      {
+//        auto opOrder = getOperatorOrder(operatorType); // number of derivatives that we take in total
+//        // the Dk enumeration happens in lexicographic order (reading from left to right: x, y, z, etc.)
+//        // this governs the nesting order of the dkEnum1, dkEnum2 for loops below: dkEnum2 should increment fastest.
+//        for (int derivativeCountComp2=0; derivativeCountComp2<=opOrder; derivativeCountComp2++)
+//        {
+//          int derivativeCountComp1=opOrder-derivativeCountComp2;
+//          EOperator op1 = (derivativeCountComp1 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp1 - 1));
+//          EOperator op2 = (derivativeCountComp2 == 0) ? OPERATOR_VALUE : EOperator(OPERATOR_D1 + (derivativeCountComp2 - 1));
+//          
+//          int spaceDim1 = inputPoints1.extent_int(1);
+//          int spaceDim2 = inputPoints2.extent_int(1);
+//          
+//          int dkCardinality1 = (op1 != OPERATOR_VALUE) ? getDkCardinality(op1, spaceDim1) : 1;
+//          int dkCardinality2 = (op2 != OPERATOR_VALUE) ? getDkCardinality(op2, spaceDim2) : 1;
+//          
+//          int basisCardinality1 = basis1_->getCardinality();
+//          int basisCardinality2 = basis2_->getCardinality();
+//          
+//          int totalPointCount = tensorPoints ? inputPoints1.extent_int(0) * inputPoints2.extent_int(0) : inputPoints1.extent_int(0);
+//          
+//          int pointCount1, pointCount2;
+//          if (tensorPoints)
+//          {
+//            pointCount1 = inputPoints1.extent_int(0);
+//            pointCount2 = inputPoints2.extent_int(0);
+//          }
+//          else
+//          {
+//            pointCount1 = totalPointCount;
+//            pointCount2 = totalPointCount;
+//          }
+//          
+//          OutputViewType outputValues1, outputValues2;
+//          if (op1 == OPERATOR_VALUE)
+//            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1);
+//          else
+//            outputValues1 = getMatchingViewWithLabel(outputValues, "output values - basis 1",basisCardinality1,pointCount1,dkCardinality1);
+//          
+//          if (op2 == OPERATOR_VALUE)
+//            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2);
+//          else
+//            outputValues2 = getMatchingViewWithLabel(outputValues, "output values - basis 2",basisCardinality2,pointCount2,dkCardinality2);
+//            
+//          basis1_->getValues(outputValues1,inputPoints1,op1);
+//          basis2_->getValues(outputValues2,inputPoints2,op2);
+//          
+//          const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
+//          const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
+//          const int vectorSize = std::max(outputVectorSize,pointVectorSize);
+//          
+//          auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
+//          
+//          double weight = 1.0;
+//          using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
+//          
+//          for (int dkEnum1=0; dkEnum1<dkCardinality1; dkEnum1++)
+//          {
+//            auto outputValues1_dkEnum1 = (op1 != OPERATOR_VALUE) ? Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL(),dkEnum1)
+//            : Kokkos::subview(outputValues1,Kokkos::ALL(),Kokkos::ALL());
+//            for (int dkEnum2=0; dkEnum2<dkCardinality2; dkEnum2++)
+//            {
+//              auto outputValues2_dkEnum2 = (op2 != OPERATOR_VALUE) ? Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL(),dkEnum2)
+//              : Kokkos::subview(outputValues2,Kokkos::ALL(),Kokkos::ALL());
+//              
+//              ordinal_type dkTensorIndex = getTensorDkEnumeration(dkEnum1, derivativeCountComp1, dkEnum2, derivativeCountComp2);
+//              auto outputValues_dkTensor = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),dkTensorIndex);
+//              // Note that there may be performance optimizations available here:
+//              // - could eliminate interior for loop in favor of having a vector-valued outputValues1_dk
+//              // - could add support to TensorViewFunctor (and probably TensorViewIterator) for this kind of tensor Dk type of traversal
+//              //   (this would allow us to eliminate both for loops here)
+//              // At the moment, we defer such optimizations on the idea that this may not ever become a performance bottleneck.
+//              FunctorType functor(outputValues_dkTensor, outputValues1_dkEnum1, outputValues2_dkEnum2, tensorPoints, weight);
+//              Kokkos::parallel_for( policy , functor, "TensorViewFunctor");
+//            }
+//          }
+//        }
+//      }
+//        break;
+//      default: // non-OPERATOR_Dn case must be handled by subclass.
+//        this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
+//    }
+//  }
+//  else
+//  {
+//    // not HVOL or HGRAD; subclass must handle
+//    this->getValues(outputValues, operatorType, inputPoints1, inputPoints2, tensorPoints);
+//  }
 }
 
 template<class BasisBase>
