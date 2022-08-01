@@ -70,100 +70,100 @@ namespace
   template<int spaceDim>
   void testRefSpaceVectorValues(Teuchos::FancyOStream &out, bool &success)
   {
-    using DeviceType = DefaultTestDeviceType;
-    using Scalar = double;
-    using PointScalar = double;
-    using WeightScalar = double;
-    using CubatureType   = Cubature<DeviceType,PointScalar,WeightScalar>;
-    using PointViewType  = typename CubatureType::PointViewTypeAllocatable;
-    using WeightViewType = typename CubatureType::WeightViewTypeAllocatable;
-    
-    const double relTol = 1e-12;
-    const double absTol = 1e-12;
-    
-    const int polyOrder = 1;
-    const int meshWidth = 1;
-    
-    auto fs = Intrepid2::FUNCTION_SPACE_HGRAD;
-    
-    auto lineBasis = Intrepid2::getLineBasis< Intrepid2::NodalBasisFamily<DeviceType> >(fs, polyOrder);
-    
-    int numFields_1D = lineBasis->getCardinality();
-    
-    int numFields = 1;
-    int numHypercubes = 1;
-    for (int d=0; d<spaceDim; d++)
-    {
-      numHypercubes *= meshWidth;
-      numFields     *= numFields_1D;
-    }
-      
-    shards::CellTopology lineTopo = shards::getCellTopologyData< shards::Line<> >();
-    shards::CellTopology cellTopo;
-    if      (spaceDim == 1) cellTopo = shards::getCellTopologyData< shards::Line<>          >();
-    else if (spaceDim == 2) cellTopo = shards::getCellTopologyData< shards::Quadrilateral<> >();
-    else if (spaceDim == 3) cellTopo = shards::getCellTopologyData< shards::Hexahedron<>    >();
-    
-    auto lineCubature = Intrepid2::DefaultCubatureFactory::create<DeviceType>(lineTopo,polyOrder*2);
-    int numPoints_1D = lineCubature->getNumPoints();
-    PointViewType lineCubaturePoints("line cubature points",numPoints_1D,1);
-    WeightViewType lineCubatureWeights("line cubature weights", numPoints_1D);
-    
-    lineCubature->getCubature(lineCubaturePoints, lineCubatureWeights);
-    
-    // Allocate some intermediate containers
-    ScalarView<Scalar,DeviceType> lineBasisValues    ("line basis values",      numFields_1D, numPoints_1D   );
-    ScalarView<Scalar,DeviceType> lineBasisGradValues("line basis grad values", numFields_1D, numPoints_1D, 1);
-    
-    // for now, we use 1D values to build up the 2D or 3D gradients
-    // eventually, TensorBasis should offer a getValues() variant that returns tensor basis data
-    lineBasis->getValues(lineBasisValues,     lineCubaturePoints, Intrepid2::OPERATOR_VALUE );
-    lineBasis->getValues(lineBasisGradValues, lineCubaturePoints, Intrepid2::OPERATOR_GRAD  );
-    
-    // drop the trivial space dimension in line gradient values:
-    Kokkos::resize(lineBasisGradValues, numFields_1D, numPoints_1D);
-      
-    Kokkos::Array<TensorData<Scalar,DeviceType>, spaceDim> vectorComponents;
-    
-    for (int d=0; d<spaceDim; d++)
-    {
-      Kokkos::Array<Data<Scalar,DeviceType>, spaceDim> gradComponent_d;
-      // gradComponent_d stores vector component d of the gradient, expressed as the product of values corresponding to each coordinate dimension
-      // The gradient operator is (dx,dy,dz) in 3D; that is, the derivative taken is in the coordinate dimension that matches d.
-      // Therefore, the operator leaves the tensorial components in dimension d2≠d unaffected, and results in a 1D "gradient" being taken in the dimension for which d2=d.
-      // Hence, the assignment below.
-      for (int d2=0; d2<spaceDim; d2++)
-      {
-        if (d2 == d) gradComponent_d[d2] = Data<Scalar,DeviceType>(lineBasisGradValues);
-        else         gradComponent_d[d2] = Data<Scalar,DeviceType>(lineBasisValues);
-      }
-      vectorComponents[d] = TensorData<Scalar,DeviceType>(gradComponent_d);
-    }
-    VectorData<Scalar,DeviceType> gradientValues(vectorComponents, false); // false: not axis-aligned
-    
-    int numPoints = 1;
-    for (int d=0; d<spaceDim; d++)
-    {
-      numPoints *= numPoints_1D;
-    }
-    
-    auto basis = Intrepid2::getBasis< Intrepid2::NodalBasisFamily<DeviceType> >(cellTopo, fs, polyOrder);
-    
-    // Allocate some intermediate containers
-    ScalarView<Scalar,DeviceType> basisValues    ("basis values", numFields, numPoints );
-    ScalarView<Scalar,DeviceType> basisGradValues("basis grad values", numFields, numPoints, spaceDim);
-
-    auto cubature = Intrepid2::DefaultCubatureFactory::create<DeviceType>(cellTopo,polyOrder*2);
-    TEST_EQUALITY( numPoints, cubature->getNumPoints());
-    PointViewType cubaturePoints("cubature points",numPoints,spaceDim);
-    WeightViewType cubatureWeights("cubature weights", numPoints);
-    
-    cubature->getCubature(cubaturePoints, cubatureWeights);
-    
-    basis->getValues(basisValues,     cubaturePoints, Intrepid2::OPERATOR_VALUE );
-    basis->getValues(basisGradValues, cubaturePoints, Intrepid2::OPERATOR_GRAD  );
-    
-    testFloatingEquality3(basisGradValues, gradientValues, relTol, absTol, out, success);
+//    using DeviceType = DefaultTestDeviceType;
+//    using Scalar = double;
+//    using PointScalar = double;
+//    using WeightScalar = double;
+//    using CubatureType   = Cubature<DeviceType,PointScalar,WeightScalar>;
+//    using PointViewType  = typename CubatureType::PointViewTypeAllocatable;
+//    using WeightViewType = typename CubatureType::WeightViewTypeAllocatable;
+//
+//    const double relTol = 1e-12;
+//    const double absTol = 1e-12;
+//
+//    const int polyOrder = 1;
+//    const int meshWidth = 1;
+//
+//    auto fs = Intrepid2::FUNCTION_SPACE_HGRAD;
+//
+//    auto lineBasis = Intrepid2::getLineBasis< Intrepid2::NodalBasisFamily<DeviceType> >(fs, polyOrder);
+//
+//    int numFields_1D = lineBasis->getCardinality();
+//
+//    int numFields = 1;
+//    int numHypercubes = 1;
+//    for (int d=0; d<spaceDim; d++)
+//    {
+//      numHypercubes *= meshWidth;
+//      numFields     *= numFields_1D;
+//    }
+//
+//    shards::CellTopology lineTopo = shards::getCellTopologyData< shards::Line<> >();
+//    shards::CellTopology cellTopo;
+//    if      (spaceDim == 1) cellTopo = shards::getCellTopologyData< shards::Line<>          >();
+//    else if (spaceDim == 2) cellTopo = shards::getCellTopologyData< shards::Quadrilateral<> >();
+//    else if (spaceDim == 3) cellTopo = shards::getCellTopologyData< shards::Hexahedron<>    >();
+//
+//    auto lineCubature = Intrepid2::DefaultCubatureFactory::create<DeviceType>(lineTopo,polyOrder*2);
+//    int numPoints_1D = lineCubature->getNumPoints();
+//    PointViewType lineCubaturePoints("line cubature points",numPoints_1D,1);
+//    WeightViewType lineCubatureWeights("line cubature weights", numPoints_1D);
+//
+//    lineCubature->getCubature(lineCubaturePoints, lineCubatureWeights);
+//
+//    // Allocate some intermediate containers
+//    ScalarView<Scalar,DeviceType> lineBasisValues    ("line basis values",      numFields_1D, numPoints_1D   );
+//    ScalarView<Scalar,DeviceType> lineBasisGradValues("line basis grad values", numFields_1D, numPoints_1D, 1);
+//
+//    // for now, we use 1D values to build up the 2D or 3D gradients
+//    // eventually, TensorBasis should offer a getValues() variant that returns tensor basis data
+//    lineBasis->getValues(lineBasisValues,     lineCubaturePoints, Intrepid2::OPERATOR_VALUE );
+//    lineBasis->getValues(lineBasisGradValues, lineCubaturePoints, Intrepid2::OPERATOR_GRAD  );
+//
+//    // drop the trivial space dimension in line gradient values:
+//    Kokkos::resize(lineBasisGradValues, numFields_1D, numPoints_1D);
+//
+//    Kokkos::Array<TensorData<Scalar,DeviceType>, spaceDim> vectorComponents;
+//
+//    for (int d=0; d<spaceDim; d++)
+//    {
+//      Kokkos::Array<Data<Scalar,DeviceType>, spaceDim> gradComponent_d;
+//      // gradComponent_d stores vector component d of the gradient, expressed as the product of values corresponding to each coordinate dimension
+//      // The gradient operator is (dx,dy,dz) in 3D; that is, the derivative taken is in the coordinate dimension that matches d.
+//      // Therefore, the operator leaves the tensorial components in dimension d2≠d unaffected, and results in a 1D "gradient" being taken in the dimension for which d2=d.
+//      // Hence, the assignment below.
+//      for (int d2=0; d2<spaceDim; d2++)
+//      {
+//        if (d2 == d) gradComponent_d[d2] = Data<Scalar,DeviceType>(lineBasisGradValues);
+//        else         gradComponent_d[d2] = Data<Scalar,DeviceType>(lineBasisValues);
+//      }
+//      vectorComponents[d] = TensorData<Scalar,DeviceType>(gradComponent_d);
+//    }
+//    VectorData<Scalar,DeviceType> gradientValues(vectorComponents, false); // false: not axis-aligned
+//
+//    int numPoints = 1;
+//    for (int d=0; d<spaceDim; d++)
+//    {
+//      numPoints *= numPoints_1D;
+//    }
+//
+//    auto basis = Intrepid2::getBasis< Intrepid2::NodalBasisFamily<DeviceType> >(cellTopo, fs, polyOrder);
+//
+//    // Allocate some intermediate containers
+//    ScalarView<Scalar,DeviceType> basisValues    ("basis values", numFields, numPoints );
+//    ScalarView<Scalar,DeviceType> basisGradValues("basis grad values", numFields, numPoints, spaceDim);
+//
+//    auto cubature = Intrepid2::DefaultCubatureFactory::create<DeviceType>(cellTopo,polyOrder*2);
+//    TEST_EQUALITY( numPoints, cubature->getNumPoints());
+//    PointViewType cubaturePoints("cubature points",numPoints,spaceDim);
+//    WeightViewType cubatureWeights("cubature weights", numPoints);
+//
+//    cubature->getCubature(cubaturePoints, cubatureWeights);
+//
+//    basis->getValues(basisValues,     cubaturePoints, Intrepid2::OPERATOR_VALUE );
+//    basis->getValues(basisGradValues, cubaturePoints, Intrepid2::OPERATOR_GRAD  );
+//
+//    testFloatingEquality3(basisGradValues, gradientValues, relTol, absTol, out, success);
   }
 
   TEUCHOS_UNIT_TEST( VectorData, RefSpaceVectorValues_1D )
