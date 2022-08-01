@@ -186,7 +186,7 @@ namespace Intrepid2
                 if (matches)
                 {
                   compositeSubcellFound = true;
-                  subcellMap_[{subcell1,subcell2}] = {compositeSubcellDim, compositeSubcellOrdinal};
+                  subcellMap_.insert({{subcell1,subcell2}, {compositeSubcellDim, compositeSubcellOrdinal}});
                   break;
                 }
               }
