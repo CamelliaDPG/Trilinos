@@ -486,31 +486,32 @@ namespace Intrepid2
     KOKKOS_INLINE_FUNCTION
     void operator()( const TeamMember & teamMember ) const
     {
+      const auto &p = polyOrder_;
       auto pointOrdinal = teamMember.league_rank();
       OutputScratchView scratch1D_1, scratch1D_2, scratch1D_3;
       OutputScratchView scratch1D_4, scratch1D_5, scratch1D_6;
       OutputScratchView scratch1D_7, scratch1D_8, scratch1D_9;
       if (fad_size_output_ > 0) {
-        scratch1D_1 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_2 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_3 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_4 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_5 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_6 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_7 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_8 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
-        scratch1D_9 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1, fad_size_output_);
+        scratch1D_1 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_2 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_3 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_4 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_5 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_6 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_7 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_8 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
+        scratch1D_9 = OutputScratchView(teamMember.team_shmem(), p + 1, fad_size_output_);
       }
       else {
-        scratch1D_1 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_2 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_3 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_4 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_5 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_6 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_7 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_8 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
-        scratch1D_9 = OutputScratchView(teamMember.team_shmem(), polyOrder_ + 1);
+        scratch1D_1 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_2 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_3 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_4 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_5 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_6 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_7 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_8 = OutputScratchView(teamMember.team_shmem(), p + 1);
+        scratch1D_9 = OutputScratchView(teamMember.team_shmem(), p + 1);
       }
       
       const auto & x = inputPoints_(pointOrdinal,0);
@@ -541,9 +542,202 @@ namespace Intrepid2
         case OPERATOR_VALUE:
         {
           ordinal_type fieldOrdinalOffset = 0;
+          
+          // **** edge functions **** //
           // mixed edges
+          {
+            // rename scratch1
+            auto & Pi = scratch1D_1;
+            
+            const int numMixedEdges = 4;
+            for (int edgeOrdinal=0; edgeOrdinal<numMixedEdges; edgeOrdinal++)
+            {
+              // edge 0,2 --> a=1, b=2
+              // edge 1,3 --> a=2, b=1
+              int a = (edgeOrdinal % 2 == 0) ? 1 : 2;
+              int b = 3 - a;
+              
+              // edge 0,3 --> c=0
+              // edge 1,2 --> c=1
+              int c = ((edgeOrdinal == 0) || (edgeOrdinal == 3)) ? 0 : 1;
+              const auto & mu_c_b = mu[c][b-1];
+              
+              auto & s0      =     nu[0][a-1], & s1      =     nu[1][a-1];
+              auto & s0_grad = nuGrad[0][a-1], & s1_grad = nuGrad[1][a-1];
+              
+              Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
+              
+              for (int i=0; i<p; i++)
+              {
+                Kokkos::Array<OutputScalar, 3> EE_i;
+                E_E(EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
+               
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * EE_i[d];
+                }
+                
+                fieldOrdinalOffset++;
+              }
+            }
+          }
+          // triangle edges
+          {
+            // rename scratch1
+            auto & Pi = scratch1D_1;
+            
+            const int numTriangleEdges = 4;
+            for (int edgeOrdinal=0; edgeOrdinal<numTriangleEdges; edgeOrdinal++)
+            {
+              const auto & a = edgeOrdinal;
+              
+              auto & s0      =     lambda[a-1], & s1      =     lambda[4];
+              auto & s0_grad = lambdaGrad[a-1], & s1_grad = lambdaGrad[4];
+              
+              Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
+              
+              for (int i=0; i<p; i++)
+              {
+                Kokkos::Array<OutputScalar, 3> EE_i;
+                E_E(EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
+               
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = EE_i[d];
+                }
+                
+                fieldOrdinalOffset++;
+              }
+            }
+          } // triangle edges
+          
+          // **** face functions **** //
+          // quadrilateral face
+          {
+            // rename scratch1, scratch2
+            auto & P1 = scratch1D_1;
+            auto & P2 = scratch1D_2;
+            
+            auto & s0      =     mu[0][0], & s1      =     mu[1][0];
+            auto & s0_grad = muGrad[0][0], & s1_grad = muGrad[1][0];
+            auto & t0      =     mu[0][1], & t1      =     mu[1][1];
+            
+            Polynomials::shiftedScaledLegendreValues(P1, polyOrder_-1, s1, s0 + s1);
+            Polynomials::shiftedScaledLegendreValues(P2, polyOrder_-1, t1, t0 + t1);
+            
+            const auto & muZ_0 = mu[0][2];
+            OutputScalar mu0_squared = muZ_0 * muZ_0;
+            
+            // Family I & II
+            for (int familyNumber=1; familyNumber<=2; familyNumber++)
+            {
+              const auto & Pi = (familyNumber == 1) ? P1 : P2;
+              const auto & Pj = (familyNumber == 1) ? P2 : P1;
+              
+              // following the ESEAS ordering: j increments first
+              for (int j=2; j<=p; j++)
+              {
+                for (int i=0; i<p; i++)
+                {
+                  Kokkos::Array<OutputScalar, 3> EQUAD;
+                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj);
+                  
+                  for (ordinal_type d=0; d<3; d++)
+                  {
+                    output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_squared * EQUAD[d];
+                  }
+                  
+                  fieldOrdinalOffset++;
+                }
+              }
+            }
+          } // quadrilateral face
           
           
+          // triangular faces
+          {
+            // Family I & II
+            for (int familyNumber=1; familyNumber<=2; familyNumber++)
+            {
+              const int numTriFaces = 4;
+              for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
+              {
+                for (int totalPolyOrder=1; totalPolyOrder<p; totalPolyOrder++)
+                {
+                  // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
+                  for (int i=0; i<totalPolyOrder; i++)
+                  {
+                    fieldOrdinalOffset++;
+                  }
+                }
+              }
+            }
+          } // triangular faces
+
+          // **** interior functions **** //
+          // FAMILY I
+          // following the ESEAS ordering: k increments first
+          for (int k=2; k<=polyOrder_; k++)
+          {
+            for (int j=2; j<=polyOrder_; j++)
+            {
+              for (int i=2; i<=polyOrder_; i++)
+              {
+//                const int max_jk  = std::max(j,k);
+//                const int max_ijk = std::max(max_jk,i);
+//                const int max_ip1jk = std::max(max_jk,i+1);
+                fieldOrdinalOffset++;
+              }
+            }
+          }
+          
+          // FAMILY II
+          for (int k=2; k<=polyOrder_; k++)
+          {
+            for (int j=2; j<=polyOrder_; j++)
+            {
+              for (int i=0; i<polyOrder_; i++)
+              {
+//                const int max_jk  = std::max(j,k);
+//                const int max_ijk = std::max(max_jk,i);
+//                const int max_ip1jk = std::max(max_jk,i+1);
+                fieldOrdinalOffset++;
+              }
+            }
+          }
+          
+          // FAMILY III
+          for (int k=2; k<=polyOrder_; k++)
+          {
+            // ESEAS reverses i,j loop ordering for family III, relative to family II.
+            // We follow ESEAS for convenience of cross-code comparison.
+            for (int i=0; i<polyOrder_; i++)
+            {
+              for (int j=2; j<=polyOrder_; j++)
+              {
+//                const int max_jk  = std::max(j,k);
+//                const int max_ijk = std::max(max_jk,i);
+//                const int max_ip1jk = std::max(max_jk,i+1);
+                fieldOrdinalOffset++;
+              }
+            }
+          }
+          
+          // FAMILY IV
+          for (int j=2; j<=polyOrder_; j++)
+          {
+            for (int i=2; i<=polyOrder_; i++)
+            {
+//              const int max_ij  = std::max(i,j);
+              
+              fieldOrdinalOffset++;
+            }
+          }
+          
+          
+          // what follows is the H(div) implementation
+          // TODO: delete this
+          /*
           // quadrilateral face
           {
             // rename scratch1, scratch2
@@ -582,21 +776,6 @@ namespace Intrepid2
           
           // triangle faces
           {
-            /*
-             Face functions for triangular face (d,e,f) given by:
-             1/2 * (    mu_c^{zeta,xi_b} * V_TRI_ij(nu_012^{zeta,xi_a})
-                    + 1/mu_c^{zeta,xi_b} * V_TRI_ij(nu_012^{zeta,xi_a} * mu_c^{zeta,xi_b}) )
-             but the division by mu_c^{zeta,xi_b} should ideally be avoided in computations; there is
-             an alternate expression, not implemented by ESEAS.  We start with the above expression
-             so that we can get agreement with ESEAS.  Hopefully after that we can do the alternative,
-             and confirm that we maintain agreement with ESEAS for points where ESEAS does not generate
-             nans.
-             
-             …
-             where s0, s1, s2 are nu[0][a-1],nu[1][a-1],nu[2][a-1] (nu_012 above)
-             and (a,b) = (1,2) for faces 0,2; (a,b) = (2,1) for others;
-                     c = 0     for faces 0,3;     c = 1 for others
-             */
             const auto & P        = scratch1D_1; // for V_TRI( nu_012)
             const auto & P_2ip1   = scratch1D_2;
             const auto & Pmu      = scratch1D_3; // for V_TRI( mu * nu_012)
@@ -905,14 +1084,154 @@ namespace Intrepid2
               
               fieldOrdinalOffset++;
             }
-          }
+          }*/
         } // end OPERATOR_VALUE
           break;
-        case OPERATOR_DIV:
+        case OPERATOR_CURL:
         {
           ordinal_type fieldOrdinalOffset = 0;
+          
+          // **** edge functions **** //
+          // mixed edges
+          {
+            // rename scratch1
+            auto & Pi = scratch1D_1;
+            
+            const int numMixedEdges = 4;
+            for (int edgeOrdinal=0; edgeOrdinal<numMixedEdges; edgeOrdinal++)
+            {
+              // edge 0,2 --> a=1, b=2
+              // edge 1,3 --> a=2, b=1
+              int a = (edgeOrdinal % 2 == 0) ? 1 : 2;
+              int b = 3 - a;
+              
+              // edge 0,3 --> c=0
+              // edge 1,2 --> c=1
+              int c = ((edgeOrdinal == 0) || (edgeOrdinal == 3)) ? 0 : 1;
+              const auto & mu_c_b      =     mu[c][b-1];
+              const auto & mu_c_b_grad = muGrad[c][b-1];
+              
+              auto & s0      =     nu[0][a-1], & s1      =     nu[1][a-1];
+              auto & s0_grad = nuGrad[0][a-1], & s1_grad = nuGrad[1][a-1];
+              
+              Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
+              
+              for (int i=0; i<p; i++)
+              {
+                Kokkos::Array<OutputScalar, 3> EE_i;
+                E_E(EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
+                
+                Kokkos::Array<OutputScalar, 3> grad_mu_cross_EE;
+                cross(grad_mu_cross_EE, mu_c_b_grad, EE_i);
+                
+                Kokkos::Array<OutputScalar, 3> curl_EE_i;
+                E_E_CURL(curl_EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
+               
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * curl_EE_i[d] + grad_mu_cross_EE[d];
+                }
+                
+                fieldOrdinalOffset++;
+              }
+            }
+          } // mixed edges
+          
+          // triangle edges
+          {
+            // rename scratch1
+            auto & Pi = scratch1D_1;
+            
+            const int numTriangleEdges = 4;
+            for (int edgeOrdinal=0; edgeOrdinal<numTriangleEdges; edgeOrdinal++)
+            {
+              const auto & a = edgeOrdinal;
+              
+              auto & s0      =     lambda[a-1], & s1      =     lambda[4];
+              auto & s0_grad = lambdaGrad[a-1], & s1_grad = lambdaGrad[4];
+              
+              Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
+              
+              for (int i=0; i<p; i++)
+              {
+                Kokkos::Array<OutputScalar, 3> curl_EE_i;
+                E_E_CURL(curl_EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
+               
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = curl_EE_i[d];
+                }
+                
+                fieldOrdinalOffset++;
+              }
+            }
+          } // triangle edges
+          
           // quadrilateral face
           {
+            // rename scratch1, scratch2
+            auto & P1    = scratch1D_1;
+            auto & P2    = scratch1D_2;
+            auto & L1    = scratch1D_3;
+            auto & L2    = scratch1D_4;
+            auto & L1_dt = scratch1D_5;
+            auto & L2_dt = scratch1D_6;
+            
+            auto & s0      =     mu[0][0], & s1      =     mu[1][0];
+            auto & s0_grad = muGrad[0][0], & s1_grad = muGrad[1][0];
+            auto & t0      =     mu[0][1], & t1      =     mu[1][1];
+            auto & t0_grad = muGrad[0][1], & t1_grad = muGrad[1][1];
+            
+            Polynomials::shiftedScaledLegendreValues(P1, p-1, s1, s0 + s1);
+            Polynomials::shiftedScaledLegendreValues(P2, p-1, t1, t0 + t1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues(L1, p, s1, s0 + s1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(L2, p, t1, t0 + t1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L1_dt, P1, p, s1, s0 + s1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L2_dt, P2, p, t1, t0 + t1);
+            
+            const auto &      muZ_0 =     mu[0][2];
+            const auto & grad_muZ_0 = muGrad[0][2];
+            OutputScalar mu0_squared = muZ_0 * muZ_0;
+            
+            // Family I & II
+            for (int familyNumber=1; familyNumber<=2; familyNumber++)
+            {
+              const auto & Pi    = (familyNumber == 1) ? P1    : P2;
+              const auto & Pj    = (familyNumber == 1) ? P2    : P1;
+              const auto & Lj    = (familyNumber == 1) ? L2    : L1;
+              const auto & Lj_dt = (familyNumber == 1) ? L2_dt : L1_dt;
+              
+              // following the ESEAS ordering: j increments first
+              for (int j=2; j<=p; j++)
+              {
+                for (int i=0; i<p; i++)
+                {
+                  Kokkos::Array<OutputScalar, 3> EQUAD;
+                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj);
+                  
+                  Kokkos::Array<OutputScalar, 3> EQUAD_CURL;
+                  E_QUAD_CURL(EQUAD_CURL, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj, Lj, Lj_dt, t0_grad, t1_grad);
+                  
+                  Kokkos::Array<OutputScalar, 3> grad_mu_cross_EQUAD;
+                  cross(grad_mu_cross_EQUAD, grad_muZ_0, EQUAD);
+                  
+                  for (ordinal_type d=0; d<3; d++)
+                  {
+                    output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_squared * EQUAD_CURL[d] + 2. * muZ_0 * grad_mu_cross_EQUAD[d];
+                  }
+                  
+                  fieldOrdinalOffset++;
+                }
+              }
+            }
+          } // quadrilateral face
+          
+          // what follows is copied from H(div) implementation
+          // TODO: delete this
+          // quadrilateral face
+          /*{
             // rename scratch1, scratch2
             auto & Pi = scratch1D_1;
             auto & Pj = scratch1D_2;
@@ -1211,10 +1530,11 @@ namespace Intrepid2
             }
             
           } // end interior function block
-          
-        } // end OPERATOR_DIV block
+          */
+        } // end OPERATOR_CURL block
           break;
         case OPERATOR_GRAD:
+        case OPERATOR_DIV:
         case OPERATOR_D1:
         case OPERATOR_D2:
         case OPERATOR_D3:
@@ -1225,8 +1545,7 @@ namespace Intrepid2
         case OPERATOR_D8:
         case OPERATOR_D9:
         case OPERATOR_D10:
-          INTREPID2_TEST_FOR_ABORT( true,
-                                   ">>> ERROR: (Intrepid2::Hierarchical_HCURL_PYR_Functor) Computing of second and higher-order derivatives is not currently supported");
+          INTREPID2_TEST_FOR_ABORT( true, ">>> ERROR: (Intrepid2::Hierarchical_HCURL_PYR_Functor) Unsupported operator");
         default:
           // unsupported operator type
           device_assert(false);
@@ -1370,10 +1689,8 @@ namespace Intrepid2
         {
           for (int totalPolyOrder=1; totalPolyOrder<polyOrder_; totalPolyOrder++)
           {
-            const int totalFaceDofs         = (totalPolyOrder-1) * totalPolyOrder / 2; // number of dofs for which i+j <= totalPolyOrder
-            const int totalFaceDofsPrevious = (totalPolyOrder-2) * (totalPolyOrder-1) / 2; // number of dofs for which i+j <= totalPolyOrder-1
-            const int faceDofsForPolyOrder  = totalFaceDofs - totalFaceDofsPrevious; // number of dofs for which i+j == totalPolyOrder
-            for (int i=0; i<faceDofsForPolyOrder; i++)
+            // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
+            for (int i=0; i<totalPolyOrder; i++)
             {
               this->fieldOrdinalPolynomialDegree_  (fieldOrdinalOffset,0) = totalPolyOrder;
               this->fieldOrdinalH1PolynomialDegree_(fieldOrdinalOffset,0) = totalPolyOrder+1;
