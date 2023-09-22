@@ -591,6 +591,21 @@ namespace
     }
   }
 
+  TEUCHOS_UNIT_TEST( BasisCardinality, Pyramid_HCURL )
+  {
+    using HierarchicalBasis = HierarchicalBasisFamily<DefaultTestDeviceType>::HCURL_PYR;
+    
+    for (ordinal_type p=1; p<10; p++)
+    {
+      // expected cardinality is 5 p + 3p^3:
+      const ordinal_type expectedCardinality = 5 * p + 3 * p * p * p;
+      
+      HierarchicalBasis hierarchicalBasis(p);
+      const ordinal_type actualCardinality = hierarchicalBasis.getCardinality();
+      TEST_EQUALITY(expectedCardinality, actualCardinality);
+    }
+  }
+
   TEUCHOS_UNIT_TEST( BasisCardinality, Pyramid_HDIV )
   {
     using HierarchicalBasis = HierarchicalBasisFamily<DefaultTestDeviceType>::HDIV_PYR;
