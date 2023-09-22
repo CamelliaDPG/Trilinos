@@ -1478,7 +1478,7 @@ namespace Intrepid2
     const unsigned numCellsWorkset = (endCell == -1) ? (numCells_ - startCell) : (endCell - startCell);
     
     using ExecutionSpace = typename DeviceType::execution_space;
-    auto policy = Kokkos::RangePolicy<>(ExecutionSpace(),0,numCellsWorkset);
+    auto policy = Kokkos::RangePolicy<ExecutionSpace>(ExecutionSpace(),0,numCellsWorkset);
     Kokkos::parallel_for("copy orientations", policy, KOKKOS_LAMBDA(const int cellOrdinal)
     {
       orientationsView(cellOrdinal) = orientationsData(cellOrdinal);
