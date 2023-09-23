@@ -1147,8 +1147,8 @@ namespace Intrepid2
             {
               const auto & a = edgeOrdinal;
               
-              auto & s0      =     lambda[a-1], & s1      =     lambda[4];
-              auto & s0_grad = lambdaGrad[a-1], & s1_grad = lambdaGrad[4];
+              auto & s0      =     lambda[a], & s1      =     lambda[4];
+              auto & s0_grad = lambdaGrad[a], & s1_grad = lambdaGrad[4];
               
               Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
               
