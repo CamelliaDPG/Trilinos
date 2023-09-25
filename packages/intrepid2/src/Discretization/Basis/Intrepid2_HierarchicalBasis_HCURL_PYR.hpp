@@ -233,9 +233,9 @@ namespace Intrepid2
                 const PointScalar &s0, const PointScalar &s1,
                 const Kokkos::Array<PointScalar,3> &s0_grad,
                 const Kokkos::Array<PointScalar,3> &s1_grad,
-                const OutputScratchView &HomLi_t01) const
+                const OutputScratchView &HomLj_t01) const
     {
-      const OutputScalar &phiE_j = HomLi_t01(j);
+      const OutputScalar &phiE_j = HomLj_t01(j);
       
       Kokkos::Array<OutputScalar,3> EE_i;
       E_E(EE_i, i, HomPi_s01, s0, s1, s0_grad, s1_grad);
@@ -617,13 +617,19 @@ namespace Intrepid2
             // rename scratch1, scratch2
             auto & P1 = scratch1D_1;
             auto & P2 = scratch1D_2;
+            auto & L1 = scratch1D_3;
+            auto & L2 = scratch1D_4;
             
-            auto & s0      =     mu[0][0], & s1      =     mu[1][0];
-            auto & s0_grad = muGrad[0][0], & s1_grad = muGrad[1][0];
-            auto & t0      =     mu[0][1], & t1      =     mu[1][1];
+            auto & muX_0      =     mu[0][0], & muX_1      =     mu[1][0];
+            auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            auto & muY_0      =     mu[0][1], & muY_1      =     mu[1][1];
+            auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
             
-            Polynomials::shiftedScaledLegendreValues(P1, polyOrder_-1, s1, s0 + s1);
-            Polynomials::shiftedScaledLegendreValues(P2, polyOrder_-1, t1, t0 + t1);
+            Polynomials::shiftedScaledLegendreValues(P1, p-1, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledLegendreValues(P2, p-1, muY_1, muY_0 + muY_1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues(L1, p, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(L2, p, muY_1, muY_0 + muY_1);
             
             const auto & muZ_0 = mu[0][2];
             OutputScalar mu0_squared = muZ_0 * muZ_0;
@@ -631,16 +637,50 @@ namespace Intrepid2
             // Family I & II
             for (int familyNumber=1; familyNumber<=2; familyNumber++)
             {
-              const auto & Pi = (familyNumber == 1) ? P1 : P2;
-              const auto & Pj = (familyNumber == 1) ? P2 : P1;
+              // for reasons of their own, ESEAS switches whether i or j are the fastest-moving indices depending on whether it's family I or II.  Following their code, I'm calling the outer loop variable jg, inner ig.
+              // (Cross-code comparisons are considerably simpler if we number the dofs in the same way.)
               
-              // following the ESEAS ordering: j increments first
-              for (int j=2; j<=p; j++)
+              const auto & Pi = (familyNumber == 1) ? P1 : P2;
+              const auto & Lj = (familyNumber == 1) ? L2 : L1;
+              
+              ordinal_type jg_min = (familyNumber==1) ?   2 : 0;
+              ordinal_type jg_max = (familyNumber==1) ?   p : p-1;
+              ordinal_type ig_min = (familyNumber==1) ?   0 : 2;
+              ordinal_type ig_max = (familyNumber==1) ? p-1 : p;
+              
+              const auto & s0 = (familyNumber == 1) ? muX_0 : muY_0;
+              const auto & s1 = (familyNumber == 1) ? muX_1 : muY_1;
+              
+              const auto & s0_grad = (familyNumber == 1) ? muX_0_grad : muY_0_grad;
+              const auto & s1_grad = (familyNumber == 1) ? muX_1_grad : muY_1_grad;
+              
+              for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
               {
-                for (int i=0; i<p; i++)
+                for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
                 {
+                  const ordinal_type &i = (familyNumber==1) ? ig : jg;
+                  const ordinal_type &j = (familyNumber==1) ? jg : ig;
+                  
                   Kokkos::Array<OutputScalar, 3> EQUAD;
-                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj);
+                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Lj);
+                  
+//                  {
+//                    // DEBUGGING
+//                    using namespace std;
+//                    cout << "m-1: " << fieldOrdinalOffset << endl;
+//                    cout << "i: " << i << endl;
+//                    cout << "j: " << j << endl;
+//                    cout << "(x,y,z): (" << x << "," << y << "," << z << ")\n";
+//                    cout << "(xi_1,xi_2,zeta): (" << coords[0] << "," << coords[1] << "," << coords[2] << ")\n";
+//                    cout << "s: (" << s0 << "," << s1 << ")\n";
+//                    cout << "t: (" << t0 << "," << t1 << ")\n";
+//                    cout << "mu0_x: " << mu[0][0] << endl;
+//                    cout << "mu0_y: " << mu[0][1] << endl;
+//                    cout << "muZ_0: " << muZ_0 << endl;
+//
+//                    cout << "EQUAD: (" << EQUAD[0] << "," << EQUAD[1] << "," << EQUAD[2] << ")\n";
+//                    cout << "mu0_squared * EQUAD: (" << mu0_squared * EQUAD[0] << ","  << mu0_squared * EQUAD[1] << "," << mu0_squared * EQUAD[2] << ")\n";
+//                  }
                   
                   for (ordinal_type d=0; d<3; d++)
                   {
@@ -1177,19 +1217,19 @@ namespace Intrepid2
             auto & L1_dt = scratch1D_5;
             auto & L2_dt = scratch1D_6;
             
-            auto & s0      =     mu[0][0], & s1      =     mu[1][0];
-            auto & s0_grad = muGrad[0][0], & s1_grad = muGrad[1][0];
-            auto & t0      =     mu[0][1], & t1      =     mu[1][1];
-            auto & t0_grad = muGrad[0][1], & t1_grad = muGrad[1][1];
+            auto & muX_0      =     mu[0][0], & muX_1      =     mu[1][0];
+            auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            auto & muY_0      =     mu[0][1], & muY_1      =     mu[1][1];
+            auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
             
-            Polynomials::shiftedScaledLegendreValues(P1, p-1, s1, s0 + s1);
-            Polynomials::shiftedScaledLegendreValues(P2, p-1, t1, t0 + t1);
+            Polynomials::shiftedScaledLegendreValues(P1, p-1, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledLegendreValues(P2, p-1, muY_1, muY_0 + muY_1);
             
-            Polynomials::shiftedScaledIntegratedLegendreValues(L1, p, s1, s0 + s1);
-            Polynomials::shiftedScaledIntegratedLegendreValues(L2, p, t1, t0 + t1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(L1, p, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(L2, p, muY_1, muY_0 + muY_1);
             
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L1_dt, P1, p, s1, s0 + s1);
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L2_dt, P2, p, t1, t0 + t1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L1_dt, P1, p, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(L2_dt, P2, p, muY_1, muY_0 + muY_1);
             
             const auto &      muZ_0 =     mu[0][2];
             const auto & grad_muZ_0 = muGrad[0][2];
@@ -1198,18 +1238,34 @@ namespace Intrepid2
             // Family I & II
             for (int familyNumber=1; familyNumber<=2; familyNumber++)
             {
+              // for reasons that I don't entirely understand, ESEAS switches whether i or j are the fastest-moving indices depending on whether it's family I or II.  Following their code, I'm calling the outer loop variable jg, inner ig.
+              // (Cross-code comparisons are considerably simpler if we number the dofs in the same way.)
               const auto & Pi    = (familyNumber == 1) ? P1    : P2;
               const auto & Pj    = (familyNumber == 1) ? P2    : P1;
               const auto & Lj    = (familyNumber == 1) ? L2    : L1;
               const auto & Lj_dt = (familyNumber == 1) ? L2_dt : L1_dt;
+
+              const auto & s0 = (familyNumber == 1) ? muX_0 : muY_0;
+              const auto & s1 = (familyNumber == 1) ? muX_1 : muY_1;
               
-              // following the ESEAS ordering: j increments first
-              for (int j=2; j<=p; j++)
+              const auto & s0_grad = (familyNumber == 1) ? muX_0_grad : muY_0_grad;
+              const auto & s1_grad = (familyNumber == 1) ? muX_1_grad : muY_1_grad;
+              const auto & t0_grad = (familyNumber == 1) ? muY_0_grad : muX_0_grad;
+              const auto & t1_grad = (familyNumber == 1) ? muY_1_grad : muX_1_grad;
+              
+              ordinal_type jg_min = (familyNumber==1) ?   2 : 0;
+              ordinal_type jg_max = (familyNumber==1) ?   p : p-1;
+              ordinal_type ig_min = (familyNumber==1) ?   0 : 2;
+              ordinal_type ig_max = (familyNumber==1) ? p-1 : p;
+              for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
               {
-                for (int i=0; i<p; i++)
+                for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
                 {
+                  const ordinal_type &i = (familyNumber==1) ? ig : jg;
+                  const ordinal_type &j = (familyNumber==1) ? jg : ig;
+                  
                   Kokkos::Array<OutputScalar, 3> EQUAD;
-                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj);
+                  E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Lj);
                   
                   Kokkos::Array<OutputScalar, 3> EQUAD_CURL;
                   E_QUAD_CURL(EQUAD_CURL, i, j, Pi, s0, s1, s0_grad, s1_grad, Pj, Lj, Lj_dt, t0_grad, t1_grad);
@@ -1221,6 +1277,28 @@ namespace Intrepid2
                   {
                     output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_squared * EQUAD_CURL[d] + 2. * muZ_0 * grad_mu_cross_EQUAD[d];
                   }
+                  
+//                  {
+//                    // DEBUGGING
+//                    using namespace std;
+//                    cout << "m-1: " << fieldOrdinalOffset << endl;
+//                    cout << "i: " << i << endl;
+//                    cout << "j: " << j << endl;
+//                    cout << "(x,y,z): (" << x << "," << y << "," << z << ")\n";
+//                    cout << "(xi_1,xi_2,zeta): (" << coords[0] << "," << coords[1] << "," << coords[2] << ")\n";
+//                    cout << "s: (" << s0 << "," << s1 << ")\n";
+//                    cout << "t: (" << t0 << "," << t1 << ")\n";
+//                    cout << "mu0_x: " << mu[0][0] << endl;
+//                    cout << "mu0_y: " << mu[0][1] << endl;
+//                    cout << "mu1_x: " << mu[1][0] << endl;
+//                    cout << "mu1_y: " << mu[1][1] << endl;
+//                    cout << "muZ_0: " << muZ_0 << endl;
+//
+//                    cout << "EQUAD: (" << EQUAD[0] << "," << EQUAD[1] << "," << EQUAD[2] << ")\n";
+//                    cout << "EQUAD_CURL: (" << EQUAD_CURL[0] << "," << EQUAD_CURL[1] << "," << EQUAD_CURL[2] << ")\n";
+//                    cout << "grad_mu_cross_EQUAD: (" << grad_mu_cross_EQUAD[0] << "," << grad_mu_cross_EQUAD[1] << "," << grad_mu_cross_EQUAD[2] << ")\n";
+//                    cout << "basis value: (" << output_(fieldOrdinalOffset,pointOrdinal,0) << ","  << output_(fieldOrdinalOffset,pointOrdinal,1) << "," << output_(fieldOrdinalOffset,pointOrdinal,2) << ")\n";
+//                  }
                   
                   fieldOrdinalOffset++;
                 }
