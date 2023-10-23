@@ -277,48 +277,21 @@ namespace Intrepid2
       }
     }
     
-    //! See Fuentes et al. (p. 455), definition of V_{ij}^{\trianglelefteq}
-    void V_LEFT_TRI(Kokkos::Array<OutputScalar,3> &VLEFTTRI,
-                    const OutputScalar &phi_i, const Kokkos::Array<OutputScalar,3> &phi_i_grad,
-                    const OutputScalar &phi_j, const Kokkos::Array<OutputScalar,3> &phi_j_grad,
-                    const OutputScalar &t0,    const Kokkos::Array<OutputScalar,3> &t0_grad) const {
-      cross(VLEFTTRI, phi_i_grad, phi_j_grad);
-      const OutputScalar t0_2 = t0 * t0;
+    KOKKOS_INLINE_FUNCTION
+    void E_TRI(Kokkos::Array<OutputScalar,3> &ETRI,
+               const ordinal_type &i, // i >= 0
+               const ordinal_type &j, // j >= 0
+               const Kokkos::Array<OutputScalar,3> &EE_i,  // container in which E^E_i(s0,s1) has been computed
+               const OutputScratchView &L_2ip1 // container in which shiftedScaledJacobiValues have been computed for (2i+1) for (s0+s1,s2).
+               ) const
+    {
       for (ordinal_type d=0; d<3; d++)
       {
-        VLEFTTRI[d] *= t0_2;
+        ETRI[d] = EE_i[d] * L_2ip1(j);
       }
-      
-      Kokkos::Array<OutputScalar,3> tmp_t0_grad_t0, tmp_diff, tmp_cross;
-      for (ordinal_type d=0; d<3; d++)
-      {
-        tmp_t0_grad_t0[d] = t0 * t0_grad[d];
-        tmp_diff[d] = phi_i * phi_j_grad[d] - phi_j * phi_i_grad[d];
-      }
-      cross(tmp_cross, tmp_t0_grad_t0, tmp_diff);
-      
-      for (ordinal_type d=0; d<3; d++)
-      {
-        VLEFTTRI[d] += tmp_cross[d];
-      }
-    };
+    }
     
-    
-    //! See Fuentes et al. (p. 455), definition of V_{ij}^{\trianglerighteq}
-    void V_RIGHT_TRI(Kokkos::Array<OutputScalar,3> &VRIGHTTRI,
-                     const OutputScalar &mu1,    const Kokkos::Array<OutputScalar,3> &mu1_grad,
-                     const OutputScalar &phi_i,  const Kokkos::Array<OutputScalar,3> &phi_i_grad,
-                     const OutputScalar &t0,     const Kokkos::Array<OutputScalar,3> &t0_grad) const {
-      Kokkos::Array<OutputScalar,3> left_vector; // left vector in the cross product we take below.
-      
-      const OutputScalar t0_2 = t0 * t0;
-      for (ordinal_type d=0; d<3; d++)
-      {
-        left_vector[d] = t0_2 * phi_i_grad[d] + 2. * t0 * phi_i * t0_grad[d];
-      }
-      cross(VRIGHTTRI, left_vector, mu1_grad);
-    };
-    
+    // TODO: delete extraneous helper functions (this may be one).
     // This is the "Ancillary Operator" V^{tri}_{ij} on p. 433 of Fuentes et al.
     KOKKOS_INLINE_FUNCTION
     void V_TRI(Kokkos::Array<OutputScalar,3> &VTRI,
@@ -696,17 +669,54 @@ namespace Intrepid2
           
           // triangular faces
           {
+            // rename scratch1, scratch2
+            auto & P = scratch1D_1;
+            auto & L = scratch1D_2;
+            
             // Family I & II
             for (int familyNumber=1; familyNumber<=2; familyNumber++)
-            {
+            {              
+              const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
+              const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
+              const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
+              
               const int numTriFaces = 4;
               for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
               {
+                // face 0,2 --> a=1, b=2
+                // face 1,3 --> a=2, b=1
+                int a = (faceOrdinal % 2 == 0) ? 1 : 2;
+                int b = 3 - a;
+                // face 0,3 --> c=0
+                // face 1,2 --> c=1
+                int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
+              
+                const auto & s0      =     nu[0][a-1], & s1      =     nu[1][a-1];
+                const auto & s0_grad = nuGrad[0][a-1], & s1_grad = nuGrad[1][a-1];
+                const auto & s2      =     nu[2][a-1];
+                
+                const auto & mu_c_b      = mu    [c][b-1];
+                
+                Polynomials::shiftedScaledLegendreValues(P, p-1, s1, s0 + s1);
+                
                 for (int totalPolyOrder=1; totalPolyOrder<p; totalPolyOrder++)
                 {
                   // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
                   for (int i=0; i<totalPolyOrder; i++)
                   {
+                    Polynomials::shiftedScaledIntegratedJacobiValues(L, 2*i+1, p-1, s2, s0 + s1 + s2);
+                    
+                    Kokkos::Array<OutputScalar, 3> EE;
+                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
+                    Kokkos::Array<OutputScalar, 3> ETRI;
+                    const ordinal_type j = totalPolyOrder - i;
+                    E_TRI(ETRI, i, j, EE, L);
+                    
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * ETRI[d];
+                    }
+                    
                     fieldOrdinalOffset++;
                   }
                 }
