@@ -602,7 +602,7 @@ void ProjectionStruct<DeviceType,ValueType>::createHDivProjectionStruct(const Ba
   else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Wedge<6> >()->key)
     hcurlBasis = new typename DerivedNodalBasisFamily<HostDeviceType,ValueType,ValueType>::HCURL_WEDGE(cellBasis->getDegree());
   else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Pyramid<5> >()->key)
-    hcurlBasis = new typename DerivedNodalBasisFamily<DeviceType,ValueType,ValueType>::HCURL_PYR(cellBasis->getDegree());
+    hcurlBasis = new typename HierarchicalBasisFamily<DeviceType,ValueType,ValueType>::HCURL_PYR(cellBasis->getDegree());
   else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Quadrilateral<4> >()->key)
     hcurlBasis = new Basis_HGRAD_QUAD_Cn_FEM<HostDeviceType,ValueType,ValueType>(cellBasis->getDegree());
   else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Triangle<3> >()->key)
