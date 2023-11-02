@@ -291,6 +291,46 @@ namespace Intrepid2
       }
     }
     
+    KOKKOS_INLINE_FUNCTION
+    void E_TRI_CURL(Kokkos::Array<OutputScalar,3> &ETRI_CURL,
+                     const ordinal_type &i, const ordinal_type &j,
+                     const OutputScratchView &HomPi_s01,   // Legendre [P](s0,s1)
+                     const PointScalar &s0, const PointScalar &s1,
+                     const Kokkos::Array<PointScalar,3> &s0_grad,
+                     const Kokkos::Array<PointScalar,3> &s1_grad,
+                     const Kokkos::Array<PointScalar,3> &s2_grad,
+                     const OutputScratchView &HomPj_s012,   // Jacobi [P^{2i+1}](s0+s1,s2)
+                     const OutputScratchView &HomLj_s012,   //        [L^{2i+1}](s0+s1,s2)
+                     const OutputScratchView &HomLj_dt_s012 //   d/dt [L^{2i+1}](s0+s1,s2) [where t=s0+s1+s2]
+                     ) const
+    {
+      const OutputScalar &phiE_j = HomLj_s012(j);
+      
+      Kokkos::Array<OutputScalar,3> curl_EE_i;
+      E_E_CURL(curl_EE_i, i, HomPi_s01, s0, s1, s0_grad, s1_grad);
+      
+      Kokkos::Array<OutputScalar,3> EE_i;
+      E_E(EE_i, i, HomPi_s01, s0, s1, s0_grad, s1_grad);
+      
+      // t0 = s0 + s1; t1 = s2
+      Kokkos::Array<OutputScalar,3>  t0_grad;
+      const Kokkos::Array<OutputScalar,3> &t1_grad = s2_grad;
+      for (ordinal_type d=0; d<3; d++)
+      {
+        t0_grad[d] = s0_grad[d] + s1_grad[d];
+      }
+      
+      // grad [L^{2i+1}_j](t0,t1)
+      Kokkos::Array<OutputScalar,3> grad_phiE_j;
+      computeGradHomLi(grad_phiE_j, j, HomPj_s012, HomLj_dt_s012, t0_grad, t1_grad);
+      
+      cross(ETRI_CURL, grad_phiE_j, EE_i);
+      for (ordinal_type d=0; d<3; d++)
+      {
+        ETRI_CURL[d] += phiE_j * curl_EE_i[d];
+      }
+    }
+    
     // TODO: delete extraneous helper functions (this may be one).
     // This is the "Ancillary Operator" V^{tri}_{ij} on p. 433 of Fuentes et al.
     KOKKOS_INLINE_FUNCTION
@@ -674,26 +714,26 @@ namespace Intrepid2
             auto & L = scratch1D_2;
             
             // Family I & II
-            for (int familyNumber=1; familyNumber<=2; familyNumber++)
-            {              
-              const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
-              const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
-              const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
-              
-              const int numTriFaces = 4;
-              for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
+            const int numTriFaces = 4;
+            for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
+            {
+              // face 0,2 --> a=1, b=2
+              // face 1,3 --> a=2, b=1
+              int a = (faceOrdinal % 2 == 0) ? 1 : 2;
+              int b = 3 - a;
+              // face 0,3 --> c=0
+              // face 1,2 --> c=1
+              int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
+            
+              for (int familyNumber=1; familyNumber<=2; familyNumber++)
               {
-                // face 0,2 --> a=1, b=2
-                // face 1,3 --> a=2, b=1
-                int a = (faceOrdinal % 2 == 0) ? 1 : 2;
-                int b = 3 - a;
-                // face 0,3 --> c=0
-                // face 1,2 --> c=1
-                int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
-              
-                const auto & s0      =     nu[0][a-1], & s1      =     nu[1][a-1];
-                const auto & s0_grad = nuGrad[0][a-1], & s1_grad = nuGrad[1][a-1];
-                const auto & s2      =     nu[2][a-1];
+                const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
+                const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
+                const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
+                
+                const auto & s0      =     nu[s0_index][a-1], & s1      =     nu[s1_index][a-1];
+                const auto & s0_grad = nuGrad[s0_index][a-1], & s1_grad = nuGrad[s1_index][a-1];
+                const auto & s2      =     nu[s2_index][a-1];
                 
                 const auto & mu_c_b      = mu    [c][b-1];
                 
@@ -1315,6 +1355,75 @@ namespace Intrepid2
               }
             }
           } // quadrilateral face
+          
+          // triangular faces
+          {
+            // rename scratch1, scratch2
+            auto &  P    = scratch1D_1; // Legendre
+            auto & Pj    = scratch1D_2; // Jacobi
+            auto & Lj    = scratch1D_3; // integrated Jacobi
+            auto & Lj_dt = scratch1D_4; // integrated Jacobi
+            
+            
+            // Family I & II
+            // Family I & II
+            const int numTriFaces = 4;
+            for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
+            {
+              // face 0,2 --> a=1, b=2
+              // face 1,3 --> a=2, b=1
+              int a = (faceOrdinal % 2 == 0) ? 1 : 2;
+              int b = 3 - a;
+              // face 0,3 --> c=0
+              // face 1,2 --> c=1
+              int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
+            
+              for (int familyNumber=1; familyNumber<=2; familyNumber++)
+              {
+                const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
+                const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
+                const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
+                
+                const auto & s0      =     nu[s0_index][a-1], & s1      =     nu[s1_index][a-1], & s2      =     nu[s2_index][a-1];
+                const auto & s0_grad = nuGrad[s0_index][a-1], & s1_grad = nuGrad[s1_index][a-1], & s2_grad = nuGrad[s2_index][a-1];
+                
+                const auto & mu_c_b      = mu    [c][b-1];
+                const auto & mu_c_b_grad = muGrad[c][b-1];
+                
+                Polynomials::shiftedScaledLegendreValues(P, p-1, s1, s0 + s1);
+                
+                for (int totalPolyOrder=1; totalPolyOrder<p; totalPolyOrder++)
+                {
+                  // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
+                  for (int i=0; i<totalPolyOrder; i++)
+                  {
+                    Polynomials::shiftedScaledJacobiValues             (Pj,    2*i+1, p-1, s2, s0 + s1 + s2);
+                    Polynomials::shiftedScaledIntegratedJacobiValues   (Lj,    2*i+1, p-1, s2, s0 + s1 + s2);
+                    Polynomials::shiftedScaledIntegratedJacobiValues_dt(Lj_dt, 2*i+1, p-1, s2, s0 + s1 + s2);
+                    
+                    Kokkos::Array<OutputScalar, 3> EE;
+                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
+                    Kokkos::Array<OutputScalar, 3> ETRI;
+                    const ordinal_type j = totalPolyOrder - i;
+                    E_TRI(ETRI, i, j, EE, Lj);
+                    
+                    Kokkos::Array<OutputScalar, 3> ETRI_CURL;
+                    E_TRI_CURL(ETRI_CURL, i, j, P, s0, s1, s0_grad, s1_grad, s2_grad, Pj, Lj, Lj_dt);
+                    
+                    Kokkos::Array<OutputScalar, 3> grad_mu_cross_ETRI;
+                    cross(grad_mu_cross_ETRI, mu_c_b_grad, ETRI);
+                    
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * ETRI_CURL[d] + grad_mu_cross_ETRI[d];
+                    }
+                    
+                    fieldOrdinalOffset++;
+                  }
+                }
+              }
+            }
+          } // triangular faces
           
           // what follows is copied from H(div) implementation
           // TODO: delete this
