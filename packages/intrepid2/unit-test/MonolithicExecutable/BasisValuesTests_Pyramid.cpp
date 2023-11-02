@@ -124,6 +124,46 @@ namespace
     testViewFloatingEquality(actualValues, expectedValues, relTol, absTol, out, success, "actual", "expected");
   }
 
+  TEUCHOS_UNIT_TEST( BasisValues, PyramidHierarchical_HCURL_PointTest )
+  {
+    // Test to compute values at a given point, for debugging purposes
+    using HierarchicalBasis = HierarchicalBasisFamily<DefaultTestDeviceType>::HCURL_PYR;
+    using DeviceType = DefaultTestDeviceType;
+    
+    const ordinal_type p = 2;
+    
+    HierarchicalBasis hierarchicalBasis(p);
+    
+    using std::vector;
+    const int numPoints = 1;
+    vector< vector<double> > ESEAS_points(numPoints, vector<double>(3));
+    
+    ESEAS_points[0] = {0,0,0};
+    
+    ViewType<double,DeviceType> intrepid2_points = getView<double, DeviceType>("points", numPoints, 3);
+    
+    auto intrepid2_points_host = getHostCopy(intrepid2_points);
+    
+    for (int i=0; i<numPoints; i++)
+    {
+      const double z = ESEAS_points[i][2];
+      const double x = ESEAS_points[i][0] * 2 - 1 + z;
+      const double y = ESEAS_points[i][1] * 2 - 1 + z;
+      intrepid2_points_host(i,0) = x;
+      intrepid2_points_host(i,1) = y;
+      intrepid2_points_host(i,2) = z;
+    }
+    Kokkos::deep_copy(intrepid2_points, intrepid2_points_host);
+    
+    const int basisCardinality = hierarchicalBasis.getCardinality();
+    
+    ViewType<double,DeviceType> actualValues   = getView<double, DeviceType>("actual values", basisCardinality, numPoints, 3);
+    hierarchicalBasis.getValues(actualValues, intrepid2_points, OPERATOR_VALUE);
+    
+    ViewType<double,DeviceType> actualCurls   = getView<double, DeviceType>("actual curls", basisCardinality, numPoints, 3);
+    hierarchicalBasis.getValues(actualCurls, intrepid2_points, OPERATOR_CURL);
+  }
+
   TEUCHOS_UNIT_TEST( BasisValues, PyramidHierarchical_HGRAD_PointTest )
   {
     // Test to compute values at a given point, for debugging purposes
