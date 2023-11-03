@@ -767,48 +767,91 @@ namespace Intrepid2
           // **** interior functions **** //
           // FAMILY I
           // following the ESEAS ordering: k increments first
-          for (int k=2; k<=polyOrder_; k++)
           {
-            for (int j=2; j<=polyOrder_; j++)
+            // rename scratch
+            const auto & Li_muZ01    = scratch1D_1;
+            const auto & Li_muX01    = scratch1D_2;
+            const auto & Li_muY01    = scratch1D_3;
+            const auto & Pi_muX01    = scratch1D_4;
+            const auto & Pi_muY01    = scratch1D_5;
+            const auto & Pi_muZ01    = scratch1D_6;
+            const auto & Li_dt_muX01 = scratch1D_7;
+            const auto & Li_dt_muY01 = scratch1D_8;
+            const auto & Li_dt_muZ01 = scratch1D_9;
+            
+            const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
+            const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
+            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
+            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
+            
+            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledLegendreValues(Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledLegendreValues(Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muX01, Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muY01, Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muZ01, Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            for (int k=2; k<=polyOrder_; k++)
             {
-              for (int i=2; i<=polyOrder_; i++)
-              {
-//                const int max_jk  = std::max(j,k);
-//                const int max_ijk = std::max(max_jk,i);
-//                const int max_ip1jk = std::max(max_jk,i+1);
-                fieldOrdinalOffset++;
-              }
-            }
-          }
-          
-          // FAMILY II
-          for (int k=2; k<=polyOrder_; k++)
-          {
-            for (int j=2; j<=polyOrder_; j++)
-            {
-              for (int i=0; i<polyOrder_; i++)
-              {
-//                const int max_jk  = std::max(j,k);
-//                const int max_ijk = std::max(max_jk,i);
-//                const int max_ip1jk = std::max(max_jk,i+1);
-                fieldOrdinalOffset++;
-              }
-            }
-          }
-          
-          // FAMILY III
-          for (int k=2; k<=polyOrder_; k++)
-          {
-            // ESEAS reverses i,j loop ordering for family III, relative to family II.
-            // We follow ESEAS for convenience of cross-code comparison.
-            for (int i=0; i<polyOrder_; i++)
-            {
+              const auto & phi_k = Li_muZ01(k);
+              Kokkos::Array<OutputScalar,3> phi_k_grad;
+              computeGradHomLi(phi_k_grad, k, Pi_muZ01, Li_dt_muZ01, muZ_0_grad, muZ_1_grad);
+              
               for (int j=2; j<=polyOrder_; j++)
               {
-//                const int max_jk  = std::max(j,k);
-//                const int max_ijk = std::max(max_jk,i);
-//                const int max_ip1jk = std::max(max_jk,i+1);
-                fieldOrdinalOffset++;
+                const auto & phi_j = Li_muY01(j);
+                Kokkos::Array<OutputScalar,3> phi_j_grad;
+                computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
+                
+                for (int i=2; i<=polyOrder_; i++)
+                {
+                  const auto & phi_i = Li_muX01(i);
+                  Kokkos::Array<OutputScalar,3> phi_i_grad;
+                  computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
+  
+                  for (ordinal_type d=0; d<3; d++)
+                  {
+                    output_(fieldOrdinalOffset,pointOrdinal,d) = phi_k * (phi_i * phi_j_grad[d] + phi_j * phi_i_grad[d]) + phi_i * phi_j * phi_k_grad[d];
+                  }
+                  fieldOrdinalOffset++;
+                }
+              }
+            }
+          } // INTERIOR FAMILY I
+          
+          // FAMILY II & III
+          for (int familyNumber=2; familyNumber<=3; familyNumber++)
+          {
+            for (int k=2; k<=polyOrder_; k++)
+            {
+              // ESEAS reverses i,j loop ordering for family III, relative to family II.
+              // We follow ESEAS for convenience of cross-code comparison.
+              
+              ordinal_type jg_min = (familyNumber==2) ?   2 : 0;
+              ordinal_type jg_max = (familyNumber==2) ?   p : p-1;
+              ordinal_type ig_min = (familyNumber==2) ?   0 : 2;
+              ordinal_type ig_max = (familyNumber==2) ? p-1 : p;
+              
+              for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
+              {
+                for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
+                {
+                  const ordinal_type &i = (familyNumber==1) ? ig : jg;
+                  const ordinal_type &j = (familyNumber==1) ? jg : ig;
+  //                const int max_jk  = std::max(j,k);
+  //                const int max_ijk = std::max(max_jk,i);
+  //                const int max_ip1jk = std::max(max_jk,i+1);
+                  fieldOrdinalOffset++;
+                }
               }
             }
           }
@@ -1424,6 +1467,26 @@ namespace Intrepid2
               }
             }
           } // triangular faces
+          
+          // **** interior functions **** //
+          // FAMILY I - curl-free
+          // following the ESEAS ordering: k increments first
+          {
+            for (int k=2; k<=polyOrder_; k++)
+            {
+              for (int j=2; j<=polyOrder_; j++)
+              {
+                for (int i=2; i<=polyOrder_; i++)
+                {
+                  for (ordinal_type d=0; d<3; d++)
+                  {
+                    output_(fieldOrdinalOffset,pointOrdinal,d) = 0;
+                  }
+                  fieldOrdinalOffset++;
+                }
+              }
+            }
+          } // INTERIOR FAMILY I
           
           // what follows is copied from H(div) implementation
           // TODO: delete this
