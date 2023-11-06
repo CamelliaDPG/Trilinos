@@ -893,367 +893,39 @@ namespace Intrepid2
           }
           
           // FAMILY IV
-          for (int j=2; j<=polyOrder_; j++)
           {
-            for (int i=2; i<=polyOrder_; i++)
-            {
-//              const int max_ij  = std::max(i,j);
-              
-              fieldOrdinalOffset++;
-            }
-          }
-          
-          
-          // what follows is the H(div) implementation
-          // TODO: delete this
-          /*
-          // quadrilateral face
-          {
-            // rename scratch1, scratch2
-            auto & Pi = scratch1D_1;
-            auto & Pj = scratch1D_2;
+            // rename scratch
+            const auto & Li_muX01 = scratch1D_1;
+            const auto & Li_muY01 = scratch1D_2;
             
-            auto & s0      =     mu[0][0], & s1      =     mu[1][0];
-            auto & s0_grad = muGrad[0][0], & s1_grad = muGrad[1][0];
-            auto & t0      =     mu[0][1], & t1      =     mu[1][1];
-            auto & t0_grad = muGrad[0][1], & t1_grad = muGrad[1][1];
-            
-            Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
-            Polynomials::shiftedScaledLegendreValues(Pj, polyOrder_-1, t1, t0 + t1);
-            
-            const auto & muZ_0 = mu[0][2];
-            OutputScalar mu0_cubed = muZ_0 * muZ_0 * muZ_0;
-            
-            // following the ESEAS ordering: j increments first
-            for (int j=0; j<polyOrder_; j++)
-            {
-              for (int i=0; i<polyOrder_; i++)
-              {
-                Kokkos::Array<OutputScalar,3> VQUAD; // output from V_QUAD
-                V_QUAD(VQUAD, i, j,
-                       Pi, s0, s1, s0_grad, s1_grad,
-                       Pj, t0, t1, t0_grad, t1_grad);
-                
-                for (ordinal_type d=0; d<3; d++)
-                {
-                  output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_cubed * VQUAD[d];
-                }
-                fieldOrdinalOffset++;
-              }
-            }
-          }
-          
-          // triangle faces
-          {
-            const auto & P        = scratch1D_1; // for V_TRI( nu_012)
-            const auto & P_2ip1   = scratch1D_2;
-            const auto & Pmu      = scratch1D_3; // for V_TRI( mu * nu_012)
-            const auto & Pmu_2ip1 = scratch1D_4;
-            for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
-            {
-              // face 0,2 --> a=1, b=2
-              // face 1,3 --> a=2, b=1
-              int a = (faceOrdinal % 2 == 0) ? 1 : 2;
-              int b = 3 - a;
-              // face 0,3 --> c=0
-              // face 1,2 --> c=1
-              int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
-              
-              const auto & s0 = nu[0][a-1]; const auto & s0_grad = nuGrad[0][a-1];
-              const auto & s1 = nu[1][a-1]; const auto & s1_grad = nuGrad[1][a-1];
-              const auto & s2 = nu[2][a-1];
-              const PointScalar jacobiScaling = s0 + s1 + s2;
-              
-              const PointScalar legendreScaling = s0 + s1;
-              Polynomials::shiftedScaledLegendreValues(P, polyOrder_-1, s1, legendreScaling);
-              
-              const auto lambda0_index = tri_face_vertex_0[faceOrdinal];
-              const auto lambda1_index = tri_face_vertex_1[faceOrdinal];
-              const auto lambda2_index = tri_face_vertex_2[faceOrdinal];
-              
-              const auto & mu_c_b      = mu    [c][b-1];
-              const auto & mu_c_b_grad = muGrad[c][b-1];
-              const auto & mu_s0 = lambda[lambda0_index];
-              const auto & mu_s1 = lambda[lambda1_index];
-              const auto & mu_s2 = lambda[lambda2_index];
-              
-              const PointScalar muJacobiScaling = mu_s0 + mu_s1 + mu_s2;
-              
-              const PointScalar muLegendreScaling = mu_s0 + mu_s1;
-              Polynomials::shiftedScaledLegendreValues(Pmu, polyOrder_-1, mu_s1, muLegendreScaling);
-              
-              Kokkos::Array<PointScalar, 3> vectorWeight;
-              computeFaceVectorWeight(vectorWeight, nu[0][a-1], nuGrad[0][a-1],
-                                                    nu[1][a-1], nuGrad[1][a-1],
-                                                    nu[2][a-1], nuGrad[2][a-1]);
-              
-              Kokkos::Array<OutputScalar,3> VTRI_00;
-              V_TRI(VTRI_00,0,0,P,P_2ip1,vectorWeight);
-              
-              Kokkos::Array<OutputScalar,3> EE_0;
-              E_E(EE_0, 0, P, s0, s1, s0_grad, s1_grad);
-              
-              for (int totalPolyOrder=0; totalPolyOrder<polyOrder_; totalPolyOrder++)
-              {
-                for (int i=0; i<=totalPolyOrder; i++)
-                {
-                  const int j = totalPolyOrder - i;
-                  
-                  const double alpha = i*2.0 + 1;
-                  Polynomials::shiftedScaledJacobiValues(  P_2ip1, alpha, polyOrder_-1,    s2,   jacobiScaling);
-                  Polynomials::shiftedScaledJacobiValues(Pmu_2ip1, alpha, polyOrder_-1, mu_s2, muJacobiScaling);
-                  
-                  Kokkos::Array<OutputScalar,3> VTRI; // output from V_TRI
-                  V_TRI(VTRI,    i, j, P,   P_2ip1,     vectorWeight);
-                  
-                  Kokkos::Array<OutputScalar,3> one_over_mu_VTRI_mu; // (B.42) result
-                  V_TRI_B42(one_over_mu_VTRI_mu, VTRI_00, EE_0, s2, mu_c_b, mu_c_b_grad, i, j, Pmu, Pmu_2ip1);
-                  
-                  for (ordinal_type d=0; d<3; d++)
-                  {
-                    output_(fieldOrdinalOffset,pointOrdinal,d) = 0.5 * (VTRI[d] * mu_c_b + one_over_mu_VTRI_mu[d]);
-                  }
-
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
-          } // triangle faces block
-          
-          // interior functions
-          {
-            // label scratch
-            const auto & Li_muZ01    = scratch1D_1; // used for phi_k^E values in Family I, II, IV
-            const auto & Li_muX01    = scratch1D_2; // used for E_QUAD computations
-            const auto & Li_muY01    = scratch1D_3; // used for E_QUAD computations
-            const auto & Pi_muX01    = scratch1D_4; // used for E_QUAD computations where xi_1 comes first
-            const auto & Pi_muY01    = scratch1D_5; // used for E_QUAD computations where xi_2 comes first
-            const auto & Pi_muZ01    = scratch1D_6; // used for E_QUAD computations where xi_2 comes first
-            const auto & Li_dt_muX01 = scratch1D_7; // used for E_QUAD computations
-            const auto & Li_dt_muY01 = scratch1D_8; // used for E_QUAD computations
-            const auto & Li_dt_muZ01 = scratch1D_9; // used for E_QUAD computations
-            
-            const auto & muX_0 = mu[0][0]; const auto & muX_0_grad = muGrad[0][0];
-            const auto & muX_1 = mu[1][0]; const auto & muX_1_grad = muGrad[1][0];
-            const auto & muY_0 = mu[0][1]; const auto & muY_0_grad = muGrad[0][1];
-            const auto & muY_1 = mu[1][1]; const auto & muY_1_grad = muGrad[1][1];
-            const auto & muZ_0 = mu[0][2]; const auto & muZ_0_grad = muGrad[0][2];
-            const auto & muZ_1 = mu[1][2]; const auto & muZ_1_grad = muGrad[1][2];
+            const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
+            const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
+            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
             
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
             
-            Polynomials::shiftedScaledLegendreValues(Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
-            Polynomials::shiftedScaledLegendreValues(Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
-            
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muX01, Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muY01, Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muZ01, Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
-            
-            // FAMILIES I & II -- divergence-free families
-            // following the ESEAS ordering: k increments first
-            for (int f=0; f<2; f++)
-            {
-              const auto &s0 = (f==0) ? muX_0 : muY_0;  const auto & s0_grad = (f==0) ? muX_0_grad : muY_0_grad;
-              const auto &s1 = (f==0) ? muX_1 : muY_1;  const auto & s1_grad = (f==0) ? muX_1_grad : muY_1_grad;
-                                                        const auto & t0_grad = (f==0) ? muY_0_grad : muX_0_grad;
-                                                        const auto & t1_grad = (f==0) ? muY_1_grad : muX_1_grad;
-              const auto & Pi_s01    = (f==0) ? Pi_muX01    : Pi_muY01;
-              const auto & Pi_t01    = (f==0) ? Pi_muY01    : Pi_muX01;
-              const auto & Li_t01    = (f==0) ? Li_muY01    : Li_muX01;
-              const auto & Li_dt_t01 = (f==0) ? Li_dt_muY01 : Li_dt_muX01;
-              
-              for (int k=2; k<=polyOrder_; k++)
-              {
-                const auto & phi_k = Li_muZ01(k);
-                Kokkos::Array<OutputScalar,3> phi_k_grad;
-                computeGradHomLi(phi_k_grad, k, Pi_muZ01, Li_dt_muZ01, muZ_0_grad, muZ_1_grad);
-                
-                Kokkos::Array<OutputScalar,3> muZ0_grad_phi_k_plus_phi_k_grad_muZ0;
-                for (ordinal_type d=0; d<3; d++)
-                {
-                  muZ0_grad_phi_k_plus_phi_k_grad_muZ0[d] = muZ_0 * phi_k_grad[d] + phi_k * muZ_0_grad[d];
-                }
-                
-                // for reasons that I don't entirely understand, ESEAS switches whether i or j are the fastest-moving indices depending on whether it's family I or II.  Following their code, I'm calling the outer loop variable jg, inner ig.
-                // (Cross-code comparisons are considerably simpler if we number the dofs in the same way.)
-                ordinal_type jg_min = (f==0) ? 2 : 0;
-                ordinal_type jg_max = (f==0) ? polyOrder_ : polyOrder_-1;
-                ordinal_type ig_min = (f==0) ? 0 : 2;
-                ordinal_type ig_max = (f==0) ? polyOrder_ -1 : polyOrder_;
-                for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
-                {
-                  for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
-                  {
-                    const ordinal_type &i = (f==0) ? ig : jg;
-                    const ordinal_type &j = (f==0) ? jg : ig;
-                    Kokkos::Array<OutputScalar,3> EQUAD_ij;
-                    Kokkos::Array<OutputScalar,3> curl_EQUAD_ij;
-                    
-                    E_QUAD(EQUAD_ij, i, j, Pi_s01, s0, s1, s0_grad, s1_grad, Li_t01);
-                    
-                    E_QUAD_CURL(curl_EQUAD_ij, i, j, Pi_s01, s0, s1, s0_grad, s1_grad,
-                                                     Pi_t01, Li_t01, Li_dt_t01, t0_grad, t1_grad);
-                    
-                    // first term: muZ_0 phi^E_k curl EQUAD
-                    // we can reuse the memory for curl_EQUAD_ij; we won't need the values there again
-                    Kokkos::Array<OutputScalar,3> & firstTerm = curl_EQUAD_ij;
-                    for (ordinal_type d=0; d<3; d++)
-                    {
-                      firstTerm[d] *= muZ_0 * phi_k;
-                    }
-                    
-                    Kokkos::Array<OutputScalar,3> secondTerm; //(muZ0 grad phi + phi grad muZ0) x EQUAD
-                    
-                    cross(secondTerm, muZ0_grad_phi_k_plus_phi_k_grad_muZ0, EQUAD_ij);
-                    
-                    for (ordinal_type d=0; d<3; d++)
-                    {
-                      output_(fieldOrdinalOffset,pointOrdinal,d) = firstTerm[d] + secondTerm[d];
-                    }
-                    
-                    fieldOrdinalOffset++;
-                  }
-                }
-              }
-            } // family I, II loop
-            
-            // FAMILY III -- a divergence-free family
             for (int j=2; j<=polyOrder_; j++)
             {
-              // phi_ij_QUAD: phi_i(mu_X01) * phi_j(mu_Y01) // (following the ESEAS *implementation*; Fuentes et al. (p. 454) actually have the arguments reversed, which leads to a different basis ordering)
               const auto & phi_j = Li_muY01(j);
-              Kokkos::Array<OutputScalar,3> phi_j_grad;
-              computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
+              
               for (int i=2; i<=polyOrder_; i++)
               {
                 const auto & phi_i = Li_muX01(i);
-                Kokkos::Array<OutputScalar,3> phi_i_grad;
-                computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
                 
-                Kokkos::Array<OutputScalar,3> phi_ij_grad;
+                const ordinal_type n = max(i,j);
+                const OutputScalar weight = n * pow(muZ_0,n-1);
+                
                 for (ordinal_type d=0; d<3; d++)
                 {
-                  phi_ij_grad[d] = phi_i * phi_j_grad[d] + phi_j * phi_i_grad[d];
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = phi_i * phi_j * weight * muZ_0_grad[d];
                 }
                 
-                Kokkos::Array<OutputScalar,3> cross_product; // phi_ij_grad x grad_muZ0
-                cross(cross_product, phi_ij_grad, muZ_0_grad);
-                
-                ordinal_type n = max(i,j);
-                OutputScalar weight = n * pow(muZ_0,n-1);
-                for (ordinal_type d=0; d<3; d++)
-                {
-                  output_(fieldOrdinalOffset,pointOrdinal,d) = weight * cross_product[d];
-                }
                 fieldOrdinalOffset++;
               }
             }
-            
-            // FAMILY IV (non-trivial divergences)
-            {
-              const auto muZ_0_squared = muZ_0 * muZ_0;
-              const auto &s0 = muX_0;  const auto & s0_grad = muX_0_grad;
-              const auto &s1 = muX_1;  const auto & s1_grad = muX_1_grad;
-              const auto &t0 = muY_0;  const auto & t0_grad = muY_0_grad;
-              const auto &t1 = muY_1;  const auto & t1_grad = muY_1_grad;
-              const auto &Pi = Pi_muX01;
-              const auto &Pj = Pi_muY01;
-              for (int k=2; k<=polyOrder_; k++)
-              {
-                const auto & phi_k = Li_muZ01(k);
-                for (int j=0; j<polyOrder_; j++)
-                {
-                  for (int i=0; i<polyOrder_; i++)
-                  {
-                    Kokkos::Array<OutputScalar,3> VQUAD; // output from V_QUAD
-                    V_QUAD(VQUAD, i, j,
-                           Pi, s0, s1, s0_grad, s1_grad,
-                           Pj, t0, t1, t0_grad, t1_grad);
-                    
-                    for (int d=0; d<3; d++)
-                    {
-                      output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_0_squared * phi_k * VQUAD[d];
-                    }
-                    
-                    fieldOrdinalOffset++;
-                  }
-                }
-              }
-            }
-            
-            // FAMILY V (non-trivial divergences)
-            {
-              for (int j=2; j<=polyOrder_; j++)
-              {
-                const auto & phi_j = Li_muY01(j);
-                Kokkos::Array<OutputScalar,3> phi_j_grad;
-                computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
-                
-                for (int i=2; i<=polyOrder_; i++)
-                {
-                  const auto & phi_i = Li_muX01(i);
-                  Kokkos::Array<OutputScalar,3> phi_i_grad;
-                  computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
-                  
-                  const int n = max(i,j);
-                  const OutputScalar muZ_1_nm1 = pow(muZ_1,n-1);
-                  
-                  Kokkos::Array<OutputScalar,3> VLEFTTRI;
-                  V_LEFT_TRI(VLEFTTRI, phi_i, phi_i_grad, phi_j, phi_j_grad, muZ_0, muZ_0_grad);
-                  
-                  for (int d=0; d<3; d++)
-                  {
-                    output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_1_nm1 * VLEFTTRI[d];
-                  }
-                  
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
-            
-            // FAMILY VI (non-trivial divergences)
-            for (int i=2; i<=polyOrder_; i++)
-            {
-              const auto & phi_i = Li_muX01(i);
-              Kokkos::Array<OutputScalar,3> phi_i_grad;
-              computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
-              
-              Kokkos::Array<OutputScalar,3> VRIGHTTRI;
-              V_RIGHT_TRI(VRIGHTTRI, muY_1, muY_1_grad, phi_i, phi_i_grad, muZ_0, muZ_0_grad);
-              
-              const OutputScalar muZ_1_im1 = pow(muZ_1,i-1);
-              
-              for (int d=0; d<3; d++)
-              {
-                output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_1_im1 * VRIGHTTRI[d];
-              }
-              
-              fieldOrdinalOffset++;
-            }
-            
-            // FAMILY VII (non-trivial divergences)
-            for (int j=2; j<=polyOrder_; j++)
-            {
-              const auto & phi_j = Li_muY01(j);
-              Kokkos::Array<OutputScalar,3> phi_j_grad;
-              computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
-              
-              Kokkos::Array<OutputScalar,3> VRIGHTTRI;
-              V_RIGHT_TRI(VRIGHTTRI, muX_1, muX_1_grad, phi_j, phi_j_grad, muZ_0, muZ_0_grad);
-              
-              const OutputScalar muZ_1_jm1 = pow(muZ_1,j-1);
-              
-              for (int d=0; d<3; d++)
-              {
-                output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_1_jm1 * VRIGHTTRI[d];
-              }
-              
-              fieldOrdinalOffset++;
-            }
-          }*/
+          }
         } // end OPERATOR_VALUE
           break;
         case OPERATOR_CURL:
@@ -1445,7 +1117,6 @@ namespace Intrepid2
             
             
             // Family I & II
-            // Family I & II
             const int numTriFaces = 4;
             for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
             {
@@ -1617,309 +1288,65 @@ namespace Intrepid2
             }
           }
 
-          // what follows is copied from H(div) implementation
-          // TODO: delete this
-          // quadrilateral face
-          /*{
-            // rename scratch1, scratch2
-            auto & Pi = scratch1D_1;
-            auto & Pj = scratch1D_2;
-            
-            auto & s0      =     mu[0][0], s1      =     mu[1][0];
-            auto & s0_grad = muGrad[0][0], s1_grad = muGrad[1][0];
-            auto & t0      =     mu[0][1], t1      =     mu[1][1];
-            auto & t0_grad = muGrad[0][1], t1_grad = muGrad[1][1];
-            
-            Polynomials::shiftedScaledLegendreValues(Pi, polyOrder_-1, s1, s0 + s1);
-            Polynomials::shiftedScaledLegendreValues(Pj, polyOrder_-1, t1, t0 + t1);
-            
-            const auto & muZ0      =     mu[0][2];
-            const auto & muZ0_grad = muGrad[0][2];
-            OutputScalar three_mu0_squared = 3.0 * muZ0 * muZ0;
-            
-            // following the ESEAS ordering: j increments first
-            for (int j=0; j<polyOrder_; j++)
-            {
-              for (int i=0; i<polyOrder_; i++)
-              {
-                Kokkos::Array<OutputScalar,3> VQUAD; // output from V_QUAD
-                V_QUAD(VQUAD, i, j,
-                       Pi, s0, s1, s0_grad, s1_grad,
-                       Pj, t0, t1, t0_grad, t1_grad);
-                
-                OutputScalar grad_muZ0_dot_VQUAD;
-                dot(grad_muZ0_dot_VQUAD, muZ0_grad, VQUAD);
-                
-                output_(fieldOrdinalOffset,pointOrdinal) = three_mu0_squared * grad_muZ0_dot_VQUAD;
-                fieldOrdinalOffset++;
-              }
-            }
-          } // end quad face block
-          
-          // triangle faces
+          // FAMILY IV
           {
-            const auto & P        = scratch1D_1; // for V_TRI( nu_012)
-            const auto & P_2ip1   = scratch1D_2;
-            const auto & Pmu      = scratch1D_3; // for V_TRI( mu * nu_012)
-            const auto & Pmu_2ip1 = scratch1D_4;
-            for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
-            {
-              // face 0,2 --> a=1, b=2
-              // face 1,3 --> a=2, b=1
-              int a = (faceOrdinal % 2 == 0) ? 1 : 2;
-              int b = 3 - a;
-              // face 0,3 --> c=0
-              // face 1,2 --> c=1
-              int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
-              
-              const auto & s0 = nu[0][a-1]; const auto & s0_grad = nuGrad[0][a-1];
-              const auto & s1 = nu[1][a-1]; const auto & s1_grad = nuGrad[1][a-1];
-              const auto & s2 = nu[2][a-1]; const auto & s2_grad = nuGrad[2][a-1];
-              const PointScalar jacobiScaling = s0 + s1 + s2; // we can actually assume that this is 1; see comment at bottom of p. 425 of Fuentes et al.
-              
-              const PointScalar legendreScaling = s0 + s1;
-              Polynomials::shiftedScaledLegendreValues(P, polyOrder_-1, s1, legendreScaling);
-              
-              const auto lambda0_index = tri_face_vertex_0[faceOrdinal];
-              const auto lambda1_index = tri_face_vertex_1[faceOrdinal];
-              const auto lambda2_index = tri_face_vertex_2[faceOrdinal];
-              
-              const auto & mu_c_b = mu[c][b-1];
-              const auto & mu_c_b_grad = muGrad[c][b-1];
-              
-              const auto & mu_s0 = lambda[lambda0_index];
-              const auto & mu_s1 = lambda[lambda1_index];
-              const auto & mu_s2 = lambda[lambda2_index]; // == s2
-              
-              const PointScalar muJacobiScaling = mu_s0 + mu_s1 + mu_s2;
-              
-              const PointScalar muLegendreScaling = mu_s0 + mu_s1;
-              Polynomials::shiftedScaledLegendreValues(Pmu, polyOrder_-1, mu_s1, muLegendreScaling);
-              
-              Kokkos::Array<PointScalar, 3> vectorWeight;
-              computeFaceVectorWeight(vectorWeight, nu[0][a-1], nuGrad[0][a-1],
-                                                    nu[1][a-1], nuGrad[1][a-1],
-                                                    nu[2][a-1], nuGrad[2][a-1]);
-              
-              Kokkos::Array<PointScalar,3> & mu_s0_grad = lambdaGrad[lambda0_index];
-              Kokkos::Array<PointScalar,3> & mu_s1_grad = lambdaGrad[lambda1_index];
-              Kokkos::Array<PointScalar,3> & mu_s2_grad = lambdaGrad[lambda2_index]; // == s2_grad
-              
-              Kokkos::Array<PointScalar, 3> muVectorWeight;
-              computeFaceVectorWeight(muVectorWeight, mu_s0, mu_s0_grad,
-                                                      mu_s1, mu_s1_grad,
-                                                      mu_s2, mu_s2_grad);
-              
-              OutputScalar muDivWeight;
-              computeFaceDivWeight(muDivWeight, mu_s0_grad, mu_s1_grad, mu_s2_grad);
-              
-              Kokkos::Array<OutputScalar,3> VTRI_00;
-              V_TRI(VTRI_00,0,0,P,P_2ip1,vectorWeight);
-              
-              Kokkos::Array<OutputScalar,3> EE_0;
-              E_E(EE_0, 0, P, s0, s1, s0_grad, s1_grad);
-              
-              for (int totalPolyOrder=0; totalPolyOrder<polyOrder_; totalPolyOrder++)
-              {
-                for (int i=0; i<=totalPolyOrder; i++)
-                {
-                  const int j = totalPolyOrder - i;
-                  
-                  const double alpha = i*2.0 + 1;
-                  Polynomials::shiftedScaledJacobiValues(  P_2ip1, alpha, polyOrder_-1,    s2,   jacobiScaling);
-                  Polynomials::shiftedScaledJacobiValues(Pmu_2ip1, alpha, polyOrder_-1, mu_s2, muJacobiScaling);
-                  
-                  Kokkos::Array<OutputScalar,3> VTRI; // output from V_TRI
-                  
-                  V_TRI(VTRI, i, j, P, P_2ip1, vectorWeight);
-                  
-                  OutputScalar div_one_over_mu_VTRI_mu;
-                  V_TRI_B42_DIV(div_one_over_mu_VTRI_mu, VTRI_00, EE_0, s2, s2_grad, mu_c_b, mu_c_b_grad, i, j, Pmu, Pmu_2ip1);
-                  
-                  output_(fieldOrdinalOffset,pointOrdinal) = 0.5 * (dot(mu_c_b_grad, VTRI) + div_one_over_mu_VTRI_mu);
-                  
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
-          } // end triangle face block
-          
-          {
-            // FAMILY I -- divergence free
-            // following the ESEAS ordering: k increments first
-            for (int k=2; k<=polyOrder_; k++)
-            {
-              for (int j=2; j<=polyOrder_; j++)
-              {
-                for (int i=0; i<polyOrder_; i++)
-                {
-                  output_(fieldOrdinalOffset,pointOrdinal) = 0.0;
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
+            // rename scratch
+            const auto & Li_muX01    = scratch1D_1;
+            const auto & Li_muY01    = scratch1D_2;
+            const auto & Pi_muX01    = scratch1D_3;
+            const auto & Pi_muY01    = scratch1D_4;
+            const auto & Li_dt_muX01 = scratch1D_5;
+            const auto & Li_dt_muY01 = scratch1D_6;
             
-            // FAMILY II -- divergence free
-            // following the ESEAS ordering: k increments first
-            for (int k=2; k<=polyOrder_; k++)
-            {
-              for (int j=2; j<=polyOrder_; j++)
-              {
-                for (int i=0; i<polyOrder_; i++)
-                {
-                  output_(fieldOrdinalOffset,pointOrdinal) = 0.0;
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
-            
-            // FAMILY III -- divergence free
-            for (int j=2; j<=polyOrder_; j++)
-            {
-              for (int i=2; i<=polyOrder_; i++)
-              {
-                output_(fieldOrdinalOffset,pointOrdinal) = 0.0;
-                fieldOrdinalOffset++;
-              }
-            }
-            
-            const auto & Li_muZ01    = scratch1D_1; // used in Family IV
-            const auto & Li_muX01    = scratch1D_2; // used in Family V
-            const auto & Li_muY01    = scratch1D_3; // used in Family V
-            const auto & Pi_muX01    = scratch1D_4; // used in Family IV
-            const auto & Pi_muY01    = scratch1D_5; // used in Family IV
-            const auto & Pi_muZ01    = scratch1D_6; // used in Family IV
-            const auto & Li_dt_muX01 = scratch1D_7; // used in Family V
-            const auto & Li_dt_muY01 = scratch1D_8; // used in Family V
-            const auto & Li_dt_muZ01 = scratch1D_9; // used in Family IV
-            
-            const auto & muX_0 = mu[0][0]; const auto & muX_0_grad = muGrad[0][0];
-            const auto & muX_1 = mu[1][0]; const auto & muX_1_grad = muGrad[1][0];
-            const auto & muY_0 = mu[0][1]; const auto & muY_0_grad = muGrad[0][1];
-            const auto & muY_1 = mu[1][1]; const auto & muY_1_grad = muGrad[1][1];
-            const auto & muZ_0 = mu[0][2]; const auto & muZ_0_grad = muGrad[0][2];
-            const auto & muZ_1 = mu[1][2]; const auto & muZ_1_grad = muGrad[1][2];
+            const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
+            const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
+            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
+            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
             
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
             
             Polynomials::shiftedScaledLegendreValues(Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledLegendreValues(Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
             
             Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muX01, Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muY01, Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
-            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muZ01, Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
             
-            // FAMILY IV -- non-trivial divergences
-            {
-              const auto muZ_0_squared = muZ_0 * muZ_0;
-              const auto &s0 = muX_0;  const auto & s0_grad = muX_0_grad;
-              const auto &s1 = muX_1;  const auto & s1_grad = muX_1_grad;
-              const auto &t0 = muY_0;  const auto & t0_grad = muY_0_grad;
-              const auto &t1 = muY_1;  const auto & t1_grad = muY_1_grad;
-              const auto &Pi = Pi_muX01;
-              const auto &Pj = Pi_muY01;
-              
-              for (int k=2; k<=polyOrder_; k++)
-              {
-                const auto & phi_k = Li_muZ01(k);
-                Kokkos::Array<OutputScalar,3> phi_k_grad;
-                computeGradHomLi(phi_k_grad, k, Pi_muZ01, Li_dt_muZ01, muZ_0_grad, muZ_1_grad);
-                for (int j=0; j<polyOrder_; j++)
-                {
-                  for (int i=0; i<polyOrder_; i++)
-                  {
-                    Kokkos::Array<OutputScalar,3> firstTerm{0,0,0}; // muZ_0_squared * grad phi_k + 2 muZ_0 * phi_k * grad muZ_0
-                    for (int d=0; d<3; d++)
-                    {
-                      firstTerm[d] += muZ_0_squared * phi_k_grad[d] + 2. * muZ_0 * phi_k * muZ_0_grad[d];
-                    }
-                    Kokkos::Array<OutputScalar,3> VQUAD; // output from V_QUAD
-                    V_QUAD(VQUAD, i, j,
-                           Pi, s0, s1, s0_grad, s1_grad,
-                           Pj, t0, t1, t0_grad, t1_grad);
-                    
-                    OutputScalar divValue;
-                    dot(divValue, firstTerm, VQUAD);
-                    output_(fieldOrdinalOffset,pointOrdinal) = divValue;
-                    
-                    fieldOrdinalOffset++;
-                  }
-                }
-              }
-            }
-            
-            // FAMILY V -- non-trivial divergences
-            {
-              for (int j=2; j<=polyOrder_; j++)
-              {
-                const auto & phi_j = Li_muX01(j);
-                Kokkos::Array<OutputScalar,3> phi_j_grad;
-                computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
-                
-                for (int i=2; i<=polyOrder_; i++)
-                {
-                  const auto & phi_i = Li_muY01(i);
-                  Kokkos::Array<OutputScalar,3> phi_i_grad;
-                  computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
-                  
-                  const int n = max(i,j);
-                  const OutputScalar muZ_1_nm2 = pow(muZ_1,n-2);
-                  
-                  Kokkos::Array<OutputScalar,3> VLEFTTRI;
-                  V_LEFT_TRI(VLEFTTRI, phi_i, phi_i_grad, phi_j, phi_j_grad, muZ_0, muZ_0_grad);
-                  
-                  OutputScalar dot_product;
-                  dot(dot_product, muZ_1_grad, VLEFTTRI);
-                  output_(fieldOrdinalOffset,pointOrdinal) = (n-1) * muZ_1_nm2 * dot_product;
-                  
-                  fieldOrdinalOffset++;
-                }
-              }
-            }
-            
-            // FAMILY VI (non-trivial divergences)
-            for (int i=2; i<=polyOrder_; i++)
-            {
-              const auto & phi_i = Li_muX01(i);
-              Kokkos::Array<OutputScalar,3> phi_i_grad;
-              computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
-              
-              Kokkos::Array<OutputScalar,3> VRIGHTTRI;
-              V_RIGHT_TRI(VRIGHTTRI, muY_1, muY_1_grad, phi_i, phi_i_grad, muZ_0, muZ_0_grad);
-              
-              OutputScalar dot_product;
-              dot(dot_product, muZ_1_grad, VRIGHTTRI);
-              
-              const OutputScalar muZ_1_im2 = pow(muZ_1,i-2);
-              output_(fieldOrdinalOffset,pointOrdinal) = (i-1) * muZ_1_im2 * dot_product;
-              
-              fieldOrdinalOffset++;
-            }
-            
-            // FAMILY VII (non-trivial divergences)
             for (int j=2; j<=polyOrder_; j++)
             {
               const auto & phi_j = Li_muY01(j);
               Kokkos::Array<OutputScalar,3> phi_j_grad;
               computeGradHomLi(phi_j_grad, j, Pi_muY01, Li_dt_muY01, muY_0_grad, muY_1_grad);
               
-              Kokkos::Array<OutputScalar,3> VRIGHTTRI;
-              V_RIGHT_TRI(VRIGHTTRI, muX_1, muX_1_grad, phi_j, phi_j_grad, muZ_0, muZ_0_grad);
-              
-              OutputScalar dot_product;
-              dot(dot_product, muZ_1_grad, VRIGHTTRI);
-              
-              const OutputScalar muZ_1_jm2 = pow(muZ_1,j-2);
-              output_(fieldOrdinalOffset,pointOrdinal) = (j-1) * muZ_1_jm2 * dot_product;
-              
-              fieldOrdinalOffset++;
+              for (int i=2; i<=polyOrder_; i++)
+              {
+                const auto & phi_i = Li_muX01(i);
+                Kokkos::Array<OutputScalar,3> phi_i_grad;
+                computeGradHomLi(phi_i_grad, i, Pi_muX01, Li_dt_muX01, muX_0_grad, muX_1_grad);
+                
+                const ordinal_type n = max(i,j);
+                const OutputScalar weight = n * pow(muZ_0,n-1);
+                
+                Kokkos::Array<OutputScalar,3> phi_ij_grad;
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  phi_ij_grad[d] = phi_i * phi_j_grad[d] + phi_j * phi_i_grad[d];
+                }
+                
+                Kokkos::Array<OutputScalar,3> phi_ij_grad_cross_grad_muZ;
+                cross(phi_ij_grad_cross_grad_muZ, phi_ij_grad, muZ_0_grad);
+                
+                for (ordinal_type d=0; d<3; d++)
+                {
+                  output_(fieldOrdinalOffset,pointOrdinal,d) = weight * phi_ij_grad_cross_grad_muZ[d];
+                }
+                
+                fieldOrdinalOffset++;
+              }
             }
-            
-          } // end interior function block
-          */
+          }
         } // end OPERATOR_CURL block
           break;
         case OPERATOR_GRAD:
