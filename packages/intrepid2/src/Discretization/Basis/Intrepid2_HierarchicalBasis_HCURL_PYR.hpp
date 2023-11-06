@@ -785,9 +785,7 @@ namespace Intrepid2
             const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
             const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
             const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
-            
-            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
-            
+                        
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
@@ -829,28 +827,66 @@ namespace Intrepid2
           } // INTERIOR FAMILY I
           
           // FAMILY II & III
-          for (int familyNumber=2; familyNumber<=3; familyNumber++)
           {
-            for (int k=2; k<=polyOrder_; k++)
+            // rename scratch
+            const auto & Li_muZ01    = scratch1D_1;
+            const auto & Li_muX01    = scratch1D_2;
+            const auto & Li_muY01    = scratch1D_3;
+            const auto & Pi_muX01    = scratch1D_4;
+            const auto & Pi_muY01    = scratch1D_5;
+            
+            const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
+            const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
+            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
+            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
+                        
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledLegendreValues(Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledLegendreValues(Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            
+            for (int familyNumber=2; familyNumber<=3; familyNumber++)
             {
-              // ESEAS reverses i,j loop ordering for family III, relative to family II.
-              // We follow ESEAS for convenience of cross-code comparison.
-              
-              ordinal_type jg_min = (familyNumber==2) ?   2 : 0;
-              ordinal_type jg_max = (familyNumber==2) ?   p : p-1;
-              ordinal_type ig_min = (familyNumber==2) ?   0 : 2;
-              ordinal_type ig_max = (familyNumber==2) ? p-1 : p;
-              
-              for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
+              for (int k=2; k<=polyOrder_; k++)
               {
-                for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
+                const auto & phi_k = Li_muZ01(k);
+                
+                // ESEAS reverses i,j loop ordering for family III, relative to family II.
+                // We follow ESEAS for convenience of cross-code comparison.
+                
+                ordinal_type jg_min = (familyNumber==2) ?   2 : 0;
+                ordinal_type jg_max = (familyNumber==2) ?   p : p-1;
+                ordinal_type ig_min = (familyNumber==2) ?   0 : 2;
+                ordinal_type ig_max = (familyNumber==2) ? p-1 : p;
+                
+                for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
                 {
-                  const ordinal_type &i = (familyNumber==1) ? ig : jg;
-                  const ordinal_type &j = (familyNumber==1) ? jg : ig;
-  //                const int max_jk  = std::max(j,k);
-  //                const int max_ijk = std::max(max_jk,i);
-  //                const int max_ip1jk = std::max(max_jk,i+1);
-                  fieldOrdinalOffset++;
+                  for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
+                  {
+                    const ordinal_type &i = (familyNumber==2) ? ig : jg;
+                    const ordinal_type &j = (familyNumber==2) ? jg : ig;
+                    
+                    const auto &     s0  = (familyNumber==2) ?      muX_0 : muY_0;
+                    const auto &     s1  = (familyNumber==2) ?      muX_1 : muY_1;
+                    const auto & s0_grad = (familyNumber==2) ? muX_0_grad : muY_0_grad;
+                    const auto & s1_grad = (familyNumber==2) ? muX_1_grad : muY_1_grad;
+                    const auto & Pi_s01  = (familyNumber==2) ?   Pi_muX01 : Pi_muY01;
+                    const auto & Lj_t01  = (familyNumber==2) ?   Li_muY01 : Li_muX01;
+                    
+                    Kokkos::Array<OutputScalar, 3> EQUAD;
+                    E_QUAD(EQUAD, i, j, Pi_s01, s0, s1, s0_grad, s1_grad, Lj_t01);
+                    
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_0 * phi_k * EQUAD[d];
+                    }
+                    
+                    fieldOrdinalOffset++;
+                  }
                 }
               }
             }
@@ -1487,7 +1523,100 @@ namespace Intrepid2
               }
             }
           } // INTERIOR FAMILY I
-          
+
+          // FAMILY II & III
+          {
+            // rename scratch
+            const auto & Li_muZ01    = scratch1D_1;
+            const auto & Li_muX01    = scratch1D_2;
+            const auto & Li_muY01    = scratch1D_3;
+            const auto & Pi_muX01    = scratch1D_4;
+            const auto & Pi_muY01    = scratch1D_5;
+            const auto & Pi_muZ01    = scratch1D_6;
+            const auto & Li_dt_muX01 = scratch1D_7;
+            const auto & Li_dt_muY01 = scratch1D_8;
+            const auto & Li_dt_muZ01 = scratch1D_9;
+            
+            const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
+            const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
+            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
+            const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
+            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
+                        
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledLegendreValues(Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledLegendreValues(Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledLegendreValues(Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muX01, Pi_muX01, polyOrder_, muX_1, muX_0 + muX_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muY01, Pi_muY01, polyOrder_, muY_1, muY_0 + muY_1);
+            Polynomials::shiftedScaledIntegratedLegendreValues_dt(Li_dt_muZ01, Pi_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
+            
+            for (int familyNumber=2; familyNumber<=3; familyNumber++)
+            {
+              for (int k=2; k<=polyOrder_; k++)
+              {
+                const auto & phi_k = Li_muZ01(k);
+                Kokkos::Array<OutputScalar,3> phi_k_grad;
+                computeGradHomLi(phi_k_grad, k, Pi_muZ01, Li_dt_muZ01, muZ_0_grad, muZ_1_grad);
+                
+                // ESEAS reverses i,j loop ordering for family III, relative to family II.
+                // We follow ESEAS for convenience of cross-code comparison.
+                
+                ordinal_type jg_min = (familyNumber==2) ?   2 : 0;
+                ordinal_type jg_max = (familyNumber==2) ?   p : p-1;
+                ordinal_type ig_min = (familyNumber==2) ?   0 : 2;
+                ordinal_type ig_max = (familyNumber==2) ? p-1 : p;
+                
+                for (ordinal_type jg=jg_min; jg<=jg_max; jg++)
+                {
+                  for (ordinal_type ig=ig_min; ig<=ig_max; ig++)
+                  {
+                    const ordinal_type &i = (familyNumber==2) ? ig : jg;
+                    const ordinal_type &j = (familyNumber==2) ? jg : ig;
+                    
+                    const auto &     s0    = (familyNumber==2) ?       muX_0 : muY_0;
+                    const auto &     s1    = (familyNumber==2) ?       muX_1 : muY_1;
+                    const auto & s0_grad   = (familyNumber==2) ?  muX_0_grad : muY_0_grad;
+                    const auto & s1_grad   = (familyNumber==2) ?  muX_1_grad : muY_1_grad;
+                    const auto & t0_grad   = (familyNumber==2) ?  muY_0_grad : muX_0_grad;
+                    const auto & t1_grad   = (familyNumber==2) ?  muY_1_grad : muX_1_grad;
+                    const auto & Pi_s01    = (familyNumber==2) ?    Pi_muX01 : Pi_muY01;
+                    const auto & Pj_t01    = (familyNumber==2) ?    Pi_muY01 : Pi_muX01;
+                    const auto & Lj_t01    = (familyNumber==2) ?    Li_muY01 : Li_muX01;
+                    const auto & Lj_dt_t01 = (familyNumber==2) ? Li_dt_muY01 : Li_dt_muX01;
+                    
+                    Kokkos::Array<OutputScalar, 3> EQUAD;
+                    E_QUAD(EQUAD, i, j, Pi_s01, s0, s1, s0_grad, s1_grad, Lj_t01);
+                    
+                    Kokkos::Array<OutputScalar, 3> EQUAD_CURL;
+                    E_QUAD_CURL(EQUAD_CURL, i, j, Pi_s01, s0, s1, s0_grad, s1_grad, Pj_t01, Lj_t01, Lj_dt_t01, t0_grad, t1_grad);
+                    
+                    Kokkos::Array<OutputScalar, 3> grad_muZ_phi;
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      grad_muZ_phi[d] = muZ_0 * phi_k_grad[d] + phi_k * muZ_0_grad[d];
+                    }
+                    
+                    Kokkos::Array<OutputScalar, 3> grad_muZ_phi_cross_EQUAD;
+                    cross(grad_muZ_phi_cross_EQUAD, grad_muZ_phi, EQUAD);
+                    
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      output_(fieldOrdinalOffset,pointOrdinal,d) = muZ_0 * phi_k * EQUAD_CURL[d] + grad_muZ_phi_cross_EQUAD[d];
+                    }
+                    
+                    fieldOrdinalOffset++;
+                  }
+                }
+              }
+            }
+          }
+
           // what follows is copied from H(div) implementation
           // TODO: delete this
           // quadrilateral face
