@@ -677,24 +677,6 @@ namespace Intrepid2
                   Kokkos::Array<OutputScalar, 3> EQUAD;
                   E_QUAD(EQUAD, i, j, Pi, s0, s1, s0_grad, s1_grad, Lj);
                   
-//                  {
-//                    // DEBUGGING
-//                    using namespace std;
-//                    cout << "m-1: " << fieldOrdinalOffset << endl;
-//                    cout << "i: " << i << endl;
-//                    cout << "j: " << j << endl;
-//                    cout << "(x,y,z): (" << x << "," << y << "," << z << ")\n";
-//                    cout << "(xi_1,xi_2,zeta): (" << coords[0] << "," << coords[1] << "," << coords[2] << ")\n";
-//                    cout << "s: (" << s0 << "," << s1 << ")\n";
-//                    cout << "t: (" << t0 << "," << t1 << ")\n";
-//                    cout << "mu0_x: " << mu[0][0] << endl;
-//                    cout << "mu0_y: " << mu[0][1] << endl;
-//                    cout << "muZ_0: " << muZ_0 << endl;
-//
-//                    cout << "EQUAD: (" << EQUAD[0] << "," << EQUAD[1] << "," << EQUAD[2] << ")\n";
-//                    cout << "mu0_squared * EQUAD: (" << mu0_squared * EQUAD[0] << ","  << mu0_squared * EQUAD[1] << "," << mu0_squared * EQUAD[2] << ")\n";
-//                  }
-                  
                   for (ordinal_type d=0; d<3; d++)
                   {
                     output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_squared * EQUAD[d];
@@ -713,8 +695,21 @@ namespace Intrepid2
             auto & P = scratch1D_1;
             auto & L = scratch1D_2;
             
+            /*
+             // following ESEAS, we interleave the face families.  This groups all the face dofs of a given degree together.
+             int faceFieldOrdinalOffset = fieldOrdinalOffset;
+             for (int faceOrdinal = 0; faceOrdinal < numFaces; faceOrdinal++) {
+               for (int familyOrdinal=1; familyOrdinal<=numFaceFamilies; familyOrdinal++)
+               {
+                 int fieldOrdinal = faceFieldOrdinalOffset + familyOrdinal - 1;
+             */
+            
             // Family I & II
             const int numTriFaces = 4;
+            const int numFaceFamilies = 2;
+            const int numFunctionsPerTriFace = p * (p-1);
+            // following ESEAS, we interleave the face families.  This groups all the face dofs of a given degree together.
+            int faceFieldOrdinalOffset = fieldOrdinalOffset;
             for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
             {
               // face 0,2 --> a=1, b=2
@@ -727,6 +722,8 @@ namespace Intrepid2
             
               for (int familyNumber=1; familyNumber<=2; familyNumber++)
               {
+                int fieldOrdinal = faceFieldOrdinalOffset + familyNumber - 1;
+                
                 const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
                 const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
                 const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
@@ -754,14 +751,16 @@ namespace Intrepid2
                     
                     for (ordinal_type d=0; d<3; d++)
                     {
-                      output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * ETRI[d];
+                      output_(fieldOrdinal,pointOrdinal,d) = mu_c_b * ETRI[d];
                     }
                     
-                    fieldOrdinalOffset++;
-                  }
-                }
-              }
-            }
+                    fieldOrdinal += numFaceFamilies; // increment due to the interleaving
+                  } // i
+                } // totalPolyOrder
+                fieldOrdinalOffset = fieldOrdinal - numFaceFamilies + 1; // due to the interleaving increment, we've gone numFaceFamilies past the last face ordinal.  Set offset to be one past.
+              } // familyNumber
+              faceFieldOrdinalOffset += numFunctionsPerTriFace;
+            } // faceOrdinal
           } // triangular faces
 
           // **** interior functions **** //
@@ -1079,28 +1078,6 @@ namespace Intrepid2
                     output_(fieldOrdinalOffset,pointOrdinal,d) = mu0_squared * EQUAD_CURL[d] + 2. * muZ_0 * grad_mu_cross_EQUAD[d];
                   }
                   
-//                  {
-//                    // DEBUGGING
-//                    using namespace std;
-//                    cout << "m-1: " << fieldOrdinalOffset << endl;
-//                    cout << "i: " << i << endl;
-//                    cout << "j: " << j << endl;
-//                    cout << "(x,y,z): (" << x << "," << y << "," << z << ")\n";
-//                    cout << "(xi_1,xi_2,zeta): (" << coords[0] << "," << coords[1] << "," << coords[2] << ")\n";
-//                    cout << "s: (" << s0 << "," << s1 << ")\n";
-//                    cout << "t: (" << t0 << "," << t1 << ")\n";
-//                    cout << "mu0_x: " << mu[0][0] << endl;
-//                    cout << "mu0_y: " << mu[0][1] << endl;
-//                    cout << "mu1_x: " << mu[1][0] << endl;
-//                    cout << "mu1_y: " << mu[1][1] << endl;
-//                    cout << "muZ_0: " << muZ_0 << endl;
-//
-//                    cout << "EQUAD: (" << EQUAD[0] << "," << EQUAD[1] << "," << EQUAD[2] << ")\n";
-//                    cout << "EQUAD_CURL: (" << EQUAD_CURL[0] << "," << EQUAD_CURL[1] << "," << EQUAD_CURL[2] << ")\n";
-//                    cout << "grad_mu_cross_EQUAD: (" << grad_mu_cross_EQUAD[0] << "," << grad_mu_cross_EQUAD[1] << "," << grad_mu_cross_EQUAD[2] << ")\n";
-//                    cout << "basis value: (" << output_(fieldOrdinalOffset,pointOrdinal,0) << ","  << output_(fieldOrdinalOffset,pointOrdinal,1) << "," << output_(fieldOrdinalOffset,pointOrdinal,2) << ")\n";
-//                  }
-                  
                   fieldOrdinalOffset++;
                 }
               }
@@ -1118,6 +1095,10 @@ namespace Intrepid2
             
             // Family I & II
             const int numTriFaces = 4;
+            const int numFaceFamilies = 2;
+            const int numFunctionsPerTriFace = p * (p-1);
+            // following ESEAS, we interleave the face families.  This groups all the face dofs of a given degree together.
+            int faceFieldOrdinalOffset = fieldOrdinalOffset;
             for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
             {
               // face 0,2 --> a=1, b=2
@@ -1130,6 +1111,8 @@ namespace Intrepid2
             
               for (int familyNumber=1; familyNumber<=2; familyNumber++)
               {
+                int fieldOrdinal = faceFieldOrdinalOffset + familyNumber - 1;
+                
                 const ordinal_type s0_index = (familyNumber == 1) ? 0 : 1;
                 const ordinal_type s1_index = (familyNumber == 1) ? 1 : 2;
                 const ordinal_type s2_index = (familyNumber == 1) ? 2 : 0;
@@ -1147,32 +1130,52 @@ namespace Intrepid2
                   // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
                   for (int i=0; i<totalPolyOrder; i++)
                   {
+                    const ordinal_type j = totalPolyOrder - i;
+                    
                     Polynomials::shiftedScaledJacobiValues             (Pj,    2*i+1, p-1, s2, s0 + s1 + s2);
                     Polynomials::shiftedScaledIntegratedJacobiValues   (Lj,    2*i+1, p-1, s2, s0 + s1 + s2);
                     Polynomials::shiftedScaledIntegratedJacobiValues_dt(Lj_dt, 2*i+1, p-1, s2, s0 + s1 + s2);
                     
-                    Kokkos::Array<OutputScalar, 3> EE;
-                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
-                    Kokkos::Array<OutputScalar, 3> ETRI;
-                    const ordinal_type j = totalPolyOrder - i;
-                    E_TRI(ETRI, i, j, EE, Lj);
-                    
                     Kokkos::Array<OutputScalar, 3> ETRI_CURL;
                     E_TRI_CURL(ETRI_CURL, i, j, P, s0, s1, s0_grad, s1_grad, s2_grad, Pj, Lj, Lj_dt);
                     
+                    // TODO: check whether this actually makes a difference; if it does not, switch to the commented-out version, which is a little easier to understand
+                    // in an attempt to avoid certain numerical issues at the apex (z=1), instead of the computation commented
+                    // out below, we expand grad_mu_cross_ETRI = [L^{2i+1}_j](s0+s1,s2) [P_i](s0,s1) { grad mu_c^b x (s0 grad s1 - s1 grad s0) }
+                    
+                    Kokkos::Array<OutputScalar, 3> s_grad_term;
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      s_grad_term[d] = s0 * s1_grad[d] - s1 * s0_grad[d];
+                    }
+                    Kokkos::Array<OutputScalar, 3> grad_mu_cross_s_grad_term;
+                    cross(grad_mu_cross_s_grad_term, mu_c_b_grad, s_grad_term);
+                    
                     Kokkos::Array<OutputScalar, 3> grad_mu_cross_ETRI;
-                    cross(grad_mu_cross_ETRI, mu_c_b_grad, ETRI);
+                    for (ordinal_type d=0; d<3; d++)
+                    {
+                      grad_mu_cross_ETRI[d] = Lj(j) * P(i) * grad_mu_cross_s_grad_term[d];
+                    }
+                    
+//                    Kokkos::Array<OutputScalar, 3> EE;
+//                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
+//                    Kokkos::Array<OutputScalar, 3> ETRI;
+//                    E_TRI(ETRI, i, j, EE, Lj);
+//                    Kokkos::Array<OutputScalar, 3> grad_mu_cross_ETRI;
+//                    cross(grad_mu_cross_ETRI, mu_c_b_grad, ETRI);
                     
                     for (ordinal_type d=0; d<3; d++)
                     {
-                      output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * ETRI_CURL[d] + grad_mu_cross_ETRI[d];
+                      output_(fieldOrdinal,pointOrdinal,d) = mu_c_b * ETRI_CURL[d] + grad_mu_cross_ETRI[d];
                     }
                     
-                    fieldOrdinalOffset++;
-                  }
-                }
-              }
-            }
+                    fieldOrdinal += numFaceFamilies; // increment due to the interleaving
+                  } // i
+                } // totalPolyOrder
+                fieldOrdinalOffset = fieldOrdinal - numFaceFamilies + 1; // due to the interleaving increment, we've gone numFaceFamilies past the last face ordinal.  Set offset to be one past.
+              } // familyNumber
+              faceFieldOrdinalOffset += numFunctionsPerTriFace;
+            } // faceOrdinal
           } // triangular faces
           
           // **** interior functions **** //
