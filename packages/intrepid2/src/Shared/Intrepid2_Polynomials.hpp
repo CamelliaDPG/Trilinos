@@ -92,8 +92,8 @@ namespace Intrepid2
       if (n >= 1) outputValues(1) = x;
       for (int i=2; i<=n; i++)
       {
-        const ScalarType i_scalar = ScalarType(i);
-        outputValues(i) = (2. - 1. / i_scalar) * x * outputValues(i-1) - (1. - 1. / i_scalar) * outputValues(i-2);
+        outputValues(i) = (2 * i - 1) * x * outputValues(i-1) - (i - 1) * outputValues(i-2);
+        outputValues(i) /= i;
       }
     }
     
@@ -191,8 +191,8 @@ namespace Intrepid2
       if (n >= 1) outputValues(1) = two_x_minus_t;
       for (int i=2; i<=n; i++)
       {
-        const ScalarType one_over_i = 1.0 / ScalarType(i);
-        outputValues(i) = one_over_i * ( (2. *i - 1. ) * two_x_minus_t * outputValues(i-1) - (i - 1.) * t_squared * outputValues(i-2));
+        outputValues(i) = (2*i-1) * two_x_minus_t * outputValues(i-1) - (i-1) * t_squared * outputValues(i-2);
+        outputValues(i) /= i;
       }
     }
     
@@ -221,18 +221,22 @@ namespace Intrepid2
       
       if (n >= 0) outputValues(0) = 1.0;
       if (n >= 1) outputValues(1) = x;
+      
+      // L_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i = outputValues(i); // define as P_i just for clarity of the code below
-        const ScalarType i_scalar = ScalarType(i);
-        ScalarType L_i = (P_i - t * t * P_i_minus_two) /( 2. * (2. * i_scalar - 1.));
+        const int i_factor = 4 * i - 2;
+        ScalarType L_i = (P_i - t * t * P_i_minus_two) / i_factor;
         
         // get the next values of P_{i-1} and P_{i-2} before overwriting the P_i value
         P_i_minus_two = P_i_minus_one;
         P_i_minus_one = P_i;
         
         // overwrite P_i value
-        outputValues(i) = L_i;
+        outputValues(i) = roundoffCorrectionWeight * L_i;
       }
     }
     
@@ -257,12 +261,17 @@ namespace Intrepid2
       // reduced flops version: rely on previously computed P_i
       if (n >= 0) outputValues(0) = 1.0;
       if (n >= 1) outputValues(1) = x;
+      
+      // L_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i           = shiftedScaledLegendreValues(i); // define as P_i just for clarity of the code below
         const ScalarType & P_i_minus_two = shiftedScaledLegendreValues(i-2);
-        const ScalarType i_scalar = ScalarType(i);
-        outputValues(i) = (P_i - t * t * P_i_minus_two) /( 2. * (2. * i_scalar - 1.));
+        const int i_factor = 4 * i - 2;
+        outputValues(i) = (P_i - t * t * P_i_minus_two) / i_factor;
+        outputValues(i) *= roundoffCorrectionWeight;
       }
     }
     
@@ -338,6 +347,9 @@ namespace Intrepid2
       if (n >= 0) outputValues(0) = 0.0;
       if (n >= 1) outputValues(1) = 0.0;
       
+      // d/dt L_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType L_i_dt = -0.5 * (P_i_minus_1 + t * P_i_minus_2);
@@ -345,7 +357,7 @@ namespace Intrepid2
         P_i_minus_2 = P_i_minus_1;
         P_i_minus_1 = outputValues(i);
         
-        outputValues(i) = L_i_dt;
+        outputValues(i) = L_i_dt * roundoffCorrectionWeight;
       }
     }
     
@@ -366,11 +378,15 @@ namespace Intrepid2
       // reduced flops version: rely on previously computed P_i
       if (n >= 0) outputValues(0) = 0.0;
       if (n >= 1) outputValues(1) = 0.0;
+      
+      // d/dt L_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i_minus_1 = shiftedScaledLegendreValues(i-1); // define as P_i just for clarity of the code below
         const ScalarType & P_i_minus_2 = shiftedScaledLegendreValues(i-2);
-        outputValues(i) = -0.5 * (P_i_minus_1 + t * P_i_minus_2);
+        outputValues(i) = -0.5 * (P_i_minus_1 + t * P_i_minus_2) * roundoffCorrectionWeight;
       }
     }
     
@@ -392,7 +408,8 @@ namespace Intrepid2
     KOKKOS_INLINE_FUNCTION void shiftedScaledJacobiValues(OutputValueViewType outputValues, double alpha, Intrepid2::ordinal_type n, ScalarType x, ScalarTypeForScaling t)
     {
       ScalarType two_x_minus_t = 2. * x - t;
-      ScalarTypeForScaling alpha_squared_t = alpha * alpha * t;
+      ScalarTypeForScaling alpha2 = alpha * alpha;
+      ScalarTypeForScaling t2 = t * t;
       
       if (n >= 0) outputValues(0) = 1.0;
       if (n >= 1) outputValues(1) = two_x_minus_t + alpha * x;
@@ -407,7 +424,7 @@ namespace Intrepid2
         double c_i = (2. * i + alpha) * (2. * i + alpha - 2.);
         double d_i = 2. * (i + alpha - 1.) * (i - 1.) * (2. * i + alpha);
         
-        outputValues(i) = (b_i / a_i) * (c_i * two_x_minus_t + alpha_squared_t) * P_i_minus_one - (d_i / a_i) * t * t * P_i_minus_two;
+        outputValues(i) = (b_i * (c_i * two_x_minus_t + alpha2 * t) * P_i_minus_one - d_i * t2 * P_i_minus_two) / a_i;
       }
     }
     
@@ -437,6 +454,9 @@ namespace Intrepid2
       if (n >= 1) outputValues(1) = x;
       
       ScalarType t_squared = t * t;
+      // L^alpha_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i         = jacobiValues(i);   // define as P_i just for clarity of the code below
@@ -448,6 +468,7 @@ namespace Intrepid2
         double c_i = (i - 1.)    / ((2. * i + alpha - 2.) * (2. * i + alpha - 1.));
         
         outputValues(i) = a_i * P_i + b_i * t * P_i_minus_1 - c_i * t_squared * P_i_minus_2;
+        outputValues(i) *= roundoffCorrectionWeight;
       }
     }
     
@@ -482,6 +503,9 @@ namespace Intrepid2
       if (n >= 1) outputValues(1) = x;
       
       ScalarType t_squared = t * t;
+      // L^alpha_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i = outputValues(i);
@@ -495,7 +519,7 @@ namespace Intrepid2
         P_i_minus_2 = P_i_minus_1;
         P_i_minus_1 = P_i;
         
-        outputValues(i) = L_i;
+        outputValues(i) = roundoffCorrectionWeight * L_i;
       }
     }
     
@@ -545,11 +569,15 @@ namespace Intrepid2
       // reduced flops version: rely on previously computed P_i
       if (n >= 0) outputValues(0) = 0.0;
       if (n >= 1) outputValues(1) = 0.0;
+      // d/dt L^alpha_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType & P_i_minus_1 = jacobiValues(i-1); // define as P_i just for clarity of the code below
         const ScalarType & P_i_minus_2 = jacobiValues(i-2);
         outputValues(i) = - (i-1.) / (2. * i - 2. + alpha) * (P_i_minus_1 + t * P_i_minus_2);
+        outputValues(i) *= roundoffCorrectionWeight;
       }
     }
     
@@ -576,6 +604,9 @@ namespace Intrepid2
       if (n >= 0) outputValues(0) = 0.0;
       if (n >= 1) outputValues(1) = 0.0;
       
+      // d/dt L^alpha_j(0;t) = 0
+      // ensure that for exact 0 input, we get exact 0 output:
+      const double roundoffCorrectionWeight = (x == 0.0) ? 0.0 : 1.0;
       for (int i=2; i<=n; i++)
       {
         const ScalarType L_i_dt =  - (i-1.) / (2. * i - 2. + alpha) * (P_i_minus_1 + t * P_i_minus_2);
@@ -583,7 +614,7 @@ namespace Intrepid2
         P_i_minus_2 = P_i_minus_1;
         P_i_minus_1 = outputValues(i);
         
-        outputValues(i) = L_i_dt;
+        outputValues(i) = roundoffCorrectionWeight * L_i_dt;
       }
     }
   } // namespace Polynomials
