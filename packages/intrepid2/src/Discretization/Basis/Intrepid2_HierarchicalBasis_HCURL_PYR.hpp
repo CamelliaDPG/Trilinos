@@ -1138,31 +1138,13 @@ namespace Intrepid2
                     
                     Kokkos::Array<OutputScalar, 3> ETRI_CURL;
                     E_TRI_CURL(ETRI_CURL, i, j, P, s0, s1, s0_grad, s1_grad, s2_grad, Pj, Lj, Lj_dt);
-                    
-                    // TODO: check whether this actually makes a difference; if it does not, switch to the commented-out version, which is a little easier to understand
-                    // in an attempt to avoid certain numerical issues at the apex (z=1), instead of the computation commented
-                    // out below, we expand grad_mu_cross_ETRI = [L^{2i+1}_j](s0+s1,s2) [P_i](s0,s1) { grad mu_c^b x (s0 grad s1 - s1 grad s0) }
-                    
-                    Kokkos::Array<OutputScalar, 3> s_grad_term;
-                    for (ordinal_type d=0; d<3; d++)
-                    {
-                      s_grad_term[d] = s0 * s1_grad[d] - s1 * s0_grad[d];
-                    }
-                    Kokkos::Array<OutputScalar, 3> grad_mu_cross_s_grad_term;
-                    cross(grad_mu_cross_s_grad_term, mu_c_b_grad, s_grad_term);
-                    
+                                        
+                    Kokkos::Array<OutputScalar, 3> EE;
+                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
+                    Kokkos::Array<OutputScalar, 3> ETRI;
+                    E_TRI(ETRI, i, j, EE, Lj);
                     Kokkos::Array<OutputScalar, 3> grad_mu_cross_ETRI;
-                    for (ordinal_type d=0; d<3; d++)
-                    {
-                      grad_mu_cross_ETRI[d] = Lj(j) * P(i) * grad_mu_cross_s_grad_term[d];
-                    }
-                    
-//                    Kokkos::Array<OutputScalar, 3> EE;
-//                    E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
-//                    Kokkos::Array<OutputScalar, 3> ETRI;
-//                    E_TRI(ETRI, i, j, EE, Lj);
-//                    Kokkos::Array<OutputScalar, 3> grad_mu_cross_ETRI;
-//                    cross(grad_mu_cross_ETRI, mu_c_b_grad, ETRI);
+                    cross(grad_mu_cross_ETRI, mu_c_b_grad, ETRI);
                     
                     for (ordinal_type d=0; d<3; d++)
                     {

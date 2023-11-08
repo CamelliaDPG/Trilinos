@@ -130,7 +130,7 @@ namespace
     using HierarchicalBasis = HierarchicalBasisFamily<DefaultTestDeviceType>::HCURL_PYR;
     using DeviceType = DefaultTestDeviceType;
     
-    const ordinal_type p = 2;
+    const ordinal_type p = 9;
     
     HierarchicalBasis hierarchicalBasis(p);
     
@@ -138,7 +138,7 @@ namespace
     const int numPoints = 1;
     vector< vector<double> > ESEAS_points(numPoints, vector<double>(3));
     
-    ESEAS_points[0] = {0,0,0};
+    ESEAS_points[0] = {0,0.,1};
     
     ViewType<double,DeviceType> intrepid2_points = getView<double, DeviceType>("points", numPoints, 3);
     
@@ -178,7 +178,8 @@ namespace
     const int numPoints = 1;
     vector< vector<double> > ESEAS_points(numPoints, vector<double>(3));
     
-    ESEAS_points[0] = {0,0,0};
+    // (-0.857143,-0.857143,0)
+    ESEAS_points[0] = {7.1428571428571397E-002,7.1428571428571397E-002,0.0000000000000000};
     
     ViewType<double,DeviceType> intrepid2_points = getView<double, DeviceType>("points", numPoints, 3);
     
