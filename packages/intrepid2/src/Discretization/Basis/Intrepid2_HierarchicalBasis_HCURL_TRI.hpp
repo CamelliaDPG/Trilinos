@@ -54,7 +54,7 @@
 #include <Intrepid2_config.h>
 
 #include "Intrepid2_Basis.hpp"
-#include "Intrepid2_IntegratedLegendreBasis_HGRAD_LINE.hpp"
+#include "Intrepid2_LegendreBasis_HVOL_LINE.hpp"
 #include "Intrepid2_Polynomials.hpp"
 #include "Intrepid2_Utils.hpp"
 
