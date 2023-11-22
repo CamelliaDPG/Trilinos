@@ -124,7 +124,7 @@ int PatchProjectionPyr(const bool verbose) {
   *outStream << "\n";
 
   int errorFlag = 0;
-  const ValueType relTol = 1e-4;
+  const ValueType tol = 1e-12;
 
   struct Fun {
     const ordinal_type degree;
@@ -621,7 +621,7 @@ int PatchProjectionPyr(const bool verbose) {
           *outStream << "For N = " << NX << ", computed error (" << hgradNorm[iter] << ") is nan!";
           *outStream << std::endl;
         }
-        else if(std::abs(hgradNorm[iter]-expected_error)/expected_error > relTol){
+        else if(std::abs(hgradNorm[iter]-expected_error) > tol){
           errorFlag++;
           *outStream << std::setw(70) << "^^^^----FAILURE!" << "\n";
           *outStream << "For N = " << NX << ", computed error (" << hgradNorm[iter] << ") is different than expected one (" << expected_error << ")";
@@ -875,7 +875,7 @@ int PatchProjectionPyr(const bool verbose) {
           *outStream << "For N = " << NX << ", computed error (" << hcurlNorm[iter] << ") is nan!";
           *outStream << std::endl;
         }
-        else if(std::abs(hcurlNorm[iter]-expected_error)/expected_error > relTol){
+        else if(std::abs(hcurlNorm[iter]-expected_error) > tol){
           errorFlag++;
           *outStream << std::setw(70) << "^^^^----FAILURE!" << "\n";
           *outStream << "For N = " << NX << ", computed error (" << hcurlNorm[iter] << ") is different than expected one (" << expected_error << ")";
@@ -1126,7 +1126,7 @@ int PatchProjectionPyr(const bool verbose) {
           *outStream << "For N = " << NX << ", computed error (" << hdivNorm[iter] << ") is nan!";
           *outStream << std::endl;
         }
-        else if(std::abs(hdivNorm[iter]-expected_error)/expected_error > relTol){
+        else if(std::abs(hdivNorm[iter]-expected_error) > tol){
           errorFlag++;
           *outStream << std::setw(70) << "^^^^----FAILURE!" << "\n";
           *outStream << "For N = " << NX << ", computed error (" << hdivNorm[iter] << ") is different than expected one (" << expected_error << ")";
@@ -1162,7 +1162,7 @@ int PatchProjectionPyr(const bool verbose) {
 
       for (auto useL2Projection:useL2Proj) { //
       std::vector<basisType*> basis_set;
-      basis_set.push_back(new typename  CG_HBasis::HVOL_PYR(basisDegree-1));
+      basis_set.push_back(new typename  CG_HBasis::HVOL_PYR(basisDegree));
 
       for (auto basisPtr:basis_set) {
         auto& basis = *basisPtr;
@@ -1312,7 +1312,7 @@ int PatchProjectionPyr(const bool verbose) {
           *outStream << "For N = " << NX << ", computed error (" << hvolNorm[iter] << ") is nan!";
           *outStream << std::endl;
         }
-        else if(std::abs(hvolNorm[iter]-expected_error)/expected_error > relTol){
+        else if(std::abs(hvolNorm[iter]-expected_error) > tol){
           errorFlag++;
           *outStream << std::setw(70) << "^^^^----FAILURE!" << "\n";
           *outStream << "For N = " << NX << ", computed error (" << hvolNorm[iter] << ") is different than expected one (" << expected_error << ")";
