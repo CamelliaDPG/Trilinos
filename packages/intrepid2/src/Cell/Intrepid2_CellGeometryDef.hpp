@@ -50,6 +50,8 @@
 #ifndef Intrepid2_CellGeometryDef_h
 #define Intrepid2_CellGeometryDef_h
 
+#include "Intrepid2_HGRAD_PYR_C1_FEM.hpp"
+
 namespace Intrepid2
 {
 
@@ -541,7 +543,15 @@ namespace Intrepid2
     
     using BasisFamily = DerivedNodalBasisFamily<DeviceType,PointScalar,PointScalar>;
     const int linearPolyOrder = 1;
-    BasisPtr basisForNodes = getBasis<BasisFamily>(cellTopo, FUNCTION_SPACE_HGRAD, linearPolyOrder);
+    BasisPtr basisForNodes;
+    if (cellTopo.getKey() != shards::Pyramid<>::key)
+    {
+      basisForNodes = getBasis<BasisFamily>(cellTopo, FUNCTION_SPACE_HGRAD, linearPolyOrder);
+    }
+    else
+    {
+      basisForNodes = Teuchos::rcp( new Basis_HGRAD_PYR_C1_FEM<DeviceType,PointScalar,PointScalar> );
+    }
     
     if (nodeOrdering_ == HYPERCUBE_NODE_ORDER_CLASSIC_SHARDS)
     {

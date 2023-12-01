@@ -238,7 +238,7 @@ int ConvergencePyr(const bool verbose) {
   // ************************************ GET INPUTS **************************************
 
   int NX = 2;
-  constexpr int numRefinements = 2; // change to 4 to reproduce the full set of values below.
+  constexpr int numRefinements = 4; // change to 4 to reproduce the full set of values below.
 
   // Expected values of the projection errors in H1, Hcurl, Hdiv and L2 norms for HGRAD, HDIV, HCURL and HVOL elements respectively.
   // These values have been computed running the code with numRefinements=4 and the convergence rates are close to the optimal ones.
@@ -246,18 +246,18 @@ int ConvergencePyr(const bool verbose) {
   // We currently only test two mesh refinements to make the test run faster, so this is used as a regression test rather than
   // a convergence test, but the test can be used for verifying optimal accuracy as well.
   ValueType hgradNorm[numRefinements];
-//  ValueType hcurlNorm[numRefinements];
-//  ValueType hdivNorm[numRefinements];
+  ValueType hcurlNorm[numRefinements];
+  ValueType hdivNorm[numRefinements];
   ValueType hvolNorm[numRefinements];
 
   ValueType hgrad_errors[4] = {3.75305, 1.06193, 0.0929745, 0.0113946};
-//  ValueType hcurl_errors[4] = {5.85886, 1.76968, 0.298939, 0.040406}; // TODO: update these values (these are copied from the HEX tests)
-//  ValueType hdiv_errors[4] = {4.45611, 1.10965, 0.175198, 0.023302}; // TODO: update these values (these are copied from the HEX tests)
+  ValueType hcurl_errors[4] = {5.85886, 1.76968, 0.298939, 0.040406}; // TODO: update these values (these are copied from the HEX tests)
+  ValueType hdiv_errors[4] = {4.45611, 1.10965, 0.175198, 0.023302}; // TODO: update these values (these are copied from the HEX tests)
   ValueType hvol_errors[4] = {0.490937, 0.0386927, 0.00663563, 0.000797464};
 
   ValueType hgrad_errors_L2[4] = {3.28826, 1.1899, 0.102338, 0.0128353};
-//  ValueType hcurl_errors_L2[4] = {6.2418, 2.00039, 0.411311, 0.0847072}; // TODO: update these values (these are copied from the HEX tests)
-//  ValueType hdiv_errors_L2[4] = {4.60503, 1.2758, 0.260201, 0.0561971}; // TODO: update these values (these are copied from the HEX tests)
+  ValueType hcurl_errors_L2[4] = {6.2418, 2.00039, 0.411311, 0.0847072}; // TODO: update these values (these are copied from the HEX tests)
+  ValueType hdiv_errors_L2[4] = {4.60503, 1.2758, 0.260201, 0.0561971}; // TODO: update these values (these are copied from the HEX tests)
   ValueType hvol_errors_L2[4] = {0.490937, 0.0386927, 0.00663563, 0.000797464};
 
   for(int iter= 0; iter<numRefinements; iter++, NX *= 2) {
@@ -597,8 +597,6 @@ int ConvergencePyr(const bool verbose) {
       errorFlag = -1000;
     }
 
-    // TODO: uncomment the below when H(curl) basis on pyramid is implemented
-    /*
     *outStream
     << "===============================================================================\n"
     << "|                                                                             |\n"
@@ -610,7 +608,7 @@ int ConvergencePyr(const bool verbose) {
     try {
       // compute orientations for cells (one time computation)
       Kokkos::DynRankView<Orientation,DeviceType> elemOrts("elemOrts", numElems);
-      ots::getOrientation(elemOrts, elemNodes, cellTopo);
+      cellGeometry.orientations(elemOrts);
 
       for (auto useL2Projection:useL2Proj) { 
       
@@ -634,7 +632,7 @@ int ConvergencePyr(const bool verbose) {
             for(ordinal_type d=0; d<dim; ++d)
               for(ordinal_type j=0; j<numRefCoords; ++j)
                 for(ordinal_type k=0; k<numNodesPerElem; ++k)
-                  physRefCoords(i,j,d) += nodeCoord(elemNodes(i,k),d)*linearBasisValuesAtRefCoords(k,j);
+                  physRefCoords(i,j,d) += cellGeometry(i,k,d)*linearBasisValuesAtRefCoords(k,j);
           });
           ExecSpaceType().fence();
         }
@@ -689,7 +687,7 @@ int ConvergencePyr(const bool verbose) {
                 Impl::Basis_HGRAD_PYR_C1_FEM::template Serial<OPERATOR_VALUE>::getValues(basisValuesAtEvalPoint, evalPoint);
                 for(ordinal_type k=0; k<numNodesPerElem; ++k)
                   for(ordinal_type d=0; d<dim; ++d)
-                    physEvalPoints(i,j,d) += nodeCoord(elemNodes(i,k),d)*basisValuesAtEvalPoint(k);
+                    physEvalPoints(i,j,d) += cellGeometry(i,k,d)*basisValuesAtEvalPoint(k);
               }
 
               auto basisValuesAtEvalCurlPoint = Kokkos::subview(linearBasisValuesAtEvalCurlPoint,i,Kokkos::ALL());
@@ -698,7 +696,7 @@ int ConvergencePyr(const bool verbose) {
                 Impl::Basis_HGRAD_PYR_C1_FEM::template Serial<OPERATOR_VALUE>::getValues(basisValuesAtEvalCurlPoint, evalGradPoint);
                 for(ordinal_type k=0; k<numNodesPerElem; ++k)
                   for(ordinal_type d=0; d<dim; ++d)
-                    physEvalCurlPoints(i,j,d) += nodeCoord(elemNodes(i,k),d)*basisValuesAtEvalCurlPoint(k);
+                    physEvalCurlPoints(i,j,d) += cellGeometry(i,k,d)*basisValuesAtEvalCurlPoint(k);
               }
             });
             ExecSpaceType().fence();
@@ -852,9 +850,7 @@ int ConvergencePyr(const bool verbose) {
       *outStream << err.what() << "\n\n";
       errorFlag = -1000;
     }
-*/
-    // TODO: uncomment the below when H(div) basis on pyramid is implemented
-    /*
+     
     *outStream
     << "===============================================================================\n"
     << "|                                                                             |\n"
@@ -1104,7 +1100,7 @@ int ConvergencePyr(const bool verbose) {
       std::cout << " Exeption\n";
       *outStream << err.what() << "\n\n";
       errorFlag = -1000;
-    }*/
+    }
 
 
 

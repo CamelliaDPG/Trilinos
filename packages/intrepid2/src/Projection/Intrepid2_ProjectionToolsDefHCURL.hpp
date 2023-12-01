@@ -52,6 +52,7 @@
 #include "Intrepid2_DefaultCubatureFactory.hpp"
 #include "Intrepid2_ArrayTools.hpp"
 #include "Intrepid2_FunctionSpaceTools.hpp"
+#include "Intrepid2_HierarchicalBasisFamily.hpp"
 #include "Intrepid2_NodalBasisFamily.hpp"
 
 
@@ -619,6 +620,9 @@ ProjectionTools<DeviceType>::getHCurlBasisCoeffs(Kokkos::DynRankView<basisCoeffs
     else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Wedge<6> >()->key) {
       hgradBasis = new typename DerivedNodalBasisFamily<DeviceType,scalarType,scalarType>::HGRAD_WEDGE(cellBasis->getDegree(),POINTTYPE_WARPBLEND);
     }
+    else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Pyramid<5> >()->key) {
+      hgradBasis = new typename HierarchicalBasisFamily<DeviceType,scalarType,scalarType>::HGRAD_PYR(cellBasis->getDegree());
+    }
     else {
       std::stringstream ss;
       ss << ">>> ERROR (Intrepid2::ProjectionTools::getHCurlBasisCoeffs): "
@@ -731,6 +735,8 @@ ProjectionTools<DeviceType>::getHCurlBasisCoeffs(Kokkos::DynRankView<basisCoeffs
       hgradBasis = new Basis_HGRAD_TET_Cn_FEM<DeviceType,scalarType,scalarType>(cellBasis->getDegree(),POINTTYPE_WARPBLEND);
     else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Wedge<6> >()->key)
       hgradBasis = new typename DerivedNodalBasisFamily<DeviceType,scalarType,scalarType>::HGRAD_WEDGE(cellBasis->getDegree(),POINTTYPE_WARPBLEND);
+    else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Pyramid<5> >()->key)
+      hgradBasis = new typename HierarchicalBasisFamily<DeviceType,scalarType,scalarType>::HGRAD_PYR(cellBasis->getDegree());
     else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Triangle<3> >()->key)
       hgradBasis = new Basis_HGRAD_TRI_Cn_FEM<DeviceType,scalarType,scalarType>(cellBasis->getDegree(),POINTTYPE_WARPBLEND);
     else if(cellTopo.getKey() == shards::getCellTopologyData<shards::Quadrilateral<4> >()->key)

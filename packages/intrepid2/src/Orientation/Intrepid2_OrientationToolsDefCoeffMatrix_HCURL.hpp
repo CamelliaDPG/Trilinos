@@ -113,10 +113,11 @@ check_getCoeffMatrix_HCURL(const subcellBasisType& subcellBasis,
       cellBaseKey != shards::Triangle<>::key &&
       cellBaseKey != shards::Hexahedron<>::key &&
       cellBaseKey != shards::Wedge<>::key &&
-      cellBaseKey != shards::Tetrahedron<>::key,
+      cellBaseKey != shards::Tetrahedron<>::key &&
+      cellBaseKey != shards::Pyramid<>::key,
       std::logic_error,
       ">>> ERROR (Intrepid::OrientationTools::getCoeffMatrix_HCURL): " \
-      "cellBasis must have quad, triangle, hexhedron or tetrahedron topology.");
+      "cellBasis must have quad, triangle, hexahedron, tetrahedron, or pyramid topology.");
 
   //
   // Function space
@@ -126,30 +127,23 @@ check_getCoeffMatrix_HCURL(const subcellBasisType& subcellBasis,
 
 
     if (cellBasisIsHCURL) {
-      const bool subcellBasisIsHGRAD = subcellBasis.getFunctionSpace() == FUNCTION_SPACE_HGRAD;
+//      const bool subcellBasisIsHGRAD = subcellBasis.getFunctionSpace() == FUNCTION_SPACE_HGRAD;
       const bool subcellBasisIsHVOL  = subcellBasis.getFunctionSpace() == FUNCTION_SPACE_HVOL;
       const bool subcellBasisIsHCURL = subcellBasis.getFunctionSpace() == FUNCTION_SPACE_HCURL;
-      const bool cellIsTri  = cellBaseKey == shards::Triangle<>::key;
-      const bool cellIsTet  = cellBaseKey == shards::Tetrahedron<>::key;
-      const bool cellIsHex  = cellBaseKey == shards::Hexahedron<>::key;
-      const bool cellIsQuad = cellBaseKey == shards::Quadrilateral<>::key;
+//      const bool cellIsTri  = cellBaseKey == shards::Triangle<>::key;
+//      const bool cellIsTet  = cellBaseKey == shards::Tetrahedron<>::key;
+//      const bool cellIsHex  = cellBaseKey == shards::Hexahedron<>::key;
+//      const bool cellIsQuad = cellBaseKey == shards::Quadrilateral<>::key;
+//      const bool cellIsPyr  = cellBaseKey == shards::Pyramid<>::key;
 
 
-      // edge hcurl is hgrad with gauss legendre points
+      // hcurl bases restricted to edges lie in hvol
       switch (subcellDim) {
       case 1: {
-        //TODO: Hex, QUAD, TET and TRI element should have the same 1d basis
-        if (cellIsHex || cellIsQuad) {
-          INTREPID2_TEST_FOR_EXCEPTION( !(subcellBasisIsHGRAD||subcellBasisIsHVOL),
-              std::logic_error,
-              ">>> ERROR (Intrepid::OrientationTools::getCoeffMatrix_HCURL): "
-              "subcellBasis function space (1d) is not consistent to cellBasis.");
-        } else if (cellIsTet || cellIsTri) {
-          INTREPID2_TEST_FOR_EXCEPTION( !subcellBasisIsHVOL,
-              std::logic_error,
-              ">>> ERROR (Intrepid::OrientationTools::getCoeffMatrix_HCURL): "
-              "subcellBasis function space (1d) is not consistent to cellBasis.");
-        }
+        INTREPID2_TEST_FOR_EXCEPTION( !subcellBasisIsHVOL,
+            std::logic_error,
+            ">>> ERROR (Intrepid::OrientationTools::getCoeffMatrix_HCURL): "
+            "subcellBasis function space (1d) is not consistent to cellBasis.");
         break;
       }
       case 2: {
@@ -323,7 +317,53 @@ getCoeffMatrix_HCURL(OutputViewType &output,
     Teuchos::LAPACK<ordinal_type,value_type> lapack;
     ordinal_type info = 0;
 
-
+    // DEBUGGING
+//    if (ndofSubcell == 6)
+//    {
+//      {
+//        // cellTagToOrdinal
+//        for (ordinal_type i=0;i<ndofSubcell;++i) {
+//          const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellId, i);
+//          std::cout << "cellTagToOrdinal(" << subcellDim << "," << subcellId << "," << i << "): " << ic << std::endl;
+//        }
+//        
+//        // cellBasisValues
+//        for (ordinal_type i=0;i<ndofSubcell;++i) {
+//          const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellId, i);
+//          for (ordinal_type j=0;j<ndofSubcell;++j) {
+//            for (ordinal_type k=0;k<subcellDim;++k) {
+//              for (ordinal_type d=0; d<cellDim; ++d)
+//                std::cout << "cellBasisValues(" << ic << "," << j << "," << d << ") : " << cellBasisValues(ic,j,d) << std::endl;
+//            }
+//          }
+//        }
+//        
+//        // Print PsiMat matrix
+//        std::cout  << "PsiMat:\n";
+//        std::cout  << "[";
+//        for (ordinal_type i=0;i<ndofSubcell;++i) {
+//          std::cout  << "[";
+//          for (ordinal_type j=0;j<ndofSubcell;++j) {
+//            std::cout << PsiMat(i,j) << " ";
+//          }
+//          std::cout  << "];\n";
+//        }
+//        std::cout  << "];\n";
+//        std::cout <<std::endl;
+//        
+//        // Print PhiMat matrix
+//        std::cout  << "PhiMat:\n";
+//        std::cout  << "[";
+//        for (ordinal_type i=0;i<ndofSubcell;++i) {
+//          std::cout  << "[";
+//          for (ordinal_type j=0;j<ndofSubcell;++j) {
+//            std::cout << PhiMat(i,j) << " ";
+//          }
+//          std::cout  << "];\n";
+//        }
+//        std::cout  << "];\n";
+//      }
+//    }
     /*
         Kokkos::View<value_type**,Kokkos::LayoutLeft,host_space_type> work("pivVec", 2*ndofSubcell, 1);
         lapack.GELS('N', ndofSubcell*card, ndofSubcell, ndofSubcell,

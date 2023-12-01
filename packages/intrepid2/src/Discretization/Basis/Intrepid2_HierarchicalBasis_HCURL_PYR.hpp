@@ -57,9 +57,10 @@
 #include <Intrepid2_config.h>
 
 #include "Intrepid2_Basis.hpp"
-#include "Intrepid2_DerivedBasis_HVOL_QUAD.hpp"
+#include "Intrepid2_DerivedBasis_HCURL_QUAD.hpp"
+#include "Intrepid2_HierarchicalBasis_HCURL_TRI.hpp"
+#include "Intrepid2_IntegratedLegendreBasis_HGRAD_LINE.hpp"
 #include "Intrepid2_LegendreBasis_HVOL_LINE.hpp"
-#include "Intrepid2_LegendreBasis_HVOL_TRI.hpp"
 #include "Intrepid2_Polynomials.hpp"
 #include "Intrepid2_PyramidCoords.hpp"
 #include "Intrepid2_Utils.hpp"
@@ -554,6 +555,10 @@ namespace Intrepid2
       {
         case OPERATOR_VALUE:
         {
+          {
+            // DEBUGGING
+            std::cout << "H(curl) pyramid: OPERATOR_VALUE for p=" << p << " (basis cardinality " << numFields_ << ")\n";
+          }
           ordinal_type fieldOrdinalOffset = 0;
           
           // **** edge functions **** //
@@ -561,6 +566,11 @@ namespace Intrepid2
           {
             // rename scratch1
             auto & Pi = scratch1D_1;
+            
+            {
+              // DEBUGGING
+              std::cout << "mixed edges: " << fieldOrdinalOffset << " - ";
+            }
             
             const int numMixedEdges = 4;
             for (int edgeOrdinal=0; edgeOrdinal<numMixedEdges; edgeOrdinal++)
@@ -593,9 +603,17 @@ namespace Intrepid2
                 fieldOrdinalOffset++;
               }
             }
+            {
+              // DEBUGGING
+              std::cout << fieldOrdinalOffset-1 << std::endl;
+            }
           }
           // triangle edges
           {
+            {
+              // DEBUGGING
+              std::cout << "triangle edges: " << fieldOrdinalOffset << " - ";
+            }
             // rename scratch1
             auto & Pi = scratch1D_1;
             
@@ -622,11 +640,19 @@ namespace Intrepid2
                 fieldOrdinalOffset++;
               }
             }
+            {
+              // DEBUGGING
+              std::cout << fieldOrdinalOffset-1 << std::endl;
+            }
           } // triangle edges
           
           // **** face functions **** //
           // quadrilateral face
           {
+            {
+              // DEBUGGING
+              std::cout << "quadrilateral face: " << fieldOrdinalOffset << " - ";
+            }
             // rename scratch1, scratch2
             auto & P1 = scratch1D_1;
             auto & P2 = scratch1D_2;
@@ -686,6 +712,10 @@ namespace Intrepid2
                 }
               }
             }
+            {
+              // DEBUGGING
+              std::cout << fieldOrdinalOffset-1 << std::endl;
+            }
           } // quadrilateral face
           
           
@@ -712,6 +742,10 @@ namespace Intrepid2
             int faceFieldOrdinalOffset = fieldOrdinalOffset;
             for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
             {
+              {
+                // DEBUGGING
+                std::cout << "Triangular face " << faceOrdinal << ": " << faceFieldOrdinalOffset << " - ";
+              }
               // face 0,2 --> a=1, b=2
               // face 1,3 --> a=2, b=1
               int a = (faceOrdinal % 2 == 0) ? 1 : 2;
@@ -760,6 +794,10 @@ namespace Intrepid2
                 fieldOrdinalOffset = fieldOrdinal - numFaceFamilies + 1; // due to the interleaving increment, we've gone numFaceFamilies past the last face ordinal.  Set offset to be one past.
               } // familyNumber
               faceFieldOrdinalOffset += numFunctionsPerTriFace;
+              {
+                // DEBUGGING
+                std::cout << fieldOrdinalOffset-1 << std::endl;
+              }
             } // faceOrdinal
           } // triangular faces
 
@@ -767,6 +805,10 @@ namespace Intrepid2
           // FAMILY I
           // following the ESEAS ordering: k increments first
           {
+            {
+              // DEBUGGING
+              std::cout << "Interior family I: " << fieldOrdinalOffset << " - ";
+            }
             // rename scratch
             const auto & Li_muZ01    = scratch1D_1;
             const auto & Li_muX01    = scratch1D_2;
@@ -823,6 +865,10 @@ namespace Intrepid2
                 }
               }
             }
+            {
+              // DEBUGGING
+              std::cout << fieldOrdinalOffset-1 << std::endl;
+            }
           } // INTERIOR FAMILY I
           
           // FAMILY II & III
@@ -839,7 +885,6 @@ namespace Intrepid2
             const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
             const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
             const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
-            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
                         
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
@@ -850,6 +895,10 @@ namespace Intrepid2
             
             for (int familyNumber=2; familyNumber<=3; familyNumber++)
             {
+              {
+                // DEBUGGING
+                std::cout << "Interior Family " << familyNumber << ": " << fieldOrdinalOffset << " - ";
+              }
               for (int k=2; k<=polyOrder_; k++)
               {
                 const auto & phi_k = Li_muZ01(k);
@@ -888,19 +937,27 @@ namespace Intrepid2
                   }
                 }
               }
+              {
+                // DEBUGGING
+                std::cout << fieldOrdinalOffset-1 << std::endl;
+              }
             }
           }
           
           // FAMILY IV
           {
+            {
+              // DEBUGGING
+              std::cout << "Interior family IV: " << fieldOrdinalOffset << " - ";
+            }
             // rename scratch
             const auto & Li_muX01 = scratch1D_1;
             const auto & Li_muY01 = scratch1D_2;
             
             const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
             const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
-            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
-            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
+            const auto & muZ_0 = mu[0][2];
+            const auto & muZ_0_grad = muGrad[0][2];
             
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
@@ -924,7 +981,11 @@ namespace Intrepid2
                 fieldOrdinalOffset++;
               }
             }
-          }
+            {
+              // DEBUGGING
+              std::cout << fieldOrdinalOffset-1 << std::endl;
+            }
+          } // family IV
         } // end OPERATOR_VALUE
           break;
         case OPERATOR_CURL:
@@ -1285,10 +1346,10 @@ namespace Intrepid2
             
             const auto & muX_0 = mu[0][0], & muX_1 = mu[1][0];
             const auto & muY_0 = mu[0][1], & muY_1 = mu[1][1];
-            const auto & muZ_0 = mu[0][2], & muZ_1 = mu[1][2];
+            const auto & muZ_0 = mu[0][2];
             const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
             const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
-            const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
+            const auto & muZ_0_grad = muGrad[0][2];
             
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
@@ -1442,6 +1503,10 @@ namespace Intrepid2
       // **** edge functions **** //
       // mixed edges
       const int numMixedEdges = 4;
+      {
+        // DEBUGGING
+        std::cout << "Mixed edges: " << fieldOrdinalOffset << " - ";
+      }
       for (int edgeOrdinal=0; edgeOrdinal<numMixedEdges; edgeOrdinal++)
       {
         for (int i=0; i<p; i++)
@@ -1450,6 +1515,14 @@ namespace Intrepid2
           this->fieldOrdinalH1PolynomialDegree_(fieldOrdinalOffset,0) = i+1;
           fieldOrdinalOffset++;
         }
+      }
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // DEBUGGING
+        std::cout << "Triangle edges: " << fieldOrdinalOffset << " - ";
       }
       // triangle edges
       const int numTriangleEdges = 4;
@@ -1462,7 +1535,14 @@ namespace Intrepid2
           fieldOrdinalOffset++;
         }
       }
-      
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // DEBUGGING
+        std::cout << "Quadrilateral face: " << fieldOrdinalOffset << " - ";
+      }
       // **** face functions **** //
       // quadrilateral face
       // Family I & II
@@ -1480,27 +1560,59 @@ namespace Intrepid2
           }
         }
       }
-      
-      const int numFunctionsPerTriFacePerFamily = p * (p-1) / 2; // per family/face combo
-      // Family I & II
-      for (int familyNumber=1; familyNumber<=2; familyNumber++)
       {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // Family I & II
         const int numTriFaces = 4;
+        const int numFaceFamilies = 2;
+        const int numFunctionsPerTriFace = p * (p-1);
+        // following ESEAS, we interleave the face families.  This groups all the face dofs of a given degree together.
+        int faceFieldOrdinalOffset = fieldOrdinalOffset;
         for (int faceOrdinal=0; faceOrdinal<numTriFaces; faceOrdinal++)
         {
-          for (int totalPolyOrder=1; totalPolyOrder<polyOrder_; totalPolyOrder++)
           {
-            // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
-            for (int i=0; i<totalPolyOrder; i++)
-            {
-              this->fieldOrdinalPolynomialDegree_  (fieldOrdinalOffset,0) = totalPolyOrder;
-              this->fieldOrdinalH1PolynomialDegree_(fieldOrdinalOffset,0) = totalPolyOrder+1;
-              fieldOrdinalOffset++;
-            }
+            // DEBUGGING
+            std::cout << "Triangular face " << faceOrdinal << ": " << faceFieldOrdinalOffset << " - ";
           }
-        }
+          
+          // face 0,2 --> a=1, b=2
+          // face 1,3 --> a=2, b=1
+          int a = (faceOrdinal % 2 == 0) ? 1 : 2;
+          int b = 3 - a;
+          // face 0,3 --> c=0
+          // face 1,2 --> c=1
+          int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
+        
+          for (int familyNumber=1; familyNumber<=2; familyNumber++)
+          {
+            int fieldOrdinal = faceFieldOrdinalOffset + familyNumber - 1;
+            
+            for (int totalPolyOrder=1; totalPolyOrder<p; totalPolyOrder++)
+            {
+              // there are totalPolyOrder dofs on this face for which i+j == totalPolyOrder
+              for (int i=0; i<totalPolyOrder; i++)
+              {
+                fieldOrdinal += numFaceFamilies; // increment due to the interleaving
+                this->fieldOrdinalPolynomialDegree_  (fieldOrdinal,0) = totalPolyOrder;
+                this->fieldOrdinalH1PolynomialDegree_(fieldOrdinal,0) = totalPolyOrder+1;
+              } // i
+            } // totalPolyOrder
+            fieldOrdinalOffset = fieldOrdinal - numFaceFamilies + 1; // due to the interleaving increment, we've gone numFaceFamilies past the last face ordinal.  Set offset to be one past.
+          } // familyNumber
+          faceFieldOrdinalOffset += numFunctionsPerTriFace;
+          {
+            // DEBUGGING
+            std::cout << fieldOrdinalOffset - 1 << std::endl;
+          }
+        } // faceOrdinal
+      } // triangular faces
+      {
+        // DEBUGGING
+        std::cout << "Interior Family I: " << fieldOrdinalOffset << " - ";
       }
-
       // **** interior functions **** //
       const int numFunctionsPerVolume = 3 * p * (p-1) * (p-1);
       
@@ -1522,6 +1634,14 @@ namespace Intrepid2
         }
       }
       
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // DEBUGGING
+        std::cout << "Interior Family II: " << fieldOrdinalOffset << " - ";
+      }
       // FAMILY II
       for (int k=2; k<=polyOrder_; k++)
       {
@@ -1539,6 +1659,14 @@ namespace Intrepid2
         }
       }
       
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // DEBUGGING
+        std::cout << "Interior Family III: " << fieldOrdinalOffset << " - ";
+      }
       // FAMILY III
       for (int k=2; k<=polyOrder_; k++)
       {
@@ -1557,7 +1685,14 @@ namespace Intrepid2
           }
         }
       }
-      
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
+      }
+      {
+        // DEBUGGING
+        std::cout << "Interior Family IV: " << fieldOrdinalOffset << " - ";
+      }
       // FAMILY IV
       for (int j=2; j<=polyOrder_; j++)
       {
@@ -1568,6 +1703,10 @@ namespace Intrepid2
           this->fieldOrdinalH1PolynomialDegree_(fieldOrdinalOffset,0) = max_ij;
           fieldOrdinalOffset++;
         }
+      }
+      {
+        // DEBUGGING
+        std::cout << fieldOrdinalOffset - 1 << std::endl;
       }
       
       if (fieldOrdinalOffset != this->basisCardinality_)
@@ -1615,10 +1754,18 @@ namespace Intrepid2
         OrdinalTypeArray1DHost tagView("tag view", cardinality*tagSize);
         const int edgeDim = 1, faceDim = 2, volumeDim = 3;
         
+        {
+          // DEBUGGING
+          std::cout << "*** tags ***\n";
+        }
         if (useCGBasis) {
           {
             int tagNumber = 0;
             {
+              {
+                // DEBUGGING
+                std::cout << "Mixed edges: " << tagNumber << " - ";
+              }
               // mixed edges
               const int numFunctionsPerMixedEdge = p;
               for (int edgeOrdinal=0; edgeOrdinal<numMixedEdges; edgeOrdinal++)
@@ -1632,6 +1779,13 @@ namespace Intrepid2
                   tagView(tagNumber*tagSize+3) = numFunctionsPerMixedEdge; // total number of dofs on this edge
                   tagNumber++;
                 }
+              }
+              {
+                std::cout << tagNumber-1 << std::endl;
+              }
+              {
+                // DEBUGGING
+                std::cout << "Triangle edges: " << tagNumber << " - ";
               }
               // triangle edges
               const int numTriangleEdges = 4;
@@ -1648,7 +1802,13 @@ namespace Intrepid2
                   tagNumber++;
                 }
               }
-              
+              {
+                std::cout << tagNumber-1 << std::endl;
+              }
+              {
+                // DEBUGGING
+                std::cout << "Quadrilateral face: " << tagNumber << " - ";
+              }
               // quad face
               const int faceOrdinalESEAS = 0;
               const int faceOrdinalIntrepid2 = intrepid2FaceOrdinals[faceOrdinalESEAS];
@@ -1667,26 +1827,39 @@ namespace Intrepid2
                 }
               }
             }
-            
-            const int numFunctionsPerTriFace = numFunctionsPerTriFacePerFamily * 2;
-            for (int familyNumber=1; familyNumber<=2; familyNumber++)
             {
+              std::cout << tagNumber-1 << std::endl;
+            }
+            {
+              // two families, interleaved on each face. (dofs of like poly degree grouped together on the face.)
+              const int numFunctionsPerTriFace = p * (p-1);
               const int numTriFaces = 4;
-              const int lidOffset = (familyNumber == 1) ? 0 : numFunctionsPerTriFacePerFamily;
               for (int triFaceOrdinalESEAS=0; triFaceOrdinalESEAS<numTriFaces; triFaceOrdinalESEAS++)
               {
                 const int faceOrdinalESEAS     = triFaceOrdinalESEAS + 1;
                 const int faceOrdinalIntrepid2 = intrepid2FaceOrdinals[faceOrdinalESEAS];
-                for (int functionOrdinal=0; functionOrdinal<numFunctionsPerTriFacePerFamily; functionOrdinal++)
                 {
-                  tagView(tagNumber*tagSize+0) = faceDim;                     // face dimension
-                  tagView(tagNumber*tagSize+1) = faceOrdinalIntrepid2;        // face id
-                  tagView(tagNumber*tagSize+2) = functionOrdinal + lidOffset; // local dof id
-                  tagView(tagNumber*tagSize+3) = numFunctionsPerTriFace;      // total number of dofs on this face
+                  // DEBUGGING
+                  std::cout << "Triangular face " << faceOrdinalESEAS << " (Intrepid2 face " << faceOrdinalIntrepid2 << "): " << tagNumber << " - ";
+                }
+                for (int functionOrdinal=0; functionOrdinal<numFunctionsPerTriFace; functionOrdinal++)
+                {
+                  tagView(tagNumber*tagSize+0) = faceDim;                // face dimension
+                  tagView(tagNumber*tagSize+1) = faceOrdinalIntrepid2;   // face id
+                  tagView(tagNumber*tagSize+2) = functionOrdinal;        // local dof id
+                  tagView(tagNumber*tagSize+3) = numFunctionsPerTriFace; // total number of dofs on this face
                   tagNumber++;
                 }
+                {
+                  std::cout << tagNumber-1 << std::endl;
+                }
               }
+            } // triangle faces
+            
+            {
+              std::cout << "volume: " << tagNumber << " - ";
             }
+            // volume
             for (int functionOrdinal=0; functionOrdinal<numFunctionsPerVolume; functionOrdinal++)
             {
               tagView(tagNumber*tagSize+0) = volumeDim;               // volume dimension
@@ -1694,6 +1867,9 @@ namespace Intrepid2
               tagView(tagNumber*tagSize+2) = functionOrdinal;         // local dof id
               tagView(tagNumber*tagSize+3) = numFunctionsPerVolume;   // total number of dofs in this volume
               tagNumber++;
+            }
+            {
+              std::cout << tagNumber-1 << std::endl;
             }
             INTREPID2_TEST_FOR_EXCEPTION(tagNumber != this->basisCardinality_, std::invalid_argument, "Internal error: basis tag enumeration is incorrect");
           }
@@ -1785,21 +1961,27 @@ namespace Intrepid2
     BasisPtr<DeviceType,OutputScalar,PointScalar>
     getSubCellRefBasis(const ordinal_type subCellDim, const ordinal_type subCellOrd) const override{
       const auto & p = this->basisDegree_;
-      if (subCellDim == 2)
+      using HVOL_LINE = LegendreBasis_HVOL_LINE<DeviceType,OutputScalar,PointScalar>;
+      using HGRAD_LINE = IntegratedLegendreBasis_HGRAD_LINE<DeviceType,OutputScalar,PointScalar>;
+      if(subCellDim == 1) {
+        using LineBasis = HVOL_LINE;
+        return Teuchos::rcp( new LineBasis(p-1, pointType_) );
+      }
+      else if (subCellDim == 2)
       {
         if (subCellOrd == 4) // quad basis
         {
-          using HVOL_LINE = LegendreBasis_HVOL_LINE<DeviceType,OutputScalar,PointScalar>;
-          using HVOL_QUAD = Basis_Derived_HVOL_QUAD<HVOL_LINE>;
-          return Teuchos::rcp(new HVOL_QUAD(p-1));
+          using HGRAD_LINE = IntegratedLegendreBasis_HGRAD_LINE<DeviceType,OutputScalar,PointScalar>;
+          using QuadBasis = Basis_Derived_HCURL_QUAD<HGRAD_LINE,HVOL_LINE>;
+          return Teuchos::rcp( new QuadBasis(p, p, pointType_) );
         }
         else // tri basis
         {
-          using HVOL_Tri = LegendreBasis_HVOL_TRI<DeviceType,OutputScalar,PointScalar>;
-          return Teuchos::rcp(new HVOL_Tri(p-1));
+          using TriBasis = HierarchicalBasis_HCURL_TRI<DeviceType,OutputScalar,PointScalar>;
+          return Teuchos::rcp(new TriBasis(p));
         }
       }
-      INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"Input parameters out of bounds");
+      INTREPID2_TEST_FOR_EXCEPTION(true,std::invalid_argument,"getSubCellRefBasis: input parameters out of bounds");
     }
 
     /** \brief Creates and returns a Basis object whose DeviceType template argument is Kokkos::HostSpace::device_type, but is otherwise identical to this.

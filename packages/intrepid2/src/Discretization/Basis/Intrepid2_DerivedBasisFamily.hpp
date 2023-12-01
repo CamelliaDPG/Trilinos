@@ -421,9 +421,6 @@ namespace Intrepid2
       \param [in] fs          - the function space for the basis.
       \param [in] polyOrder   - the polynomial order of the basis.
       \param [in] pointType   - type of lattice used for creating the DoF coordinates.
-   
-   At present, only hypercube topologies are supported.  Once basis families support other element types, this method can
-   be updated so that it also supports other element types.
      */
   template<class BasisFamily>
   static typename BasisFamily::BasisPtr getBasis(const shards::CellTopology &cellTopo, Intrepid2::EFunctionSpace fs, int polyOrder, const EPointType pointType = POINTTYPE_DEFAULT)
@@ -436,6 +433,7 @@ namespace Intrepid2
       case shards::Triangle<>::key:      return getTriangleBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Hexahedron<>::key:    return getHexahedronBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Tetrahedron<>::key:   return getTetrahedronBasis<BasisFamily>(fs,polyOrder,pointType);
+      case shards::Wedge<>::key:         return getWedgeBasis<BasisFamily>(fs,polyOrder,pointType);
       default:
         INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported cell topology");
     }

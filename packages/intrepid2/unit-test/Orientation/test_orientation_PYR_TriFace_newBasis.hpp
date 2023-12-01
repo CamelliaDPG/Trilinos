@@ -620,7 +620,7 @@ int OrientationPyrTriFaceNewBasis(const bool verbose) {
 
         //HCURL Case
         //TODO: uncomment after we implement H(curl) basis for pyramids
-        /*{
+        {
           FunCurl fun;
           DynRankView ConstructWithLabel(funAtPhysRefCoords, numCells, numRefCoords, dim);
           for(ordinal_type i=0; i<numCells; ++i) {
@@ -685,7 +685,7 @@ int OrientationPyrTriFaceNewBasis(const bool verbose) {
             testResults.test(errorFlag,tol);
             delete basisPtr;
           }
-        }*/
+        }
 
 
         //HDIV Case

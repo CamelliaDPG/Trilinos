@@ -30,7 +30,9 @@ LIST(APPEND Intrepid2_TEST_ETI_FILE
   "test_interpolation_projection_QUAD"
   "test_interpolation_projection_TET"
   "test_interpolation_projection_TRI"
-  "test_interpolation_projection_WEDGE")
+  "test_interpolation_projection_WEDGE"
+  "test_patch_projection_PYR"
+)
 
 SET(Intrepid2_TEST_ETI_DEVICE_NAME "")
 SET(Intrepid2_TEST_ETI_DEVICE "")
