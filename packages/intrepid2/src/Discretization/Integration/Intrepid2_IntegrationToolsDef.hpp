@@ -1,43 +1,10 @@
 // @HEADER
-// ************************************************************************
-//
+// *****************************************************************************
 //                           Intrepid2 Package
-//                 Copyright (2007) Sandia Corporation
 //
-// Under terms of Contract DE-AC04-94AL85000, there is a non-exclusive
-// license for use of this work by or on behalf of the U.S. Government.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Mauro Perego  (mperego@sandia.gov) or
-//                    Nate Roberts  (nvrober@sandia.gov)
-//
-// ************************************************************************
+// Copyright 2007 NTESS and the Intrepid2 contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
 // @HEADER
 
 /** \file   Intrepid2_IntegrationToolsDef.hpp
@@ -48,7 +15,6 @@
 #ifndef __INTREPID2_INTEGRATIONTOOLS_DEF_HPP__
 #define __INTREPID2_INTEGRATIONTOOLS_DEF_HPP__
 
-#include "Intrepid2_DataTools.hpp"
 #include "Intrepid2_FunctorIterator.hpp"
 #include "Intrepid2_TensorArgumentIterator.hpp"
 
@@ -1244,6 +1210,7 @@ namespace Intrepid2 {
         const int GyEntryCount     = pointBounds_z; // for each thread: store one Gy value per z coordinate
         Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged> GxIntegrals; // for caching Gx values: we integrate out the first component dimension for each coordinate in the remaining dimensios
         Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged> GyIntegrals; // for caching Gy values (each thread gets a stack, of the same height as tensorComponents - 1)
+        Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged> GzIntegral;  // for one Gz value that we sum into before summing into the destination matrix
         Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged> pointWeights; // indexed by (expanded) point; stores M_ab * cell measure; shared by team
         
         Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged> leftFields_x, rightFields_x;
@@ -1252,6 +1219,7 @@ namespace Intrepid2 {
         if (fad_size_output_ > 0) {
           GxIntegrals   = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),   pointsInNonzeroComponentDimensions, fad_size_output_);
           GyIntegrals   = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),   GyEntryCount * numThreads,          fad_size_output_);
+          GzIntegral    = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),   numThreads,                         fad_size_output_);
           pointWeights  = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>  (teamMember.team_shmem(), composedTransform_.extent_int(1),   fad_size_output_);
           
           leftFields_x  = Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),  leftFieldBounds_x, pointBounds_x, fad_size_output_);
@@ -1264,6 +1232,7 @@ namespace Intrepid2 {
         else {
           GxIntegrals   = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),  pointsInNonzeroComponentDimensions);
           GyIntegrals   = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),  GyEntryCount * numThreads);
+          GzIntegral    = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),  numThreads);
           pointWeights  = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>  (teamMember.team_shmem(),  composedTransform_.extent_int(1));
         
           leftFields_x  = Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>(teamMember.team_shmem(),  leftFieldBounds_x, pointBounds_x);
@@ -1407,67 +1376,43 @@ namespace Intrepid2 {
                   const int i1 = i1j1 % leftFieldBounds_y;
                   const int j1 = i1j1 / leftFieldBounds_y;
                   
-                  int Gy_index_offset = GyEntryCount * threadNumber; // thread-relative index into GyIntegrals container; store one value per z coordinate
+                  int Gy_index = GyEntryCount * threadNumber; // thread-relative index into GyIntegrals container; store one value per z coordinate
                   
+                  int pointEnumerationIndex = 0; // incremented at bottom of lz loop below.
                   for (int lz=0; lz<pointBounds_z; lz++)
                   {
-                    int pointEnumerationIndex = lz * pointBounds_y;
-                    if (fad_size_output_ == 0)
+                    Scalar & Gy = GyIntegrals(Gy_index);
+                    Gy = 0.0;
+                    
+                    for (int ly=0; ly<pointBounds_y; ly++)
                     {
-                      Scalar Gy_local = 0;
+                      const Scalar &  leftValue =  leftFields_y(i1,ly);
+                      const Scalar & rightValue = rightFields_y(j1,ly);
+                    
+                      Gy += leftValue * rightValue * GxIntegrals(pointEnumerationIndex);
                       
-                      // not a Fad type; we're allow to have a vector range
-                      Kokkos::parallel_reduce(Kokkos::ThreadVectorRange(teamMember, pointBounds_y), [&] (const int &ly, Scalar &integralThusFar)
-                      {
-                        const Scalar &  leftValue =  leftFields_y(i1,ly);
-                        const Scalar & rightValue = rightFields_y(j1,ly);
-                        
-                        integralThusFar += leftValue * rightValue * GxIntegrals(pointEnumerationIndex + ly);
-                      }, Gy_local);
-                      
-                    GyIntegrals(Gy_index_offset + lz) = Gy_local;
+                      pointEnumerationIndex++;
                     }
-                    else
-                    {
-                      Scalar & Gy = GyIntegrals(Gy_index_offset + lz);
-                      for (int ly=0; ly<pointBounds_y; ly++)
-                      {
-                        const Scalar &  leftValue =  leftFields_y(i1,ly);
-                        const Scalar & rightValue = rightFields_y(j1,ly);
-                      
-                        Gy += leftValue * rightValue * GxIntegrals(pointEnumerationIndex + ly);
-                      }
-                    }
+                    Gy_index++;
                   }
                       
+                  Scalar & Gz = GzIntegral(threadNumber); // one entry per thread
                   for (int i2=0; i2<leftFieldBounds_z; i2++)
                   {
                     for (int j2=0; j2<rightFieldBounds_z; j2++)
                     {
-                      Scalar Gz = 0.0;
+                      Gz = 0.0;
                       
-                      int Gy_index_offset = GyEntryCount * threadNumber; // thread-relative index into GyIntegrals container; store one value per z coordinate
+                      int Gy_index = GyEntryCount * threadNumber; // thread-relative index into GyIntegrals container; store one value per z coordinate
                       
-                      if (fad_size_output_ == 0)
+                      for (int lz=0; lz<pointBounds_z; lz++)
                       {
-                        // not a Fad type; we're allow to have a vector range
-                        Kokkos::parallel_reduce(Kokkos::ThreadVectorRange(teamMember, pointBounds_z), [&] (const int &lz, Scalar &integralThusFar)
-                        {
-                          const Scalar &  leftValue =  leftFields_z(i2,lz);
-                          const Scalar & rightValue = rightFields_z(j2,lz);
-                          
-                          integralThusFar += leftValue * rightValue * GyIntegrals(Gy_index_offset+lz);
-                        }, Gz);
-                      }
-                      else
-                      {
-                        for (int lz=0; lz<pointBounds_z; lz++)
-                        {
-                          const Scalar &  leftValue =  leftFields_z(i2,lz);
-                          const Scalar & rightValue = rightFields_z(j2,lz);
-                          
-                          Gz += leftValue * rightValue * GyIntegrals(Gy_index_offset+lz);
-                        }
+                        const Scalar &  leftValue =  leftFields_z(i2,lz);
+                        const Scalar & rightValue = rightFields_z(j2,lz);
+                        
+                        Gz += leftValue * rightValue * GyIntegrals(Gy_index);
+                        
+                        Gy_index++;
                       }
                       
                       const int i =  leftFieldOrdinalOffset + i0 + (i1 + i2 *  leftFieldBounds_y) *  leftFieldBounds_x;
@@ -1476,9 +1421,7 @@ namespace Intrepid2 {
 //                      const int i = relativeEnumerationIndex( leftArguments,  leftFieldBounds, 0) +  leftFieldOrdinalOffset;
 //                      const int j = relativeEnumerationIndex(rightArguments, rightFieldBounds, 0) + rightFieldOrdinalOffset;
                       
-                      Kokkos::single (Kokkos::PerThread(teamMember), [&] () {
-                        integralViewEntry<integralViewRank>(integralView, cellDataOrdinal, i, j) += Gz;
-                      });
+                      integralViewEntry<integralViewRank>(integralView, cellDataOrdinal, i, j) += Gz;
                     }
                   }
                 });
@@ -1823,6 +1766,7 @@ namespace Intrepid2 {
         {
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(pointsInNonzeroComponentDimensions, fad_size_output_); // GxIntegrals: entries with x integrated away
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(GyEntryCount * numThreads,          fad_size_output_); // GyIntegrals: entries with x,y integrated away
+          shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(           1 * numThreads,          fad_size_output_); // GzIntegral:  entry   with x,y,z integrated away
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size  (composedTransform_.extent_int(1), fad_size_output_); // pointWeights
           
           shmem_size += Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(  leftFieldBounds_[0], pointBounds_[0], fad_size_output_); // leftFields_x
@@ -1836,6 +1780,7 @@ namespace Intrepid2 {
         {
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(pointsInNonzeroComponentDimensions);  // GxIntegrals: entries with x integrated away
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(GyEntryCount * numThreads);           // GyIntegrals: entries with x,y integrated away
+          shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size( 1 * numThreads);                     // GzIntegral:  entry   with x,y,z integrated away
           shmem_size += Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size  (composedTransform_.extent_int(1)); // pointWeights
           
           shmem_size += Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>::shmem_size(  leftFieldBounds_[0], pointBounds_[0]); // leftFields_x
@@ -1995,15 +1940,16 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
   // we require that the number of tensor components in the vectors are the same for each vector entry
   // this is not strictly necessary, but it makes implementation easier, and we don't at present anticipate other use cases
   int numTensorComponentsLeft = -1;
-  const bool leftIsVectorValued = basisValuesLeft.vectorData().isValid();
-  
-  if (leftIsVectorValued)
+  const bool isVectorValued = basisValuesLeft.vectorData().isValid();
+  if (isVectorValued)
   {
     const bool rightIsVectorValued = basisValuesRight.vectorData().isValid();
+    INTREPID2_TEST_FOR_EXCEPTION(!rightIsVectorValued, std::invalid_argument, "left and right must either both be vector-valued, or both scalar-valued");
     const auto &refVectorLeft   = basisValuesLeft.vectorData();
     int numFamiliesLeft         = refVectorLeft.numFamilies();
     int numVectorComponentsLeft = refVectorLeft.numComponents();
     Kokkos::Array<int,7> maxFieldsForComponentLeft  {0,0,0,0,0,0,0};
+    Kokkos::Array<int,7> maxFieldsForComponentRight {0,0,0,0,0,0,0};
     for (int familyOrdinal=0; familyOrdinal<numFamiliesLeft; familyOrdinal++)
     {
       for (int vectorComponent=0; vectorComponent<numVectorComponentsLeft; vectorComponent++)
@@ -2023,24 +1969,10 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
         }
       }
     }
-  }
-  else
-  {
-    numTensorComponentsLeft = basisValuesLeft.basisValues().tensorData(0).numTensorComponents(); // family ordinal 0
-    for (int familyOrdinal = 0; familyOrdinal < leftFamilyCount; familyOrdinal++)
-    {
-      INTREPID2_TEST_FOR_EXCEPTION(basisValuesLeft.basisValues().tensorData(familyOrdinal).numTensorComponents() != numTensorComponentsLeft, std::invalid_argument, "All families must match in the number of tensor components");
-    }
-  }
-  int numTensorComponentsRight = -1;
-  const bool rightIsVectorValued = basisValuesRight.vectorData().isValid();
-  
-  if (rightIsVectorValued)
-  {
+    int numTensorComponentsRight = -1;
     const auto &refVectorRight   = basisValuesRight.vectorData();
     int numFamiliesRight         = refVectorRight.numFamilies();
     int numVectorComponentsRight = refVectorRight.numComponents();
-    Kokkos::Array<int,7> maxFieldsForComponentRight {0,0,0,0,0,0,0};
     for (int familyOrdinal=0; familyOrdinal<numFamiliesRight; familyOrdinal++)
     {
       for (int vectorComponent=0; vectorComponent<numVectorComponentsRight; vectorComponent++)
@@ -2060,11 +1992,17 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
         }
       }
     }
-    INTREPID2_TEST_FOR_EXCEPTION(numTensorComponentsRight != numTensorComponentsLeft, std::invalid_argument, "Right families must match left in the number of tensor components");
+    INTREPID2_TEST_FOR_EXCEPTION(numVectorComponentsLeft != numVectorComponentsRight, std::invalid_argument, "Left and right vector entries must have the same number of tensorial components");
   }
   else
   {
-    // check that right tensor component count agrees with left
+    numTensorComponentsLeft = basisValuesLeft.basisValues().tensorData(0).numTensorComponents(); // family ordinal 0
+    for (int familyOrdinal = 0; familyOrdinal < leftFamilyCount; familyOrdinal++)
+    {
+      INTREPID2_TEST_FOR_EXCEPTION(basisValuesLeft.basisValues().tensorData(familyOrdinal).numTensorComponents() != numTensorComponentsLeft, std::invalid_argument, "All families must match in the number of tensor components");
+    }
+    
+    // check that right tensor component count also agrees
     for (int familyOrdinal=0; familyOrdinal< rightFamilyCount; familyOrdinal++)
     {
       INTREPID2_TEST_FOR_EXCEPTION(basisValuesRight.basisValues().tensorData(familyOrdinal).numTensorComponents() != numTensorComponentsLeft, std::invalid_argument, "Right families must match left in the number of tensor components");
@@ -2104,11 +2042,11 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
       int a_offset = 0; // left vector component offset
       int leftFieldOffset = basisValuesLeft.basisValues().familyFieldOrdinalOffset(leftFamilyOrdinal);
       
-      const int leftVectorComponentCount = leftIsVectorValued ? basisValuesLeft.vectorData().numComponents() : 1;
+      const int leftVectorComponentCount = isVectorValued ? basisValuesLeft.vectorData().numComponents() : 1;
       for (int leftVectorComponentOrdinal = 0; leftVectorComponentOrdinal < leftVectorComponentCount; leftVectorComponentOrdinal++)
       {
-        TensorData<Scalar,DeviceType> leftComponent = leftIsVectorValued ? basisValuesLeft.vectorData().getComponent(leftFamilyOrdinal, leftVectorComponentOrdinal)
-                                                                         : basisValuesLeft.basisValues().tensorData(leftFamilyOrdinal);
+        TensorData<Scalar,DeviceType> leftComponent = isVectorValued ? basisValuesLeft.vectorData().getComponent(leftFamilyOrdinal, leftVectorComponentOrdinal)
+                                                                     : basisValuesLeft.basisValues().tensorData(leftFamilyOrdinal);
         if (!leftComponent.isValid())
         {
           a_offset++; // empty components are understood to take up one dimension
@@ -2123,11 +2061,11 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
           int b_offset = 0; // right vector component offset
           int rightFieldOffset = basisValuesRight.vectorData().familyFieldOrdinalOffset(rightFamilyOrdinal);
 
-          const int rightVectorComponentCount = rightIsVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
+          const int rightVectorComponentCount = isVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
           for (int rightVectorComponentOrdinal = 0; rightVectorComponentOrdinal < rightVectorComponentCount; rightVectorComponentOrdinal++)
           {
-            TensorData<Scalar,DeviceType> rightComponent = rightIsVectorValued ? basisValuesRight.vectorData().getComponent(rightFamilyOrdinal, rightVectorComponentOrdinal)
-                                                                               : basisValuesRight.basisValues().tensorData(rightFamilyOrdinal);
+            TensorData<Scalar,DeviceType> rightComponent = isVectorValued ? basisValuesRight.vectorData().getComponent(rightFamilyOrdinal, rightVectorComponentOrdinal)
+                                                                          : basisValuesRight.basisValues().tensorData(rightFamilyOrdinal);
             if (!rightComponent.isValid())
             {
               b_offset++; // empty components are understood to take up one dimension
@@ -2285,23 +2223,15 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
     const bool transposeRight = false;
 //    auto timer = Teuchos::TimeMonitor::getNewTimer("mat-mat");
 //    timer->start();
-    // transforms can be matrices -- (C,P,D,D): rank 4 -- or scalar weights -- (C,P): rank 2 -- or vector weights -- (C,P,D): rank 3
+    // transforms can be matrices -- (C,P,D,D): rank 4 -- or scalar weights -- (C,P): rank 2
+    const bool matrixTransform = (leftTransform.rank() == 4) || (rightTransform.rank() == 4);
     Data<Scalar,DeviceType> composedTransform;
     // invalid/empty transforms are used when the identity is intended.
-    const int leftRank  = leftTransform.rank();
-    const int rightRank = rightTransform.rank();
-    
     if (leftTransform.isValid() && rightTransform.isValid())
     {
-      const bool bothRank4 = (leftRank == 4) && (rightRank == 4);
-      const bool bothRank3 = (leftRank == 3) && (rightRank == 3);
-      const bool bothRank2 = (leftRank == 2) && (rightRank == 2);
-      const bool ranks32   = ((leftRank == 3) && (rightRank == 2)) || ((leftRank == 2) && (rightRank == 3));
-      const bool ranks42   = ((leftRank == 4) && (rightRank == 2)) || ((leftRank == 2) && (rightRank == 4));
-      
-      if (bothRank4) // (C,P,D,D)
+      if (matrixTransform)
       {
-        composedTransform = Data<Scalar,DeviceType>::allocateMatMatResult(transposeLeft, leftTransform, transposeRight, rightTransform);
+        composedTransform = leftTransform.allocateMatMatResult(transposeLeft, leftTransform, transposeRight, rightTransform);
         composedTransform.storeMatMat(transposeLeft, leftTransform, transposeRight, rightTransform);
         
         // if the composedTransform matrices are full, the following is a good estimate.  If they have some diagonal portions, this will overcount.
@@ -2310,41 +2240,12 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
           *approximateFlops += composedTransform.getUnderlyingViewSize() * (spaceDim - 1) * 2;
         }
       }
-      else if (bothRank3) // (C,P,D)
-      {
-        // re-cast leftTransform as a rank 4 (C,P,1,D) object -- a 1 x D matrix at each (C,P).
-        const int newRank   = 4;
-        auto extents        = leftTransform.getExtents();
-        auto variationTypes = leftTransform.getVariationTypes();
-        extents[3]               = extents[2];
-        extents[2]               = 1;
-        variationTypes[3]        = variationTypes[2];
-        variationTypes[2]        = CONSTANT;
-        auto leftTransformMatrix = leftTransform.shallowCopy(newRank, extents, variationTypes);
-        
-        // re-cast rightTransform as a rank 4 (C,P,1,D) object -- a 1 x D matrix at each (C,P)
-        extents                  = rightTransform.getExtents();
-        variationTypes           = rightTransform.getVariationTypes();
-        extents[3]               = extents[2];
-        extents[2]               = 1;
-        variationTypes[3]        = variationTypes[2];
-        variationTypes[2]        = CONSTANT;
-        auto rightTransformMatrix = rightTransform.shallowCopy(newRank, extents, variationTypes);
-        
-        composedTransform = Data<Scalar,DeviceType>::allocateMatMatResult(transposeLeft, leftTransformMatrix, transposeRight, rightTransformMatrix); // false: don't transpose
-        composedTransform.storeMatMat(transposeLeft, leftTransformMatrix, transposeRight, rightTransformMatrix);
-                
-        if (approximateFlops != NULL)
-        {
-          *approximateFlops += composedTransform.getUnderlyingViewSize(); // one multiply per entry
-        }
-      }
-      else if (bothRank2)
+      else
       {
         composedTransform = leftTransform.allocateInPlaceCombinationResult(leftTransform, rightTransform);
         composedTransform.storeInPlaceProduct(leftTransform, rightTransform);
         
-        // re-cast composedTranform as a rank 4 (C,P,1,1) object -- a 1 x 1 matrix at each (C,P).
+        // re-cast composedTranform as a rank 4 (C,P,D,D) object -- a 1 x 1 matrix at each (C,P).
         const int newRank   = 4;
         auto extents        = composedTransform.getExtents();
         auto variationTypes = composedTransform.getVariationTypes();
@@ -2353,101 +2254,17 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
         {
           *approximateFlops += composedTransform.getUnderlyingViewSize(); // one multiply per entry
         }
-      }
-      else if (ranks32) // rank 2 / rank 3 combination.
-      {
-        const auto & rank3Transform = (leftRank == 3) ? leftTransform : rightTransform;
-        const auto & rank2Transform = (leftRank == 2) ? leftTransform : rightTransform;
-        
-        composedTransform = DataTools::multiplyByCPWeights(rank3Transform, rank2Transform);
-        
-        // re-cast composedTransform as a rank 4 object:
-        // logically, the original rank-3 transform can be understood as a 1xD matrix.  The composed transform is leftTransform^T * rightTransform, so:
-        // - if left  has the rank-3 transform, composedTransform should be a (C,P,D,1) object -- a D x 1 matrix at each (C,P).
-        // - if right has the rank-3 transform, composedTransform should be a (C,P,1,D) object -- a 1 x D matrix at each (C,P).
-        const int newRank   = 4;
-        auto extents        = composedTransform.getExtents();
-        auto variationTypes = composedTransform.getVariationTypes();
-        if (leftRank == 3)
-        {
-          // extents[3] and variationTypes[3] will already be 1 and CONSTANT, respectively
-          // extents[3]               = 1;
-          // variationTypes[3]        = CONSTANT;
-        }
-        else
-        {
-          extents[3]               = extents[2];
-          extents[2]               = 1;
-          variationTypes[3]        = variationTypes[2];
-          variationTypes[2]        = CONSTANT;
-        }
-        composedTransform = composedTransform.shallowCopy(newRank, extents, variationTypes);
-      }
-      else if (ranks42) // rank 4 / rank 2 combination.
-      {
-        if (leftRank == 4)
-        {
-          // want to transpose left matrix, and multiply by the values from rightTransform
-          // start with the multiplication:
-          auto composedTransformTransposed = DataTools::multiplyByCPWeights(leftTransform, rightTransform);
-          composedTransform = DataTools::transposeMatrix(composedTransformTransposed);
-        }
-        else // (leftRank == 2)
-        {
-          composedTransform = DataTools::multiplyByCPWeights(rightTransform, leftTransform);
-        }
-      }
-      else
-      {
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported transform combination");
       }
     }
     else if (leftTransform.isValid())
     {
       // rightTransform is the identity
-      switch (leftRank)
-      {
-        case 4: composedTransform = DataTools::transposeMatrix(leftTransform); break;
-        case 3:
-        {
-          // - if left  has the rank-3 transform, composedTransform should be a (C,P,D,1) object -- a D x 1 matrix at each (C,P).
-          const int newRank   = 4;
-          auto extents        = leftTransform.getExtents();
-          auto variationTypes = leftTransform.getVariationTypes();
-          
-          composedTransform = leftTransform.shallowCopy(newRank, extents, variationTypes);
-        }
-          break;
-        case 2: composedTransform = leftTransform; break;
-        default:
-          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported transform combination");
-      }
+      composedTransform = leftTransform;
     }
     else if (rightTransform.isValid())
     {
       // leftTransform is the identity
       composedTransform = rightTransform;
-      switch (rightRank)
-      {
-        case 4: composedTransform = rightTransform; break;
-        case 3:
-        {
-          // - if right has the rank-3 transform, composedTransform should be a (C,P,1,D) object -- a 1 x D matrix at each (C,P).
-          const int newRank   = 4;
-          auto extents        = rightTransform.getExtents();
-          auto variationTypes = rightTransform.getVariationTypes();
-          extents[3]          = extents[2];
-          variationTypes[3]   = variationTypes[2];
-          extents[2]          = 1;
-          variationTypes[2]   = CONSTANT;
-          
-          composedTransform = rightTransform.shallowCopy(newRank, extents, variationTypes);
-        }
-          break;
-        case 2: composedTransform = rightTransform; break;
-        default:
-          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported transform combination");
-      }
     }
     else
     {
@@ -2466,8 +2283,8 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
     
     const int leftFamilyCount     = basisValuesLeft. basisValues().numFamilies();
     const int rightFamilyCount    = basisValuesRight.basisValues().numFamilies();
-    const int leftComponentCount  = leftIsVectorValued ? basisValuesLeft. vectorData().numComponents() : 1;
-    const int rightComponentCount = rightIsVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
+    const int leftComponentCount  = isVectorValued ? basisValuesLeft. vectorData().numComponents() : 1;
+    const int rightComponentCount = isVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
     
     int leftFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families
     for (int leftFamilyOrdinal=0; leftFamilyOrdinal<leftFamilyCount; leftFamilyOrdinal++)
@@ -2478,8 +2295,8 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
       bool haveLaunchedContributionToCurrentFamilyLeft = false; // helps to track whether we need a Kokkos::fence before launching a kernel.
       for (int leftComponentOrdinal=0; leftComponentOrdinal<leftComponentCount; leftComponentOrdinal++)
       {
-        TensorData<Scalar,DeviceType> leftComponent = leftIsVectorValued ? basisValuesLeft.vectorData().getComponent(leftFamilyOrdinal, leftComponentOrdinal)
-                                                                         : basisValuesLeft.basisValues().tensorData(leftFamilyOrdinal);
+        TensorData<Scalar,DeviceType> leftComponent = isVectorValued ? basisValuesLeft.vectorData().getComponent(leftFamilyOrdinal, leftComponentOrdinal)
+                                                                     : basisValuesLeft.basisValues().tensorData(leftFamilyOrdinal);
         if (!leftComponent.isValid())
         {
            // represents zero
@@ -2496,8 +2313,8 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
           int b_offset = 0;
           for (int rightComponentOrdinal=0; rightComponentOrdinal<rightComponentCount; rightComponentOrdinal++)
           {
-            TensorData<Scalar,DeviceType> rightComponent = rightIsVectorValued ? basisValuesRight.vectorData().getComponent(rightFamilyOrdinal, rightComponentOrdinal)
-                                                                               : basisValuesRight.basisValues().tensorData(rightFamilyOrdinal);
+            TensorData<Scalar,DeviceType> rightComponent = isVectorValued ? basisValuesRight.vectorData().getComponent(rightFamilyOrdinal, rightComponentOrdinal)
+                                                                          : basisValuesRight.basisValues().tensorData(rightFamilyOrdinal);
             if (!rightComponent.isValid())
             {
                // represents zero
@@ -2599,13 +2416,13 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
                 }
               }
             }
-            b_offset += rightIsVectorValued ? basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal) : 1;
+            b_offset += isVectorValued ? basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal) : 1;
           }
-          rightFieldOrdinalOffset += rightIsVectorValued ? basisValuesRight.vectorData().numFieldsInFamily(rightFamilyOrdinal) : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
+          rightFieldOrdinalOffset += isVectorValued ? basisValuesRight.vectorData().numFieldsInFamily(rightFamilyOrdinal) : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
         }
-        a_offset += leftIsVectorValued ? basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal) : 1;
+        a_offset += isVectorValued ? basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal) : 1;
       }
-      leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData().numFieldsInFamily(leftFamilyOrdinal) : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
+      leftFieldOrdinalOffset += isVectorValued ? basisValuesLeft.vectorData().numFieldsInFamily(leftFamilyOrdinal) : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
     }
   }
 //  if (approximateFlops != NULL)
