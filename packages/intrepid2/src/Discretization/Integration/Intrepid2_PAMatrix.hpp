@@ -8,7 +8,7 @@
 // @HEADER
 
 /** \file   Intrepid2_PAMatrix.hpp
-    \brief  Header file for the Intrepid2::PAMatrix class; provides support matrix partial assembly.
+    \brief  Header file for the Intrepid2::PAMatrix class; provides support for matrix partial assembly.
     \author Created by Nathan V. Roberts.
 */
 
@@ -33,33 +33,34 @@ namespace Intrepid2 {
            typename Scalar = double>
   class PAMatrix {
   public:
-    Data<DeviceType,Scalar> _composedTransform;
-    TensorData<Scalar,DeviceType> _cellMeasures;
-    TransformedBasisValues<Scalar,DeviceType> _vectorDataLeft, _vectorDataRight;
+    Data<DeviceType,Scalar> _composedWeightedTransform; // (C,P[,D1[,D2]]), used for general case
+    TensorData<Scalar,DeviceType> _cellMeasures; // (C,P); used for separable case
+    TransformedBasisValues<Scalar,DeviceType> _basisValuesLeft, _basisValuesRight;
+    bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension.
     
-    /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>vectorDataLeft</b> against \a <b>vectorDataRight</b> containers on
+    /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>basisValuesLeft</b> against \a <b>basisValuesRight</b> containers on
                  point and space dimensions, weighting each point according to <b>cellMeasures</b>.
 
-        \param  vectorDataLeft        [in] - Left input container, with logical shape (C,F1,P,D)
+        \param  basisValuesLeft      [in] - Left input container, with logical shape (C,F1,P,D)
         \param  cellMeasures             [in] - Point weight container, with logical shape (C,P)
-        \param  vectorDataRight      [in] - Right input container with logical shape (C,F2,P,D)
+        \param  basisValuesRight    [in] - Right input container with logical shape (C,F2,P,D)
         \param  sumInto                        [in] - If TRUE, sum into given output array, otherwise overwrite it. Default: FALSE.
 
         On construction, computes (if it will be needed) a <b>composedTransform</b> object with logical shape (C,P), (C,P,D), or (C,P,D,D) that stores (det J) M^T_L M_R, where det J represents <b>cellMeasures</b> and M_L and M_R represent the basis transformations for the left and right basis, respectively.
     */
-    PAMatrix(const TransformedBasisValues<Scalar,DeviceType> vectorDataLeft,
+    PAMatrix(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeft,
              const TensorData<Scalar,DeviceType> cellMeasures,
-             const TransformedBasisValues<Scalar,DeviceType> vectorDataRight);
+             const TransformedBasisValues<Scalar,DeviceType> basisValuesRight);
     
-    /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>vectorData</b> against itself in
+    /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>basisValues</b> against itself in
                  point and space dimensions, weighting each point according to <b>cellMeasures</b>.
 
-        \param  vectorData                 [in] - Transformed basis values input container, with logical shape (C,F,P,D)
+        \param  basisValues               [in] - Transformed basis values input container, with logical shape (C,F,P,D)
         \param  cellMeasures             [in] - Point weight container, with logical shape (C,P)
         
         On construction, computes (if it will be needed) a <b>composedTransform</b> object with logical shape (C,P), (C,P,D), or (C,P,D,D) that stores (det J) M^T M, where det J represents <b>cellMeasures</b> and M represents the basis transformations for the reference-space basis.
     */
-    PAMatrix(const TransformedBasisValues<Scalar,DeviceType> vectorData,
+    PAMatrix(const TransformedBasisValues<Scalar,DeviceType> basisValues,
              const TensorData<Scalar,DeviceType> cellMeasures);
     
     /** \brief   Allocates storage for a fully-assembled matrix.
@@ -76,6 +77,11 @@ namespace Intrepid2 {
         \return  a container with logical shape (C,F), suitable for passing to extractDiagonal().
     */
     Data<DataScalar,DeviceType> allocateDiagonalStorage();
+    
+    /** \brief   Allocates and returns a view with shape (C).
+        \return  a container with logical shape (C), suitable for passing to extractEntry().
+    */
+    Data<DataScalar,DeviceType> allocateEntryStorage();
     
     /** \brief   Allocates and returns a view with shape (C,F2).
         \return  a container with logical shape (C,F2), suitable for passing to extractRow().
@@ -132,12 +138,14 @@ namespace Intrepid2 {
     */
     void extractRow(const Data<Scalar,DeviceType> &row, const ordinal_type &i);
     
-    /** \brief   Computes and returns the matrix entry at (i,j).
+    /** \brief   Extracts matrix entries for each cell at (i,j).
+        \param   entry [out] - Output container with logical shape (C).  See allocateEntryStorage().
         \param   i          [in] - row index.
         \param   j          [in] - column index.
-        \return  The matrix value at (i,j).
+     
+     \note This method is asymptotically more expensive per entry than extracting diagonals, rows, and columns.  The cost of this evaluation scales with the number of quadrature points, generally O(p^d), with no possibility of reuse of intermediate sums from one row/column to another.  The diagonal, row, and column extraction methods, on the other hand, produce O(p^d) values in O(p^{d+1}) time.
     */
-    Scalar extractEntry(const ordinal_type &i, const ordinal_type &j);
+    void extractEntry(const Data<Scalar,DeviceType> &entry, const ordinal_type &i, const ordinal_type &j);
   }; // end PAMatrix class
 
 } // end namespace Intrepid2
