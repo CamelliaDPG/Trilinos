@@ -41,17 +41,6 @@
 
 #include "Intrepid2_ScalarView.hpp"
 
-#include "GRADGRADStandardAssembly.hpp"
-#include "GRADGRADStructuredAssembly.hpp"
-#include "H1StandardAssembly.hpp"
-#include "H1StructuredAssembly.hpp"
-#include "HDIVStandardAssembly.hpp"
-#include "HDIVStructuredAssembly.hpp"
-#include "HCURLStandardAssembly.hpp"
-#include "HCURLStructuredAssembly.hpp"
-#include "HVOLStandardAssembly.hpp"
-#include "HVOLStructuredAssembly.hpp"
-
 #include "StandardAssembly.hpp"
 #include "PAMatrixAssembly.hpp"
 
@@ -111,7 +100,8 @@ void testStandardVersusPAMatrix(const int &meshWidth, const int &worksetSize,
                                                                                                   relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+// MARK: PAMatrixVersusStandard_D1_P1_P1
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -136,7 +126,8 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D1_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+// MARK: PAMatrixVersusStandard_D1_P1_P2
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D1_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -161,7 +152,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D1_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D1_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -186,7 +177,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -211,7 +202,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -236,7 +227,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -261,7 +252,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -286,7 +277,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -311,7 +302,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -336,7 +327,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, fs2, op2, p2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorWeighted_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorWeighted_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -378,7 +369,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -420,7 +411,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -462,7 +453,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -497,7 +488,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -532,7 +523,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -567,7 +558,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -601,7 +592,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -635,7 +626,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -669,7 +660,7 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
     (meshWidth, worksetSize, fs1, op1, p1, vectorWeight1, fs2, op2, p2, vectorWeight2, relTol, absTol, out, success);
 }
 
-TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandardVectorWeighted_D3_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(PAMatrix, PAMatrixVersusStandardVectorWeighted_D3_P2_P1, FS1Tag, Op1Tag, FS2Tag, Op2Tag)
 {
   using DataScalar  = double;
   using PointScalar = double;
@@ -715,116 +706,116 @@ TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(StructuredIntegration, StructuredVersusStandar
 
 // 1D tests: H(grad) and H(vol) bases defined
 // p1, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P1, HGRAD, VALUE, HGRAD, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P1, HGRAD, VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
 // p1, p2:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P2, HGRAD, VALUE, HGRAD, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P2, HGRAD, VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
 // p2, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P2_P1, HGRAD, VALUE, HGRAD, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D1_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P2_P1, HGRAD, VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D1_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
 
 // 1D vector-weighted test
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D1_P1_P1, HGRAD, GRAD, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D1_P1_P1, HGRAD, GRAD, HGRAD, GRAD)
 
 // 1D scalar against vector-weighted tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, HVOL, VALUE, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, HVOL, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D1_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
 
 // 1D vector-weighted against scalar tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D1_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
 
 // 2D tests: curls of H(curl) are scalars.
 // p1, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HGRAD, VALUE, HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HCURL, CURL,  HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HGRAD, VALUE, HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HCURL, CURL,  HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
 // p2, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HGRAD, VALUE, HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HCURL, CURL,  HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HGRAD, VALUE, HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HCURL, CURL,  HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
 // p1, p2:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HGRAD, VALUE, HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HCURL, CURL,  HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D2_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HGRAD, VALUE, HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HCURL, CURL,  HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D2_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
 
 // 2D vector-weighted tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P1_P1, HGRAD, GRAD, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P2_P1, HGRAD, GRAD, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P1_P1, HCURL, VALUE, HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D2_P2_P1, HCURL, VALUE, HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P1_P1, HGRAD, GRAD, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P2_P1, HGRAD, GRAD, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P1_P1, HCURL, VALUE, HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D2_P2_P1, HCURL, VALUE, HDIV,  VALUE)
 
 // 2D scalar against vector-weighted tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HVOL, VALUE, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HGRAD, VALUE, HDIV, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HVOL, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D2_P1_P1, HGRAD, VALUE, HDIV, VALUE)
 
 // 2D vector-weighted against scalar tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HDIV, VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D2_P1_P1, HDIV, VALUE, HGRAD, VALUE)
 
 // 3D tests: curls of H(curl) are vectors
 // p1, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HGRAD, GRAD,  HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HCURL, CURL,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HGRAD, GRAD,  HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HCURL, CURL,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P1, HVOL,  VALUE, HGRAD, VALUE)
 // p2, p1:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HGRAD, GRAD,  HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HCURL, CURL,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HGRAD, GRAD,  HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HCURL, CURL,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P2_P1, HVOL,  VALUE, HGRAD, VALUE)
 // p1, p2:
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HGRAD, GRAD,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HGRAD, GRAD,  HCURL, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HGRAD, GRAD,  HCURL, CURL)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HGRAD, VALUE, HDIV,  DIV)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HDIV,  DIV,   HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HCURL, CURL,  HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandard_D3_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HGRAD, GRAD,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HGRAD, GRAD,  HCURL, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HGRAD, GRAD,  HCURL, CURL)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HGRAD, VALUE, HDIV,  DIV)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HDIV,  DIV,   HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HCURL, CURL,  HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandard_D3_P1_P2, HVOL,  VALUE, HGRAD, VALUE)
 
 // 3D vector-weighted tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D3_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D3_P2_P1, HCURL, VALUE, HDIV,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorWeighted_D3_P2_P1, HCURL, CURL,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D3_P2_P1, HGRAD, GRAD,  HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D3_P2_P1, HCURL, VALUE, HDIV,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorWeighted_D3_P2_P1, HCURL, CURL,  HGRAD, GRAD)
 
 // 3D scalar against vector-weighted tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HVOL, VALUE, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HGRAD, VALUE, HDIV, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HVOL, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HGRAD, VALUE, HGRAD, GRAD)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardScalarAgainstVectorDotVector_D3_P1_P1, HGRAD, VALUE, HDIV, VALUE)
 
 // 3D vector-weighted against scalar tests
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
-TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(StructuredIntegration, StructuredVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HDIV, VALUE, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HGRAD, GRAD, HVOL,  VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HGRAD, GRAD, HGRAD, VALUE)
+TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(PAMatrix, PAMatrixVersusStandardVectorDotVectorAgainstScalar_D3_P1_P1, HDIV, VALUE, HGRAD, VALUE)
 
 } // anonymous namespace
