@@ -25,8 +25,8 @@ namespace Impl
 {
   //! Given (C,P[,D,D]) transform and (C,P) pointwise weights, construct a suitable container for storing the pointwise weighted transform.
   template<typename DeviceType,class Scalar>
-  Data<DeviceType,Scalar> allocateComposedWeightedTransform(Data<DeviceType,Scalar> &composedTransform,
-                                                            TensorData<DeviceType,Scalar> &pointWeights)
+  Data<Scalar,DeviceType> allocateComposedWeightedTransform(const Data<Scalar,DeviceType> &composedTransform,
+                                                            const TensorData<Scalar,DeviceType> &pointWeights)
   {
     auto cellDimInfo = composedTransform.getDimensionInfo(0); // cell dimension
     int numTensorComponents = pointWeights.numTensorComponents();
@@ -38,22 +38,22 @@ namespace Impl
     }
     
     int numPoints = composedTransform.extent_int(1);
-    DimensionInfo pointDimInfo(numPoints,GENERAL,numPoints,numPoints,-1);
+    DimensionInfo pointDimInfo {numPoints,GENERAL,numPoints,numPoints,-1};
     
     if (composedTransform.rank() == 2)
     {
-      return Data<DeviceType,Scalar>({cellDimInfo,pointDimInfo});
+      return Data<Scalar,DeviceType>({cellDimInfo,pointDimInfo});
     }
     else if (composedTransform.rank() == 3)
     {
       auto D1DimInfo = composedTransform.getDimensionInfo(2);
-      return Data<DeviceType,Scalar>({cellDimInfo,pointDimInfo,D1DimInfo});
+      return Data<Scalar,DeviceType>({cellDimInfo,pointDimInfo,D1DimInfo});
     }
     else if (composedTransform.rank() == 4)
     {
       auto D1DimInfo = composedTransform.getDimensionInfo(2);
       auto D2DimInfo = composedTransform.getDimensionInfo(3);
-      return Data<DeviceType,Scalar>({cellDimInfo,pointDimInfo,D1DimInfo,D2DimInfo});
+      return Data<Scalar,DeviceType>({cellDimInfo,pointDimInfo,D1DimInfo,D2DimInfo});
     }
     else
     {
@@ -65,11 +65,13 @@ namespace Impl
 template<typename DeviceType,class Scalar>
 PAMatrix<DeviceType,Scalar>::PAMatrix(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeft,
                                       const TensorData<Scalar,DeviceType> cellMeasures,
-                                      const TransformedBasisValues<Scalar,DeviceType> basisValuesRight)
+                                      const TransformedBasisValues<Scalar,DeviceType> basisValuesRight,
+                                      const ScalarView<Orientation,DeviceType> orientations)
 :
 _cellMeasures(cellMeasures),
 _basisValuesLeft(basisValuesLeft),
-_basisValuesRight(basisValuesRight)
+_basisValuesRight(basisValuesRight),
+_orientations(orientations)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
@@ -77,33 +79,22 @@ _basisValuesRight(basisValuesRight)
   const bool rightHasOrdinalFilter = basisValuesRight.basisValues().ordinalFilter().extent_int(0) > 0;
   TEUCHOS_TEST_FOR_EXCEPTION(leftHasOrdinalFilter || rightHasOrdinalFilter, std::invalid_argument, "Ordinal filters for BasisValues are not yet supported by PAMatrix");
   
-  // integral data may have shape (C,F1,F2) or (if the variation type is CONSTANT in the cell dimension) shape (F1,F2)
-  const int integralViewRank = integrals.getUnderlyingViewRank();
-  
-  if (!sumInto)
-  {
-    integrals.clear();
-  }
-  
-  const int cellDataExtent = integrals.getDataExtent(0);
-  const int numFieldsLeft  = basisValuesLeft.numFields();
-  const int numFieldsRight = basisValuesRight.numFields();
-  const int spaceDim       = basisValuesLeft.spaceDim();
+  const int spaceDim = basisValuesLeft.spaceDim();
   
   // MARK: checks for supported construction
   INTREPID2_TEST_FOR_EXCEPTION(basisValuesLeft.spaceDim() != basisValuesRight.spaceDim(), std::invalid_argument, "basisValuesLeft and basisValuesRight must agree on the space dimension");
   
-  const int leftFamilyCount  =  basisValuesLeft.basisValues().numFamilies();
-  const int rightFamilyCount = basisValuesRight.basisValues().numFamilies();
+  const int leftFamilyCount  =  basisValuesLeft.vectorData().numFamilies();
+  const int rightFamilyCount = basisValuesRight.vectorData().numFamilies();
   
-  // we require that the number of tensor components in the vectors are the same for each vector entry
+  // we require that the number of tensor components in the vectors is the same for each vector entry
   // this is not strictly necessary, but it makes implementation easier, and we don't at present anticipate other use cases
   int numTensorComponentsLeft = -1;
-  const bool leftIsVectorValued = basisValuesLeft.basisValues().isValid();
+  const bool leftIsVectorValued = basisValuesLeft.vectorData().isValid();
   
   if (leftIsVectorValued)
   {
-    const auto &refVectorLeft   = basisValuesLeft.basisValues();
+    const auto &refVectorLeft   = basisValuesLeft.vectorData();
     int numFamiliesLeft         = refVectorLeft.numFamilies();
     int numVectorComponentsLeft = refVectorLeft.numComponents();
     Kokkos::Array<int,7> maxFieldsForComponentLeft  {0,0,0,0,0,0,0};
@@ -136,11 +127,11 @@ _basisValuesRight(basisValuesRight)
     }
   }
   int numTensorComponentsRight = -1;
-  const bool rightIsVectorValued = basisValuesRight.basisValues().isValid();
+  const bool rightIsVectorValued = basisValuesRight.vectorData().isValid();
   
   if (rightIsVectorValued)
   {
-    const auto &refVectorRight   = basisValuesRight.basisValues();
+    const auto &refVectorRight   = basisValuesRight.vectorData();
     int numFamiliesRight         = refVectorRight.numFamilies();
     int numVectorComponentsRight = refVectorRight.numComponents();
     Kokkos::Array<int,7> maxFieldsForComponentRight {0,0,0,0,0,0,0};
@@ -350,13 +341,15 @@ _basisValuesRight(basisValuesRight)
       composedTransform = Data<Scalar,DeviceType>(identityUnderlyingView,extents,variationTypes);
     }
     // allocate weighted transform
-    _composedWeightedTransform = allocateComposedWeightedTransform(composedTransform,cellMeasures);
+    _composedWeightedTransform = Impl::allocateComposedWeightedTransform<DeviceType,Scalar>(composedTransform,cellMeasures);
     auto composedWeightedTransform = _composedWeightedTransform; // avoid implicit reference to this
     // MARK: fill weighted transform container
     int rank = composedWeightedTransform.rank();
-    int d1_dim = composedWeightedTransform.getDataExtent(2);
-    int d2_dim = composedWeightedTransform.getDataExtent(3);
-    auto d1_variation_type = composedWeightedTransform.getVariationTypes()[2];
+    int cellDataExtent    = composedWeightedTransform.getDataExtent(0);
+    int numPoints         = composedWeightedTransform.getDataExtent(1);
+    int d1_dim            = composedWeightedTransform.getDataExtent(2);
+    int d2_dim            = composedWeightedTransform.getDataExtent(3);
+    auto d1_variationType = composedWeightedTransform.getVariationTypes()[2];
     
     if (rank == 2)
     {
@@ -403,9 +396,10 @@ _basisValuesRight(basisValuesRight)
 
 template<typename DeviceType,class Scalar>
 PAMatrix<DeviceType,Scalar>::PAMatrix(const TransformedBasisValues<Scalar,DeviceType> basisValues,
-                                      const TensorData<Scalar,DeviceType> cellMeasures)
+                                      const TensorData<Scalar,DeviceType> cellMeasures,
+                                      const ScalarView<Orientation,DeviceType> orientations)
 :
-PAMatrix<DeviceType,Scalar>(basisValues,cellMeasures,basisValues)
+PAMatrix<DeviceType,Scalar>(basisValues,cellMeasures,basisValues,orientations)
 {}
 
 template<typename DeviceType,class Scalar>
@@ -427,13 +421,13 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
   const auto cellMeasureData = _cellMeasures.getTensorComponent(0);
   const auto leftTransform = _basisValuesLeft.transform();
   
-  DimensionInfo combinedCellDimInfo = _cellMeasure.getDimensionInfo(CELL_DIM);
+  DimensionInfo combinedCellDimInfo = cellMeasureData.getDimensionInfo(CELL_DIM);
   // transforms may be invalid, indicating an identity transform.  If so, it will not constrain the output at all.
-  if (basisValuesLeft.transform().isValid())
+  if (_basisValuesLeft.transform().isValid())
   {
-    combinedCellDimInfo = combinedDimensionInfo(combinedCellDimInfo, basisValuesLeft.transform().getDimensionInfo(CELL_DIM));
+    combinedCellDimInfo = combinedDimensionInfo(combinedCellDimInfo, _basisValuesLeft.transform().getDimensionInfo(CELL_DIM));
   }
-  if (basisValuesRight.transform().isValid())
+  if (_basisValuesRight.transform().isValid())
   {
     combinedCellDimInfo = combinedDimensionInfo(combinedCellDimInfo, _basisValuesRight.transform().getDimensionInfo(CELL_DIM));
   }
@@ -460,7 +454,11 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
   }
 } // allocateMatrixStorage()
 
-
+template<typename DeviceType,class Scalar>
+void PAMatrix<DeviceType,Scalar>::assemble(Data<Scalar,DeviceType> &integrals)
+{
+  INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unimplemented method");
+}
 
 } // end namespace Intrepid2
 #endif
