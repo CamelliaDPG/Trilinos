@@ -18,6 +18,7 @@
 #include "Intrepid2_PAMatrix.hpp"
 
 #include "Intrepid2_DataDimensionInfo.hpp"
+#include "Intrepid2_OrientationTools.hpp"
 
 namespace Intrepid2 {
 
@@ -457,7 +458,26 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
 template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::assemble(Data<Scalar,DeviceType> &integrals)
 {
-  INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unimplemented method");
+  //placeholder implementation: just invoke IntegrationTools
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using MemorySpace    = typename DeviceType::memory_space;
+  
+  bool sumInto = false;
+  double approximateFlopCountIntegrate = 0;
+  IntegrationTools<DeviceType>::integrate(integrals, _basisValuesLeft, _cellMeasures, _basisValuesRight, sumInto, &approximateFlopCountIntegrate);
+  ExecutionSpace().fence();
+  
+  auto leftBasis  =  _basisValuesLeft.basisValues().getBasis();
+  auto rightBasis = _basisValuesRight.basisValues().getBasis();
+  
+  if (_orientations.size() > 0)
+  {
+    // modify integrals by orientations -- we are NOT allowed to use the same view as source and result, so let's create a mirror view for source.
+    auto unorientatedValues = Kokkos::create_mirror_view_and_copy(MemorySpace(), integrals.getUnderlyingView());
+    OrientationTools<DeviceType>::modifyMatrixByOrientation(integrals.getUnderlyingView(), unorientatedValues,
+                                                            _orientations, leftBasis.get(), rightBasis.get());
+    ExecutionSpace().fence();
+  }
 }
 
 } // end namespace Intrepid2

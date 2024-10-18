@@ -10,7 +10,7 @@
 //  PAMatrixAssembly.hpp
 //  Trilinos
 //
-//  Created by Roberts, Nathan V on 2/28/23.
+//  Created by Roberts, Nathan V on 10/17/24.
 //
 
 #ifndef PAMatrixAssembly_h
@@ -144,9 +144,11 @@ Intrepid2::PAMatrix<DeviceType,Scalar> constructPAMatrix(Intrepid2::CellGeometry
   
   BasisValues<Scalar,DeviceType> basis1Values = basis1->allocateBasisValues(tensorCubaturePoints, op1);
   basis1->getValues(basis1Values, tensorCubaturePoints, op1);
+  basis1Values.setBasis(basis1);
   
   BasisValues<Scalar,DeviceType> basis2Values = basis2->allocateBasisValues(tensorCubaturePoints, op2);
   basis2->getValues(basis2Values, tensorCubaturePoints, op2);
+  basis2Values.setBasis(basis2);
   
   int cellOffset = 0;
   
