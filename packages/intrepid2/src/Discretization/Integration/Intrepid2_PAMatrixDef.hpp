@@ -24,6 +24,208 @@ namespace Intrepid2 {
 
 namespace Impl
 {
+  template<typename DeviceType,class Scalar>
+  class GemmSequenceFunctor
+  {
+  public:
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using TeamPolicy = Kokkos::TeamPolicy<ExecutionSpace>;
+    using TeamMember = typename TeamPolicy::member_type;
+    
+    int numCells_;
+    int numPoints_;
+    int D1_ = -1;    // first dimension of pointwise data, if it is vector- or matrix-valued
+    int D2_ = -1;    // second dimension of pointwise data, if it is matrix-valued
+    int numVectors_; // N, the number of vectors in the multi-vector input/output
+    int inputSize_;  // total number of  input data entries per cell
+    int outputSize_; // total number of output data entries per cell
+    int maxIntermediateSize_; // the highest entry count we'll need per cell as we apply operators
+    int fad_size_output_;
+    
+    using View2D = Kokkos::View<  Scalar**,DeviceType>;
+    using View3D = Kokkos::View< Scalar***,DeviceType>;
+    using View4D = Kokkos::View<Scalar****,DeviceType>;
+    
+    Kokkos::Array<int,8> rightOpRowDims_; // point dimension
+    Kokkos::Array<int,8> rightOpColDims_; // field dimension
+    
+    Kokkos::Array<int,8>  leftOpRowDims_; // field dimension
+    Kokkos::Array<int,8>  leftOpColDims_; // point dimension
+    
+    Kokkos::Array< View2D, 8> refSpaceOpsRight_; // 2D views, shape (Pj,F2j) (ith component); if operator is vector-valued or tensor-valued, the Pi dimension will be packed (so that it will have more entries than the nominal point count)
+    Kokkos::Array< View2D, 8> refSpaceOpsLeft_;  // 2D views, shape (F1i,Pi)
+    
+    int numOpsRight_;
+    int numOpsLeft_;
+    
+    int pointDataRank_          = -1; // 0 for scalar data, 1 for vector, 2 for matrix
+    int pointExpansionFactor_   =  1; // > 1 for vector/matrix-valued point data when right vector evaluation produces a scalar
+    int pointContractionFactor_ =  1; // > 1 for vector/matrix-valued point data when right vector evaluation produces a vector
+    
+    View3D  inputView_; // shape (C,F2,N), where F2 is the row dimension of the full operator, and N is the number of vectors
+    View3D outputView_; // shape (C,F1,N), where F1 is the column dimension of the full operator
+    
+    //! bottleneck constructor.  Only one of scalarPointData, vectorPointData, matrixPointData may be non-empty.
+    GemmSequenceFunctor(View3D outputView, View3D inputView,
+                        std::vector<View2D> refSpaceOpsRight, std::vector<View2D> refSpaceOpsLeft,
+                        View2D scalarPointData, View3D vectorPointData, View4D matrixPointData)
+    :
+    inputView_(inputView),
+    outputView_(outputView)
+    {
+      const bool allocateFadStorage = !(std::is_standard_layout<Scalar>::value && std::is_trivial<Scalar>::value);
+      if (allocateFadStorage)
+      {
+        fad_size_output_ = dimension_scalar(inputView_);
+      }
+      numOpsRight_ = int(refSpaceOpsRight.size());
+      INTREPID2_TEST_FOR_EXCEPTION(numOpsRight_ > refSpaceOpsRight_.size(), std::invalid_argument, "Too many right ops");
+      
+      numVectors_ = inputView_.extent_int(2);
+      INTREPID2_TEST_FOR_EXCEPTION(numVectors_ != outputView_.extent_int(2), std::invalid_argument, "inputView and outputView must agree on the number of vectors");
+      
+      inputSize_  =  inputView_.extent_int(1) * numVectors_;   // F2 * N
+      outputSize_ = outputView_.extent_int(1) * numVectors_;   // F1 * N
+      int maxSize = max(inputSize_,outputSize_);
+      int currentSize = inputSize_;
+      for (int rj=0; rj<numOpsRight_; rj++)
+      {
+        const auto & rightOp = refSpaceOpsRight[rj];
+        refSpaceOpsRight_[rj] = rightOp;
+        // right ops convert from F2j dims to Pj dims
+        rightOpRowDims_[rj] = rightOp.extent_int(0); // Pj
+        rightOpColDims_[rj] = rightOp.extent_int(1); // F2j
+        
+        currentSize = currentSize / rightOpColDims_[rj] * rightOpRowDims_[rj];
+        maxSize = max(currentSize, maxSize);
+      }
+      if (scalarPointData.size() > 0)
+      {
+        pointDataRank_ = 0;
+        numPoints_ = scalarPointData.extent_int(1); // (C,P)
+      }
+      else if (vectorPointData.size() > 0)
+      {
+        pointDataRank_ = 1;
+        numPoints_ = vectorPointData.extent_int(1); // (C,P,D)
+        D1_        = vectorPointData.extent_int(2); // (C,P,D)
+        
+        if (currentSize == numVectors_ * numPoints_)
+        {
+          pointExpansionFactor_ = D1_;
+        }
+        else if (currentSize == numVectors_ * numPoints_ * D1_)
+        {
+          pointContractionFactor_ = D1_;
+        }
+        else
+        {
+          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "incompatible size sequence");
+        }
+      }
+      else if (matrixPointData.size() > 0)
+      {
+        pointDataRank_ = 2;
+        numPoints_ = matrixPointData.extent_int(1); // (C,P,D,D)
+        D1_        = matrixPointData.extent_int(2); // (C,P,D,D)
+        D2_        = matrixPointData.extent_int(3); // (C,P,D,D)
+        
+        if (currentSize == numVectors_ * numPoints_)
+        {
+          pointExpansionFactor_ = D1_ * D2_;
+        }
+        else if (currentSize == numVectors_ * numPoints_ * D2_)
+        {
+          // pointwise mat-vec: contract by D2, expand by D1
+          pointContractionFactor_ = D2_;
+          pointExpansionFactor_   = D1_;
+        }
+        else
+        {
+          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "incompatible size sequence");
+        }
+      }
+      else
+      {
+        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "must specify scalar, vector, or matrix-valued point data");
+      }
+      currentSize *= pointExpansionFactor_;
+      currentSize /= pointContractionFactor_;
+      maxSize = max(currentSize, maxSize);
+      
+      numOpsLeft_  = int(refSpaceOpsLeft.size());
+      INTREPID2_TEST_FOR_EXCEPTION(numOpsLeft_ > refSpaceOpsLeft_.size(), std::invalid_argument, "Too many left ops");
+      for (int ri=0; ri<numOpsLeft_; ri++)
+      {
+        const auto & leftOp = refSpaceOpsLeft[ri];
+        refSpaceOpsLeft_[ri] = leftOp;
+        // left ops convert from Pi dims to F2i dims
+        leftOpRowDims_[ri] = leftOp.extent_int(0); // F1i
+        leftOpColDims_[ri] = leftOp.extent_int(1); // Pi
+        
+        currentSize = currentSize / leftOpColDims_[ri] * leftOpRowDims_[ri];
+        maxSize = max(currentSize, maxSize);
+      }
+      INTREPID2_TEST_FOR_EXCEPTION(currentSize != outputSize_, std::invalid_argument, "Incompatible dimensions");
+    }
+    
+    GemmSequenceFunctor(std::vector<View2D> refSpaceOpsRight, View2D scalarPointData, std::vector<View2D> refSpaceOpsLeft)
+    :
+    GemmSequenceFunctor(refSpaceOpsRight, refSpaceOpsLeft, scalarPointData, View3D(), View4D())
+    {}
+    
+    GemmSequenceFunctor(std::vector<View2D> refSpaceOpsRight, View3D vectorPointData, std::vector<View2D> refSpaceOpsLeft)
+    :
+    GemmSequenceFunctor(refSpaceOpsRight, refSpaceOpsLeft, View2D(), vectorPointData, View4D())
+    {}
+    
+    GemmSequenceFunctor(std::vector<View2D> refSpaceOpsRight, View4D matrixPointData, std::vector<View2D> refSpaceOpsLeft)
+    :
+    GemmSequenceFunctor(refSpaceOpsRight, refSpaceOpsLeft, View2D(), View3D(), matrixPointData)
+    {}
+    
+    KOKKOS_INLINE_FUNCTION
+    void operator()( const TeamMember & teamMember ) const
+    {
+      const int cellOrdinal  = teamMember.league_rank();
+      const int threadNumber = teamMember.team_rank();
+      const int numThreads   = teamMember.team_size(); // num threads
+      
+      using ScratchView = Kokkos::View<Scalar*, DeviceType, Kokkos::MemoryUnmanaged>;
+      
+      // we alternate between using these two workspaces as the destination for the gemms
+      ScratchView workspace1;
+      ScratchView workspace2;
+      
+      if (fad_size_output_ > 0) 
+      {
+        workspace1 = ScratchView(teamMember.team_shmem(), maxIntermediateSize_, fad_size_output_);
+        workspace2 = ScratchView(teamMember.team_shmem(), maxIntermediateSize_, fad_size_output_);
+      }
+      else 
+      {
+        workspace1 = ScratchView(teamMember.team_shmem(), maxIntermediateSize_);
+        workspace2 = ScratchView(teamMember.team_shmem(), maxIntermediateSize_);
+      }
+      
+      // TODO: sequence of gemms.  We will need to either move memory to allow the gemms to take place on the whole structure,
+      //       or to specify gemms on contiguous chunks; due to the slicing of the tensor, in general the input data does not
+      //       have structure of a monolithic matrix, but it does have matrix blocks whose products can be placed into a result
+      //       in a memory-contiguous fashion.  Splitting into smaller gemms *might* allow expression of more parallelism, but
+      //       I doubt we can beat vendor-provided implementations.
+      
+//      Scalar result;
+//      Kokkos::parallel_reduce(Kokkos::TeamThreadRange(teamMember,0,maxFields), [&] (const int& fieldOrdinal, Scalar &contractionThusFar)
+//      {
+//        
+//      }, result);
+      
+      // synchronize threads
+      teamMember.team_barrier();
+    }
+    
+  };
+
   //! Given (C,P[,D,D]) transform and (C,P) pointwise weights, construct a suitable container for storing the pointwise weighted transform.
   template<typename DeviceType,class Scalar>
   Data<Scalar,DeviceType> allocateComposedWeightedTransform(const Data<Scalar,DeviceType> &composedTransform,
