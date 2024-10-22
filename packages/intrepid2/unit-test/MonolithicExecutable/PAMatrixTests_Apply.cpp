@@ -85,10 +85,7 @@ void testPAMatrixApply(const int &meshWidth, const int &worksetSize,
   const int numRows  = fullMatrix.extent_int(1); // (C,F1,F2)
   const int numCols  = fullMatrix.extent_int(2); // (C,F1,F2)
   
-//  const ScalarView<Scalar,DeviceType> &outputVector,
-//  const ScalarView<Scalar,DeviceType> & inputVector
-  
-  ScalarView<Scalar, DeviceType>  inputVector( "inputVector",numCells,numCols); // C,F2 -- length
+  ScalarView<Scalar, DeviceType>  inputVector( "inputVector",numCells,numCols); // C,F2
   ScalarView<Scalar, DeviceType> outputVector("outputVector",numCells,numRows); // C,F1
   
   Kokkos::deep_copy(inputVector,0.0);
