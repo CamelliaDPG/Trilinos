@@ -456,6 +456,13 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
 } // allocateMatrixStorage()
 
 template<typename DeviceType,class Scalar>
+void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &outputVector,
+                                        const ScalarView<Scalar,DeviceType> & inputVector)
+{
+  // TODO: implement this
+}
+
+template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::assemble(Data<Scalar,DeviceType> &integrals)
 {
   //placeholder implementation: just invoke IntegrationTools
