@@ -1383,7 +1383,7 @@ namespace Intrepid2 {
                     {
                       Scalar Gy_local = 0;
                       
-                      // not a Fad type; we're allow to have a vector range
+                      // not a Fad type; we're allowed to have a vector range
                       Kokkos::parallel_reduce(Kokkos::ThreadVectorRange(teamMember, pointBounds_y), [&] (const int &ly, Scalar &integralThusFar)
                       {
                         const Scalar &  leftValue =  leftFields_y(i1,ly);
