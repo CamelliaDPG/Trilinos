@@ -82,6 +82,7 @@ namespace Intrepid2 {
     TransformedBasisValues<Scalar,DeviceType> _basisValuesLeft, _basisValuesRight;
     const ScalarView<Orientation,DeviceType> _orientations;
     static constexpr bool layoutLeft_ = true; // BLAS expects this
+    int maxIntermediateSize_ = 0;
     
     using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>>; // left, pointData, right
     std::vector<ComponentSequence> componentIntegralsToSum_;

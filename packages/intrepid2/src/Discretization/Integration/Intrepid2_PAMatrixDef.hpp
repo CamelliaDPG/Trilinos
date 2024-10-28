@@ -938,6 +938,39 @@ _orientations(orientations)
     }
     leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData().numFieldsInFamily(leftFamilyOrdinal) : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
   }
+  
+  // set maxIntermediateSize_: the per-cell size required for intermediate computations, which is used to size the workspaces
+  const int F2 = basisValuesRight.extent_int(1); // C,F,P,…
+  const int F1 = basisValuesLeft.extent_int(1);
+  maxIntermediateSize_ = std::max(F1,F2);
+  
+  for (const auto &entry : componentIntegralsToSum_)
+  {
+    const auto & leftOps       = std::get<0>(entry);
+    const auto & pointDataSpec = std::get<1>(entry);
+    const auto & rightOps      = std::get<2>(entry);
+    
+    int perCellSize = F2; // num basis coefficients in the vector we multiply
+    // we start the contraction on the right
+    for (const auto &rightOp : rightOps)
+    {
+      perCellSize /= rightOp.N;
+      perCellSize *= rightOp.M;
+      maxIntermediateSize_ = max(perCellSize,maxIntermediateSize_);
+    }
+    
+    perCellSize /= pointDataSpec.bSpan;
+    perCellSize *= pointDataSpec.aSpan;
+    maxIntermediateSize_ = max(perCellSize,maxIntermediateSize_);
+    
+    for (const auto &leftOp : leftOps)
+    {
+      perCellSize /= leftOp.N;
+      perCellSize *= leftOp.M;
+      maxIntermediateSize_ = max(perCellSize,maxIntermediateSize_);
+    }
+  }
+  
 } // PAMatrix()
 
 template<typename DeviceType,class Scalar>
@@ -999,6 +1032,23 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
     return Data<Scalar,DeviceType>(data, extents, variationTypes);
   }
 } // allocateMatrixStorage()
+
+template<typename DeviceType,class Scalar>
+Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize)
+{
+  using View1D = Kokkos::View<Scalar*,DeviceType>;
+  const int size1D = maxIntermediateSize_ * worksetSize;
+  return View1D("PAMatrix workspace", size1D);
+}
+
+template<typename DeviceType,class Scalar>
+Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize,
+                                                                                const ordinal_type &n)
+{
+  using View1D = Kokkos::View<Scalar*,DeviceType>;
+  const int size1D = maxIntermediateSize_ * worksetSize * n;
+  return View1D("PAMatrix workspace", size1D);
+}
 
 template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &outputVector,
