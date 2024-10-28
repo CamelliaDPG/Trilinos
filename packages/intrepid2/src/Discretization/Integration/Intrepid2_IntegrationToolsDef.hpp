@@ -2040,6 +2040,7 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
     
   if ((numPointTensorComponents == numTensorComponentsLeft) && basisValuesLeft.axisAligned() && basisValuesRight.axisAligned())
   {
+    // MARK: Reference-space integration (separable integral components)
     // cellMeasures is a non-trivial tensor product, and the pullbacks are all diagonals.
     
     // in this case, the integrals in each tensorial direction are entirely separable
@@ -2242,7 +2243,7 @@ void IntegrationTools<DeviceType>::integrate(Data<Scalar,DeviceType> integrals, 
       *approximateFlops += (2 + spaceDim * (3 + numPointTensorComponents)) * cellDataExtent * numFieldsLeft * numFieldsRight;
     }
   }
-  else // general case (not axis-aligned + affine tensor-product structure)
+  else // MARK: general case (not axis-aligned + affine tensor-product structure)
   {
     // prepare composed transformation matrices
     const Data<Scalar,DeviceType> & leftTransform  = basisValuesLeft.transform();
