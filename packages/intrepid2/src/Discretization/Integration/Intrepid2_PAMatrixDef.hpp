@@ -452,8 +452,8 @@ _orientations(orientations)
   // MARK: checks for supported construction
   INTREPID2_TEST_FOR_EXCEPTION(basisValuesLeft.spaceDim() != basisValuesRight.spaceDim(), std::invalid_argument, "basisValuesLeft and basisValuesRight must agree on the space dimension");
   
-  const int leftFamilyCount  =  basisValuesLeft.vectorData().numFamilies();
-  const int rightFamilyCount = basisValuesRight.vectorData().numFamilies();
+  const int leftFamilyCount  =  basisValuesLeft.basisValues().numFamilies();
+  const int rightFamilyCount = basisValuesRight.basisValues().numFamilies();
   
   // we require that the number of tensor components in the vectors is the same for each vector entry
   // this is not strictly necessary, but it makes implementation easier, and we don't at present anticipate other use cases
@@ -784,7 +784,7 @@ _orientations(orientations)
       }
       // set up the individual operators as 1D views
       // left operators contract in the point (and space) dimensions
-      std::vector<OpSpec> leftOperators(leftComponent.numTensorComponents());
+      std::vector<OpSpec> leftOperators;
       for (int r=0; r<leftComponent.numTensorComponents(); r++)
       {
         const auto opData  = leftComponent.getTensorComponent(r).getUnderlyingView();
@@ -816,7 +816,7 @@ _orientations(orientations)
         {
           INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "PAMatrix: Unsupported component operator rank");
         }
-        leftOperators.push_back({opView,opPoints});
+        leftOperators.push_back({opView,opFields,opPoints});
       }
       
       int rightFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families // TODO: figure out what a nonzero value means for matrix-free apply() implementation
@@ -841,7 +841,7 @@ _orientations(orientations)
           INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(leftComponent.numTensorComponents() != rightComponent.numTensorComponents(), std::invalid_argument, "left TensorData and right TensorData have different number of tensor components.  This is not supported.");
           
           // right operators contract in the field dimension
-          std::vector<OpSpec> rightOperators(rightComponent.numTensorComponents());
+          std::vector<OpSpec> rightOperators;
           for (int r=0; r<rightComponent.numTensorComponents(); r++)
           {
             const auto  opData = rightComponent.getTensorComponent(r).getUnderlyingView();
@@ -874,7 +874,7 @@ _orientations(orientations)
             {
               INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "PAMatrix: Unsupported component operator rank");
             }
-            rightOperators.push_back({opView,opPoints});
+            rightOperators.push_back({opView,opPoints,opFields});
           }
           
           const int aSpan =  leftComponent.extent_int(2);
@@ -1056,7 +1056,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
                                         const Kokkos::View<Scalar*,DeviceType> &workspace1,
                                         const Kokkos::View<Scalar*,DeviceType> &workspace2)
 {
-  // TODO: add worksetSize argument
+  // TODO: add worksetSize argument (assume workSetSize == C for now)
   using ExecutionSpace = typename DeviceType::execution_space;
   using View1D = Kokkos::View<Scalar*,DeviceType>;
   
