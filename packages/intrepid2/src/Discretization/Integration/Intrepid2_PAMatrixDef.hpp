@@ -20,10 +20,134 @@
 #include "Intrepid2_DataDimensionInfo.hpp"
 #include "Intrepid2_OrientationTools.hpp"
 
+//#ifdef __APPLE__
+//#include <Accelerate/Accelerate.h>
+//#else
+//#include <cblas.h>
+//#endif
+
+#include <Teuchos_BLAS.hpp>
+
+#ifdef HAVE_INTREPID2_KOKKOSKERNELS
+#include <KokkosBlas.hpp>
+#endif
+
 namespace Intrepid2 {
 
 namespace Impl
 {
+  template<typename ExecutionSpace,typename Scalar>
+  std::enable_if_t<std::is_same<ExecutionSpace, typename Kokkos::Serial::execution_space>::value>
+  gemm(const char transA, const char transB,
+       const ordinal_type &M, const ordinal_type &N, const ordinal_type &K,
+       const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
+       const Scalar *B, const Scalar &beta, Scalar *C)
+  {
+    Teuchos::ETransp trA = (transA == 'T') ? Teuchos::TRANS : (transA == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
+    Teuchos::ETransp trB = (transB == 'T') ? Teuchos::TRANS : (transB == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
+    Teuchos::BLAS<int,Scalar> blas;
+    blas.GEMM(trA, trB, M, N, K, alpha, A, LDA, B, N, beta, C, N);
+  }
+
+#ifdef HAVE_INTREPID2_KOKKOSKERNELS
+  template<typename DeviceType,typename Scalar>
+  std::enable_if_t<!std::is_same<typename DeviceType::execution_space, typename Kokkos::Serial::execution_space>::value>
+  gemm(const char transA, const char transB,
+       const ordinal_type &M, const ordinal_type &N, const ordinal_type &K,
+       const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
+       const Scalar *B, const Scalar &beta, Scalar *C)
+  {
+    using ExecutionSpace = DeviceType::execution_space;
+    using View2D = Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
+    View2D AView(M,K);
+    View2D BView(N,K);
+    View2D CView(M,N);
+    
+    ExecutionSpace exec_space;
+    KokkosBlas::gemm(exec_space, transA, transB, alpha, AView, BView, beta, CView);
+  }
+#else
+  template<typename DeviceType,typename Scalar>
+  std::enable_if_t<!std::is_same<typename DeviceType::execution_space, typename Kokkos::Serial::execution_space>::value>
+  gemm(const char transA, const char transB,
+       const ordinal_type &M, const ordinal_type &N, const ordinal_type &K,
+       const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
+       const Scalar *B, const Scalar &beta, Scalar *C)
+  {
+    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "To support gemm on this ExecutionSpace, please build Intrepid2 with KokkosKernels");
+  }
+#endif
+
+// Define GemmExecutionSpace: use Kokkos-supported GPUs if enabled; otherwise use serial.  Note that on macOS if you use serial and are using Apple's BLAS on an M-series Mac, it will run on the M-series GPU (and will be very fast).
+#if defined(KOKKOS_ENABLE_CUDA)
+using GemmExecutionSpace = Kokkos::Cuda;
+#elif defined(KOKKOS_ENABLE_HIP)
+using GemmExecutionSpace = Kokkos::HIP;
+#else
+using GemmExecutionSpace = Kokkos::Serial;
+#endif
+
+/*!
+ Given tensor data with shape (D1, D2, …, Dn), prepare for a contraction in the Dk dimension by reordering as
+  (Di, D1, D2, …, D{k-1}, D{k+1}, …, Dn)
+ */
+  template<typename DeviceType,class Scalar>
+  class TensorReorderForGemmFunctor
+  {
+  public:
+    using ExecutionSpace = typename DeviceType::execution_space;
+    using View1D = Kokkos::View<Scalar*,DeviceType>;
+    
+    View1D outputView_;
+    View1D  inputView_;
+    
+    int  leftDims_ = 1; // product D1 * D2 … * D{k-1}
+    int      kDim_ = 1; // Dk
+    int rightDims_ = 1; // product D{k+1} * … * Dn
+    
+    static constexpr bool layoutLeft_ = true; // aka column-major (Fortran-style): columns are together
+    
+    //! outputView and inputView must each be large enough to accommodate leftDims * iDim * rightDims, but they may be oversized.
+    TensorReorderForGemmFunctor(View1D outputView, View1D inputView,
+                                int leftDims, int kDim, int rightDims)
+    :
+    outputView_(outputView),
+    inputView_(inputView),
+    leftDims_(leftDims),
+    kDim_(kDim),
+    rightDims_(rightDims)
+    {}
+    
+    KOKKOS_INLINE_FUNCTION
+    void operator()( const int &i, const int &j, const int &k) const
+    {
+      // source has (i,k,j)
+      // dest   has (k,i,j)
+      
+      // i should iterate over leftDims (flattened)
+      // j should iterate over rightDims (flattened)
+      // k should iterate over Dk
+      if (layoutLeft_) // column-major
+      {
+        const int dest_idx = j + (i + k * leftDims_) * rightDims_;
+        const int  src_idx = j + (k + i * kDim_    ) * rightDims_;
+        outputView_(dest_idx) = inputView_(src_idx);
+      }
+      else
+      {
+        const int dest_idx = k + (i + j * leftDims_) * kDim_;
+        const int  src_idx = i + (k + j * kDim_    ) * leftDims_;
+        outputView_(dest_idx) = inputView_(src_idx);
+      }
+    }
+    
+    void run()
+    {
+      auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{leftDims_,rightDims_,kDim_});
+      Kokkos::parallel_for("PAMatrix: tensor reorder for gemm", policy, *this);
+    }
+  };
+
   template<typename DeviceType,class Scalar>
   class GemmSequenceFunctor
   {
@@ -226,6 +350,45 @@ namespace Impl
     
   };
 
+// blas.GEMM(trA, trB, m, n, k, alpha, A.data(), lda, B.data(), ldb, beta, C.data(), ldc);
+
+  //! take an M x K matrix A and contract with an N1 x K x N2 tensor B to produce an N1 x M x N2 output C.
+  //! This is done in terms of a series of constituent gemms, iterating over the n2 dimension.  We launch these in a Kokkos::parallel_for on the
+  //! *host* execution space.  This allows us to invoke a synchronous gemm call in an asynchronous way.  In particular, on macOS, Apple's Accelerate
+  //! framework provides a gemm implementation that invokes the GPU on M-series processors, but this waits for completion before it returns, and
+  //! typically does not saturate the GPU.  If Kokkos is built with OpenMP support, we can thus increase parallelism by however many OpenMP threads
+  //! are available.  Similar considerations apply to KokkosKernels's gemm implementation on CUDA or HIP DeviceType.  We do need to be careful not to
+  //! launch a KokkosKernels gemm under OpenMP with an OpenMP DispatchExecutionSpace: the basic rule here is that GemmExecutionSpace must
+//! be different from DispatchExecutionSpace unless they are both Serial.
+  template<typename GemmExecutionSpace, class Scalar, typename DispatchExecutionSpace=Kokkos::DefaultHostExecutionSpace>
+  std::enable_if_t<
+    !std::is_same<DispatchExecutionSpace, GemmExecutionSpace>::value ||
+    (std::is_same<DispatchExecutionSpace, Kokkos::Serial>::value && std::is_same<GemmExecutionSpace, Kokkos::Serial>::value)
+  >
+  matrixTensorContractionLayoutLeft(const ordinal_type &M, const ordinal_type &N1, const ordinal_type &N2, const ordinal_type &K,
+                                    const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
+                                    const Scalar *B,
+                                    const Scalar &beta, Scalar *C)
+  {
+    // we assume layout left, so that the B tensor (i,k,j) index flattens to j + k * LDB + i * K * N2.
+    // this means that the slice B(i,:,:) is a K x N2 matrix, contiguous in memory, at offset i * K * N2.
+    // similarly, the slice C(i,:,:) is a M x N2 matrix, contiguous in memory, at offset i * K * N2.
+    
+    auto policy = Kokkos::RangePolicy<DispatchExecutionSpace>(0,N1);
+    
+    const ordinal_type KN2 = K * N2;
+    Kokkos::parallel_for("matrixTensorContractionLayoutLeft: GEMM dispatch", policy,
+                         KOKKOS_LAMBDA(const ordinal_type &i)
+    {
+      const ordinal_type i_offset = i * KN2;
+      const auto B_i = B + i_offset;
+      const auto C_i = C + i_offset;
+      gemm<GemmExecutionSpace>('N', 'N', M, N2, K, alpha, A, LDA, B_i, beta, C_i);
+    });
+    
+    DispatchExecutionSpace().fence();
+  }
+
   //! Given (C,P[,D,D]) transform and (C,P) pointwise weights, construct a suitable container for storing the pointwise weighted transform.
   template<typename DeviceType,class Scalar>
   Data<Scalar,DeviceType> allocateComposedWeightedTransform(const Data<Scalar,DeviceType> &composedTransform,
@@ -278,6 +441,8 @@ _orientations(orientations)
 {
   using ExecutionSpace = typename DeviceType::execution_space;
 
+  const bool layoutLeft = layoutLeft_;
+  
   const bool  leftHasOrdinalFilter =  basisValuesLeft.basisValues().ordinalFilter().extent_int(0) > 0;
   const bool rightHasOrdinalFilter = basisValuesRight.basisValues().ordinalFilter().extent_int(0) > 0;
   TEUCHOS_TEST_FOR_EXCEPTION(leftHasOrdinalFilter || rightHasOrdinalFilter, std::invalid_argument, "Ordinal filters for BasisValues are not yet supported by PAMatrix");
@@ -595,6 +760,184 @@ _orientations(orientations)
       });
     }
   }
+  
+  // MARK: Set up component integrations
+  const int leftComponentCount  = leftIsVectorValued ? basisValuesLeft. vectorData().numComponents() : 1;
+  const int rightComponentCount = rightIsVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
+  
+  int leftFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families
+  for (int leftFamilyOrdinal=0; leftFamilyOrdinal<leftFamilyCount; leftFamilyOrdinal++)
+  {
+    // "a" keeps track of the spatial dimension over which we are integrating in the left vector.
+    // Components are allowed to span several dimensions; we keep track of the offset for the component in a_offset
+    int a_offset = 0;
+    bool haveLaunchedContributionToCurrentFamilyLeft = false; // helps to track whether we need a Kokkos::fence before launching a kernel.
+    for (int leftComponentOrdinal=0; leftComponentOrdinal<leftComponentCount; leftComponentOrdinal++)
+    {
+      TensorData<Scalar,DeviceType> leftComponent = leftIsVectorValued ? basisValuesLeft.vectorData().getComponent(leftFamilyOrdinal, leftComponentOrdinal)
+                                                                       : basisValuesLeft.basisValues().tensorData(leftFamilyOrdinal);
+      if (!leftComponent.isValid())
+      {
+         // represents zero
+        a_offset += basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal);
+        continue;
+      }
+      // set up the individual operators as 1D views
+      // left operators contract in the point (and space) dimensions
+      std::vector<OpSpec> leftOperators(leftComponent.numTensorComponents());
+      for (int r=0; r<leftComponent.numTensorComponents(); r++)
+      {
+        const auto opData  = leftComponent.getTensorComponent(r).getUnderlyingView();
+        const int opFields = opData.extent_int(0);
+        const int opPoints = opData.extent_int(1);
+        View1D opView("leftOp 1D view", opData.size());
+        if (opData.rank() == 2) // (F,P)
+        {
+          auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{opFields,opPoints});
+          Kokkos::parallel_for("pack 1D opView", policy,
+          KOKKOS_LAMBDA(const int &field, const int &pt)
+          {
+            const int idx = layoutLeft ? pt + field * opPoints : field + pt * opFields;
+            opView(idx) = opData(field,pt);
+          });
+        }
+        else if (opData.rank() == 3) // (F,P,D)
+        {
+          const int opDim = opData.extent_int(2);
+          auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{opFields,opPoints,opDim});
+          Kokkos::parallel_for("pack 1D opView", policy,
+          KOKKOS_LAMBDA(const int &field, const int &pt, const int &d)
+          {
+            const int idx = layoutLeft ? d + (pt + field * opPoints) * opDim : field + (pt + d * opPoints) * opFields;
+            opView(idx) = opData(field,pt,d);
+          });
+        }
+        else
+        {
+          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "PAMatrix: Unsupported component operator rank");
+        }
+        leftOperators.push_back({opView,opPoints});
+      }
+      
+      int rightFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families // TODO: figure out what a nonzero value means for matrix-free apply() implementation
+      for (int rightFamilyOrdinal=0; rightFamilyOrdinal<rightFamilyCount; rightFamilyOrdinal++)
+      {
+        // "b" keeps track of the spatial dimension over which we are integrating in the right vector
+        // components are allowed to span several dimensions; we keep track of the offset for the component in b_offset
+        bool haveLaunchedContributionToCurrentFamilyRight = false; // helps to track whether we need a Kokkos::fence before launching a kernel.
+        int b_offset = 0;
+        for (int rightComponentOrdinal=0; rightComponentOrdinal<rightComponentCount; rightComponentOrdinal++)
+        {
+          TensorData<Scalar,DeviceType> rightComponent =
+             rightIsVectorValued ? basisValuesRight.vectorData().getComponent(rightFamilyOrdinal, rightComponentOrdinal)
+                                 : basisValuesRight.basisValues().tensorData(rightFamilyOrdinal);
+          if (!rightComponent.isValid())
+          {
+             // represents zero
+            b_offset += basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal);
+            continue;
+          }
+          
+          INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(leftComponent.numTensorComponents() != rightComponent.numTensorComponents(), std::invalid_argument, "left TensorData and right TensorData have different number of tensor components.  This is not supported.");
+          
+          // right operators contract in the field dimension
+          std::vector<OpSpec> rightOperators(rightComponent.numTensorComponents());
+          for (int r=0; r<rightComponent.numTensorComponents(); r++)
+          {
+            const auto  opData = rightComponent.getTensorComponent(r).getUnderlyingView();
+            const int opFields = opData.extent_int(0);
+            const int opPoints = opData.extent_int(1);
+            
+            View1D opView("rightOp 1D view", opData.size());
+            if (opData.rank() == 2) // (F,P), but will pack as (P,F)
+            {
+              auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{opFields,opPoints});
+              Kokkos::parallel_for("pack 1D opView", policy,
+              KOKKOS_LAMBDA(const int &field, const int &pt)
+              {
+                const int idx = layoutLeft ? field + pt * opFields : pt + field * opPoints;
+                opView(idx) = opData(field,pt);
+              });
+            }
+            else if (opData.rank() == 3) // (F,P,D), but will pack as (P,D,F) for contraction in F
+            {
+              const int opDim = opData.extent_int(2);
+              auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{opFields,opPoints,opDim});
+              Kokkos::parallel_for("pack 1D opView", policy,
+              KOKKOS_LAMBDA(const int &field, const int &pt, const int &d)
+              {
+                const int idx = layoutLeft ? field + (pt + d * opPoints) * opFields : d + (pt + field * opPoints) * opDim ;
+                opView(idx) = opData(field,pt,d);
+              });
+            }
+            else
+            {
+              INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "PAMatrix: Unsupported component operator rank");
+            }
+            rightOperators.push_back({opView,opPoints});
+          }
+          
+          const int aSpan =  leftComponent.extent_int(2);
+          const int bSpan = rightComponent.extent_int(2);
+          
+          const int numCells      = _composedWeightedTransform.extent_int(0);
+          const int numPoints     = _composedWeightedTransform.extent_int(1);
+          
+          PointDataSpec pointDataSpec{numCells, numPoints, a_offset, b_offset, aSpan, bSpan};
+          
+          if (_pointDataCache.find(pointDataSpec) == _pointDataCache.end())
+          {
+            const int pointDataSize = numCells * numPoints * aSpan * bSpan;
+            View1D pointDataView("pointDataView", pointDataSize);
+            
+            auto composedWeightedTransform = _composedWeightedTransform;
+            
+            if (_composedWeightedTransform.rank() == 2) // (C,P): pointwise weight
+            {
+              auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{numCells,numPoints});
+              Kokkos::parallel_for("pack 1D pointData", policy,
+                                   KOKKOS_LAMBDA(const int &cell, const int &pt)
+                                   {
+                const int idx = layoutLeft ? cell + pt * numCells : pt + cell * numPoints ;
+                pointDataView(idx) = composedWeightedTransform(cell,pt);
+              });
+            }
+            else if (_composedWeightedTransform.rank() == 3) // (C,P,D): contract in b or expand in a
+            {
+              const bool contraction = (bSpan > 1);
+              const int dOffset = contraction ? b_offset : a_offset;
+              const int dSpan   = contraction ?    bSpan : aSpan;
+              auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,numPoints,dSpan});
+              Kokkos::parallel_for("pack 1D pointData", policy,
+                                   KOKKOS_LAMBDA(const int &cell, const int &pt, const int &d)
+                                   {
+                const int idx = layoutLeft ? cell + (pt + d * numPoints) * numCells : d + (pt + cell * numPoints) * dSpan;
+                pointDataView(idx) = composedWeightedTransform(cell,pt,dOffset + d);
+              });
+            }
+            else if (_composedWeightedTransform.rank() == 4) // (C,P,D,D): contract in b and expand in a at each point
+            {
+              auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<4>>({0,0,0,0},{numCells,numPoints,aSpan,bSpan});
+              Kokkos::parallel_for("pack 1D pointData", policy,
+                                   KOKKOS_LAMBDA(const int &cell, const int &pt, const int &da, const int &db)
+                                   {
+                const int idx = layoutLeft ? cell + (pt + (da + db * aSpan) * numPoints) * numCells
+                : db + (da + (pt + cell * numPoints) * aSpan) * bSpan ;
+                pointDataView(idx) = composedWeightedTransform(cell,pt,a_offset + da,b_offset + db);
+              });
+            }
+            _pointDataCache[pointDataSpec] = pointDataView;
+          }
+          componentIntegralsToSum_.push_back({leftOperators,pointDataSpec,rightOperators});
+          
+          b_offset += rightIsVectorValued ? basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal) : 1;
+        }
+        rightFieldOrdinalOffset += rightIsVectorValued ? basisValuesRight.vectorData().numFieldsInFamily(rightFamilyOrdinal) : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
+      }
+      a_offset += leftIsVectorValued ? basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal) : 1;
+    }
+    leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData().numFieldsInFamily(leftFamilyOrdinal) : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
+  }
 } // PAMatrix()
 
 template<typename DeviceType,class Scalar>
@@ -659,9 +1002,113 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
 
 template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &outputVector,
-                                        const ScalarView<Scalar,DeviceType> & inputVector)
+                                        const ScalarView<Scalar,DeviceType> & inputVector,
+                                        const Kokkos::View<Scalar*,DeviceType> &workspace1,
+                                        const Kokkos::View<Scalar*,DeviceType> &workspace2)
 {
-  // TODO: implement this
+  // TODO: add worksetSize argument
+  using ExecutionSpace = typename DeviceType::execution_space;
+  using View1D = Kokkos::View<Scalar*,DeviceType>;
+  
+  const ordinal_type C  = inputVector.extent_int(0); // C, F2, N
+  const ordinal_type F2 = inputVector.extent_int(1);
+  const ordinal_type N  = inputVector.extent_int(2);
+  const ordinal_type F1 = outputVector.extent_int(1); // C, F1, N
+  
+  const double alpha = 1.0;
+  const double beta  = 0.0;
+  
+  Kokkos::deep_copy(outputVector, 0.0);
+  
+  // For vector-dot-vector integrals (e.g.), we need to integrate left x components against right x components, etc., and sum.
+  // Each of these is one pass, and we accumulate in outputVector.
+  const int numIntegrationPasses = int(componentIntegralsToSum_.size());
+  
+  // TODO: add loop over cell worksets (right now the below assumes worksetSize == C)
+  for (int integrationPass=0; integrationPass<numIntegrationPasses; integrationPass++)
+  {
+    const auto &integral_tuple = componentIntegralsToSum_[integrationPass];
+    // right integrals: replace F2j basis coefficients with evaluations at Pj
+    auto rightIntegrals = std::get<2>(integral_tuple);
+    int numRightIntegrals = int(rightIntegrals.size());
+    
+    auto leftIntegrals = std::get<0>(integral_tuple);
+    int numLeftIntegrals = int(leftIntegrals.size());
+    
+    // set workspace1 to the input data, with layout left
+    auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{C,F2,N});
+    Kokkos::parallel_for("PAMatrix::apply(): copy inputVector into workspace", policy,
+    KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+    {
+      const ordinal_type idx = n + (f + n * F2) * N;
+      workspace1(idx) = inputVector(c,f,n);
+    }
+    );
+    ExecutionSpace().fence();
+    
+    // the right integrals are ordered in the natural dimension ordering: x integrals come first.
+    // this means that the first tensor contraction is (P_x,F2_x) against (C,F2_x,F2_y*…*F2_n*N)
+    int N1 = C;
+    int N2 = F2 * N; // will modify before first use, below
+    for (int j=0; j<numRightIntegrals; j++)
+    {
+      // we alternate whether we are placing intermediate results in workspace1 or workspace2
+      auto  in = (j%2 == 0) ? workspace1 : workspace2;
+      auto out = (j%2 == 0) ? workspace2 : workspace1;
+      
+      auto op = rightIntegrals[j];
+      // contraction of M x K with tensor of shape N1 x K x N2;
+      const ordinal_type & M = op.M;
+      const ordinal_type & K = op.N;
+      
+      const auto A = op.opView.data();
+      const ordinal_type LDA = K; // will need to revise if we ever pad our operators (for byte alignment)
+      N2 /= K;
+      const auto B = in.data();
+      auto C = out.data();
+      Impl::matrixTensorContractionLayoutLeft<Impl::GemmExecutionSpace>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
+      N1 *= K;
+    }
+    auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2;
+    auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1;
+    
+    // TODO: pointData multiplication
+    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Implementation incomplete");
+    
+    // the left integrals are ordered in the natural dimension ordering: x integrals come first.
+    // this means that the first tensor contraction is (F1_x,P_x) against (C,P_x,P_y*…*P_n*N)
+    N1 = C;
+    N2 = F1 * N; // will modify before first use, below
+    for (int i=0; i<numLeftIntegrals; i++)
+    {
+      // we alternate whether we are placing intermediate results in workspace1 or workspace2
+      auto  in = ((i+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
+      auto out = ((i+numRightIntegrals+1)%2 == 0) ? workspace2 : workspace1;
+      
+      auto op = leftIntegrals[i];
+      // contraction of M x K with tensor of shape N1 x K x N2;
+      const ordinal_type & M = op.M;
+      const ordinal_type & K = op.N;
+      
+      const auto A = op.opView.data();
+      const ordinal_type LDA = K; // will need to revise if we ever pad our operators (for byte alignment)
+      N2 /= K;
+      const auto B = in.data();
+      auto C = out.data();
+      Impl::matrixTensorContractionLayoutLeft<Impl::GemmExecutionSpace>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
+      N1 *= K;
+    }
+    auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
+    // Sum finalOut into outputVector
+    policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{C,F1,N});
+    Kokkos::parallel_for("PAMatrix::apply(): sum finalOut into outputVector", policy,
+    KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+    {
+      const ordinal_type idx = n + (f + n * F1) * N;
+      outputVector(c,f,n) += finalOut(idx);
+    });
+    ExecutionSpace().fence();
+  }
 }
 
 template<typename DeviceType,class Scalar>

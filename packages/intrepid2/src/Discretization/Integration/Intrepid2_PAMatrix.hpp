@@ -33,10 +33,59 @@ namespace Intrepid2 {
            typename Scalar = double>
   class PAMatrix {
   public:
+    using View1D = Kokkos::View<Scalar*,DeviceType>;
+    struct OpSpec {
+      View1D opView;
+      int M;
+      int N;
+    };
+    struct PointDataSpec {
+      int C;
+      int P;
+      int a0;
+      int b0;
+      int aSpan;
+      int bSpan;
+      
+      bool operator<(const PointDataSpec &otherSpec) const {
+        if      (C < otherSpec.C) return true;
+        else if (C > otherSpec.C) return false;
+        
+        if      (P < otherSpec.P) return true;
+        else if (P > otherSpec.P) return false;
+        
+        if      (a0 < otherSpec.a0) return true;
+        else if (a0 > otherSpec.a0) return false;
+        
+        if      (b0 < otherSpec.b0) return true;
+        else if (b0 > otherSpec.b0) return false;
+        
+        if      (aSpan < otherSpec.aSpan) return true;
+        else if (aSpan > otherSpec.aSpan) return false;
+        
+        if      (bSpan < otherSpec.bSpan) return true;
+        else if (bSpan > otherSpec.bSpan) return false;
+        
+        // all equal
+        return false;
+      }
+      
+      bool operator==(const PointDataSpec &otherSpec) const {
+        return         (C == otherSpec.C) && (P == otherSpec.P)
+            &&       (a0 == otherSpec.a0) && (b0 == otherSpec.b0)
+            && (aSpan == otherSpec.aSpan) && (bSpan == otherSpec.bSpan);
+      }
+    };
     Data<Scalar,DeviceType> _composedWeightedTransform; // (C,P[,D1[,D2]]), used for general case
+    std::map<PointDataSpec,View1D> _pointDataCache; // copies of appropriate slices of _composedWeightedTransform; will be regenerated when recomputePointData() is called.
     TensorData<Scalar,DeviceType> _cellMeasures; // (C,P); used for separable case
     TransformedBasisValues<Scalar,DeviceType> _basisValuesLeft, _basisValuesRight;
     const ScalarView<Orientation,DeviceType> _orientations;
+    static constexpr bool layoutLeft_ = true; // BLAS expects this
+    
+    using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>>; // left, pointData, right
+    std::vector<ComponentSequence> componentIntegralsToSum_;
+    
     bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension.
     
     /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>basisValuesLeft</b> against \a <b>basisValuesRight</b> containers on
@@ -67,6 +116,15 @@ namespace Intrepid2 {
              const TensorData<Scalar,DeviceType> cellMeasures,
              const ScalarView<Orientation,DeviceType> orientations);
     
+    //! Recomputes point data according to updated basis transformations and cell measures.
+    void recomputePointData(const TransformedBasisValues<Scalar,DeviceType> basisValuesWithUpdatedTransformations,
+                            const TensorData<Scalar,DeviceType> updatedCellMeasures);
+    
+    //! Recomputes point data according to updated basis transformations and cell measures.
+    void recomputePointData(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeftWithUpdatedTransformations,
+                            const TensorData<Scalar,DeviceType> updatedCellMeasures,
+                            const TransformedBasisValues<Scalar,DeviceType> basisValuesRightWithUpdatedTransformations);
+    
     /** \brief   Allocates storage for a fully-assembled matrix.
         \return <b>integrals</b>, a container with logical shape (C,F1,F2), suitable for passing to assemble().
     */
@@ -92,7 +150,7 @@ namespace Intrepid2 {
     */
     Data<Scalar,DeviceType> allocateRowStorage();
     
-    /** \brief   Allocates and returns a multi-vector with shape (C,F2).
+    /** \brief   Allocates and returns a vector with shape (C,F2).
         \return  a container with logical shape (C,F2), suitable for passing to apply() as input.
     */
     ScalarView<Scalar,DeviceType> allocateInputVector();
@@ -102,7 +160,7 @@ namespace Intrepid2 {
     */
     ScalarView<Scalar,DeviceType> allocateInputMultiVector(const ordinal_type &n);
     
-    /** \brief   Allocates and returns a multi-vector with shape (C,F1).
+    /** \brief   Allocates and returns a vector with shape (C,F1).
         \return  a container with logical shape (C,F1), suitable for passing to apply() as output.
     */
     ScalarView<Scalar,DeviceType> allocateOutputVector();
@@ -111,6 +169,16 @@ namespace Intrepid2 {
         \return  a container with logical shape (C,F1,N), suitable for passing to apply() as output.
     */
     ScalarView<Scalar,DeviceType> allocateOutputMultiVector(const ordinal_type &n);
+
+    /** \brief   Allocates and returns workspace storage suitable for providing to apply() to an vector with a workset of size worksetSize.
+        \return
+    */
+    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize);
+    
+    /** \brief   Allocates and returns workspace storage suitable for providing to apply() to an n-multivector with a workset of size worksetSize.
+        \return
+    */
+    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize, const ordinal_type &n);
     
     /** \brief  Applies the matrix to <b>inputVector</b>, placing the result in <b>outputVector</b>, without explicit assembly and storage of the matrix itself.
 
@@ -120,7 +188,9 @@ namespace Intrepid2 {
         <b>outputVector</b> and <b>inputVector</b> may have shapes (C,F1) and (C,F2), representing single vectors, or shapes (C,F1,N) and (C,F2,N), representing multi-vectors.
     */
     void apply(const ScalarView<Scalar,DeviceType> &outputVector,
-               const ScalarView<Scalar,DeviceType> & inputVector);
+               const ScalarView<Scalar,DeviceType> & inputVector,
+               const Kokkos::View<Scalar*,DeviceType> &workspace1,
+               const Kokkos::View<Scalar*,DeviceType> &workspace2);
     
     /** \brief   Fully assembles the matrix.
         \param   integrals          [out] - Output matrix, with logical shape (C,F,F).  See allocateMatrixStorage().
