@@ -20,6 +20,7 @@
 #include "Intrepid2_Types.hpp"
 
 #include "Intrepid2_Data.hpp"
+#include "Intrepid2_Orientation.hpp"
 #include "Intrepid2_TransformedBasisValues.hpp"
 
 #include "Kokkos_Core.hpp"

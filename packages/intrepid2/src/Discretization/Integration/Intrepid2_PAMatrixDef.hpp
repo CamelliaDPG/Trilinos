@@ -18,6 +18,7 @@
 #include "Intrepid2_PAMatrix.hpp"
 
 #include "Intrepid2_DataDimensionInfo.hpp"
+#include "Intrepid2_IntegrationTools.hpp"
 #include "Intrepid2_OrientationTools.hpp"
 
 //#ifdef __APPLE__
@@ -62,8 +63,8 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
   ExecutionSpace().fence();
 }
 
-  template<typename ExecutionSpace,typename Scalar>
-  std::enable_if_t<std::is_same<ExecutionSpace, typename Kokkos::Serial::execution_space>::value>
+  template<typename DeviceType,typename Scalar>
+  std::enable_if_t<std::is_same<typename DeviceType::execution_space, typename Kokkos::Serial::execution_space>::value>
   gemm(const char transA, const char transB,
        const ordinal_type &M, const ordinal_type &N, const ordinal_type &K,
        const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
@@ -85,14 +86,14 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
        const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
        const Scalar *B, const Scalar &beta, Scalar *C)
   {
-    using ExecutionSpace = typename DeviceType::execution_space;
-    using View2D = Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
-    View2D AView(M,K);
-    View2D BView(N,K);
-    View2D CView(M,N);
+    using ConstView2D = Kokkos::View<const Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
+    using      View2D = Kokkos::View<      Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
+    ConstView2D AView(A,M,K);
+    ConstView2D BView(B,N,K);
+         View2D CView(C,M,N);
     
-    ExecutionSpace exec_space;
-    KokkosBlas::gemm(exec_space, transA, transB, alpha, AView, BView, beta, CView);
+    typename DeviceType::execution_space exec_space;
+    KokkosBlas::gemm(exec_space, &transA, &transB, alpha, AView, BView, beta, CView);
   }
 #else
   template<typename DeviceType,typename Scalar>
@@ -106,13 +107,13 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
   }
 #endif
 
-// Define GemmExecutionSpace: use Kokkos-supported GPUs if enabled; otherwise use serial.  Note that on macOS if you use serial and are using Apple's BLAS on an M-series Mac, it will run on the M-series GPU (and will be very fast).
+// Define GemmDeviceType: use Kokkos-supported GPUs if enabled; otherwise use serial.  Note that on macOS if you use serial and are using Apple's BLAS on an M-series Mac, it will run on the M-series GPU (and will be very fast).
 #if defined(KOKKOS_ENABLE_CUDA)
-using GemmExecutionSpace = Kokkos::Cuda;
+using GemmDeviceType = Kokkos::Cuda;
 #elif defined(KOKKOS_ENABLE_HIP)
-using GemmExecutionSpace = Kokkos::HIP;
+using GemmDeviceType = Kokkos::HIP;
 #else
-using GemmExecutionSpace = Kokkos::Serial;
+using GemmDeviceType = Kokkos::Serial;
 #endif
 
 /*!
@@ -386,12 +387,12 @@ using GemmExecutionSpace = Kokkos::Serial;
   //! framework provides a gemm implementation that invokes the GPU on M-series processors, but this waits for completion before it returns, and
   //! typically does not saturate the GPU.  If Kokkos is built with OpenMP support, we can thus increase parallelism by however many OpenMP threads
   //! are available.  Similar considerations apply to KokkosKernels's gemm implementation on CUDA or HIP DeviceType.  We do need to be careful not to
-  //! launch a KokkosKernels gemm under OpenMP with an OpenMP DispatchExecutionSpace: the basic rule here is that GemmExecutionSpace must
+  //! launch a KokkosKernels gemm under OpenMP with an OpenMP DispatchExecutionSpace: the basic rule here is that GemmDeviceType must
 //! be different from DispatchExecutionSpace unless they are both Serial.
-  template<typename GemmExecutionSpace, class Scalar, typename DispatchExecutionSpace=Kokkos::DefaultHostExecutionSpace>
+  template<typename GemmDeviceType, class Scalar, typename DispatchExecutionSpace=Kokkos::DefaultHostExecutionSpace>
   std::enable_if_t<
-    !std::is_same<DispatchExecutionSpace, GemmExecutionSpace>::value ||
-    (std::is_same<DispatchExecutionSpace, Kokkos::Serial>::value && std::is_same<GemmExecutionSpace, Kokkos::Serial>::value)
+    !std::is_same<DispatchExecutionSpace, GemmDeviceType>::value ||
+    (std::is_same<DispatchExecutionSpace, Kokkos::Serial>::value && std::is_same<GemmDeviceType, Kokkos::Serial>::value)
   >
   matrixTensorContractionLayoutLeft(const ordinal_type &M, const ordinal_type &N1, const ordinal_type &N2, const ordinal_type &K,
                                     const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
@@ -411,7 +412,7 @@ using GemmExecutionSpace = Kokkos::Serial;
       const ordinal_type i_offset = i * KN2;
       const auto B_i = B + i_offset;
       const auto C_i = C + i_offset;
-      gemm<GemmExecutionSpace>('N', 'N', M, N2, K, alpha, A, LDA, B_i, beta, C_i);
+      gemm<GemmDeviceType>('N', 'N', M, N2, K, alpha, A, LDA, B_i, beta, C_i);
     });
     
     DispatchExecutionSpace().fence();
@@ -1146,7 +1147,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       N2 /= K;
       const auto B = in.data();
       auto C = out.data();
-      Impl::matrixTensorContractionLayoutLeft<Impl::GemmExecutionSpace>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
+      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
       N1 *= K;
     }
     auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
@@ -1176,7 +1177,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       N2 /= K;
       const auto B = in.data();
       auto C = out.data();
-      Impl::matrixTensorContractionLayoutLeft<Impl::GemmExecutionSpace>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
+      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
       N1 *= K;
     }
     auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
