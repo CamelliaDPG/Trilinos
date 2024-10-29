@@ -105,12 +105,167 @@ namespace
     View1D BView("PAMatrixImpl.GEMM test: BView", cellCount * K * N);
     View1D CView("PAMatrixImpl.GEMM test: CView", cellCount * M * N);
     View1D CViewExpected("PAMatrixImpl.GEMM test: CViewExpected", cellCount * M * N);
+    
+    auto AViewHost = Kokkos::create_mirror(AView);
+    auto BViewHost = Kokkos::create_mirror(BView);
+    auto CViewExpectedHost = Kokkos::create_mirror(CViewExpected);
+
+    std::vector<bool> BTransposedChoices {false, true};
+    for (const auto storeBTransposed : BTransposedChoices) // if true, we store B as a N x K matrix
+    {
+      Scalar* Aptr = AViewHost.data();
+      for (int k=0; k<K; k++)
+      {
+        for (int m=0; m<M; m++)
+        {
+          *Aptr++ = formula_A(m, k);
+        }
+      }
+      Scalar* Bptr = BViewHost.data();
+      if (!storeBTransposed)
+      {
+        for (int cellOrdinal=0; cellOrdinal<cellCount; cellOrdinal++)
+        {
+          for (int n=0; n<N; n++)
+          {
+            for (int k=0; k<K; k++)
+            {
+              *Bptr++ = formula_B(cellOrdinal, k, n);
+            }
+          }
+        }
+      }
+      else
+      {
+        for (int k=0; k<K; k++)
+        {
+          for (int cellOrdinal=0; cellOrdinal<cellCount; cellOrdinal++)
+          {
+            for (int n=0; n<N; n++)
+            {
+              *Bptr++ = formula_B(cellOrdinal, k, n);
+            }
+          }
+        }
+      }
+      Scalar* Cptr = CViewExpectedHost.data();
+      for (int cellOrdinal=0; cellOrdinal<cellCount; cellOrdinal++)
+      {
+        for (int n=0; n<N; n++)
+        {
+          for (int m=0; m<M; m++)
+          {
+            *Cptr++ = formula_C(cellOrdinal, m, n);
+          }
+        }
+      }
+      Kokkos::deep_copy(AView, AViewHost);
+      Kokkos::deep_copy(BView, BViewHost);
+      Kokkos::deep_copy(CViewExpected, CViewExpectedHost);
+      
+      const Scalar alpha = 1.0;
+      const Scalar beta  = 0.0;
+      const ordinal_type LDA = M;
+      const char trB = storeBTransposed ? 'T' : 'N';
+      const ordinal_type LDB = storeBTransposed ? N * cellCount : K;
+      Intrepid2::Impl::gemm<typename DeviceType::execution_space>('N', trB, M, N*cellCount, K, alpha, AView.data(), LDA, BView.data(), beta, CView.data());
+      
+      testFloatingEquality1(CView, CViewExpected, relTol, absTol, out, success);
+    }
+  }
+
+  TEUCHOS_UNIT_TEST( PAMatrixImpl, MatrixTensorContraction )
+  {
+    double relTol = 1e-13;
+    double absTol = 1e-13;
+    
+    // Let A be a column-major matrix with dimensions M x K.
+    // Let B be a tensor of dimensions N1 x K  x N2.
+    // Let C be a tensor of dimensions  M x N1 x N2, equal to the contraction of A and B along dimension K.
+    
+    using DeviceType = DefaultTestDeviceType;
+    using Scalar = double;
+    
+    const int M  = 2; // row count for A
+    const int N1 = 2;
+    const int N2 = 2;
+    const int K  = 1; // contraction dimension
+//    const int M  = 10; // row count for A
+//    const int N1 =  8;
+//    const int N2 =  9;
+//    const int K  = 11; // contraction dimension
+    
+    // pick a formula to generate the matrix A
+    auto formula_A = [&] (int m, int k) -> Scalar
+    {
+      return Scalar((m+1) % 3) + Scalar(k * M);
+    };
+    
+    // pick a formula to generate the tensor B
+    auto formula_B = [&] (int n1, int k, int n2) -> Scalar
+    {
+      return 1.0 + Scalar(n1 * N2) + Scalar(k * N1) + Scalar(n2);
+    };
+    
+    auto formula_C = [&] (int m, int n1, int n2) -> Scalar
+    {
+      Scalar value = 0;
+      for (int k=0; k<K; k++)
+      {
+        const Scalar & A_k = formula_A(m,k);
+        const Scalar & B_k = formula_B(n1,k,n2);
+        value += A_k * B_k;
+      }
+      return value;
+    };
+    
+    using namespace std;
+    cout << "A:\n";
+    for (int m=0; m<M; m++)
+    {
+      cout << "[ ";
+      for (int k=0; k<K; k++)
+      {
+        cout << formula_A(m, k) << " ";
+      }
+      cout << "]\n";
+    }
+    for (int j=0; j<N2; j++)
+    {
+      cout << "j=" << j << endl;
+      cout << "B expected:\n";
+      for (int n1=0; n1<N1; n1++)
+      {
+        cout << "[ ";
+        for (int k=0; k<K; k++)
+        {
+          cout << formula_B(n1, k, j) << " ";
+        }
+        cout << "]\n";
+      }
+      
+      cout << "C expected:\n";
+      for (int n1=0; n1<N1; n1++)
+      {
+        cout << "[ ";
+        for (int m=0; m<M; m++)
+        {
+          cout << formula_C(m, n1, j) << " ";
+        }
+        cout << "]\n";
+      }
+    }
+    
+    using View1D = Kokkos::View<Scalar*,DeviceType>;
+    View1D AView("PAMatrixImpl.MatrixTensorContraction test: AView", M * K);
+    View1D BView("PAMatrixImpl.MatrixTensorContraction test: BView", N1 * K * N2);
+    View1D CView("PAMatrixImpl.MatrixTensorContraction test: CView", N1 * M * N2);
+    View1D CViewExpected("PAMatrixImpl.MatrixTensorContraction test: CViewExpected", N1 * M * N2);
         
     auto AViewHost = Kokkos::create_mirror(AView);
     auto BViewHost = Kokkos::create_mirror(BView);
     auto CViewExpectedHost = Kokkos::create_mirror(CViewExpected);
     Scalar* Aptr = AViewHost.data();
-    const size_t A_perCellDataSize = M * K;
     for (int k=0; k<K; k++)
     {
       for (int m=0; m<M; m++)
@@ -119,27 +274,34 @@ namespace
       }
     }
     Scalar* Bptr = BViewHost.data();
-    for (int cellOrdinal=0; cellOrdinal<cellCount; cellOrdinal++)
+    cout << "B as stored (in 1D): [ ";
+    
+    for (int n2=0; n2<N2; n2++)
     {
-      for (int n=0; n<N; n++)
+      for (int k=0; k<K; k++)
       {
-        for (int k=0; k<K; k++)
+        for (int n1=0; n1<N1; n1++)
         {
-          *Bptr++ = formula_B(cellOrdinal, k, n);
+          cout << formula_B(n1, k, n2) << " ";
+          *Bptr++ = formula_B(n1, k, n2);
         }
       }
     }
+    cout << "]\n";
     Scalar* Cptr = CViewExpectedHost.data();
-    for (int cellOrdinal=0; cellOrdinal<cellCount; cellOrdinal++)
+    cout << "C_expected as stored (in 1D): [ ";
+    for (int n2=0; n2<N2; n2++)
     {
-      for (int n=0; n<N; n++)
+      for (int n1=0; n1<N1; n1++)
       {
         for (int m=0; m<M; m++)
         {
-          *Cptr++ = formula_C(cellOrdinal, m, n);
+          cout << formula_C(m, n1, n2) << " ";
+          *Cptr++ = formula_C(m, n1, n2);
         }
       }
     }
+    cout << "]\n";
     Kokkos::deep_copy(AView, AViewHost);
     Kokkos::deep_copy(BView, BViewHost);
     Kokkos::deep_copy(CViewExpected, CViewExpectedHost);
@@ -147,7 +309,21 @@ namespace
     const Scalar alpha = 1.0;
     const Scalar beta  = 0.0;
     const ordinal_type LDA = M;
-    Intrepid2::Impl::gemm<typename DeviceType::execution_space>('N', 'N', M, N*cellCount, K, alpha, AView.data(), LDA, BView.data(), beta, CView.data());
+    Intrepid2::Impl::matrixTensorContractionLayoutLeft<DeviceType>(M, N1, N2, K, alpha, AView.data(), LDA, BView.data(), beta, CView.data());
+    
+    cout << "C_actual as stored (in 1D): [ ";
+    Cptr = CView.data();
+    for (int m=0; m<M; m++)
+    {
+      for (int n1=0; n1<N1; n1++)
+      {
+        for (int n2=0; n2<N2; n2++)
+        {
+          cout << *Cptr++ << " ";
+        }
+      }
+    }
+    cout << "]\n";
     
     testFloatingEquality1(CView, CViewExpected, relTol, absTol, out, success);
   }

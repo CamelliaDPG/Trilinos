@@ -37,7 +37,7 @@ namespace Intrepid2 {
 
 namespace Impl
 {
-//! For matrix-valued A(C,P,Da,Db) and vector-valued B(C,P,Db), output C(C,P,Da) representing the pointwise matrix-vector product.  At present, on the assumption that Da and Db are small, potentially unit-valued, we compute this in a KOKKOS_LAMBDA, but we may want to invoke GEMM for the multiply in the future.
+//! For matrix-valued A(C,P,Da,Db) and vector-valued B(C,P,Db), output C(C,P,Da) representing the pointwise matrix-vector product.
 template<typename DeviceType, class Scalar>
 void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints, const ordinal_type aSpan, const ordinal_type bSpan,
                        const Scalar* A, const Scalar *B, Scalar *C)
@@ -49,15 +49,18 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
                        KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &point, const ordinal_type &a)
   {
     Scalar value = 0;
-    const Scalar* entryA = A + (a + (point + cell * numPoints) * aSpan) * bSpan;
-    const Scalar* entryB = B + (point + cell * numPoints) * bSpan;
+    // assume layout left for A,B,C
+    const Scalar* entryA = A + cell + (point + a * numPoints) * numCells;
+    const Scalar* entryB = B + cell + point * numCells;
+    const ordinal_type strideA = aSpan * numPoints * numCells;
+    const ordinal_type strideB = numPoints * numCells;
     for (int b=0; b<bSpan; b++)
     {
       value += *entryA * *entryB;
-      entryA++;
-      entryB++;
+      entryA += strideA;
+      entryB += strideB;
     }
-    Scalar* entryC = C + a + (point + cell * numPoints) * aSpan;
+    Scalar* entryC = C + cell + (point + a * numPoints) * numCells;
     *entryC = value;
   });
   ExecutionSpace().fence();
@@ -73,7 +76,7 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
     Teuchos::ETransp trA = (transA == 'T') ? Teuchos::TRANS : (transA == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
     Teuchos::ETransp trB = (transB == 'T') ? Teuchos::TRANS : (transB == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
     Teuchos::BLAS<int,Scalar> blas;
-    const ordinal_type LDB = K;
+    const ordinal_type LDB = (trB == Teuchos::TRANS) ? N : K;
     const ordinal_type LDC = M;
     blas.GEMM(trA, trB, M, N, K, alpha, A, LDA, B, LDB, beta, C, LDC);
   }
@@ -158,14 +161,14 @@ using GemmDeviceType = Kokkos::Serial;
       // k should iterate over Dk
       if (layoutLeft_) // column-major
       {
-        const int dest_idx = j + (i + k * leftDims_) * rightDims_;
-        const int  src_idx = j + (k + i * kDim_    ) * rightDims_;
+        const int dest_idx = k + (i + j * leftDims_) * kDim_;
+        const int  src_idx = i + (k + j * kDim_    ) * leftDims_;
         outputView_(dest_idx) = inputView_(src_idx);
       }
       else
       {
-        const int dest_idx = k + (i + j * leftDims_) * kDim_;
-        const int  src_idx = i + (k + j * kDim_    ) * leftDims_;
+        const int dest_idx = j + (i + k * leftDims_) * rightDims_;
+        const int  src_idx = j + (k + i * kDim_    ) * rightDims_;
         outputView_(dest_idx) = inputView_(src_idx);
       }
     }
@@ -381,7 +384,7 @@ using GemmDeviceType = Kokkos::Serial;
 
 // blas.GEMM(trA, trB, m, n, k, alpha, A.data(), lda, B.data(), ldb, beta, C.data(), ldc);
 
-  //! take an M x K matrix A and contract with an N1 x K x N2 tensor B to produce an N1 x M x N2 output C.
+  //! take an M x K matrix A and contract with an N1 x K x N2 tensor B to produce a M x N1 x N2 output C.
   //! This is done in terms of a series of constituent gemms, iterating over the n2 dimension.  We launch these in a Kokkos::parallel_for on the
   //! *host* execution space.  This allows us to invoke a synchronous gemm call in an asynchronous way.  In particular, on macOS, Apple's Accelerate
   //! framework provides a gemm implementation that invokes the GPU on M-series processors, but this waits for completion before it returns, and
@@ -399,20 +402,55 @@ using GemmDeviceType = Kokkos::Serial;
                                     const Scalar *B,
                                     const Scalar &beta, Scalar *C)
   {
-    // we assume layout left, so that the B tensor (i,k,j) index flattens to j + k * LDB + i * K * N2.
-    // this means that the slice B(i,:,:) is a K x N2 matrix, contiguous in memory, at offset i * K * N2.
-    // similarly, the slice C(i,:,:) is a M x N2 matrix, contiguous in memory, at offset i * K * N2.
+    // We assume layout left, so that the B tensor (i,k,j) index flattens to i + (k + j * K) * N1.
+    // This means that the slice B(:,:,j) is a N1 x K matrix, contiguous in memory, at offset j * K * N1.
+    // C(m,i,j) -> m + (i + j * N1) * M
+    // Similarly, the slice C(:,:,j) is a M x N1 matrix, contiguous in memory, at offset j * N1 * M.
+    auto policy = Kokkos::RangePolicy<DispatchExecutionSpace>(0,N2);
     
-    auto policy = Kokkos::RangePolicy<DispatchExecutionSpace>(0,N1);
-    
-    const ordinal_type KN2 = K * N2;
+    const ordinal_type KN1 = K * N1;
+    const ordinal_type N1M = N1 * M;
     Kokkos::parallel_for("matrixTensorContractionLayoutLeft: GEMM dispatch", policy,
-                         KOKKOS_LAMBDA(const ordinal_type &i)
+                         KOKKOS_LAMBDA(const ordinal_type &j)
     {
-      const ordinal_type i_offset = i * KN2;
-      const auto B_i = B + i_offset;
-      const auto C_i = C + i_offset;
-      gemm<GemmDeviceType>('N', 'N', M, N2, K, alpha, A, LDA, B_i, beta, C_i);
+      const auto B_j = B + j * KN1;
+      const auto C_j = C + j * N1M;
+      gemm<GemmDeviceType>('N', 'T', M, N1, K, alpha, A, LDA, B_j, beta, C_j);
+      
+      using namespace std;
+      cout << "j = " << j << std::endl;
+      cout << "computed A * B^T = C:\n";
+      cout << "A:\n";
+      for (int m=0; m<M; m++)
+      {
+        cout << "[ ";
+        for (int k=0; k<K; k++)
+        {
+          cout << *(A + m + k * M) << " ";
+        }
+        cout << "]\n";
+      }
+      cout << "B:\n";
+      for (int n1=0; n1<N1; n1++)
+      {
+        cout << "[ ";
+        for (int k=0; k<K; k++)
+        {
+          cout << *(B_j + n1 + k * N1) << " ";
+        }
+        cout << "]\n";
+      }
+      
+      cout << "C:\n";
+      for (int n1=0; n1<N1; n1++)
+      {
+        cout << "[ ";
+        for (int m=0; m<M; m++)
+        {
+          cout << *(C_j + m + n1 * M) << " ";
+        }
+        cout << "]\n";
+      }
     });
     
     DispatchExecutionSpace().fence();
