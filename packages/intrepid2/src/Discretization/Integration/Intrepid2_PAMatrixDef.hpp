@@ -36,6 +36,32 @@ namespace Intrepid2 {
 
 namespace Impl
 {
+//! For matrix-valued A(C,P,Da,Db) and vector-valued B(C,P,Db), output C(C,P,Da) representing the pointwise matrix-vector product.  At present, on the assumption that Da and Db are small, potentially unit-valued, we compute this in a KOKKOS_LAMBDA, but we may want to invoke GEMM for the multiply in the future.
+template<typename DeviceType, class Scalar>
+void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints, const ordinal_type aSpan, const ordinal_type bSpan,
+                       const Scalar* A, const Scalar *B, Scalar *C)
+{
+  using ExecutionSpace = typename DeviceType::execution_space;
+  auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,numPoints,aSpan});
+  
+  Kokkos::parallel_for("pointDataMultiply", policy,
+                       KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &point, const ordinal_type &a)
+  {
+    Scalar value = 0;
+    const Scalar* entryA = A + (a + (point + cell * numPoints) * aSpan) * bSpan;
+    const Scalar* entryB = B + (point + cell * numPoints) * bSpan;
+    for (int b=0; b<bSpan; b++)
+    {
+      value += *entryA * *entryB;
+      entryA++;
+      entryB++;
+    }
+    Scalar* entryC = C + a + (point + cell * numPoints) * aSpan;
+    *entryC = value;
+  });
+  ExecutionSpace().fence();
+}
+
   template<typename ExecutionSpace,typename Scalar>
   std::enable_if_t<std::is_same<ExecutionSpace, typename Kokkos::Serial::execution_space>::value>
   gemm(const char transA, const char transB,
@@ -46,7 +72,9 @@ namespace Impl
     Teuchos::ETransp trA = (transA == 'T') ? Teuchos::TRANS : (transA == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
     Teuchos::ETransp trB = (transB == 'T') ? Teuchos::TRANS : (transB == 'C') ? Teuchos::CONJ_TRANS : Teuchos::NO_TRANS;
     Teuchos::BLAS<int,Scalar> blas;
-    blas.GEMM(trA, trB, M, N, K, alpha, A, LDA, B, N, beta, C, N);
+    const ordinal_type LDB = K;
+    const ordinal_type LDC = M;
+    blas.GEMM(trA, trB, M, N, K, alpha, A, LDA, B, LDB, beta, C, LDC);
   }
 
 #ifdef HAVE_INTREPID2_KOKKOSKERNELS
@@ -57,7 +85,7 @@ namespace Impl
        const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
        const Scalar *B, const Scalar &beta, Scalar *C)
   {
-    using ExecutionSpace = DeviceType::execution_space;
+    using ExecutionSpace = typename DeviceType::execution_space;
     using View2D = Kokkos::View<Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
     View2D AView(M,K);
     View2D BView(N,K);
@@ -1079,10 +1107,12 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
   {
     const auto &integral_tuple = componentIntegralsToSum_[integrationPass];
     // right integrals: replace F2j basis coefficients with evaluations at Pj
-    auto rightIntegrals = std::get<2>(integral_tuple);
+    const auto & rightIntegrals = std::get<2>(integral_tuple);
     int numRightIntegrals = int(rightIntegrals.size());
     
-    auto leftIntegrals = std::get<0>(integral_tuple);
+    const PointDataSpec & pointDataSpec = std::get<1>(integral_tuple);
+    
+    const auto & leftIntegrals = std::get<0>(integral_tuple);
     int numLeftIntegrals = int(leftIntegrals.size());
     
     // set workspace1 to the input data, with layout left
@@ -1112,18 +1142,19 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       const ordinal_type & K = op.N;
       
       const auto A = op.opView.data();
-      const ordinal_type LDA = K; // will need to revise if we ever pad our operators (for byte alignment)
+      const ordinal_type LDA = M; // will need to revise if we ever pad our operators (for byte alignment)
       N2 /= K;
       const auto B = in.data();
       auto C = out.data();
       Impl::matrixTensorContractionLayoutLeft<Impl::GemmExecutionSpace>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
       N1 *= K;
     }
-    auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2;
-    auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1;
+    auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
+    auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
     
-    // TODO: pointData multiplication
-    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Implementation incomplete");
+    auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights
+    Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
+                                               pointData.data(), pointDataIn.data(), pointDataOut.data());
     
     // the left integrals are ordered in the natural dimension ordering: x integrals come first.
     // this means that the first tensor contraction is (F1_x,P_x) against (C,P_x,P_y*…*P_n*N)
@@ -1141,7 +1172,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       const ordinal_type & K = op.N;
       
       const auto A = op.opView.data();
-      const ordinal_type LDA = K; // will need to revise if we ever pad our operators (for byte alignment)
+      const ordinal_type LDA = M; // will need to revise if we ever pad our operators (for byte alignment)
       N2 /= K;
       const auto B = in.data();
       auto C = out.data();
