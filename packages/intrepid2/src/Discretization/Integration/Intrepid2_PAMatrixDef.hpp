@@ -37,30 +37,39 @@ namespace Intrepid2 {
 
 namespace Impl
 {
-//! For matrix-valued A(C,P,Da,Db) and vector-valued B(C,P,Db), output C(C,P,Da) representing the pointwise matrix-vector product.
+//! For matrix-valued A(C,P,Da,Db) and vector-valued (P[,Db],N,C), output C(N,C,P,Da) representing the pointwise matrix-vector product.
 template<typename DeviceType, class Scalar>
 void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints, const ordinal_type aSpan, const ordinal_type bSpan,
-                       const Scalar* A, const Scalar *B, Scalar *C)
+                       const Scalar* A, const Scalar *B, Scalar *C, const ordinal_type N)
 {
+  // with layout left convention:
+  // A has shape (C,P,Da,Db).
+  // B has shape (P[,Db],N,C).
+  // C has shape (N,C,P[,Da]).
+  
+  // TODO: For non-trivial Da (≠1), we need to pack in the vector info into the point component for which the left integral will perform a dot product.  This will require some additional indexing logic, and we'll need additional arguments telling us about the point components: the number on the "left" of the vector point component, and either the number of points in the vector point component, or the number of points to the "right" of the vector point component.  For now, we throw an exception if aSpan != 1
+  INTREPID2_TEST_FOR_EXCEPTION(aSpan != 1, std::invalid_argument, "aSpan != 1 is not yet supported");
+  
   using ExecutionSpace = typename DeviceType::execution_space;
-  auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,numPoints,aSpan});
+  auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<4>>({0,0,0,0},{N,numCells,numPoints,aSpan});
   
   Kokkos::parallel_for("pointDataMultiply", policy,
-                       KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &point, const ordinal_type &a)
+                       KOKKOS_LAMBDA(const ordinal_type &n, const ordinal_type &cell, const ordinal_type &point, const ordinal_type &a)
   {
     Scalar value = 0;
     // assume layout left for A,B,C
-    const Scalar* entryA = A + cell + (point + a * numPoints) * numCells;
-    const Scalar* entryB = B + cell + point * numCells;
+    const int b0 = 0; // placeholder to make formulas clear
+    const Scalar* entryA = A + cell  + (point + (a +   b0 * aSpan ) * numPoints) * numCells; // shape (C,P,Da,Db).
+    const Scalar* entryB = B + point + (   b0 + (n + cell *     N ) * bSpan    ) * numPoints; // (P[,Db],N,C)
     const ordinal_type strideA = aSpan * numPoints * numCells;
-    const ordinal_type strideB = numPoints * numCells;
+    const ordinal_type strideB = numPoints;
     for (int b=0; b<bSpan; b++)
     {
       value += *entryA * *entryB;
       entryA += strideA;
       entryB += strideB;
     }
-    Scalar* entryC = C + cell + (point + a * numPoints) * numCells;
+    Scalar* entryC = C + n + (cell + (point + a * numPoints) * numCells) * N; // (N,C,P[,Da])
     *entryC = value;
   });
   ExecutionSpace().fence();
@@ -78,6 +87,9 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
     Teuchos::BLAS<int,Scalar> blas;
     const ordinal_type LDB = (trB == Teuchos::TRANS) ? N : K;
     const ordinal_type LDC = M;
+    INTREPID2_TEST_FOR_EXCEPTION(LDA==0, std::invalid_argument, "LDA cannot be 0");
+    INTREPID2_TEST_FOR_EXCEPTION(LDB==0, std::invalid_argument, "LDB cannot be 0");
+    INTREPID2_TEST_FOR_EXCEPTION(LDC==0, std::invalid_argument, "LDC cannot be 0");
     blas.GEMM(trA, trB, M, N, K, alpha, A, LDA, B, LDB, beta, C, LDC);
   }
 
@@ -402,6 +414,7 @@ using GemmDeviceType = Kokkos::Serial;
                                     const Scalar *B,
                                     const Scalar &beta, Scalar *C)
   {
+    // TODO: once everything is working, assuming we have not found a use for this code, delete it and the tests against it.
     // We assume layout left, so that the B tensor (i,k,j) index flattens to i + (k + j * K) * N1.
     // This means that the slice B(:,:,j) is a N1 x K matrix, contiguous in memory, at offset j * K * N1.
     // C(m,i,j) -> m + (i + j * N1) * M
@@ -1154,51 +1167,64 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
     const auto & leftIntegrals = std::get<0>(integral_tuple);
     int numLeftIntegrals = int(leftIntegrals.size());
     
-    // set workspace1 to the input data, with layout left
+    // set workspace1 to the input data in an appropriate order
+    // (C,F,N) arguments, where F=F_0…F_d, and the tensor ordering of these has F_0 as the fastest-moving index.
+    // We want to start with input basis coefficients that are in a tensor product ordering with shape
+    // (N,C,F), where the fastest-moving indices are on the left (LayoutLeft ordering).
     auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{C,F2,N});
     Kokkos::parallel_for("PAMatrix::apply(): copy inputVector into workspace", policy,
     KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
     {
-      const ordinal_type idx = n + (f + n * F2) * N;
+      const ordinal_type idx = n + (c + f * C) * N;
       workspace1(idx) = inputVector(c,f,n);
     }
     );
     ExecutionSpace().fence();
     
     // the right integrals are ordered in the natural dimension ordering: x integrals come first.
-    // this means that the first tensor contraction is (P_x,F2_x) against (C,F2_x,F2_y*…*F2_n*N)
-    int N1 = C;
-    int N2 = F2 * N; // will modify before first use, below
+    // At the start, input has shape (N,C,F_0,...,F_d); we regard this as a matrix (NCF_0…F_{d-1} x F_d)
+    // We left-multiply the transpose of this by a right-integral matrix A_d with shape (P_d,F_d), with result
+    // of shape (P_d,N,C,F_0,...,F_{d-1}).  In the next iteration, we multiply by A_{d-1} to get
+    // (P_{d-1},P_d,N,C,F_0,...,F_{d-2}), continuing until we have (P_0,…,P_d,N,C) = (P,N,C).
+    // We then weight with point data; as we do, we reshape to a form (N,C,P).
+    // We then apply the transpose of left-integral matrix A_d to produce (F_d,N,C,P_0,…,P_{d-1}),
+    // ending with (F_0,...,F_d,N,C) = (F,N,C), where now the F's belong to the left basis.
+    // Finally, we accumulate the result into outputVector as (C,F,N), in Kokkos's layout for outputVector.
+    
+    // define Nr to be the size of the most recent workspace data
+    int Nr = C * N * F2;
     for (int j=0; j<numRightIntegrals; j++)
     {
       // we alternate whether we are placing intermediate results in workspace1 or workspace2
       auto  in = (j%2 == 0) ? workspace1 : workspace2;
       auto out = (j%2 == 0) ? workspace2 : workspace1;
       
-      auto op = rightIntegrals[j];
-      // contraction of M x K with tensor of shape N1 x K x N2;
-      const ordinal_type & M = op.M;
-      const ordinal_type & K = op.N;
+      const int r = numRightIntegrals-j-1; // start with final component, work back to 0th component.
+      
+      auto op = rightIntegrals[r];
+      
+      // multiply P_r x F_r matrix with transpose of (… x F_r)
+      const ordinal_type & Pr = op.M;
+      const ordinal_type & Fr = op.N;
       
       const auto A = op.opView.data();
-      const ordinal_type LDA = M; // will need to revise if we ever pad our operators (for byte alignment)
-      N2 /= K;
+      const ordinal_type LDA = Pr; // will need to revise if we ever pad our operators (for byte alignment)
       const auto B = in.data();
       auto C = out.data();
-      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
-      N1 *= K;
+      Impl::gemm<Impl::GemmDeviceType>('N', 'T', Pr, Nr/Fr, Fr, alpha, A, LDA, B, beta, C);
+//      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
+      Nr = N * Pr / Fr;
     }
     auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
     auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
     
-    auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights
+    auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights with shape (P[,Da[,Db]])
+    // pointDataIn has shape (P,N,C); pointDataOut will have shape (N,C,P) (layout left).
     Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
-                                               pointData.data(), pointDataIn.data(), pointDataOut.data());
+                                               pointData.data(), pointDataIn.data(), pointDataOut.data(), N);
     
-    // the left integrals are ordered in the natural dimension ordering: x integrals come first.
-    // this means that the first tensor contraction is (F1_x,P_x) against (C,P_x,P_y*…*P_n*N)
-    N1 = C;
-    N2 = F1 * N; // will modify before first use, below
+    Nr = Nr * pointDataSpec.aSpan / pointDataSpec.bSpan; // contracted in b, expanded in a
+    
     for (int i=0; i<numLeftIntegrals; i++)
     {
       // we alternate whether we are placing intermediate results in workspace1 or workspace2
@@ -1206,17 +1232,18 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       auto out = ((i+numRightIntegrals+1)%2 == 0) ? workspace2 : workspace1;
       
       auto op = leftIntegrals[i];
-      // contraction of M x K with tensor of shape N1 x K x N2;
-      const ordinal_type & M = op.M;
-      const ordinal_type & K = op.N;
+      
+      // multiply Fr x Pr matrix with transpose of (… x Pr): result is (Fr x …)
+      const ordinal_type & Fr = op.M;
+      const ordinal_type & Pr = op.N;
       
       const auto A = op.opView.data();
-      const ordinal_type LDA = M; // will need to revise if we ever pad our operators (for byte alignment)
-      N2 /= K;
+      const ordinal_type LDA = Fr; // will need to revise if we ever pad our operators (for byte alignment)
       const auto B = in.data();
       auto C = out.data();
-      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(M, N1, N2, K, alpha, A, LDA, B, beta, C);
-      N1 *= K;
+      Impl::gemm<Impl::GemmDeviceType>('N', 'T', Fr, Nr/Pr, Pr, alpha, A, LDA, B, beta, C);
+//      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
+      Nr = N * Fr / Pr;
     }
     auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
     // Sum finalOut into outputVector
@@ -1224,7 +1251,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
     Kokkos::parallel_for("PAMatrix::apply(): sum finalOut into outputVector", policy,
     KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
     {
-      const ordinal_type idx = n + (f + n * F1) * N;
+      const ordinal_type idx = f + (n + c * N) * F1; // (F,N,C) layout-left
       outputVector(c,f,n) += finalOut(idx);
     });
     ExecutionSpace().fence();
