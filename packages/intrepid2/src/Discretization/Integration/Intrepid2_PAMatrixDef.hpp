@@ -1211,9 +1211,10 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       const ordinal_type LDA = Pr; // will need to revise if we ever pad our operators (for byte alignment)
       const auto B = in.data();
       auto C = out.data();
+      INTREPID2_TEST_FOR_EXCEPTION(Nr % Fr != 0, std::invalid_argument, "Error: Nr must be a multiple of Fr");
       Impl::gemm<Impl::GemmDeviceType>('N', 'T', Pr, Nr/Fr, Fr, alpha, A, LDA, B, beta, C);
 //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
-      Nr = N * Pr / Fr;
+      Nr = (Nr * Pr) / Fr;
     }
     auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
     auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
@@ -1241,9 +1242,10 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       const ordinal_type LDA = Fr; // will need to revise if we ever pad our operators (for byte alignment)
       const auto B = in.data();
       auto C = out.data();
+      INTREPID2_TEST_FOR_EXCEPTION(Nr % Pr != 0, std::invalid_argument, "Error: Nr must be a multiple of Pr");
       Impl::gemm<Impl::GemmDeviceType>('N', 'T', Fr, Nr/Pr, Pr, alpha, A, LDA, B, beta, C);
 //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
-      Nr = N * Fr / Pr;
+      Nr = (Nr * Fr) / Pr;
     }
     auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
     // Sum finalOut into outputVector
