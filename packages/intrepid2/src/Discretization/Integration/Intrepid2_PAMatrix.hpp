@@ -96,14 +96,14 @@ namespace Intrepid2 {
         \param  basisValuesLeft      [in] - Left input container, with logical shape (C,F1,P,D)
         \param  cellMeasures             [in] - Point weight container, with logical shape (C,P)
         \param  basisValuesRight    [in] - Right input container with logical shape (C,F2,P,D)
-        \param  orientations             [in] - orientations container, with shape (C)
+        \param  orientations             [in] - orientations container, with shape (C) (optional)
 
         On construction, computes (if it will be needed) a <b>composedTransform</b> object with logical shape (C,P), (C,P,D), or (C,P,D,D) that stores (det J) M^T_L M_R, where det J represents <b>cellMeasures</b> and M_L and M_R represent the basis transformations for the left and right basis, respectively.
     */
     PAMatrix(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeft,
              const TensorData<Scalar,DeviceType> cellMeasures,
              const TransformedBasisValues<Scalar,DeviceType> basisValuesRight,
-             const ScalarView<Orientation,DeviceType> orientations);
+             const ScalarView<Orientation,DeviceType> orientations = ScalarView<Orientation,DeviceType>());
     
     /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>basisValues</b> against itself in
                  point and space dimensions, weighting each point according to <b>cellMeasures</b>.

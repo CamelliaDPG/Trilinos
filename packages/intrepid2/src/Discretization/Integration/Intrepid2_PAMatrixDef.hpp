@@ -823,7 +823,7 @@ _orientations(orientations)
                            KOKKOS_LAMBDA (const int &cellDataOrdinal, const int &pointOrdinal, const int &d1) {
         const Scalar & w = cellMeasures(cellDataOrdinal, pointOrdinal);
         Scalar & result  = composedWeightedTransform.getWritableEntryWithPassThroughOption(passThroughMatrixDims,cellDataOrdinal,pointOrdinal,d1);
-        result = w * composedTransform(cellDataOrdinal,pointOrdinal,d1);
+        result = w * composedTransform.getEntryWithPassThroughOption(passThroughMatrixDims,cellDataOrdinal,pointOrdinal,d1);
       });
     }
     else if (rank == 4)
@@ -877,7 +877,7 @@ _orientations(orientations)
           Kokkos::parallel_for("pack 1D opView", policy,
           KOKKOS_LAMBDA(const int &field, const int &pt)
           {
-            const int idx = layoutLeft ? pt + field * opPoints : field + pt * opFields;
+            const int idx = layoutLeft ? field + pt * opFields : pt + field * opPoints;
             opView(idx) = opData(field,pt);
           });
         }
@@ -888,7 +888,7 @@ _orientations(orientations)
           Kokkos::parallel_for("pack 1D opView", policy,
           KOKKOS_LAMBDA(const int &field, const int &pt, const int &d)
           {
-            const int idx = layoutLeft ? d + (pt + field * opPoints) * opDim : field + (pt + d * opPoints) * opFields;
+            const int idx = layoutLeft ? field + (pt + d * opPoints) * opFields : d + (pt + field * opPoints) * opDim;
             opView(idx) = opData(field,pt,d);
           });
         }
@@ -935,7 +935,7 @@ _orientations(orientations)
               Kokkos::parallel_for("pack 1D opView", policy,
               KOKKOS_LAMBDA(const int &field, const int &pt)
               {
-                const int idx = layoutLeft ? field + pt * opFields : pt + field * opPoints;
+                const int idx = layoutLeft ? pt + field * opPoints : field + pt * opFields;
                 opView(idx) = opData(field,pt);
               });
             }
@@ -946,7 +946,7 @@ _orientations(orientations)
               Kokkos::parallel_for("pack 1D opView", policy,
               KOKKOS_LAMBDA(const int &field, const int &pt, const int &d)
               {
-                const int idx = layoutLeft ? field + (pt + d * opPoints) * opFields : d + (pt + field * opPoints) * opDim ;
+                const int idx = layoutLeft ? d + (pt + field * opPoints) * opDim : field + (pt + d * opPoints) * opFields;
                 opView(idx) = opData(field,pt,d);
               });
             }
@@ -1002,7 +1002,7 @@ _orientations(orientations)
                                    KOKKOS_LAMBDA(const int &cell, const int &pt, const int &da, const int &db)
                                    {
                 const int idx = layoutLeft ? cell + (pt + (da + db * aSpan) * numPoints) * numCells
-                : db + (da + (pt + cell * numPoints) * aSpan) * bSpan ;
+                                           : db + (da + (pt + cell * numPoints) * aSpan) * bSpan ;
                 pointDataView(idx) = composedWeightedTransform(cell,pt,a_offset + da,b_offset + db);
               });
             }

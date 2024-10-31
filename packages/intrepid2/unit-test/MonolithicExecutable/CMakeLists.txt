@@ -60,6 +60,16 @@ IF (TARGET Intrepid2_PAMatrixTests)
   SET_TARGET_PROPERTIES( Intrepid2_PAMatrixTests PROPERTIES EXCLUDE_FROM_ALL TRUE)
 ENDIF()
 
+TRIBITS_ADD_EXECUTABLE( PAMatrixApplyTests NOEXESUFFIX SOURCES PAMatrixTests_Apply.cpp  UnitTestMain.cpp )
+IF (TARGET Intrepid2_PAMatrixApplyTests)
+  SET_TARGET_PROPERTIES( Intrepid2_PAMatrixApplyTests PROPERTIES EXCLUDE_FROM_ALL TRUE)
+ENDIF()
+
+TRIBITS_ADD_EXECUTABLE( PAMatrixApplySyntheticTests NOEXESUFFIX SOURCES PAMatrixTests_ApplySynthetic.cpp  UnitTestMain.cpp )
+IF (TARGET Intrepid2_PAMatrixApplySyntheticTests)
+  SET_TARGET_PROPERTIES( Intrepid2_PAMatrixApplySyntheticTests PROPERTIES EXCLUDE_FROM_ALL TRUE)
+ENDIF()
+
 TRIBITS_ADD_EXECUTABLE( PAMatrixImplTests NOEXESUFFIX SOURCES PAMatrix_Impl_Tests.cpp  UnitTestMain.cpp )
 IF (TARGET Intrepid2_PAMatrixImplTests)
   SET_TARGET_PROPERTIES( Intrepid2_PAMatrixImplTests PROPERTIES EXCLUDE_FROM_ALL TRUE)

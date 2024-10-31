@@ -237,4 +237,48 @@ Intrepid2::PAMatrix<DeviceType,Scalar> constructPAMatrix(Intrepid2::CellGeometry
                                                                                polyOrder2, fs2, op2, nullVectorWeight);
 }
 
+//! constructs a synthetic PAMatrix with custom (F,P) values.  Corresponds to a case with scalar-valued bases in each component dimension with with identity transforms and simple physical-space integration weights.
+template<typename DeviceType, class Scalar, class ...ViewProperties>
+Intrepid2::PAMatrix<DeviceType,Scalar> syntheticPAMatrix(std::vector<Kokkos::View<Scalar**,ViewProperties...> > basis1RefOps,
+                                                         std::vector<Kokkos::View<Scalar**,ViewProperties...> > basis2RefOps,
+                                                         Kokkos::View<Scalar**,ViewProperties...> cellMeasures)
+{
+  using Data                   = Intrepid2::Data                  <Scalar, DeviceType>;
+  using DynRankView            = Intrepid2::ScalarView            <Scalar, DeviceType>;
+  using TensorData             = Intrepid2::TensorData            <Scalar, DeviceType>;
+  using BasisValues            = Intrepid2::BasisValues           <Scalar, DeviceType>;
+  using TransformedBasisValues = Intrepid2::TransformedBasisValues<Scalar, DeviceType>;
+  
+  std::vector<Data> basis1DataComps, basis2DataComps;
+  for (const auto &basis1RefOp : basis1RefOps)
+  {
+    basis1DataComps.push_back(Data(DynRankView(basis1RefOp)));
+  }
+  for (const auto &basis2RefOp : basis2RefOps)
+  {
+    basis2DataComps.push_back(Data(DynRankView(basis2RefOp)));
+  }
+  TensorData basis1TensorData(basis1DataComps);
+  TensorData basis2TensorData(basis2DataComps);
+  
+  BasisValues basisValues1(basis1TensorData);
+  BasisValues basisValues2(basis2TensorData);
+  
+//  template<size_t rank, class ...ViewProperties>
+//  Data(Kokkos::View<DataScalar**,DeviceType, ViewProperties...> data, Kokkos::Array<int,rank> extents, Kokkos::Array<DataVariationType,rank> variationType, const int blockPlusDiagonalLastNonDiagonal = -1)
+  
+  const int numCells  = cellMeasures.extent_int(0);
+  const int numPoints = cellMeasures.extent_int(1);
+  
+  Kokkos::Array<int,2> extents {numCells,numPoints};
+  Kokkos::Array<Intrepid2::DataVariationType,2> variationType {Intrepid2::GENERAL,Intrepid2::GENERAL};
+  Data cellMeasuresData(cellMeasures, extents, variationType);
+  TensorData cellMeasuresTensorData(cellMeasuresData);
+  
+  TransformedBasisValues transformedBasisValues1(numCells, basisValues1); // will use identity transform
+  TransformedBasisValues transformedBasisValues2(numCells, basisValues2); // will use identity transform
+  
+  return Intrepid2::PAMatrix<DeviceType,Scalar>(transformedBasisValues1, cellMeasuresTensorData, transformedBasisValues2);
+}
+
 #endif /* PAMatrixAssembly_h */

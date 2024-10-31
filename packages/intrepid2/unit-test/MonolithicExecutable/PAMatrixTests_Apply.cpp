@@ -48,31 +48,14 @@
 
 namespace
 {
-  using namespace Intrepid2;
+using namespace Intrepid2;
+template<typename DeviceType, typename Scalar>
+using PAMatrix = ::Intrepid2::PAMatrix<DeviceType,Scalar>;
 
-template<class Scalar, class BasisFamily, class PointScalar, int spaceDim, typename DeviceType>
-void testPAMatrixApply(const int &meshWidth, const int &worksetSize,
-                                const EFunctionSpace &fs1, const EOperator &op1, const int &p1, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim> > vectorWeight1,
-                                const EFunctionSpace &fs2, const EOperator &op2, const int &p2, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim> > vectorWeight2,
-                                const double &relTol, const double &absTol, Teuchos::FancyOStream &out, bool &success)
+template<class Scalar, typename DeviceType>
+void testPAMatrixApply(PAMatrix<DeviceType,Scalar> &paMatrix, const double &relTol, const double &absTol, Teuchos::FancyOStream &out, bool &success)
 {
-  // compare the matrix-free action (etc.) specified by PAMatrixAssembly.hpp with the explicit integration in StandardAssembly.hpp
-  
-  using namespace std;
-  
-  Kokkos::Array<int,spaceDim> gridCellCounts;
-  for (int d=0; d<spaceDim; d++)
-  {
-    gridCellCounts[d] = meshWidth;
-  }
-  
-  auto geometry = getMesh<PointScalar, spaceDim, DeviceType>(Standard, gridCellCounts);
-  shards::CellTopology cellTopo = geometry.cellTopology();
-  
-  double flopCountIntegration = 0, flopCountJacobian = 0;
-  auto paMatrix = constructPAMatrix<Scalar,BasisFamily>(geometry,
-                                                        p1, fs1, op1, vectorWeight1,
-                                                        p2, fs2, op2, vectorWeight2);
+  // compare columns of the fully assembled matrix with the action of PAMatrix::apply() on unit vectors with a "1" in corresponding column position.
   
   auto fullMatrix = paMatrix.allocateMatrixStorage();
   paMatrix.assemble(fullMatrix);
@@ -112,15 +95,42 @@ void testPAMatrixApply(const int &meshWidth, const int &worksetSize,
 
 template<class Scalar, class BasisFamily, class PointScalar, int spaceDim, typename DeviceType>
 void testPAMatrixApply(const int &meshWidth, const int &worksetSize,
+                       const EFunctionSpace &fs1, const EOperator &op1, const int &p1, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim> > vectorWeight1,
+                       const EFunctionSpace &fs2, const EOperator &op2, const int &p2, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim> > vectorWeight2,
+                       const double &relTol, const double &absTol, Teuchos::FancyOStream &out, bool &success)
+{
+  // compare columns of the fully assembled matrix with the action of PAMatrix::apply() on unit vectors with a "1" in corresponding column position.
+  
+  using namespace std;
+  
+  Kokkos::Array<int,spaceDim> gridCellCounts;
+  for (int d=0; d<spaceDim; d++)
+  {
+    gridCellCounts[d] = meshWidth;
+  }
+  
+  auto geometry = getMesh<PointScalar, spaceDim, DeviceType>(Standard, gridCellCounts);
+  shards::CellTopology cellTopo = geometry.cellTopology();
+  
+  double flopCountIntegration = 0, flopCountJacobian = 0;
+  auto paMatrix = constructPAMatrix<Scalar,BasisFamily>(geometry,
+                                                        p1, fs1, op1, vectorWeight1,
+                                                        p2, fs2, op2, vectorWeight2);
+  
+  testPAMatrixApply<Scalar, DeviceType>(paMatrix, relTol, absTol, out, success);
+}
+
+template<class Scalar, class BasisFamily, class PointScalar, int spaceDim, typename DeviceType>
+void testPAMatrixApply(const int &meshWidth, const int &worksetSize,
                                              const EFunctionSpace &fs1, const EOperator &op1, const int &p1,
                                              const EFunctionSpace &fs2, const EOperator &op2, const int &p2,
                                              const double &relTol, const double &absTol,
                                              Teuchos::FancyOStream &out, bool &success)
 {
   testPAMatrixApply<Scalar, BasisFamily, PointScalar, spaceDim, DeviceType>(meshWidth, worksetSize,
-                                                                                                  fs1, op1, p1, Teuchos::null,
-                                                                                                  fs2, op2, p2, Teuchos::null,
-                                                                                                  relTol, absTol, out, success);
+                                                                            fs1, op1, p1, Teuchos::null,
+                                                                            fs2, op2, p2, Teuchos::null,
+                                                                            relTol, absTol, out, success);
 }
 
 // MARK: Apply_D1_P1_P1
