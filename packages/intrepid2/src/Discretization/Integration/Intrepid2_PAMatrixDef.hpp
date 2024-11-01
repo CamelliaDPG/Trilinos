@@ -477,10 +477,18 @@ using GemmDeviceType = Kokkos::Serial;
     auto cellDimInfo = composedTransform.getDimensionInfo(0); // cell dimension
     int numTensorComponents = pointWeights.numTensorComponents();
     const int & numLogicalCells = cellDimInfo.logicalExtent;
-    for (int r=0; r<numTensorComponents; r++)
+    if (pointWeights.separateFirstComponent())
     {
-      auto cellDimInfo_r = pointWeights.getTensorComponent(r).getDimensionInfo(0);
-      cellDimInfo = combinedDimensionInfo(cellDimInfo, cellDimInfo_r);
+      auto cellDimInfo_points = pointWeights.getTensorComponent(0).getDimensionInfo(0);
+      cellDimInfo = combinedDimensionInfo(cellDimInfo, cellDimInfo_points);
+    }
+    else
+    {
+      for (int r=0; r<numTensorComponents; r++)
+      {
+        auto cellDimInfo_r = pointWeights.getTensorComponent(r).getDimensionInfo(0);
+        cellDimInfo = combinedDimensionInfo(cellDimInfo, cellDimInfo_r);
+      }
     }
     
     int numPoints = composedTransform.extent_int(1);
@@ -614,12 +622,13 @@ _orientations(orientations)
   }
   const int numPointTensorComponents = cellMeasures.numTensorComponents() - 1;
     
-  // MARK: check for separability
-  if ((numPointTensorComponents == numTensorComponentsLeft) && basisValuesLeft.axisAligned() && basisValuesRight.axisAligned())
-  {
-    _separable = true;
-  }
-  else // general case (not axis-aligned + affine tensor-product structure)
+  // for now, we don't check for separability: we always treat as non-separable.
+  // we could gain some performance in the not-too-common case that the integrals are separable; I haven't yet figured out how much.
+//  if ((numPointTensorComponents == numTensorComponentsLeft) && basisValuesLeft.axisAligned() && basisValuesRight.axisAligned())
+//  {
+//    _separable = true;
+//  }
+//  else // general case (not axis-aligned + affine tensor-product structure)
   {
     _separable = false;
     // MARK: prepare composed transformation matrices
@@ -836,13 +845,14 @@ _orientations(orientations)
                            KOKKOS_LAMBDA (const int &cellDataOrdinal, const int &pointOrdinal, const int &d1, const int &d2) {
         const Scalar & w = cellMeasures(cellDataOrdinal, pointOrdinal);
         Scalar & result  = composedWeightedTransform.getWritableEntry(cellDataOrdinal,pointOrdinal,d1,d2);
-        result = w * composedTransform(cellDataOrdinal,pointOrdinal,d1,d2);
+        const Scalar & originalTransform = composedTransform(cellDataOrdinal,pointOrdinal,d1,d2);
+        result = w * originalTransform;
       });
     }
   }
   
   // MARK: Set up component integrations
-  const int leftComponentCount  = leftIsVectorValued ? basisValuesLeft. vectorData().numComponents() : 1;
+  const int leftComponentCount  =  leftIsVectorValued ? basisValuesLeft. vectorData().numComponents() : 1;
   const int rightComponentCount = rightIsVectorValued ? basisValuesRight.vectorData().numComponents() : 1;
   
   int leftFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families
@@ -1008,15 +1018,18 @@ _orientations(orientations)
             }
             _pointDataCache[pointDataSpec] = pointDataView;
           }
+          INTREPID2_TEST_FOR_EXCEPTION((rightFieldOrdinalOffset != 0) || (leftFieldOrdinalOffset != 0), std::invalid_argument, "Still need to modify PAMatrix to handle the case of non-zero field ordinal offsets"); // probably we need these to be included in the componentIntegralsToSum_ structure.
           componentIntegralsToSum_.push_back({leftOperators,pointDataSpec,rightOperators});
           
           b_offset += rightIsVectorValued ? basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal) : 1;
         }
-        rightFieldOrdinalOffset += rightIsVectorValued ? basisValuesRight.vectorData().numFieldsInFamily(rightFamilyOrdinal) : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
+        rightFieldOrdinalOffset += rightIsVectorValued ? basisValuesRight.vectorData() .numFieldsInFamily(rightFamilyOrdinal)
+                                                       : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
       }
       a_offset += leftIsVectorValued ? basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal) : 1;
     }
-    leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData().numFieldsInFamily(leftFamilyOrdinal) : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
+    leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData() .numFieldsInFamily(leftFamilyOrdinal)
+                                                 : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
   }
   
   // set maxIntermediateSize_: the per-cell size required for intermediate computations, which is used to size the workspaces
@@ -1215,6 +1228,17 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       Impl::gemm<Impl::GemmDeviceType>('N', 'T', Pr, Nr/Fr, Fr, alpha, A, LDA, B, beta, C);
 //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
       Nr = (Nr * Pr) / Fr;
+      
+//      {
+//        // DEBUGGING
+//        using namespace std;
+//        cout << "j=" << j << ", result: [";
+//        for (int i=0; i<Nr; i++)
+//        {
+//          cout << out(i) << " ";
+//        }
+//        cout << "]\n";
+//      }
     }
     auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
     auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
@@ -1226,13 +1250,25 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
     
     Nr = Nr * pointDataSpec.aSpan / pointDataSpec.bSpan; // contracted in b, expanded in a
     
+//    {
+//      // DEBUGGING
+//      using namespace std;
+//      cout << "After pointData contraction, result: [";
+//      for (int j=0; j<Nr; j++)
+//      {
+//        cout << pointDataOut(j) << " ";
+//      }
+//      cout << "]\n";
+//    }
+    
     for (int i=0; i<numLeftIntegrals; i++)
     {
       // we alternate whether we are placing intermediate results in workspace1 or workspace2
       auto  in = ((i+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
       auto out = ((i+numRightIntegrals+1)%2 == 0) ? workspace2 : workspace1;
       
-      auto op = leftIntegrals[i];
+      const int r = numRightIntegrals-i-1; // start with final component, work back to 0th component.
+      auto op = leftIntegrals[r];
       
       // multiply Fr x Pr matrix with transpose of (… x Pr): result is (Fr x …)
       const ordinal_type & Fr = op.M;
@@ -1242,10 +1278,39 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       const ordinal_type LDA = Fr; // will need to revise if we ever pad our operators (for byte alignment)
       const auto B = in.data();
       auto C = out.data();
+//      {
+//        // DEBUGGING
+//        using namespace std;
+//        cout << "i=" << i << ", A: [";
+//        for (int j=0; j<Fr*Pr; j++)
+//        {
+//          cout << op.opView(j) << " ";
+//        }
+//        cout << "]\n";
+//        cout << "B: [";
+//        for (int j=0; j<Nr; j++)
+//        {
+//          cout << in(j) << " ";
+//        }
+//        cout << "]\n";
+//        cout << "gemm args: ('N', 'T', " << Fr << ", " << Nr/Pr << ", " << Pr << ", " << alpha << ", A, " << LDA << ", B, " << beta << ", C)\n";
+//      }
+      
       INTREPID2_TEST_FOR_EXCEPTION(Nr % Pr != 0, std::invalid_argument, "Error: Nr must be a multiple of Pr");
       Impl::gemm<Impl::GemmDeviceType>('N', 'T', Fr, Nr/Pr, Pr, alpha, A, LDA, B, beta, C);
 //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
       Nr = (Nr * Fr) / Pr;
+      
+//      {
+//        // DEBUGGING
+//        using namespace std;
+//        cout << "i=" << i << ", result: [";
+//        for (int j=0; j<Nr; j++)
+//        {
+//          cout << out(j) << " ";
+//        }
+//        cout << "]\n";
+//      }
     }
     auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
     // Sum finalOut into outputVector
