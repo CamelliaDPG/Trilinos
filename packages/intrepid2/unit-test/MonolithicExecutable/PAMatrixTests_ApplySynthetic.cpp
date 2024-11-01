@@ -168,4 +168,119 @@ TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic1)
   testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
 }
 
+// MARK: ApplySynthetic2
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic2)
+{
+  // Another very simple test: Let basis1 and basis2 have the same values at two points, each of which have unit weights
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  std::vector< std::vector< std::vector< Scalar > > > basis1Ops {{{1.,2.}}}, basis2Ops {{{1.,2.}}};
+  std::vector< std::vector< Scalar > > pointWeights {{1.,1.}};
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
+}
+
+// MARK: ApplySynthetic3
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic3)
+{
+  // Now let basis1 and basis2 have different values at the two points, each of which still have unit weights
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  std::vector< std::vector< std::vector< Scalar > > > basis1Ops {{{2.,1.}}}, basis2Ops {{{1.,2.}}};
+  std::vector< std::vector< Scalar > > pointWeights {{1.,1.}};
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
+}
+
+
+// MARK: ApplySynthetic4
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic4)
+{
+  // Now let basis1 and basis2 have the same values at the two points, now with different weights at the two points
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  std::vector< std::vector< std::vector< Scalar > > > basis1Ops {{{1.,1.}}}, basis2Ops {{{1.,1.}}};
+  std::vector< std::vector< Scalar > > pointWeights {{1.,2.}};
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
+}
+
+// MARK: ApplySynthetic5
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic5)
+{
+  // Now let basis1 and basis2 have two different fields with the same values at the two points, now with different weights at the two points
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  std::vector< std::vector< std::vector< Scalar > > > basis1Ops {{{1.,1.},{2.,2.}}}, basis2Ops {{{1.,1.},{2.,2.}}};
+  std::vector< std::vector< Scalar > > pointWeights {{1.,2.}};
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
+}
+
+
+// MARK: ApplySynthetic6
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic6)
+{
+  // Now let basis1 and basis2 have two different fields with different values at the two points, now with different weights at the two points
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  std::vector< std::vector< std::vector< Scalar > > > basis1Ops {{{1.,2.},{3.,4.}}}, basis2Ops {{{5.,6.},{7.,8.}}};
+  std::vector< std::vector< Scalar > > pointWeights {{0.25,0.5}};
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basis1Ops, pointWeights, basis2Ops, relTol, absTol, out, success);
+}
+
+// MARK: ApplySynthetic7
+TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic7)
+{
+  // Now let basis1 and basis2 have two components, with two-point quadrature and unit weights.
+  // This imitates the components of grad-grad matrix for 2x2 quadrilateral elements on a unit domain.
+  using Scalar = double;
+  double relTol = 1e-15;
+  double absTol = 1e-15;
+  
+  using std::vector;
+  vector< vector< Scalar > > xxValues { { -0.5, -0.5}, { 0.5, 0.5} };                   // (F0,P0) for the x component of the vector value
+  vector< vector< Scalar > > yxValues { { 0.211325, 0.788675}, { 0.788675, 0.211325} }; // (F1,P1) for the x component of the vector value
+  
+  vector< vector< Scalar > > xyValues = yxValues; // (F0,P0) for the y component of the vector value
+  vector< vector< Scalar > > yyValues = xxValues; // (F1,P1) for the y component of the vector value
+  
+  std::vector< std::vector< std::vector< Scalar > > > basisOps_x {xxValues, yxValues};
+  std::vector< std::vector< Scalar > > pointWeights {{1.0,1.0,1.0,1.0}}; // (C,P): C=1,P=4.
+  out << "testing basisOps_x\n";
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basisOps_x, pointWeights, basisOps_x, relTol, absTol, out, success);
+  
+  std::vector< std::vector< std::vector< Scalar > > > basisOps_y {xyValues, yyValues};
+  out << "testing basisOps_y\n";
+  testSyntheticPAMatrixApply<Scalar, DefaultTestDeviceType>(basisOps_y, pointWeights, basisOps_y, relTol, absTol, out, success);
+}
+
+//// MARK: ApplySynthetic7
+//TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic7)
+//{
+//  // Now let basis1 and basis2 have two different fields with different values at the two points, now with different weights at the two points
+//  using Scalar = double;
+//  double relTol = 1e-15;
+//  double absTol = 1e-15;
+//  
+//  using std::vector;
+//  vector<vector<Scalar > > I {{1,0},{0,1}}; // (D,D) matrix: identity
+//  const int numCells = 2;
+//  const int numPoints = 1; // single-point quadrature
+//  vector<vector<vector<vector<Scalar > > > > weightedTransform {{I},{I}}; // (C,P,D,D)
+//  
+//  std::vector< std::vector< std::vector< Scalar > > > basis1Ops_x {{{1.,2.},{3.,4.}}};
+//
+////  { { -0.5, -0.5}, { 0.5, 0.5} } x { { 0.211325, 0.788675}, { 0.788675, 0.211325} }
+////  basisValuesLeft family 0(1):
+////  { { 0.211325, 0.788675}, { 0.788675, 0.211325} } x { { -0.5, -0.5}, { 0.5, 0.5} }
+//}
+
+
 } // anonymous namespace
