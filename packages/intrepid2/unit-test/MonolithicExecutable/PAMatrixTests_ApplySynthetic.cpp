@@ -245,7 +245,9 @@ TEUCHOS_UNIT_TEST(PAMatrix, ApplySynthetic7)
   double absTol = 1e-15;
   
   using std::vector;
+//  vector< vector< Scalar > > xxValues { { 1, 0}, { 0, 0} };                   // (F0,P0) for the x component of the vector value
   vector< vector< Scalar > > xxValues { { -0.5, -0.5}, { 0.5, 0.5} };                   // (F0,P0) for the x component of the vector value
+//  vector< vector< Scalar > > yxValues { { 0, 1}, { 0, 0} };  (F1,P1) for the x component of the vector value
   vector< vector< Scalar > > yxValues { { 0.211325, 0.788675}, { 0.788675, 0.211325} }; // (F1,P1) for the x component of the vector value
   
   vector< vector< Scalar > > xyValues = yxValues; // (F0,P0) for the y component of the vector value
