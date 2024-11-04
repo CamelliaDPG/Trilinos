@@ -858,6 +858,9 @@ _orientations(orientations)
   int leftFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families
   for (int leftFamilyOrdinal=0; leftFamilyOrdinal<leftFamilyCount; leftFamilyOrdinal++)
   {
+    const int leftFieldSpan = leftIsVectorValued ? basisValuesLeft.vectorData() .numFieldsInFamily(leftFamilyOrdinal)
+                                                 : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
+    
     // "a" keeps track of the spatial dimension over which we are integrating in the left vector.
     // Components are allowed to span several dimensions; we keep track of the offset for the component in a_offset
     int a_offset = 0;
@@ -912,6 +915,8 @@ _orientations(orientations)
       int rightFieldOrdinalOffset = 0; // keeps track of the number of fields in prior families // TODO: figure out what a nonzero value means for matrix-free apply() implementation
       for (int rightFamilyOrdinal=0; rightFamilyOrdinal<rightFamilyCount; rightFamilyOrdinal++)
       {
+        const int rightFieldSpan = rightIsVectorValued ? basisValuesRight.vectorData() .numFieldsInFamily(rightFamilyOrdinal)
+                                                       : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
         // "b" keeps track of the spatial dimension over which we are integrating in the right vector
         // components are allowed to span several dimensions; we keep track of the offset for the component in b_offset
         bool haveLaunchedContributionToCurrentFamilyRight = false; // helps to track whether we need a Kokkos::fence before launching a kernel.
@@ -1018,18 +1023,16 @@ _orientations(orientations)
             }
             _pointDataCache[pointDataSpec] = pointDataView;
           }
-          INTREPID2_TEST_FOR_EXCEPTION((rightFieldOrdinalOffset != 0) || (leftFieldOrdinalOffset != 0), std::invalid_argument, "Still need to modify PAMatrix to handle the case of non-zero field ordinal offsets"); // probably we need these to be included in the componentIntegralsToSum_ structure.
-          componentIntegralsToSum_.push_back({leftOperators,pointDataSpec,rightOperators});
+          componentIntegralsToSum_.push_back({leftOperators,pointDataSpec,rightOperators,
+                                              leftFieldOrdinalOffset,leftFieldSpan,rightFieldOrdinalOffset,rightFieldSpan});
           
           b_offset += rightIsVectorValued ? basisValuesRight.vectorData().numDimsForComponent(rightComponentOrdinal) : 1;
         }
-        rightFieldOrdinalOffset += rightIsVectorValued ? basisValuesRight.vectorData() .numFieldsInFamily(rightFamilyOrdinal)
-                                                       : basisValuesRight.basisValues().numFieldsInFamily(rightFamilyOrdinal);
+        rightFieldOrdinalOffset += rightFieldSpan;
       }
       a_offset += leftIsVectorValued ? basisValuesLeft.vectorData().numDimsForComponent(leftComponentOrdinal) : 1;
     }
-    leftFieldOrdinalOffset += leftIsVectorValued ? basisValuesLeft.vectorData() .numFieldsInFamily(leftFamilyOrdinal)
-                                                 : basisValuesLeft.basisValues().numFieldsInFamily(leftFamilyOrdinal);
+    leftFieldOrdinalOffset += leftFieldSpan;
   }
   
   // set maxIntermediateSize_: the per-cell size required for intermediate computations, which is used to size the workspaces
@@ -1130,7 +1133,15 @@ template<typename DeviceType,class Scalar>
 Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize)
 {
   using View1D = Kokkos::View<Scalar*,DeviceType>;
-  const int size1D = maxIntermediateSize_ * worksetSize;
+  int size1D = maxIntermediateSize_ * worksetSize * 2;
+  
+  if (_orientations.size() > 0)
+  {
+    // then we need to apply orientations on the way in and on the way out, and we need workspace to do that
+    const int numFieldsTotal = _basisValuesLeft.numFields() + _basisValuesRight.numFields();
+    size1D += numFieldsTotal * worksetSize;
+  }
+    
   return View1D("PAMatrix workspace", size1D);
 }
 
@@ -1139,17 +1150,26 @@ Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(
                                                                                 const ordinal_type &n)
 {
   using View1D = Kokkos::View<Scalar*,DeviceType>;
-  const int size1D = maxIntermediateSize_ * worksetSize * n;
+  int size1D = maxIntermediateSize_ * worksetSize * n;
+  
+  if (_orientations.size() > 0)
+  {
+    // then we need to apply orientations on the way in and on the way out, and we need workspace to do that
+    const int numFieldsTotal = _basisValuesLeft.numFields() + _basisValuesRight.numFields();
+    size1D += numFieldsTotal * worksetSize * n;
+  }
+  
   return View1D("PAMatrix workspace", size1D);
 }
 
 template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &outputVector,
                                         const ScalarView<Scalar,DeviceType> & inputVector,
-                                        const Kokkos::View<Scalar*,DeviceType> &workspace1,
-                                        const Kokkos::View<Scalar*,DeviceType> &workspace2)
+                                        const Kokkos::View<Scalar*,DeviceType> &workspace,
+                                        const int worksetSizeIn)
 {
-  // TODO: add worksetSize argument (assume workSetSize == C for now)
+  // TODO: revise to take a single workspace argument.  We should manage subdivision internally.
+  
   using ExecutionSpace = typename DeviceType::execution_space;
   using View1D = Kokkos::View<Scalar*,DeviceType>;
   
@@ -1158,171 +1178,249 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
   const ordinal_type N  = inputVector.extent_int(2);
   const ordinal_type F1 = outputVector.extent_int(1); // C, F1, N
   
+  const int worksetSize = (worksetSizeIn > 0) ? worksetSizeIn : C;
+  
+  using    ScratchView = Kokkos::View       <Scalar*, DeviceType, Kokkos::MemoryUnmanaged>;
+  int workspace1_size = maxIntermediateSize_ * C * N;
+  int workspace2_size = maxIntermediateSize_ * C * N;
+  int workspace3_size = std::max(F1,F2) * C;
+  ScratchView    workspace1   (workspace.data(),                                     workspace1_size);
+  ScratchView    workspace2   (workspace.data() + workspace1_size,                   workspace2_size);
+  
   const double alpha = 1.0;
   const double beta  = 0.0;
   
   Kokkos::deep_copy(outputVector, 0.0);
   
-  // For vector-dot-vector integrals (e.g.), we need to integrate left x components against right x components, etc., and sum.
-  // Each of these is one pass, and we accumulate in outputVector.
-  const int numIntegrationPasses = int(componentIntegralsToSum_.size());
-  
-  // TODO: add loop over cell worksets (right now the below assumes worksetSize == C)
-  for (int integrationPass=0; integrationPass<numIntegrationPasses; integrationPass++)
+  int startCell = 0;
+  while (startCell < C)
   {
-    const auto &integral_tuple = componentIntegralsToSum_[integrationPass];
-    // right integrals: replace F2j basis coefficients with evaluations at Pj
-    const auto & rightIntegrals = std::get<2>(integral_tuple);
-    int numRightIntegrals = int(rightIntegrals.size());
+    const int Cw = (worksetSize + startCell <= C) ? worksetSize : C - startCell;
     
-    const PointDataSpec & pointDataSpec = std::get<1>(integral_tuple);
+    std::pair<int,int> cellRange = {startCell, startCell + Cw};
     
-    const auto & leftIntegrals = std::get<0>(integral_tuple);
-    int numLeftIntegrals = int(leftIntegrals.size());
-    
-    // set workspace1 to the input data in an appropriate order
-    // (C,F,N) arguments, where F=F_0…F_d, and the tensor ordering of these has F_0 as the fastest-moving index.
-    // We want to start with input basis coefficients that are in a tensor product ordering with shape
-    // (N,C,F), where the fastest-moving indices are on the left (LayoutLeft ordering).
-    auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{C,F2,N});
-    Kokkos::parallel_for("PAMatrix::apply(): copy inputVector into workspace", policy,
-    KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+    // For vector-dot-vector integrals (e.g.), we need to integrate left x components against right x components, etc., and sum.
+    // Each of these is one pass, and we accumulate in outputVector.
+    const int numIntegrationPasses = int(componentIntegralsToSum_.size());
+     
+    using DynScratchView = Kokkos::DynRankView<Scalar,  DeviceType, Kokkos::MemoryUnmanaged>;
+    DynScratchView workspace3, workspace4;
+    if (_orientations.size() > 0)
     {
-      const ordinal_type idx = n + (c + f * C) * N;
-      workspace1(idx) = inputVector(c,f,n);
+      int work_offset = workspace1_size + workspace2_size;
+      workspace3 = DynScratchView(workspace.data() + work_offset, Cw, F2, N);
+      work_offset += Cw * F2 * N;
+      workspace4 = DynScratchView(workspace.data() + work_offset, Cw, F1, N);
+      // we accumulate in workspace4, so clear first:
+      Kokkos::deep_copy(workspace4, 0.0);
+      auto orientationsWorkset = Kokkos::subview(_orientations, cellRange);
+      for (int n=0; n<N; n++)
+      {
+        auto inputVectorWorkset_n = Kokkos::subview( inputVector,   cellRange, Kokkos::ALL, n);
+        auto workspace3_n         = Kokkos::subview( workspace3,  Kokkos::ALL, Kokkos::ALL, n);
+        OrientationTools<DeviceType>::modifyBasisByOrientation(workspace3_n, inputVectorWorkset_n, orientationsWorkset,
+                                                               _basisValuesRight.basisValues().getBasis().get());
+      }
     }
-    );
-    ExecutionSpace().fence();
     
-    // the right integrals are ordered in the natural dimension ordering: x integrals come first.
-    // At the start, input has shape (N,C,F_0,...,F_d); we regard this as a matrix (NCF_0…F_{d-1} x F_d)
-    // We left-multiply the transpose of this by a right-integral matrix A_d with shape (P_d,F_d), with result
-    // of shape (P_d,N,C,F_0,...,F_{d-1}).  In the next iteration, we multiply by A_{d-1} to get
-    // (P_{d-1},P_d,N,C,F_0,...,F_{d-2}), continuing until we have (P_0,…,P_d,N,C) = (P,N,C).
-    // We then weight with point data; as we do, we reshape to a form (N,C,P).
-    // We then apply the transpose of left-integral matrix A_d to produce (F_d,N,C,P_0,…,P_{d-1}),
-    // ending with (F_0,...,F_d,N,C) = (F,N,C), where now the F's belong to the left basis.
-    // Finally, we accumulate the result into outputVector as (C,F,N), in Kokkos's layout for outputVector.
-    
-    // define Nr to be the size of the most recent workspace data
-    int Nr = C * N * F2;
-    for (int j=0; j<numRightIntegrals; j++)
+    for (int integrationPass=0; integrationPass<numIntegrationPasses; integrationPass++)
     {
-      // we alternate whether we are placing intermediate results in workspace1 or workspace2
-      auto  in = (j%2 == 0) ? workspace1 : workspace2;
-      auto out = (j%2 == 0) ? workspace2 : workspace1;
+      const auto &integral_tuple = componentIntegralsToSum_[integrationPass];
       
-      const int r = numRightIntegrals-j-1; // start with final component, work back to 0th component.
+      const auto & leftIntegrals = std::get<0>(integral_tuple);
+      const PointDataSpec & pointDataSpec = std::get<1>(integral_tuple);
+      // right integrals: replace F2j basis coefficients with evaluations at Pj
+      const auto & rightIntegrals = std::get<2>(integral_tuple);
+      int numRightIntegrals = int(rightIntegrals.size());
       
-      auto op = rightIntegrals[r];
+      const auto  leftOrdinalOffset = std::get<3>(integral_tuple);
+      const auto     leftOutputSpan = std::get<4>(integral_tuple);
+      const auto rightOrdinalOffset = std::get<5>(integral_tuple);
+      const auto     rightInputSpan = std::get<6>(integral_tuple);
       
-      // multiply P_r x F_r matrix with transpose of (… x F_r)
-      const ordinal_type & Pr = op.M;
-      const ordinal_type & Fr = op.N;
+      int numLeftIntegrals = int(leftIntegrals.size());
       
-      const auto A = op.opView.data();
-      const ordinal_type LDA = Pr; // will need to revise if we ever pad our operators (for byte alignment)
-      const auto B = in.data();
-      auto C = out.data();
-      INTREPID2_TEST_FOR_EXCEPTION(Nr % Fr != 0, std::invalid_argument, "Error: Nr must be a multiple of Fr");
-      Impl::gemm<Impl::GemmDeviceType>('N', 'T', Pr, Nr/Fr, Fr, alpha, A, LDA, B, beta, C);
-//      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
-      Nr = (Nr * Pr) / Fr;
+      // set workspace1 to the input data in an appropriate order
+      // (C,F,N) arguments, where F=F_0…F_d, and the tensor ordering of these has F_0 as the fastest-moving index.
+      // We want to start with input basis coefficients that are in a tensor product ordering with shape
+      // (N,C,F), where the fastest-moving indices are on the left (LayoutLeft ordering).
+      auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{Cw,rightInputSpan,N});
+      if (_orientations.size() > 0)
+      {
+        Kokkos::parallel_for("PAMatrix::apply(): copy inputVector into workspace", policy,
+                             KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+                             {
+          const ordinal_type idx = n + (c + f * Cw) * N;
+          workspace1(idx) = workspace3(c,f+rightOrdinalOffset,n);
+        });
+      }
+      else
+      {
+        Kokkos::parallel_for("PAMatrix::apply(): copy inputVector into workspace", policy,
+                             KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+                             {
+          const ordinal_type idx = n + (c + f * Cw) * N;
+          workspace1(idx) = inputVector(c + startCell,f+rightOrdinalOffset,n);
+        });
+      }
+      ExecutionSpace().fence();
       
-//      {
-//        // DEBUGGING
-//        using namespace std;
-//        cout << "j=" << j << ", result: [";
-//        for (int i=0; i<Nr; i++)
-//        {
-//          cout << out(i) << " ";
-//        }
-//        cout << "]\n";
-//      }
+      // the right integrals are ordered in the natural dimension ordering: x integrals come first.
+      // At the start, input has shape (N,C,F_0,...,F_d); we regard this as a matrix (NCF_0…F_{d-1} x F_d)
+      // We left-multiply the transpose of this by a right-integral matrix A_d with shape (P_d,F_d), with result
+      // of shape (P_d,N,C,F_0,...,F_{d-1}).  In the next iteration, we multiply by A_{d-1} to get
+      // (P_{d-1},P_d,N,C,F_0,...,F_{d-2}), continuing until we have (P_0,…,P_d,N,C) = (P,N,C).
+      // We then weight with point data; as we do, we reshape to a form (N,C,P).
+      // We then apply the transpose of left-integral matrix A_d to produce (F_d,N,C,P_0,…,P_{d-1}),
+      // ending with (F_0,...,F_d,N,C) = (F,N,C), where now the F's belong to the left basis.
+      // Finally, we accumulate the result into outputVector as (C,F,N), in Kokkos's layout for outputVector.
+      
+      // define Nr to be the size of the most recent workspace data
+      int Nr = Cw * N * rightInputSpan;
+      for (int j=0; j<numRightIntegrals; j++)
+      {
+        // we alternate whether we are placing intermediate results in workspace1 or workspace2
+        auto  in = (j%2 == 0) ? workspace1 : workspace2;
+        auto out = (j%2 == 0) ? workspace2 : workspace1;
+        
+        const int r = numRightIntegrals-j-1; // start with final component, work back to 0th component.
+        
+        auto op = rightIntegrals[r];
+        
+        // multiply P_r x F_r matrix with transpose of (… x F_r)
+        const ordinal_type & Pr = op.M;
+        const ordinal_type & Fr = op.N;
+        
+        const auto A = op.opView.data();
+        const ordinal_type LDA = Pr; // will need to revise if we ever pad our operators (for byte alignment)
+        const auto B = in.data();
+        auto C = out.data();
+        INTREPID2_TEST_FOR_EXCEPTION(Nr % Fr != 0, std::invalid_argument, "Error: Nr must be a multiple of Fr");
+        Impl::gemm<Impl::GemmDeviceType>('N', 'T', Pr, Nr/Fr, Fr, alpha, A, LDA, B, beta, C);
+        //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
+        Nr = (Nr * Pr) / Fr;
+        
+        //      {
+        //        // DEBUGGING
+        //        using namespace std;
+        //        cout << "j=" << j << ", result: [";
+        //        for (int i=0; i<Nr; i++)
+        //        {
+        //          cout << out(i) << " ";
+        //        }
+        //        cout << "]\n";
+        //      }
+      }
+      auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
+      auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
+      
+      auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights with shape (P[,Da[,Db]])
+      // pointDataIn has shape (P,N,C); pointDataOut will have shape (N,C,P) (layout left).
+      Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
+                                                 pointData.data(), pointDataIn.data(), pointDataOut.data(), N);
+      
+      Nr = Nr * pointDataSpec.aSpan / pointDataSpec.bSpan; // contracted in b, expanded in a
+      
+      //    {
+      //      // DEBUGGING
+      //      using namespace std;
+      //      cout << "After pointData contraction, result: [";
+      //      for (int j=0; j<Nr; j++)
+      //      {
+      //        cout << pointDataOut(j) << " ";
+      //      }
+      //      cout << "]\n";
+      //    }
+      
+      for (int i=0; i<numLeftIntegrals; i++)
+      {
+        // we alternate whether we are placing intermediate results in workspace1 or workspace2
+        auto  in = ((i+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
+        auto out = ((i+numRightIntegrals+1)%2 == 0) ? workspace2 : workspace1;
+        
+        const int r = numRightIntegrals-i-1; // start with final component, work back to 0th component.
+        auto op = leftIntegrals[r];
+        
+        // multiply Fr x Pr matrix with transpose of (… x Pr): result is (Fr x …)
+        const ordinal_type & Fr = op.M;
+        const ordinal_type & Pr = op.N;
+        
+        const auto A = op.opView.data();
+        const ordinal_type LDA = Fr; // will need to revise if we ever pad our operators (for byte alignment)
+        const auto B = in.data();
+        auto C = out.data();
+        //      {
+        //        // DEBUGGING
+        //        using namespace std;
+        //        cout << "i=" << i << ", A: [";
+        //        for (int j=0; j<Fr*Pr; j++)
+        //        {
+        //          cout << op.opView(j) << " ";
+        //        }
+        //        cout << "]\n";
+        //        cout << "B: [";
+        //        for (int j=0; j<Nr; j++)
+        //        {
+        //          cout << in(j) << " ";
+        //        }
+        //        cout << "]\n";
+        //        cout << "gemm args: ('N', 'T', " << Fr << ", " << Nr/Pr << ", " << Pr << ", " << alpha << ", A, " << LDA << ", B, " << beta << ", C)\n";
+        //      }
+        
+        INTREPID2_TEST_FOR_EXCEPTION(Nr % Pr != 0, std::invalid_argument, "Error: Nr must be a multiple of Pr");
+        Impl::gemm<Impl::GemmDeviceType>('N', 'T', Fr, Nr/Pr, Pr, alpha, A, LDA, B, beta, C);
+        //      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
+        Nr = (Nr * Fr) / Pr;
+        
+        //      {
+        //        // DEBUGGING
+        //        using namespace std;
+        //        cout << "i=" << i << ", result: [";
+        //        for (int j=0; j<Nr; j++)
+        //        {
+        //          cout << out(j) << " ";
+        //        }
+        //        cout << "]\n";
+        //      }
+      }
+      auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
+      // Sum finalOut into outputVector
+      policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{Cw,leftOutputSpan,N});
+      if (_orientations.size() > 0)
+      {
+        // orientations will get applied in workspace4
+        Kokkos::parallel_for("PAMatrix::apply(): sum finalOut into outputVector", policy,
+                             KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+                             {
+          const ordinal_type idx = f + (n + c * N) * leftOutputSpan; // (F,N,C) layout-left
+          workspace4(c,f+leftOrdinalOffset,n) += finalOut(idx);
+        });
+      }
+      else
+      {
+        // if no orientations to apply, then we can accumulate directly int outputVector
+        Kokkos::parallel_for("PAMatrix::apply(): sum finalOut into outputVector", policy,
+                             KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+                             {
+          const ordinal_type idx = f + (n + c * N) * leftOutputSpan; // (F,N,C) layout-left
+          outputVector(c+startCell,f+leftOrdinalOffset,n) += finalOut(idx);
+        });
+      }
+      ExecutionSpace().fence();
+    } // integrationPass for loop
+    if (_orientations.size() > 0)
+    {
+      auto orientationsWorkset = Kokkos::subview(_orientations, cellRange);
+      for (int n=0; n<N; n++)
+      {
+        auto outputVectorWorkset_n = Kokkos::subview( outputVector,   cellRange, Kokkos::ALL, n);
+        auto workspace4_n          = Kokkos::subview( workspace4,   Kokkos::ALL, Kokkos::ALL, n);
+        OrientationTools<DeviceType>::modifyBasisByOrientation(outputVectorWorkset_n, workspace4_n, orientationsWorkset,
+                                                               _basisValuesLeft.basisValues().getBasis().get());
+      }
     }
-    auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
-    auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
-    
-    auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights with shape (P[,Da[,Db]])
-    // pointDataIn has shape (P,N,C); pointDataOut will have shape (N,C,P) (layout left).
-    Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
-                                               pointData.data(), pointDataIn.data(), pointDataOut.data(), N);
-    
-    Nr = Nr * pointDataSpec.aSpan / pointDataSpec.bSpan; // contracted in b, expanded in a
-    
-//    {
-//      // DEBUGGING
-//      using namespace std;
-//      cout << "After pointData contraction, result: [";
-//      for (int j=0; j<Nr; j++)
-//      {
-//        cout << pointDataOut(j) << " ";
-//      }
-//      cout << "]\n";
-//    }
-    
-    for (int i=0; i<numLeftIntegrals; i++)
-    {
-      // we alternate whether we are placing intermediate results in workspace1 or workspace2
-      auto  in = ((i+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
-      auto out = ((i+numRightIntegrals+1)%2 == 0) ? workspace2 : workspace1;
-      
-      const int r = numRightIntegrals-i-1; // start with final component, work back to 0th component.
-      auto op = leftIntegrals[r];
-      
-      // multiply Fr x Pr matrix with transpose of (… x Pr): result is (Fr x …)
-      const ordinal_type & Fr = op.M;
-      const ordinal_type & Pr = op.N;
-      
-      const auto A = op.opView.data();
-      const ordinal_type LDA = Fr; // will need to revise if we ever pad our operators (for byte alignment)
-      const auto B = in.data();
-      auto C = out.data();
-//      {
-//        // DEBUGGING
-//        using namespace std;
-//        cout << "i=" << i << ", A: [";
-//        for (int j=0; j<Fr*Pr; j++)
-//        {
-//          cout << op.opView(j) << " ";
-//        }
-//        cout << "]\n";
-//        cout << "B: [";
-//        for (int j=0; j<Nr; j++)
-//        {
-//          cout << in(j) << " ";
-//        }
-//        cout << "]\n";
-//        cout << "gemm args: ('N', 'T', " << Fr << ", " << Nr/Pr << ", " << Pr << ", " << alpha << ", A, " << LDA << ", B, " << beta << ", C)\n";
-//      }
-      
-      INTREPID2_TEST_FOR_EXCEPTION(Nr % Pr != 0, std::invalid_argument, "Error: Nr must be a multiple of Pr");
-      Impl::gemm<Impl::GemmDeviceType>('N', 'T', Fr, Nr/Pr, Pr, alpha, A, LDA, B, beta, C);
-//      Impl::matrixTensorContractionLayoutLeft<Impl::GemmDeviceType>(Fr, N1, N2, Pr, alpha, A, LDA, B, beta, C);
-      Nr = (Nr * Fr) / Pr;
-      
-//      {
-//        // DEBUGGING
-//        using namespace std;
-//        cout << "i=" << i << ", result: [";
-//        for (int j=0; j<Nr; j++)
-//        {
-//          cout << out(j) << " ";
-//        }
-//        cout << "]\n";
-//      }
-    }
-    auto finalOut = ((numLeftIntegrals+numRightIntegrals+1)%2 == 0) ? workspace1 : workspace2;
-    // Sum finalOut into outputVector
-    policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{C,F1,N});
-    Kokkos::parallel_for("PAMatrix::apply(): sum finalOut into outputVector", policy,
-    KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
-    {
-      const ordinal_type idx = f + (n + c * N) * F1; // (F,N,C) layout-left
-      outputVector(c,f,n) += finalOut(idx);
-    });
-    ExecutionSpace().fence();
-  }
+    startCell += Cw;
+  } // while (startCell < C)
 }
 
 template<typename DeviceType,class Scalar>

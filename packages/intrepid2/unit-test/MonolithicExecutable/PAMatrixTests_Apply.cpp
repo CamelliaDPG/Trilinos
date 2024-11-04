@@ -386,15 +386,14 @@ void testPAMatrixApply(PAMatrix<DeviceType,Scalar> &paMatrix, const double &relT
   
   Kokkos::deep_copy(inputVector,0.0);
   
-  auto workspace1 = paMatrix.allocateWorkspace(numCells);
-  auto workspace2 = paMatrix.allocateWorkspace(numCells);
+  auto workspace = paMatrix.allocateWorkspace(numCells);
   
   for (int colOrdinal=0; colOrdinal<numCols; colOrdinal++)
   {
     auto colSubView = Kokkos::subview(inputVector, Kokkos::ALL(), colOrdinal);
     Kokkos::deep_copy(colSubView, 1.0);
     
-    paMatrix.apply(outputVector, inputVector, workspace1, workspace2);
+    paMatrix.apply(outputVector, inputVector, workspace);
   
     auto fullMatrixColumn = Kokkos::subview(fullMatrixView, Kokkos::ALL(), Kokkos::ALL(), colOrdinal);
     

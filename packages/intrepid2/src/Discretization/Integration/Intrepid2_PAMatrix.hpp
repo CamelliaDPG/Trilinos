@@ -85,7 +85,7 @@ namespace Intrepid2 {
     static constexpr bool layoutLeft_ = true; // BLAS expects this
     int maxIntermediateSize_ = 0;
     
-    using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>>; // left, pointData, right
+    using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>, int, int, int, int>; // left, pointData, right, left offset, left output span, right offset, right input span
     std::vector<ComponentSequence> componentIntegralsToSum_;
     
     bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension.
@@ -186,13 +186,15 @@ namespace Intrepid2 {
 
         \param  outputVector             [out] - the result of applying the matrix to the input vector
         \param  inputVector               [in] - the vector to which the matrix will applied
+        \param  workspace                   [in] - memory allocated by allocateWorkspace(), called with arguments (C,N) or, if worksetSize is nonzero, (worksetSize,N).
+        \param  worksetSize               [in] - the number of cells to apply to at a time.  If unspecified, applies to all cells.
         
         <b>outputVector</b> and <b>inputVector</b> may have shapes (C,F1) and (C,F2), representing single vectors, or shapes (C,F1,N) and (C,F2,N), representing multi-vectors.
     */
     void apply(const ScalarView<Scalar,DeviceType> &outputVector,
                const ScalarView<Scalar,DeviceType> & inputVector,
-               const Kokkos::View<Scalar*,DeviceType> &workspace1,
-               const Kokkos::View<Scalar*,DeviceType> &workspace2);
+               const Kokkos::View<Scalar*,DeviceType> &workspace,
+               const int worksetSizeIn = 0);
     
     /** \brief   Fully assembles the matrix.
         \param   integrals          [out] - Output matrix, with logical shape (C,F,F).  See allocateMatrixStorage().
