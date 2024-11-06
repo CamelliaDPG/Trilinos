@@ -311,19 +311,19 @@ namespace
     const ordinal_type LDA = M;
     Intrepid2::Impl::matrixTensorContractionLayoutLeft<DeviceType>(M, N1, N2, K, alpha, AView.data(), LDA, BView.data(), beta, CView.data());
     
-    cout << "C_actual as stored (in 1D): [ ";
-    Cptr = CView.data();
-    for (int m=0; m<M; m++)
-    {
-      for (int n1=0; n1<N1; n1++)
-      {
-        for (int n2=0; n2<N2; n2++)
-        {
-          cout << *Cptr++ << " ";
-        }
-      }
-    }
-    cout << "]\n";
+//    cout << "C_actual as stored (in 1D): [ ";
+//    Cptr = CView.data();
+//    for (int m=0; m<M; m++)
+//    {
+//      for (int n1=0; n1<N1; n1++)
+//      {
+//        for (int n2=0; n2<N2; n2++)
+//        {
+//          cout << *Cptr++ << " ";
+//        }
+//      }
+//    }
+//    cout << "]\n";
     
     testFloatingEquality1(CView, CViewExpected, relTol, absTol, out, success);
   }
