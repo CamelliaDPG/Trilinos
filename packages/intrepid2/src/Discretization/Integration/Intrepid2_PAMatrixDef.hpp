@@ -101,11 +101,11 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
        const Scalar &alpha, const Scalar* A, const ordinal_type &LDA,
        const Scalar *B, const Scalar &beta, Scalar *C)
   {
-    using ConstView2D = Kokkos::View<const Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
-    using      View2D = Kokkos::View<      Scalar**, DeviceType, Kokkos::MemoryUnmanaged>;
-    ConstView2D AView(A,M,K);
-    ConstView2D BView(B,N,K);
-         View2D CView(C,M,N);
+    using ConstView2D = Kokkos::View<const Scalar**, Kokkos::LayoutLeft, DeviceType, Kokkos::MemoryUnmanaged>;
+    using      View2D = Kokkos::View<      Scalar**, Kokkos::LayoutLeft, DeviceType, Kokkos::MemoryUnmanaged>;
+    ConstView2D AView = (transA != 'N') ? ConstView2D(A,K,M) : ConstView2D(A,M,K);
+    ConstView2D BView = (transB != 'N') ? ConstView2D(B,N,K) : ConstView2D(B,K,N);
+    View2D CView(C,M,N);
     
     typename DeviceType::execution_space exec_space;
     KokkosBlas::gemm(exec_space, &transA, &transB, alpha, AView, BView, beta, CView);
@@ -431,39 +431,39 @@ using GemmDeviceType = Kokkos::Serial;
       gemm<GemmDeviceType>('N', 'T', M, N1, K, alpha, A, LDA, B_j, beta, C_j);
       
       using namespace std;
-      cout << "j = " << j << std::endl;
-      cout << "computed A * B^T = C:\n";
-      cout << "A:\n";
-      for (int m=0; m<M; m++)
-      {
-        cout << "[ ";
-        for (int k=0; k<K; k++)
-        {
-          cout << *(A + m + k * M) << " ";
-        }
-        cout << "]\n";
-      }
-      cout << "B:\n";
-      for (int n1=0; n1<N1; n1++)
-      {
-        cout << "[ ";
-        for (int k=0; k<K; k++)
-        {
-          cout << *(B_j + n1 + k * N1) << " ";
-        }
-        cout << "]\n";
-      }
-      
-      cout << "C:\n";
-      for (int n1=0; n1<N1; n1++)
-      {
-        cout << "[ ";
-        for (int m=0; m<M; m++)
-        {
-          cout << *(C_j + m + n1 * M) << " ";
-        }
-        cout << "]\n";
-      }
+//      cout << "j = " << j << std::endl;
+//      cout << "computed A * B^T = C:\n";
+//      cout << "A:\n";
+//      for (int m=0; m<M; m++)
+//      {
+//        cout << "[ ";
+//        for (int k=0; k<K; k++)
+//        {
+//          cout << *(A + m + k * M) << " ";
+//        }
+//        cout << "]\n";
+//      }
+//      cout << "B:\n";
+//      for (int n1=0; n1<N1; n1++)
+//      {
+//        cout << "[ ";
+//        for (int k=0; k<K; k++)
+//        {
+//          cout << *(B_j + n1 + k * N1) << " ";
+//        }
+//        cout << "]\n";
+//      }
+//      
+//      cout << "C:\n";
+//      for (int n1=0; n1<N1; n1++)
+//      {
+//        cout << "[ ";
+//        for (int m=0; m<M; m++)
+//        {
+//          cout << *(C_j + m + n1 * M) << " ";
+//        }
+//        cout << "]\n";
+//      }
     });
     
     DispatchExecutionSpace().fence();
