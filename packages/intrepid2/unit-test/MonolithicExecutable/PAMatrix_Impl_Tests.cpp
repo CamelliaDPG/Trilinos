@@ -220,41 +220,41 @@ namespace
     };
     
     using namespace std;
-    cout << "A:\n";
-    for (int m=0; m<M; m++)
-    {
-      cout << "[ ";
-      for (int k=0; k<K; k++)
-      {
-        cout << formula_A(m, k) << " ";
-      }
-      cout << "]\n";
-    }
-    for (int j=0; j<N2; j++)
-    {
-      cout << "j=" << j << endl;
-      cout << "B expected:\n";
-      for (int n1=0; n1<N1; n1++)
-      {
-        cout << "[ ";
-        for (int k=0; k<K; k++)
-        {
-          cout << formula_B(n1, k, j) << " ";
-        }
-        cout << "]\n";
-      }
-      
-      cout << "C expected:\n";
-      for (int n1=0; n1<N1; n1++)
-      {
-        cout << "[ ";
-        for (int m=0; m<M; m++)
-        {
-          cout << formula_C(m, n1, j) << " ";
-        }
-        cout << "]\n";
-      }
-    }
+//    cout << "A:\n";
+//    for (int m=0; m<M; m++)
+//    {
+//      cout << "[ ";
+//      for (int k=0; k<K; k++)
+//      {
+//        cout << formula_A(m, k) << " ";
+//      }
+//      cout << "]\n";
+//    }
+//    for (int j=0; j<N2; j++)
+//    {
+//      cout << "j=" << j << endl;
+//      cout << "B expected:\n";
+//      for (int n1=0; n1<N1; n1++)
+//      {
+//        cout << "[ ";
+//        for (int k=0; k<K; k++)
+//        {
+//          cout << formula_B(n1, k, j) << " ";
+//        }
+//        cout << "]\n";
+//      }
+//      
+//      cout << "C expected:\n";
+//      for (int n1=0; n1<N1; n1++)
+//      {
+//        cout << "[ ";
+//        for (int m=0; m<M; m++)
+//        {
+//          cout << formula_C(m, n1, j) << " ";
+//        }
+//        cout << "]\n";
+//      }
+//    }
     
     using View1D = Kokkos::View<Scalar*,DeviceType>;
     View1D AView("PAMatrixImpl.MatrixTensorContraction test: AView", M * K);
@@ -274,7 +274,7 @@ namespace
       }
     }
     Scalar* Bptr = BViewHost.data();
-    cout << "B as stored (in 1D): [ ";
+//    cout << "B as stored (in 1D): [ ";
     
     for (int n2=0; n2<N2; n2++)
     {
@@ -282,26 +282,26 @@ namespace
       {
         for (int n1=0; n1<N1; n1++)
         {
-          cout << formula_B(n1, k, n2) << " ";
+//          cout << formula_B(n1, k, n2) << " ";
           *Bptr++ = formula_B(n1, k, n2);
         }
       }
     }
-    cout << "]\n";
+//    cout << "]\n";
     Scalar* Cptr = CViewExpectedHost.data();
-    cout << "C_expected as stored (in 1D): [ ";
+//    cout << "C_expected as stored (in 1D): [ ";
     for (int n2=0; n2<N2; n2++)
     {
       for (int n1=0; n1<N1; n1++)
       {
         for (int m=0; m<M; m++)
         {
-          cout << formula_C(m, n1, n2) << " ";
+//          cout << formula_C(m, n1, n2) << " ";
           *Cptr++ = formula_C(m, n1, n2);
         }
       }
     }
-    cout << "]\n";
+//    cout << "]\n";
     Kokkos::deep_copy(AView, AViewHost);
     Kokkos::deep_copy(BView, BViewHost);
     Kokkos::deep_copy(CViewExpected, CViewExpectedHost);

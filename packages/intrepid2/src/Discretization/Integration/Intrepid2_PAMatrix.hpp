@@ -81,14 +81,17 @@ namespace Intrepid2 {
     std::map<PointDataSpec,View1D> _pointDataCache; // copies of appropriate slices of _composedWeightedTransform; will be regenerated when recomputePointData() is called.
     TensorData<Scalar,DeviceType> _cellMeasures; // (C,P); used for separable case
     TransformedBasisValues<Scalar,DeviceType> _basisValuesLeft, _basisValuesRight;
-    const ScalarView<Orientation,DeviceType> _orientations;
+    ScalarView<Orientation,DeviceType> _orientations;
     static constexpr bool layoutLeft_ = true; // BLAS expects this
     int maxIntermediateSize_ = 0;
     
     using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>, int, int, int, int>; // left, pointData, right, left offset, left output span, right offset, right input span
     std::vector<ComponentSequence> componentIntegralsToSum_;
     
-    bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension.
+    bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension. (currently unused)
+    
+    PAMatrix()
+    {}
     
     /** \brief   Constructs a <b>PAMatrix</b>  representing the contraction of \a <b>basisValuesLeft</b> against \a <b>basisValuesRight</b> containers on
                  point and space dimensions, weighting each point according to <b>cellMeasures</b>.
@@ -130,57 +133,57 @@ namespace Intrepid2 {
     /** \brief   Allocates storage for a fully-assembled matrix.
         \return <b>integrals</b>, a container with logical shape (C,F1,F2), suitable for passing to assemble().
     */
-    Data<Scalar,DeviceType> allocateMatrixStorage();
+    Data<Scalar,DeviceType> allocateMatrixStorage() const;
   
     /** \brief   Allocates and returns a container with shape (C,F1).
         \return  a container with logical shape (C,F1), suitable for passing to extractColumn().
     */
-    Data<Scalar,DeviceType> allocateColumnStorage();
+    Data<Scalar,DeviceType> allocateColumnStorage() const;
     
     /** \brief   Allocates and returns a container with shape (C,F), where F=min(F1,F2).
         \return  a container with logical shape (C,F), suitable for passing to extractDiagonal().
     */
-    Data<Scalar,DeviceType> allocateDiagonalStorage();
+    Data<Scalar,DeviceType> allocateDiagonalStorage() const;
     
     /** \brief   Allocates and returns a view with shape (C).
         \return  a container with logical shape (C), suitable for passing to extractEntry().
     */
-    Data<Scalar,DeviceType> allocateEntryStorage();
+    Data<Scalar,DeviceType> allocateEntryStorage() const;
     
     /** \brief   Allocates and returns a view with shape (C,F2).
         \return  a container with logical shape (C,F2), suitable for passing to extractRow().
     */
-    Data<Scalar,DeviceType> allocateRowStorage();
+    Data<Scalar,DeviceType> allocateRowStorage() const;
     
     /** \brief   Allocates and returns a vector with shape (C,F2).
         \return  a container with logical shape (C,F2), suitable for passing to apply() as input.
     */
-    ScalarView<Scalar,DeviceType> allocateInputVector();
+    ScalarView<Scalar,DeviceType> allocateInputVector() const;
     
     /** \brief   Allocates and returns a multi-vector with shape (C,F2,N), where N is the number of input vectors.
         \return  a container with logical shape (C,F2,N), suitable for passing to apply() as input.
     */
-    ScalarView<Scalar,DeviceType> allocateInputMultiVector(const ordinal_type &n);
+    ScalarView<Scalar,DeviceType> allocateInputMultiVector(const ordinal_type &n) const;
     
     /** \brief   Allocates and returns a vector with shape (C,F1).
         \return  a container with logical shape (C,F1), suitable for passing to apply() as output.
     */
-    ScalarView<Scalar,DeviceType> allocateOutputVector();
+    ScalarView<Scalar,DeviceType> allocateOutputVector() const;
     
     /** \brief   Allocates and returns a multi-vector with shape (C,F1,N), where N is the number of output vectors.
         \return  a container with logical shape (C,F1,N), suitable for passing to apply() as output.
     */
-    ScalarView<Scalar,DeviceType> allocateOutputMultiVector(const ordinal_type &n);
+    ScalarView<Scalar,DeviceType> allocateOutputMultiVector(const ordinal_type &n) const;
 
     /** \brief   Allocates and returns workspace storage suitable for providing to apply() to an vector with a workset of size worksetSize.
         \return
     */
-    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize);
+    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize) const;
     
     /** \brief   Allocates and returns workspace storage suitable for providing to apply() to an n-multivector with a workset of size worksetSize.
         \return
     */
-    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize, const ordinal_type &n);
+    Kokkos::View<Scalar*,DeviceType> allocateWorkspace(const ordinal_type &worksetSize, const ordinal_type &n) const;
     
     /** \brief  Applies the matrix to <b>inputVector</b>, placing the result in <b>outputVector</b>, without explicit assembly and storage of the matrix itself.
 
@@ -191,30 +194,32 @@ namespace Intrepid2 {
         
         <b>outputVector</b> and <b>inputVector</b> may have shapes (C,F1) and (C,F2), representing single vectors, or shapes (C,F1,N) and (C,F2,N), representing multi-vectors.
     */
-    void apply(const ScalarView<Scalar,DeviceType> &outputVector,
-               const ScalarView<Scalar,DeviceType> & inputVector,
+    template <typename OutputViewType, typename InputViewType>
+    void apply(const OutputViewType &outputVector,
+               const  InputViewType & inputVector,
                const Kokkos::View<Scalar*,DeviceType> &workspace,
-               const int worksetSizeIn = 0);
+               const bool sumInto = false,
+               const int worksetSizeIn = 0) const;
     
     /** \brief   Fully assembles the matrix.
         \param   integrals          [out] - Output matrix, with logical shape (C,F,F).  See allocateMatrixStorage().
     */
-    void assemble(Data<Scalar,DeviceType> &integrals);
+    void assemble(Data<Scalar,DeviceType> &integrals) const;
     
     /** \brief   Extracts the <b>j</b>th column of the matrix, placing it in <b>column</b>.
         \param   row          [out] - Output container with logical shape (C,F1).  See allocateColumnStorage().
     */
-    void extractColumn(const Data<Scalar,DeviceType> &column, const ordinal_type &j);
+    void extractColumn(const Data<Scalar,DeviceType> &column, const ordinal_type &j) const;
     
     /** \brief   Extracts the diagonal of the matrix, placing it in <b>diagonal</b>.  If the matrix is not square, returns the portion of the matrix for which i==j.
         \param   diagonal          [out] - Output container with logical shape (C,F), F=min(F1,F2).  See allocateDiagonalStorage().
     */
-    void extractDiagonal(const Data<Scalar,DeviceType> &diagonal);
+    void extractDiagonal(const Data<Scalar,DeviceType> &diagonal) const;
     
     /** \brief   Extracts the <b>i</b>th row of the matrix, placing it in <b>row</b>.
         \param   row          [out] - Output view with logical shape (C,F2).  See allocateRowStorage().
     */
-    void extractRow(const Data<Scalar,DeviceType> &row, const ordinal_type &i);
+    void extractRow(const Data<Scalar,DeviceType> &row, const ordinal_type &i) const;
     
     /** \brief   Extracts matrix entries for each cell at (i,j).
         \param   entry [out] - Output container with logical shape (C).  See allocateEntryStorage().
@@ -223,7 +228,7 @@ namespace Intrepid2 {
      
      \note This method is asymptotically more expensive per entry than extracting diagonals, rows, and columns.  The cost of this evaluation scales with the number of quadrature points, generally O(p^d), with no possibility of reuse of intermediate sums from one row/column to another.  The diagonal, row, and column extraction methods, on the other hand, produce O(p^d) values in O(p^{d+1}) time.
     */
-    void extractEntry(const Data<Scalar,DeviceType> &entry, const ordinal_type &i, const ordinal_type &j);
+    void extractEntry(const Data<Scalar,DeviceType> &entry, const ordinal_type &i, const ordinal_type &j) const;
   }; // end PAMatrix class
 
 } // end namespace Intrepid2

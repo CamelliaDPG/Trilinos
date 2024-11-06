@@ -385,8 +385,19 @@ void testPAMatrixApply(PAMatrix<DeviceType,Scalar> &paMatrix, const double &relT
   ScalarView<Scalar, DeviceType> outputVector("outputVector",numCells,numRows); // C,F1
   
   Kokkos::deep_copy(inputVector,0.0);
-  
   auto workspace = paMatrix.allocateWorkspace(numCells);
+  
+  auto divideOutputVectorValuesByTwo = [&]()
+  {
+    using ExecutionSpace = typename DeviceType::execution_space;
+    auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<2>>({0,0},{numCells,numRows});
+    Kokkos::parallel_for("testPAMatrixApply(): subtractOutputVectorValues", policy,
+                         KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &row)
+                         {
+      outputVector(c,row) *= 0.5;
+    });
+    ExecutionSpace().fence();
+  };
   
   for (int colOrdinal=0; colOrdinal<numCols; colOrdinal++)
   {
@@ -398,6 +409,15 @@ void testPAMatrixApply(PAMatrix<DeviceType,Scalar> &paMatrix, const double &relT
     auto fullMatrixColumn = Kokkos::subview(fullMatrixView, Kokkos::ALL(), Kokkos::ALL(), colOrdinal);
     
     out << "checking col: " << colOrdinal << std::endl;
+    testFloatingEquality2(fullMatrixColumn, outputVector, relTol, absTol, out, success, "fullMatrixColumn", "outputVector");
+    
+    // now do it again but with sumInto = true
+    const bool sumInto = true;
+    paMatrix.apply(outputVector, inputVector, workspace, sumInto);
+    // now we have double the correct value; divide by two
+    divideOutputVectorValuesByTwo();
+    
+    out << "checking col: " << colOrdinal << " (sumInto = true) " << std::endl;
     testFloatingEquality2(fullMatrixColumn, outputVector, relTol, absTol, out, success, "fullMatrixColumn", "outputVector");
     
     // zero out the column entry we changed for next pass through the loop

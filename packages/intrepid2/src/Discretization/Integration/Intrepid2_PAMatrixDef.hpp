@@ -1078,7 +1078,7 @@ PAMatrix<DeviceType,Scalar>(basisValues,cellMeasures,basisValues,orientations)
 {}
 
 template<typename DeviceType,class Scalar>
-Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
+Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage() const
 {
   // Allocates a (C,F,F) container for storing integral data
   
@@ -1130,7 +1130,7 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage()
 } // allocateMatrixStorage()
 
 template<typename DeviceType,class Scalar>
-Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize)
+Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize) const
 {
   using View1D = Kokkos::View<Scalar*,DeviceType>;
   int size1D = maxIntermediateSize_ * worksetSize * 2;
@@ -1138,35 +1138,40 @@ Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(
   if (_orientations.size() > 0)
   {
     // then we need to apply orientations on the way in and on the way out, and we need workspace to do that
-    const int numFieldsTotal = _basisValuesLeft.numFields() + _basisValuesRight.numFields();
-    size1D += numFieldsTotal * worksetSize;
+    size1D +=  _basisValuesLeft.numFields() * worksetSize * 2; // to support sumInto = true, we need intermediate storage for oriented left values (hence the factor of 2).
+    size1D += _basisValuesRight.numFields() * worksetSize;
   }
+//  std::cout  << "allocated " << size1D << " entries of workspace.\n";
     
   return View1D("PAMatrix workspace", size1D);
 }
 
 template<typename DeviceType,class Scalar>
 Kokkos::View<Scalar*,DeviceType> PAMatrix<DeviceType,Scalar>::allocateWorkspace(const ordinal_type &worksetSize,
-                                                                                const ordinal_type &n)
+                                                                                const ordinal_type &n) const
 {
   using View1D = Kokkos::View<Scalar*,DeviceType>;
-  int size1D = maxIntermediateSize_ * worksetSize * n;
+  int size1D = maxIntermediateSize_ * worksetSize * n * 2;
   
   if (_orientations.size() > 0)
   {
     // then we need to apply orientations on the way in and on the way out, and we need workspace to do that
-    const int numFieldsTotal = _basisValuesLeft.numFields() + _basisValuesRight.numFields();
-    size1D += numFieldsTotal * worksetSize * n;
+    size1D +=  _basisValuesLeft.numFields() * worksetSize * n * 2; // to support sumInto = true, we need intermediate storage for oriented left values (hence the factor of 2).
+    size1D += _basisValuesRight.numFields() * worksetSize * n;
   }
+  
+//  std::cout  << "allocated " << size1D << " entries of workspace.\n";
   
   return View1D("PAMatrix workspace", size1D);
 }
 
 template<typename DeviceType,class Scalar>
-void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &outputVector,
-                                        const ScalarView<Scalar,DeviceType> & inputVector,
+template<typename OutputViewType, typename InputViewType>
+void PAMatrix<DeviceType,Scalar>::apply(const OutputViewType &outputVector,
+                                        const  InputViewType & inputVector,
                                         const Kokkos::View<Scalar*,DeviceType> &workspace,
-                                        const int worksetSizeIn)
+                                        const bool sumInto,
+                                        const int worksetSizeIn) const
 {
   // TODO: revise to take a single workspace argument.  We should manage subdivision internally.
   
@@ -1181,21 +1186,23 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
   const int worksetSize = (worksetSizeIn > 0) ? worksetSizeIn : C;
   
   using    ScratchView = Kokkos::View       <Scalar*, DeviceType, Kokkos::MemoryUnmanaged>;
-  int workspace1_size = maxIntermediateSize_ * C * N;
-  int workspace2_size = maxIntermediateSize_ * C * N;
-  int workspace3_size = std::max(F1,F2) * C;
-  ScratchView    workspace1   (workspace.data(),                                     workspace1_size);
-  ScratchView    workspace2   (workspace.data() + workspace1_size,                   workspace2_size);
   
   const double alpha = 1.0;
   const double beta  = 0.0;
   
-  Kokkos::deep_copy(outputVector, 0.0);
+  if (!sumInto)
+    Kokkos::deep_copy(outputVector, 0.0);
   
   int startCell = 0;
   while (startCell < C)
   {
     const int Cw = (worksetSize + startCell <= C) ? worksetSize : C - startCell;
+    
+    int workspace1_size = maxIntermediateSize_ * Cw * N;
+    int workspace2_size = maxIntermediateSize_ * Cw * N;
+    ScratchView    workspace1   (workspace.data(),                   workspace1_size);
+    ScratchView    workspace2   (workspace.data() + workspace1_size, workspace2_size);
+    INTREPID2_TEST_FOR_EXCEPTION(workspace1_size + workspace2_size > workspace.extent_int(0), std::invalid_argument, "Allocated workspace size is not sufficient");
     
     std::pair<int,int> cellRange = {startCell, startCell + Cw};
     
@@ -1204,13 +1211,21 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
     const int numIntegrationPasses = int(componentIntegralsToSum_.size());
      
     using DynScratchView = Kokkos::DynRankView<Scalar,  DeviceType, Kokkos::MemoryUnmanaged>;
-    DynScratchView workspace3, workspace4;
+    int workspace3_size = Cw * F2 * N;
+    int workspace4_size = Cw * F1 * N;
+    int workspace5_size = Cw * F1 * N;
+    DynScratchView workspace3, workspace4, workspace5;
     if (_orientations.size() > 0)
     {
       int work_offset = workspace1_size + workspace2_size;
       workspace3 = DynScratchView(workspace.data() + work_offset, Cw, F2, N);
-      work_offset += Cw * F2 * N;
+      work_offset += workspace3_size;
       workspace4 = DynScratchView(workspace.data() + work_offset, Cw, F1, N);
+      work_offset += workspace4_size;
+      workspace5 = DynScratchView(workspace.data() + work_offset, Cw, F1, N);
+      work_offset += workspace5_size;
+//      std::cout  << "using " << work_offset << " entries of workspace.\n";
+      INTREPID2_TEST_FOR_EXCEPTION(work_offset > workspace.extent_int(0), std::invalid_argument, "Allocated workspace size is not sufficient");
       // we accumulate in workspace4, so clear first:
       Kokkos::deep_copy(workspace4, 0.0);
       auto orientationsWorkset = Kokkos::subview(_orientations, cellRange);
@@ -1240,7 +1255,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       
       int numLeftIntegrals = int(leftIntegrals.size());
       
-      // set workspace1 to the input data in an appropriate order
+      // set workspace1 to the (oriented) input data in an appropriate order
       // (C,F,N) arguments, where F=F_0…F_d, and the tensor ordering of these has F_0 as the fastest-moving index.
       // We want to start with input basis coefficients that are in a tensor product ordering with shape
       // (N,C,F), where the fastest-moving indices are on the left (LayoutLeft ordering).
@@ -1314,7 +1329,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       auto  pointDataIn = (numRightIntegrals%2 == 0) ? workspace1 : workspace2; // pointwise result from contractions so far
       auto pointDataOut = (numRightIntegrals%2 == 0) ? workspace2 : workspace1; // pointwise output from weighting with pointData
       
-      auto pointData = _pointDataCache[pointDataSpec]; // pointwise weights with shape (P[,Da[,Db]])
+      auto pointData = _pointDataCache.find(pointDataSpec)->second; // pointwise weights with shape (P[,Da[,Db]])
       // pointDataIn has shape (P,N,C); pointDataOut will have shape (N,C,P) (layout left).
       Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
                                                  pointData.data(), pointDataIn.data(), pointDataOut.data(), N);
@@ -1415,16 +1430,24 @@ void PAMatrix<DeviceType,Scalar>::apply(const ScalarView<Scalar,DeviceType> &out
       {
         auto outputVectorWorkset_n = Kokkos::subview( outputVector,   cellRange, Kokkos::ALL, n);
         auto workspace4_n          = Kokkos::subview( workspace4,   Kokkos::ALL, Kokkos::ALL, n);
-        OrientationTools<DeviceType>::modifyBasisByOrientation(outputVectorWorkset_n, workspace4_n, orientationsWorkset,
+        auto workspace5_n          = Kokkos::subview( workspace5,   Kokkos::ALL, Kokkos::ALL, n);
+        OrientationTools<DeviceType>::modifyBasisByOrientation(workspace5_n, workspace4_n, orientationsWorkset,
                                                                _basisValuesLeft.basisValues().getBasis().get());
       }
+      
+      auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{Cw,F1,N});
+      Kokkos::parallel_for("PAMatrix::apply(): sum oriented output into outputVector", policy,
+      KOKKOS_LAMBDA(const ordinal_type &c, const ordinal_type &f, const ordinal_type &n)
+      {
+        outputVector(c+startCell,f,n) += workspace5(c,f,n);
+      });
     }
     startCell += Cw;
   } // while (startCell < C)
 }
 
 template<typename DeviceType,class Scalar>
-void PAMatrix<DeviceType,Scalar>::assemble(Data<Scalar,DeviceType> &integrals)
+void PAMatrix<DeviceType,Scalar>::assemble(Data<Scalar,DeviceType> &integrals) const
 {
   //placeholder implementation: just invoke IntegrationTools
   using ExecutionSpace = typename DeviceType::execution_space;
