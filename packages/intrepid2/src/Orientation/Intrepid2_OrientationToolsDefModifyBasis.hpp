@@ -108,19 +108,6 @@ namespace Intrepid2 {
       if (orts(cell).isAlignedToReference())
       {
         // identity
-        const int fieldCount = out.extent_int(0);
-        const int pointCount = out.extent_int(1);
-        const int spaceDim   = out.extent_int(2);
-        for (ordinal_type f=0; f<fieldCount; f++)
-        {
-          for (ordinal_type p=0; p<pointCount; p++)
-          {
-            for (int d=0; d<spaceDim; d++)
-            {
-              out(f,p,d) = in(f,p,d);
-            }
-          }
-        }
         return;
       }
       
@@ -420,6 +407,7 @@ namespace Intrepid2 {
       ordinal_type numVerts(0), numEdges(0), numFaces(0);
 
       if (basis->requireOrientation()) {
+        // FIXME: for anisotropic bases, this can get numEdges, numFaces incorrect, if there are no edge/face dofs on the 0 edge/face, but there are some for other faces.  An example would be an HGRAD quadrilateral with p_x = 1, p_y = 3.
         numVerts = cellTopo.getVertexCount()*ordinal_type(basis->getDofCount(0, 0) > 0);
         numEdges = cellTopo.getEdgeCount()*ordinal_type(basis->getDofCount(1, 0) > 0);
         numFaces = cellTopo.getFaceCount()*ordinal_type(basis->getDofCount(2, 0) > 0);
