@@ -249,6 +249,18 @@ namespace Intrepid2 {
   inline std::string Orientation::to_string() const {
     return "Orientation{ face: " + std::to_string(_faceOrt) + "; edge: " + std::to_string(_edgeOrt) + " }";
   }
+
+  KOKKOS_INLINE_FUNCTION
+  bool Orientation::operator==(const Orientation& other) const {
+      return (_edgeOrt == other._edgeOrt) && (_faceOrt == other._faceOrt);
+  }
+  
+  KOKKOS_INLINE_FUNCTION
+  bool Orientation::operator<(const Orientation& otherOrt) const {
+    if (_edgeOrt < otherOrt._edgeOrt) return true;
+    if (_edgeOrt > otherOrt._edgeOrt) return false;
+    return _faceOrt < otherOrt._faceOrt;
+  }
 }
 
 #endif

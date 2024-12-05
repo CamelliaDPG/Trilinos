@@ -156,6 +156,12 @@ namespace Intrepid2 {
     /**  Returns the orientation converted to a string
     */
     inline std::string to_string() const;
+    
+    KOKKOS_INLINE_FUNCTION
+    bool operator==(const Orientation& other) const;
+    
+    KOKKOS_INLINE_FUNCTION
+    bool operator<(const Orientation& otherOrt) const;
   };
 }
 
