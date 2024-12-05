@@ -290,7 +290,7 @@ namespace Intrepid2 {
           \param  cellBasis    [in]  - cell basis function
           \param  subcellId    [in]  - subcell Id in the cell topology
           \param  subcellOrt   [in]  - orientation number between 0 and 1
-          \param  inverse      [in]  - boolean, when true the inverse of the orintation matrix is computed
+          \param  inverse      [in]  - boolean, when true the inverse of the orientation matrix is computed
 
       */
       template<typename OutputViewType,
@@ -313,7 +313,7 @@ namespace Intrepid2 {
           \param  cellBasis    [in]  - cell basis function
           \param  subcellId    [in]  - subcell Id in the cell topology
           \param  subcellOrt   [in]  - orientation number between 0 and 1
-          \param  inverse      [in]  - boolean, when true the inverse of the orintation matrix is computed
+          \param  inverse      [in]  - boolean, when true the inverse of the orientation matrix is computed
       */
       template<typename OutputViewType,
                typename subcellBasisHostType,
@@ -336,7 +336,7 @@ namespace Intrepid2 {
           \param  cellBasis    [in]  - cell basis function
           \param  subcellId    [in]  - subcell Id in the cell topology
           \param  subcellOrt   [in]  - orientation number between 0 and 1
-          \param  inverse      [in]  - boolean, when true the inverse of the orintation matrix is computed
+          \param  inverse      [in]  - boolean, when true the inverse of the orientation matrix is computed
       */
       template<typename OutputViewType,
                typename subcellBasisHostType,
@@ -357,7 +357,7 @@ namespace Intrepid2 {
           \param  output      [out]  - rank 2 coefficient matrix
           \param  cellBasis    [in]  - cell basis function
           \param  subcellOrt   [in]  - orientation number between 0 and 1
-          \param  inverse      [in]  - boolean, when true the inverse of the orintation matrix is computed
+          \param  inverse      [in]  - boolean, when true the inverse of the orientation matrix is computed
       */
       template<typename OutputViewType,
                typename cellBasisHostType>
@@ -472,7 +472,7 @@ namespace Intrepid2 {
         \param  input          [in]  - input array, of shape (C,F,P[,D]) or (F,P[,D])
         \param  orts           [in]  - orientations, of shape (C)
         \param  basis          [in]  - basis of cardinality F
-        \param  transpose      [in]  - boolean, when true the transpose of the orintation matrix is applied
+        \param  transpose      [in]  - boolean, when true the transpose of the orientation matrix is applied
     */
     template<typename outputValueType, class ...outputProperties,
              typename inputValueType,  class ...inputProperties,
@@ -543,6 +543,19 @@ namespace Intrepid2 {
                               const OrientationViewType orts,
                               const BasisTypeLeft* basisLeft,
                               const BasisTypeRight* basisRight);
+    
+    
+    /** \brief  Determine whether the specified orientations correspond to entry-wise weighted permutations.
+        \param  orts           [in]  - orientations, of shape (C)
+        \param  basis         [in]  - basis
+     \return true if all the listed orientations are entry-wise weighted permutations.
+    */
+    template<typename OrientationViewType,
+             typename BasisType>
+    inline
+    static bool
+    orientationsArePermutations(const OrientationViewType orts,
+                                const BasisType * basis);
   };
 
   //Definition of static members
@@ -561,5 +574,6 @@ namespace Intrepid2 {
 #include "Intrepid2_OrientationToolsDefCoeffMatrix_HVOL.hpp"
 #include "Intrepid2_OrientationToolsDefMatrixData.hpp"
 #include "Intrepid2_OrientationToolsDefModifyBasis.hpp"
+#include "Intrepid2_OrientationToolsDefPermutations.hpp"
 
 #endif
