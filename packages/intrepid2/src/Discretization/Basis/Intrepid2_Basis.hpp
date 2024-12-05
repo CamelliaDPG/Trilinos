@@ -879,6 +879,26 @@ using HostBasisPtr = BasisPtr<typename Kokkos::HostSpace::device_type, OutputTyp
         return static_cast<ordinal_type>(0);
       }
     }
+    
+    /** \brief  Check whether the basis has DoFs on subcells of the specified dimension.
+     
+     \param  subcDim           [in]  - tag field 0: dimension of the subcells
+     
+     \return true, if there are any DoFs associated with subcells of the specified dimension; false otherwise.
+     */
+    ordinal_type
+    hasDofsForSubcellDim( const ordinal_type subcDim ) const {
+      if ( subcDim >= 0 && subcDim < static_cast<ordinal_type>(tagToOrdinal_.extent(0)))
+      {
+        const ordinal_type maxSubcOrd = static_cast<ordinal_type>(tagToOrdinal_.extent(1));
+        for (ordinal_type subcOrd=0; subcOrd < maxSubcOrd; subcOrd++)
+        {
+          int firstDofOrdinal = tagToOrdinal_(subcDim, subcOrd, 0); // will be -1 if no dofs for subcell, or if subcOrd of dim subcDim is not defined on the cell
+          if (firstDofOrdinal != -1) return true;
+        }
+      }
+      return false;
+    }
 
     /** \brief  DoF tag to ordinal lookup.
 
