@@ -14,6 +14,7 @@
 
 #include "Teuchos_UnitTestHarness.hpp"
 
+#include "Intrepid2_CellData.hpp"
 #include "Intrepid2_CellTopology.hpp"
 #include "Intrepid2_OrientationTools.hpp"
 #include "Intrepid2_HierarchicalBasisFamily.hpp"
@@ -33,6 +34,76 @@ namespace
   using DeviceType = DefaultTestDeviceType;
   using ExecutionSpace = typename DeviceType::execution_space;
   using Scalar = double;
+
+/*** Tags for templated tests **/
+class Tet
+{
+public:
+  static const unsigned shardsTopoKey = shards::Tetrahedron<>::key;
+};
+
+class P1
+{
+public:
+  static const int polyOrder = 1;
+};
+class P2
+{
+public:
+  static const int polyOrder = 2;
+};
+class P3
+{
+public:
+  static const int polyOrder = 3;
+};
+class P4
+{
+public:
+  static const int polyOrder = 4;
+};
+class P5
+{
+public:
+  static const int polyOrder = 5;
+};
+
+class HGRAD
+{
+public:
+  static const Intrepid2::EFunctionSpace functionSpace = Intrepid2::FUNCTION_SPACE_HGRAD;
+};
+class HDIV
+{
+public:
+  static const Intrepid2::EFunctionSpace functionSpace = Intrepid2::FUNCTION_SPACE_HDIV;
+};
+class HCURL
+{
+public:
+  static const Intrepid2::EFunctionSpace functionSpace = Intrepid2::FUNCTION_SPACE_HCURL;
+};
+class HVOL
+{
+public:
+  static const Intrepid2::EFunctionSpace functionSpace = Intrepid2::FUNCTION_SPACE_HVOL;
+};
+
+class Nodal
+{
+public:
+  using BasisFamily = NodalBasisFamily<DeviceType,Scalar,Scalar>;
+};
+class DNodal
+{
+public:
+  using BasisFamily = DerivedNodalBasisFamily<DeviceType,Scalar,Scalar>;
+};
+class Hierarchical
+{
+public:
+  using BasisFamily = HierarchicalBasisFamily<DeviceType,Scalar,Scalar>;
+};
 
   ordinal_type ortMax(CellTopoPtr cellTopo)
   {
@@ -86,25 +157,27 @@ namespace
         
       }
     }
-        
+     
+    //    cellTopo.getSubcell(<#int scdim#>, <#int scord#>)
   }
   
-  TEUCHOS_UNIT_TEST( OrientationTools, OrientationsArePermutations_Tet_HCURL )
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_DECL(OrientationTools, OrientationsArePermutations, TopoTag, FSTag, BasisFamilyTag, PolyOrderTag)
   {
-    shards::CellTopology shardsTopo = shards::CellTopology(shards::getCellTopologyData<shards::Tetrahedron<> >() );
+    using BasisFamily = typename BasisFamilyTag::BasisFamily;
+    
+    using DataScalar  = double;
+    using PointScalar = double;
+    
+    const unsigned      shardsKey = TopoTag::shardsTopoKey;
+    const EFunctionSpace       fs =   FSTag::functionSpace;
+    const ordinal_type  polyOrder = PolyOrderTag::polyOrder;
+
+    shards::CellTopology shardsTopo(getCellTopologyData(shardsKey) );
     Intrepid2::CellTopology cellTopo(shardsTopo, 0);
-    
-    Intrepid2::EFunctionSpace fs = FUNCTION_SPACE_HCURL;
-    int polyOrder = 4;
-    
-    using NodalFamily = DerivedNodalBasisFamily<DeviceType,Scalar,Scalar>;
-    auto basis = getBasis<NodalFamily>(shardsTopo, fs, polyOrder);
+    auto basis = getBasis<BasisFamily>(shardsTopo, fs, polyOrder);
     
     testOrientationsArePermutations(cellTopo, basis, out, success);
-    
-    int edgeDim = 1;
-    int faceDim = 2;
-    
-//    cellTopo.getSubcell(<#int scdim#>, <#int scord#>)
   }
+
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Tet, HCURL, Nodal, P4);
 } // namespace
