@@ -54,6 +54,12 @@ namespace
                                        Teuchos::FancyOStream &out, bool &success)
   {
     // 1. Check that the identity orientation (0's for every edge and face) is a permutation
+    Orientation identityOrt; // default constructor for Orientation is identity
+    ScalarView<Orientation, DeviceType> identityOrtView("identity orientations", 15);
+    Kokkos::deep_copy(identityOrtView, identityOrt);
+    
+    bool identityIsPermutation = OrientationTools<DeviceType>::orientationsArePermutations(identityOrtView, basis.get());
+    TEST_EQUALITY(identityIsPermutation, true);
     
     // 2. Iterate through each possible face/edge orientation. For each:
     //    - set the appropriate orientation for the face or edge in what is otherwise an identity orientation for the cell
@@ -80,15 +86,21 @@ namespace
         
       }
     }
-    
-    // orientationsArePermutations(const OrientationViewType orts, const BasisType * basis)
-    
+        
   }
   
-  TEUCHOS_UNIT_TEST( OrientationTools, OrientationsArePermutations_Tet )
+  TEUCHOS_UNIT_TEST( OrientationTools, OrientationsArePermutations_Tet_HCURL )
   {
     shards::CellTopology shardsTopo = shards::CellTopology(shards::getCellTopologyData<shards::Tetrahedron<> >() );
     Intrepid2::CellTopology cellTopo(shardsTopo, 0);
+    
+    Intrepid2::EFunctionSpace fs = FUNCTION_SPACE_HCURL;
+    int polyOrder = 4;
+    
+    using NodalFamily = DerivedNodalBasisFamily<DeviceType,Scalar,Scalar>;
+    auto basis = getBasis<NodalFamily>(shardsTopo, fs, polyOrder);
+    
+    testOrientationsArePermutations(cellTopo, basis, out, success);
     
     int edgeDim = 1;
     int faceDim = 2;
