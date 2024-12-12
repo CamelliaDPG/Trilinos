@@ -19,8 +19,11 @@
 #define Intrepid2_CellTopology_h
 
 #include "Intrepid2_Types.hpp"
+#include "Intrepid2_Utils.hpp"
 
 #include <Shards_CellTopology.hpp>
+
+#include <set>
 
 namespace Intrepid2
 {
