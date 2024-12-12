@@ -79,8 +79,6 @@ namespace Intrepid2 {
       \brief A family of nodal basis functions which is related to, but not identical with, the Lagrangian basis family that Intrepid2 has historically supported.
    
    This family is defined using the DerivedBasisFamily, which in turn templates the definitions on the H(grad) and H(vol) Lagrangian bases on the line.
-   
-   At present, only hypercube topologies (line, quadrilateral, hexahedron) are supported, but other topologies will be supported in the future.
   */
   template<typename ExecutionSpace,
            typename OutputScalar = double,
