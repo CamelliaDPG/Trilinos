@@ -210,6 +210,7 @@ bool
               int nonzerosFound = 0; // in row
               for (ordinal_type col=0;col<ndofFace;++col)
               {
+                cout << matData(numEdges*edgeDofsExist+face,ortFace,row,col) << " ";
                 if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
               }
               cout << "|\n";
@@ -225,7 +226,7 @@ bool
               int nonzerosFound = 0; // in col
               for (ordinal_type row=0;row<ndofFace;++row)
               {
-                if (matData(face,ortFace,row,col) != 0) nonzerosFound++;
+                if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
               }
               if (nonzerosFound != 1)
               {
