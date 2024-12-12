@@ -212,13 +212,13 @@ bool
               {
                 if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
               }
+              cout << "|\n";
+              cout << "nonzerosFound: " << nonzerosFound << endl;
               if (nonzerosFound != 1)
               {
                 isPermutation = false;
                 break;
               }
-              cout << "|\n";
-              cout << "nonzerosFound: " << nonzerosFound << endl;
             }
             for (ordinal_type col=0;col<ndofFace;++col)
             {
