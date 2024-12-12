@@ -160,7 +160,7 @@ Basis_HCURL_TET_In_FEM( const ordinal_type order,
   this->basisType_            = BASIS_FEM_LAGRANGIAN;
   this->basisCoordinates_     = COORDINATES_CARTESIAN;
   this->functionSpace_        = FUNCTION_SPACE_HCURL;
-  pointType_ = pointType;
+  pointType_ = (pointType == POINTTYPE_DEFAULT) ? POINTTYPE_EQUISPACED : pointType;
   const ordinal_type card = this->basisCardinality_;
 
   const ordinal_type  cardPn = Intrepid2::getPnCardinality<spaceDim>(order); // dim of (P_{n}) -- smaller space
@@ -315,12 +315,12 @@ Basis_HCURL_TET_In_FEM( const ordinal_type order,
   PointTools::getLattice( linePts,
       edgeTopo,
       order+1, offset,
-      pointType );
+      pointType_ );
 
   PointTools::getLattice( triPts,
       faceTopo,
       order+1, offset,
-      pointType );
+      pointType_ );
 
   // holds the image of the line points
   Kokkos::DynRankView<scalarType,typename DT::execution_space::array_layout,Kokkos::HostSpace> edgePts("Hcurl::Tet::In::edgePts", numPtsPerEdge , spaceDim );
@@ -438,7 +438,7 @@ Basis_HCURL_TET_In_FEM( const ordinal_type order,
         cellTopo ,
         order + 1 ,
         1 ,
-        pointType );
+        pointType_ );
 
     Kokkos::DynRankView<scalarType,typename DT::execution_space::array_layout,Kokkos::HostSpace>
     phisAtCellPoints("Hcurl::Tet::In::phisAtCellPoints", cardPn , numPtsPerCell );

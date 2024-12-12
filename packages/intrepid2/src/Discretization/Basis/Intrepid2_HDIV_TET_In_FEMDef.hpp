@@ -151,7 +151,7 @@ Basis_HDIV_TET_In_FEM( const ordinal_type order,
   this->basisType_            = BASIS_FEM_LAGRANGIAN;
   this->basisCoordinates_     = COORDINATES_CARTESIAN;
   this->functionSpace_        = FUNCTION_SPACE_HDIV;
-  pointType_ = pointType;
+  pointType_ = (pointType == POINTTYPE_DEFAULT) ? POINTTYPE_EQUISPACED : pointType;
 
   const ordinal_type card = this->basisCardinality_;
 
@@ -255,7 +255,7 @@ Basis_HDIV_TET_In_FEM( const ordinal_type order,
       faceTopo,
       order+2,
       offset,
-      pointType );
+      pointType_ );
 
   // holds the image of the tet points
   Kokkos::DynRankView<scalarType,typename DT::execution_space::array_layout,Kokkos::HostSpace> facePts("Hdiv::Tet::In::facePts", numPtsPerFace , spaceDim );
@@ -324,7 +324,7 @@ Basis_HDIV_TET_In_FEM( const ordinal_type order,
         cellTopo ,
         order + 2 ,
         1 ,
-        pointType );
+        pointType_ );
 
     Kokkos::DynRankView<scalarType,typename DT::execution_space::array_layout,Kokkos::HostSpace>
     phisAtInternalPoints("Hdiv::Tet::In::phisAtInternalPoints", cardPn , numPtsPerCell );
