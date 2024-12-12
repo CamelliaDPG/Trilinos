@@ -16,6 +16,9 @@
 #ifndef Intrepid2_TensorPoints_h
 #define Intrepid2_TensorPoints_h
 
+#include "Intrepid2_ScalarView.hpp"
+#include "Intrepid2_Types.hpp"
+
 #include <Kokkos_Core.hpp>
 
 namespace Intrepid2 {
