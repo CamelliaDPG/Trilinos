@@ -111,8 +111,8 @@ public:
     switch (cellTopologyKey) {
       case shards::Node::key:             return 0;
       case shards::Line<2>::key:          return 1;
-      case shards::Triangle<3>::key:      return 6;
-      case shards::Quadrilateral<4>::key: return 8;
+      case shards::Triangle<3>::key:      return 5;
+      case shards::Quadrilateral<4>::key: return 7;
       default: {
         INTREPID2_TEST_FOR_EXCEPTION( true, std::invalid_argument,
                                      ">>> ERROR (ortMax()): unsupported cell topology.");
@@ -139,25 +139,109 @@ public:
     //    - verify that OrientationTools::orientationsArePermutations() returns the correct thing
     //    - store each cell orientation into one of two std::vectors, depending on whether it is a permutation or not.
     
-    // 3. Place all permutation orientations into a single view; verify orientationsArePermutations() returns true
-    
-    // 4. Place all non-permutation orientations into a single view; verify orientationsArePermutations() returns false
-    
-    // 5. Place all permutation orientations and one non-permutation orientation (if available) into a single View; verify orientationsArePermutations() returns false
-    
     std::vector<Orientation> permutationOrts, nonPermutationOrts;
+    
+    permutationOrts.push_back(Orientation()); // place identity there to start
+    
+    using BasisType = Basis<DeviceType,Scalar,Scalar>;
+    const auto matData = OrientationTools<DeviceType>::createCoeffMatrix<BasisType>(basis.get());
+    auto matDataHost = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace(), matData);
+    
+    ordinal_type edgeCount = cellTopo.getEdgeCount();
     
     for (ordinal_type d=1; d<cellTopo.getDimension(); d++)
     {
       ordinal_type subcellCount = cellTopo.getSubcellCount(d);
       auto maxOrt = ortMax(cellTopo.getSubcell(d,0));
       
-      for (ordinal_type scOrt=0; scOrt<maxOrt; scOrt++)
+      ScalarView<Orientation, DeviceType> singleOrtView("single-orientation view",1);
+      
+      for (ordinal_type sc=0; sc<subcellCount; sc++)
       {
+        ordinal_type numDofs   = basis->getDofCount(d, sc);
         
+        std::vector<ordinal_type> subcellOrts(subcellCount,0);
+        // matData indices: (scIndex,scOrt,dofRow,dofCol)
+        int scIndex = (d==1) ? sc : sc + edgeCount; // 2D faces get entries offset by edgeCount; no support for higher dimensions
+        for (ordinal_type scOrt=1; scOrt<=maxOrt; scOrt++) // start with ort=1; ort=0 is the identity
+        {
+          Orientation ort; // starts as identity
+          subcellOrts[sc] = scOrt;
+          
+          if (d == 1)
+          {
+            ort.setEdgeOrientation(subcellCount, &subcellOrts[0]);
+          }
+          else
+          {
+            ort.setFaceOrientation(subcellCount, &subcellOrts[0]);
+          }
+          
+          bool isPermutation = true;
+          // matData indices: (scIndex,scOrt,dofRow,dofCol)
+          for (ordinal_type row=0; row<numDofs; row++)
+          {
+            int nnz = 0;
+            for (ordinal_type col=0; col<numDofs; col++)
+            {
+              if (matDataHost(scIndex,scOrt,row,col) != 0)
+              {
+                nnz++;
+              }
+            }
+            if (nnz != 1) isPermutation = false;
+          }
+          for (ordinal_type col=0; col<numDofs; col++)
+          {
+            int nnz = 0;
+            for (ordinal_type row=0; row<numDofs; row++)
+            {
+              if (matDataHost(scIndex,scOrt,row,col) != 0)
+              {
+                nnz++;
+              }
+            }
+            if (nnz != 1) isPermutation = false;
+          }
+          if (isPermutation)    permutationOrts.push_back(ort);
+          else               nonPermutationOrts.push_back(ort);
+          Kokkos::deep_copy(singleOrtView, ort);
+          bool ortIsPermutation = OrientationTools<DeviceType>::orientationsArePermutations(singleOrtView, basis.get());
+          TEST_EQUALITY(isPermutation, ortIsPermutation);
+        }
       }
     }
-     
+    
+    // 3. Place all permutation orientations into a single view; verify orientationsArePermutations() returns true
+    // (there must always be at least one permutation orientation: the identity is one.)
+    const ordinal_type numPermutationOrts = static_cast<ordinal_type>(permutationOrts.size());
+    ScalarView<Orientation, DeviceType> permutationOrtsView("permutation orientations", numPermutationOrts);
+    auto permutationOrtsViewHost = Kokkos::create_mirror(permutationOrtsView);
+    for (ordinal_type permOrtOrdinal=0; permOrtOrdinal<numPermutationOrts; permOrtOrdinal++)
+    {
+      permutationOrtsViewHost(permOrtOrdinal) = permutationOrts[permOrtOrdinal];
+    }
+    Kokkos::deep_copy(permutationOrtsView, permutationOrtsViewHost);
+    bool permutationOrtsArePermutations = OrientationTools<DeviceType>::orientationsArePermutations(permutationOrtsView, basis.get());
+    TEST_EQUALITY(true, permutationOrtsArePermutations);
+    
+    // 4. Place all non-permutation orientations (if any) into a single view; verify orientationsArePermutations() returns false
+    const ordinal_type numNonPermutationOrts = static_cast<ordinal_type>(nonPermutationOrts.size());
+    if (numNonPermutationOrts > 0)
+    {
+      ScalarView<Orientation, DeviceType> nonPermutationOrtsView("non-permutation orientations", numNonPermutationOrts);
+      auto nonPermutationOrtsViewHost = Kokkos::create_mirror(nonPermutationOrtsView);
+      for (ordinal_type nonPermOrtOrdinal=0; nonPermOrtOrdinal<numNonPermutationOrts; nonPermOrtOrdinal++)
+      {
+        nonPermutationOrtsViewHost(nonPermOrtOrdinal) = nonPermutationOrts[nonPermOrtOrdinal];
+      }
+      Kokkos::deep_copy(nonPermutationOrtsView, nonPermutationOrtsViewHost);
+      bool nonPermutationOrtsArePermutations = OrientationTools<DeviceType>::orientationsArePermutations(nonPermutationOrtsView, basis.get());
+      TEST_EQUALITY(false, nonPermutationOrtsArePermutations);
+    }
+    
+    // 5. Place all permutation orientations and one non-permutation orientation (if available) into a single View; verify orientationsArePermutations() returns false
+    
     //    cellTopo.getSubcell(<#int scdim#>, <#int scord#>)
   }
   
