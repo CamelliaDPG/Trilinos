@@ -179,6 +179,59 @@ getCoeffMatrix_HGRAD(OutputViewType &output, /// this is device view
   auto cellTagToOrdinal = cellBasis.getAllDofOrdinal();
   auto subcellTagToOrdinal = subcellBasis.getAllDofOrdinal();
 
+  {
+    // DEBUGGING
+    if ((subcellId == 0) && (subcellDim == 1))
+    {
+      {
+        using namespace std;
+        cout << "Edge 0 in basis " << cellBasis.getName() << endl;
+        
+        cout << "ref pts on subcell:";
+        for (int pt=0; pt<ndofSubcell; pt++)
+        {
+          cout << refPtsSubcell(pt,0) << ", ";
+        }
+        cout << endl;
+        for (ordinal_type i=0;i<ndofSubcell;++i) {
+          cout << "subcell basis values for subcell basis function " << i << ":";
+          const ordinal_type isc = subcellTagToOrdinal(subcellDim, 0, i);
+          for (int pt=0; pt<ndofSubcell; pt++)
+          {
+            cout << subcellBasisValues(isc,pt) << ", ";
+          }
+          cout << endl;
+        }
+        for (ordinal_type i=0;i<ndofSubcell;++i) {
+          cout << "cell basis values for subcell basis function " << i << ":";
+          const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellId, i);
+          for (int pt=0; pt<ndofSubcell; pt++)
+          {
+            cout << cellBasisValues(ic,pt) << ", ";
+          }
+          cout << endl;
+        }
+        cout << "ref pts on cell:";
+        for (int pt=0; pt<ndofSubcell; pt++)
+        {
+          if (cellDim == 3)
+          {
+            cout << "(" << refPtsCell(pt,0) << "," << refPtsCell(pt,1) << "," << refPtsCell(pt,2) << "), ";
+          }
+          else if (cellDim == 2)
+          {
+            cout << "(" << refPtsCell(pt,0) << "," << refPtsCell(pt,1) << "), ";
+          }
+          else if (cellDim == 1)
+          {
+            cout << refPtsCell(pt,0) << ", ";
+          }
+        }
+        cout << endl;
+      }
+    }
+  }
+  
   for (ordinal_type i=0;i<ndofSubcell;++i) {
     const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellId, i);
     const ordinal_type isc = subcellTagToOrdinal(subcellDim, 0, i);
@@ -234,18 +287,24 @@ getCoeffMatrix_HGRAD(OutputViewType &output, /// this is device view
   }
 
   // Print A Matrix
-  /*
   {
+    std::cout << "HGRAD: Subcell " << subcellId << " of dimension " << subcellDim << " in " << cellDim << "D cell, ort " << subcellOrt;
+    if (inverse) std::cout << " (inverse)";
+    std::cout << ":\n";
     std::cout  << "|";
+    int numMinusOnes = 0;
     for (ordinal_type i=0;i<ndofSubcell;++i) {
       for (ordinal_type j=0;j<ndofSubcell;++j) {
+        if (OrtMat(i,j) == -1)
+        {
+          numMinusOnes++;
+        }
         std::cout << OrtMat(i,j) << " ";
       }
       std::cout  << "| ";
     }
     std::cout <<std::endl;
   }
-  */
 
   {
     // move the data to original device memory

@@ -278,18 +278,18 @@ getCoeffMatrix_HDIV(OutputViewType &output,
     }
 
     // Print Matrix A
-    /*
-    {
-      std::cout  << "|";
-      for (ordinal_type i=0;i<ndofSubcell;++i) {
-        for (ordinal_type j=0;j<ndofSubcell;++j) {
-          std::cout << OrtMat(i,j) << " ";
-        }
-        std::cout  << "| ";
+
+    std::cout << "HDIV: Subcell " << subcellId << " of dimension " << subcellDim << " in " << cellDim << "D cell, ort " << subcellOrt;
+    if (inverse) std::cout << " (inverse)";
+    std::cout << ":\n";
+    std::cout  << "|";
+    for (ordinal_type i=0;i<ndofSubcell;++i) {
+      for (ordinal_type j=0;j<ndofSubcell;++j) {
+        std::cout << OrtMat(i,j) << " ";
       }
-      std::cout <<std::endl;
+      std::cout  << "| ";
     }
-    */
+    std::cout <<std::endl;
 
   }
 

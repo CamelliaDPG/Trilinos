@@ -209,9 +209,11 @@ getCoeffMatrix_HVOL(OutputViewType &output, /// this is device view
   }
 
   // Print A Matrix
-  /*
   {
-    std::cout  << "Ort: " << cellOrt << ": |";
+    std::cout << "HVOL: " << cellDim << "D cell, ort " << cellOrt;
+    if (inverse) std::cout << " (inverse)";
+    std::cout << ":\n";
+    std::cout  << "|";
     for (ordinal_type i=0;i<cardinality;++i) {
       for (ordinal_type j=0;j<cardinality;++j) {
         std::cout << OrtMat(i,j) << " ";
@@ -220,7 +222,6 @@ getCoeffMatrix_HVOL(OutputViewType &output, /// this is device view
     }
     std::cout <<std::endl;
   }
-  */
 
   {
     // move the data to original device memory

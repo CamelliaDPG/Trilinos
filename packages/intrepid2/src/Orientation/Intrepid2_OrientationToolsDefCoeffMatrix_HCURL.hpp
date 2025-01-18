@@ -341,8 +341,10 @@ getCoeffMatrix_HCURL(OutputViewType &output,
 
 
     // Print A matrix
-    /*
     {
+      std::cout << "HCURL: Subcell " << subcellId << " of dimension " << subcellDim << " in " << cellDim << "D cell, ort " << subcellOrt;
+      if (inverse) std::cout << " (inverse)";
+      std::cout << ":\n";
       std::cout  << "|";
       for (ordinal_type i=0;i<ndofSubcell;++i) {
         for (ordinal_type j=0;j<ndofSubcell;++j) {
@@ -352,7 +354,6 @@ getCoeffMatrix_HCURL(OutputViewType &output,
       }
       std::cout <<std::endl;
     }
-    */
 
 
   }
