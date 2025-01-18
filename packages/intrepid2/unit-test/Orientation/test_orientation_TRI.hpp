@@ -240,6 +240,17 @@ int OrientationTri(const bool verbose) {
        Basis_HGRAD_TRI_Cn_FEM<DeviceType,ValueType,ValueType> basis(order);
        ordinal_type basisCardinality = basis.getCardinality();
 
+       bool allOrtsArePermutations = ots::orientationsArePermutations(elemOrts, &basis);
+       *outStream << "allOrtsArePermutations: ";
+       if (allOrtsArePermutations)
+       {
+         *outStream << "TRUE\n";
+       }
+       else
+       {
+         *outStream << "FALSE\n";
+       }
+       
        //compute DofCoords Oriented
        DynRankView ConstructWithLabel(dofCoords, basisCardinality, dim);
        DynRankView ConstructWithLabel(dofCoordsOriented, numCells, basisCardinality, dim);
@@ -534,6 +545,17 @@ int OrientationTri(const bool verbose) {
         Basis_HCURL_TRI_In_FEM<DeviceType,ValueType,ValueType> basis(order);
         ordinal_type basisCardinality = basis.getCardinality();
 
+        bool allOrtsArePermutations = ots::orientationsArePermutations(elemOrts, &basis);
+        *outStream << "allOrtsArePermutations: ";
+        if (allOrtsArePermutations)
+        {
+          *outStream << "TRUE\n";
+        }
+        else
+        {
+          *outStream << "FALSE\n";
+        }
+       
         //compute DofCoords Oriented
         DynRankView ConstructWithLabel(dofCoords, basisCardinality, dim);
         DynRankView ConstructWithLabel(dofCoordsOriented, numCells, basisCardinality, dim);
@@ -871,6 +893,17 @@ int OrientationTri(const bool verbose) {
 
         Basis_HDIV_TRI_In_FEM<DeviceType,ValueType,ValueType> basis(order);
         ordinal_type basisCardinality = basis.getCardinality();
+
+        bool allOrtsArePermutations = ots::orientationsArePermutations(elemOrts, &basis);
+        *outStream << "allOrtsArePermutations: ";
+        if (allOrtsArePermutations)
+        {
+          *outStream << "TRUE\n";
+        }
+        else
+        {
+          *outStream << "FALSE\n";
+        }
 
         //compute DofCoords Oriented
         DynRankView ConstructWithLabel(dofCoords, basisCardinality, dim);
