@@ -1,26 +1,26 @@
-// Copyright(C) 1999-2023 National Technology & Engineering Solutions
+// Copyright(C) 1999-2024 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#include <Ioss_DatabaseIO.h>
-#include <Ioss_GroupingEntity.h>
-#include <Ioss_Property.h>
-#include <Ioss_Region.h>
-#include <Ioss_Utils.h>
-#include <Ioss_VariableType.h>
+#include "Ioss_DatabaseIO.h"
+#include "Ioss_GroupingEntity.h"
+#include "Ioss_Property.h"
+#include "Ioss_Region.h"
+#include "Ioss_Utils.h"
+#include "Ioss_VariableType.h"
 #include <cassert>
 #include <cstddef>
 #include <fmt/ostream.h>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "Ioss_CodeTypes.h"
 #include "Ioss_EntityType.h"
 #include "Ioss_Field.h"
 #include "Ioss_FieldManager.h"
+#include "Ioss_ParallelUtils.h"
 #include "Ioss_PropertyManager.h"
 #include "Ioss_State.h"
 
@@ -106,7 +106,7 @@ std::string Ioss::GroupingEntity::get_filename() const
 {
   // Ok for database_ to be nullptr at this point.
   if (database_ == nullptr) {
-    return std::string();
+    return {};
   }
 
   return database_->get_filename();
@@ -146,7 +146,7 @@ Ioss::State Ioss::GroupingEntity::get_state() const { return entityState; }
 
 /** \brief Calculate and get an implicit property.
  *
- *  These are calcuated from data stored in the EntityBlock instead of having
+ *  These are calculated from data stored in the EntityBlock instead of having
  *  an explicit value assigned. An example would be 'element_block_count' for a region.
  *  Note that even though this is a pure virtual function, an implementation
  *  is provided to return properties that are common to all 'block'-type grouping entities.
@@ -159,14 +159,12 @@ Ioss::Property Ioss::GroupingEntity::get_implicit_property(const std::string &my
   // These include:
   if (my_name == "attribute_count") {
     count_attributes();
-    return Ioss::Property(my_name, static_cast<int>(attributeCount));
+    return {my_name, static_cast<int>(attributeCount)};
   }
 
   // End of the line. No property of this name exists.
-  std::ostringstream errmsg;
-  fmt::print(errmsg, "\nERROR: Property '{}' does not exist on {} {}\n\n", my_name, type_string(),
-             name());
-  IOSS_ERROR(errmsg);
+  IOSS_ERROR(fmt::format("\nERROR: Property '{}' does not exist on {} {}\n\n", my_name,
+                         type_string(), name()));
 }
 
 bool Ioss::GroupingEntity::check_for_duplicate(const Ioss::Field &new_field) const
@@ -229,14 +227,12 @@ void Ioss::GroupingEntity::field_add(Ioss::Field new_field)
     new_field.reset_count(entity_size);
   }
   else if (entity_size != field_size && type() != REGION) {
-    std::string        filename = get_database()->get_filename();
-    std::ostringstream errmsg;
-    fmt::print(errmsg,
-               "IO System error: The {} '{}' has a size of {},\nbut the field '{}' which is being "
-               "output on that entity has a size of {}\non database '{}'.\nThe sizes must match.  "
-               "This is an application error that should be reported.",
-               type_string(), name(), entity_size, new_field.get_name(), field_size, filename);
-    IOSS_ERROR(errmsg);
+    std::string filename = get_database()->get_filename();
+    IOSS_ERROR(fmt::format(
+        "IO System error: The {} '{}' has a size of {},\nbut the field '{}' which is being "
+        "output on that entity has a size of {}\non database '{}'.\nThe sizes must match.  "
+        "This is an application error that should be reported.",
+        type_string(), name(), entity_size, new_field.get_name(), field_size, filename));
   }
   if (!check_for_duplicate(new_field)) {
     fields.add(new_field);
@@ -348,11 +344,10 @@ void Ioss::GroupingEntity::verify_field_exists(const std::string &field_name,
                                                const std::string &inout) const
 {
   if (!field_exists(field_name)) {
-    std::string        filename = get_database()->get_filename();
-    std::ostringstream errmsg;
-    fmt::print(errmsg, "\nERROR: On database '{}', Field '{}' does not exist for {} on {} {}\n\n",
-               filename, field_name, inout, type_string(), name());
-    IOSS_ERROR(errmsg);
+    std::string filename = get_database()->get_filename();
+    IOSS_ERROR(
+        fmt::format("\nERROR: On database '{}', Field '{}' does not exist for {} on {} {}\n\n",
+                    filename, field_name, inout, type_string(), name()));
   }
 }
 
@@ -452,8 +447,8 @@ bool Ioss::GroupingEntity::equal_(const Ioss::GroupingEntity &rhs, bool quiet) c
     auto it = std::find(rhs_properties.begin(), rhs_properties.end(), lhs_property);
     if (it == rhs_properties.end()) {
       if (!quiet) {
-        fmt::print(Ioss::OUTPUT(), "WARNING: {}: INPUT property ({}) not found in OUTPUT\n", name(),
-                   lhs_property);
+        fmt::print(Ioss::OUTPUT(), "WARNING: {}: INPUT property ({}) not found in input #2\n",
+                   name(), lhs_property);
         same = false;
       }
       continue;
@@ -506,8 +501,8 @@ bool Ioss::GroupingEntity::equal_(const Ioss::GroupingEntity &rhs, bool quiet) c
     for (auto &rhs_property : rhs_properties) {
       auto it = std::find(lhs_properties.begin(), lhs_properties.end(), rhs_property);
       if (it == lhs_properties.end()) {
-        fmt::print(Ioss::OUTPUT(), "WARNING: {}: OUTPUT property ({}) not found in INPUT\n", name(),
-                   rhs_property);
+        fmt::print(Ioss::OUTPUT(), "WARNING: {}: OUTPUT property ({}) not found in input #1\n",
+                   name(), rhs_property);
         same = false;
       }
     }
@@ -534,7 +529,7 @@ bool Ioss::GroupingEntity::equal_(const Ioss::GroupingEntity &rhs, bool quiet) c
       if (rhs.field_exists(field)) {
         const auto &f2 = rhs.fields.get(field);
         if (!f1.equal(f2)) {
-          fmt::print(Ioss::OUTPUT(), "{}: FIELD ({}) mismatch\n", name(), field);
+          fmt::print(Ioss::OUTPUT(), "{}: FIELD ({}) mismatch\n\n", name(), field);
           same = false;
         }
       }
@@ -550,14 +545,12 @@ bool Ioss::GroupingEntity::equal_(const Ioss::GroupingEntity &rhs, bool quiet) c
     }
   }
 
-  if (rhs_fields.size() > lhs_fields.size()) {
-    // See which fields are missing from input #1...
-    // NOTE: `quiet` mode has already exited by this point.
-    for (auto &field : rhs_fields) {
-      if (!this->field_exists(field)) {
-        fmt::print(Ioss::OUTPUT(), "{}: FIELD ({}) not found in input #1\n", name(), field);
-        same = false;
-      }
+  // See which fields are missing from input #1...
+  // NOTE: `quiet` mode has already exited by this point.
+  for (auto &field : rhs_fields) {
+    if (!this->field_exists(field)) {
+      fmt::print(Ioss::OUTPUT(), "{}: FIELD ({}) not found in input #1\n", name(), field);
+      same = false;
     }
   }
   return same;

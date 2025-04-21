@@ -36,7 +36,6 @@
 
 #include "Ioss_Region.h"                // for Region, NodeSetContainer, etc
 #include "StkMeshIoBroker.hpp"
-#include "Ioss_GroupingEntity.h"
 #include "IossBridge.hpp"
 #include <stk_mesh/base/Types.hpp>
 #include "stk_mesh/base/MetaData.hpp"
@@ -189,7 +188,8 @@ void process_nodeblocks(Ioss::Region &region, stk::mesh::BulkData &bulk)
 stk::mesh::Part* get_part_from_alias(const Ioss::Region &region, const stk::mesh::MetaData &meta, const std::string &name);
 stk::mesh::Part* get_part_for_grouping_entity(const Ioss::Region &region, const stk::mesh::MetaData &meta, const Ioss::GroupingEntity *entity);
 
-void process_elementblocks(Ioss::Region &region, stk::mesh::MetaData &meta, TopologyErrorHandler handler);
+void process_elementblocks(Ioss::Region &region, stk::mesh::MetaData &meta, TopologyErrorHandler handler, bool createEmptyOmittedBlocks = false);
+
 template <typename INT>
 void process_elementblocks(Ioss::Region &region, stk::mesh::BulkData &bulk)
 {

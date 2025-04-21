@@ -311,11 +311,16 @@ void abort()
 
   // Cannot be sure of parallel synchronization status; therefore, no communications can
   // occur.  Grab and dump all pending output buffers to 'std::cerr'.
+  const auto& log_file = get_param("output-log");
+  std::string log_note;
+  if( !log_file.empty() ) {
+    log_note = " (" + log_file + ")";
+  }
   std::cerr << std::endl
             << "*** SIERRA ABORT on P" << stk::EnvData::instance().m_parallelRank << " ***"
             << std::endl
-            << "*** check " << get_param("output-log")
-            << " file for more information ***"
+            << "*** check the log file" << log_note
+            << " for more information ***"
             << std::endl ;
 
   if (!env_data.m_output.str().empty()) {
@@ -357,7 +362,7 @@ get_param(
 void
 set_param(
   const char *          option,
-  const std::string &   value) {
+  const std::string &   /*value*/) {
 
   int argc = 1;
   const char *s = std::strcpy(new char[std::strlen(option) + 1], option);

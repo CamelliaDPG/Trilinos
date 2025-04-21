@@ -22,7 +22,7 @@ public:
   ConstrainedRedistance()
       : logfile(),
         my_ls(LevelSet::build(mMesh.mesh_meta_data(), "LS", sierra::Diag::sierraTimer())),
-        myRefinement(mMesh.mesh_meta_data(), &this->get_aux_meta().active_part())
+        myRefinement(mMesh.mesh_meta_data(), &this->get_aux_meta().active_part(), sierra::Diag::sierraTimer())
   {
     my_ls.setup(); // registers field and sets field refs on the object
 
@@ -40,11 +40,11 @@ public:
     for (auto && bucket :
         mMesh.get_buckets(stk::topology::ELEMENT_RANK, mMesh.mesh_meta_data().locally_owned_part()))
     {
-      const int markerValue =
-          myRefinement.is_parent(*bucket) ? Refinement::NOTHING : Refinement::REFINE;
+      const auto markerValue =
+          myRefinement.is_parent(*bucket) ? Refinement::RefinementMarker::NOTHING : Refinement::RefinementMarker::REFINE;
       auto * elemMarker = field_data<int>(myElementMarkerField, *bucket);
       for (size_t i = 0; i < bucket->size(); ++i)
-        elemMarker[i] = markerValue;
+        elemMarker[i] = static_cast<int>(markerValue);
     }
   }
 
@@ -73,7 +73,7 @@ public:
 
   void create_scaled_linear_x_dist_field(const double & mult)
   {
-    const FieldRef dField = my_ls.get_distance_field();
+    const FieldRef dField = my_ls.get_isovar_field();
     const FieldRef xField = my_ls.get_coordinates_field();
 
     const stk::mesh::Selector selector = stk::mesh::selectField(dField);
@@ -94,7 +94,7 @@ public:
 
   void create_scaled_circle_dist_field(const double & circle_radius, const double & mult)
   {
-    const FieldRef dField = my_ls.get_distance_field();
+    const FieldRef dField = my_ls.get_isovar_field();
     const FieldRef xField = my_ls.get_coordinates_field();
 
     const stk::mesh::Selector selector =
@@ -119,7 +119,7 @@ public:
 
     void create_scaled_sinusoidal_circle_dist_field(const double & circle_radius, const double amp=0.15, const double period = 8)
   {
-    const FieldRef dField = my_ls.get_distance_field();
+    const FieldRef dField = my_ls.get_isovar_field();
     const FieldRef xField = my_ls.get_coordinates_field();
 
     const stk::mesh::Selector selector =
@@ -146,7 +146,7 @@ public:
 
   std::vector<double> calc_vol_per_elem()
   {
-    const auto isoField = my_ls.get_distance_field();
+    const auto isoField = my_ls.get_isovar_field();
     const auto coordsField = my_ls.get_coordinates_field();
 
     stk::mesh::Selector active_field_selector =
@@ -165,7 +165,7 @@ public:
 
   std::vector<double> calc_neg_vol_per_elem()
   {
-    const auto isoField = my_ls.get_distance_field();
+    const auto isoField = my_ls.get_isovar_field();
     const auto coordsField = my_ls.get_coordinates_field();
 
     stk::mesh::Selector active_field_selector =
@@ -188,7 +188,7 @@ public:
 
   double calc_negative_volume()
   {
-    const auto isoField = my_ls.get_distance_field();
+    const auto isoField = my_ls.get_isovar_field();
     const auto coordsField = my_ls.get_coordinates_field();
 
     stk::mesh::Selector active_field_selector =
@@ -256,7 +256,7 @@ TEST_F(ConstrainedRedistance, DoRedistanceDistancedField)
 
   my_ls.constrained_redistance(true);
 
-  const FieldRef dField = my_ls.get_distance_field();
+  const FieldRef dField = my_ls.get_isovar_field();
   const FieldRef xField = my_ls.get_coordinates_field();
 
   const stk::mesh::Selector selector = stk::mesh::selectField(dField);
@@ -282,7 +282,7 @@ TEST_F(ConstrainedRedistance, DoRedistanceDistancedFieldRefine)
 
   my_ls.constrained_redistance(true);
 
-  const FieldRef dField = my_ls.get_distance_field();
+  const FieldRef dField = my_ls.get_isovar_field();
   const FieldRef xField = my_ls.get_coordinates_field();
 
   const stk::mesh::Selector selector = stk::mesh::selectField(dField);
@@ -307,7 +307,7 @@ TEST_F(ConstrainedRedistance, DoRedistanceNonDistanceField)
 
   my_ls.constrained_redistance(true);
 
-  const FieldRef dField = my_ls.get_distance_field();
+  const FieldRef dField = my_ls.get_isovar_field();
   const FieldRef xField = my_ls.get_coordinates_field();
 
   const stk::mesh::Selector selector = stk::mesh::selectField(dField);
@@ -400,7 +400,7 @@ TEST_F(ConstrainedRedistance, DoRedistanceSinusoidalCircleDistField)
   create_scaled_sinusoidal_circle_dist_field(radius);
 
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output_dist.e", 1, 0.0);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output_dist.e", 1, 0.0);
   
   const double negVolInitial = calc_negative_volume();
 
@@ -409,7 +409,7 @@ TEST_F(ConstrainedRedistance, DoRedistanceSinusoidalCircleDistField)
   my_ls.redistance();
 
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output_dist.e", 2, 1.0, stk::io::APPEND_RESULTS);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output_dist.e", 2, 1.0, stk::io::APPEND_RESULTS);
 
   const double negVolFinal = calc_negative_volume();
 
@@ -429,14 +429,14 @@ TEST_F(ConstrainedRedistance, DoGlobalConstrainedRedistanceSinusoidalCircleDistF
   create_scaled_sinusoidal_circle_dist_field(radius);
 
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output_global.e", 1, 0.0);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output_global.e", 1, 0.0);
   
   const double negVolInitial = calc_negative_volume();
 
   my_ls.constrained_redistance();
 
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output_global.e", 2, 1.0, stk::io::APPEND_RESULTS);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output_global.e", 2, 1.0, stk::io::APPEND_RESULTS);
 
   const double negVolFinal = calc_negative_volume();
 
@@ -457,9 +457,9 @@ TEST_F(ConstrainedRedistance, DoLocalConstrainedRedistanceSinusoidalCircleDistFi
   create_scaled_sinusoidal_circle_dist_field(radius);
 
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output_original.e", 1, 0.0);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output_original.e", 1, 0.0);
   if (doWriteOutput)
-    output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output.e", 1, 0.0);
+    output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output.e", 1, 0.0);
   
   const auto beforeVol = calc_neg_vol_per_elem();
   const auto totalVol = calc_vol_per_elem();
@@ -471,7 +471,7 @@ TEST_F(ConstrainedRedistance, DoLocalConstrainedRedistanceSinusoidalCircleDistFi
     my_ls.locally_conserved_redistance();
 
     if (doWriteOutput)
-      output_field_with_mesh(mMesh, get_aux_meta().active_part(), "output.e", 2+iter, 1.0*(iter+1), stk::io::APPEND_RESULTS);
+      output_composed_mesh_with_fields(mMesh, get_aux_meta().active_part(), "output.e", 2+iter, 1.0*(iter+1), stk::io::APPEND_RESULTS);
   }
 
   const auto afterVol = calc_neg_vol_per_elem();

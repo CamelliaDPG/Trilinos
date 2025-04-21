@@ -16,6 +16,7 @@
 #include <algorithm>                       // for lower_bound
 #include <stk_mesh/base/BulkData.hpp>
 #include <stk_mesh/base/Entity.hpp>
+#include <stk_mesh/base/EntityLess.hpp>
 #include <stk_mesh/base/FEMHelpers.hpp>
 #include <vector> // for vector, vector<>::iterator, etc
 
@@ -130,7 +131,7 @@ inline void entity_patch_if(const stk::mesh::BulkData& bulkData, stk::mesh::Enti
 template <typename FILTER>
 class Patch {
  public:
-  Patch(const stk::mesh::BulkData& bulk, stk::mesh::Entity seed, const FILTER& predicate, const stk::mesh::Selector& selector)
+  Patch(const stk::mesh::BulkData& bulk, stk::mesh::Entity /*seed*/, const FILTER& predicate, const stk::mesh::Selector& selector)
     : m_bulk(bulk)
     , m_filter(predicate)
     , m_selector(selector)

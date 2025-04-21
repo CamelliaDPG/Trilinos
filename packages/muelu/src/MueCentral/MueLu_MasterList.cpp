@@ -1,48 +1,13 @@
 // @HEADER
-//
-// ***********************************************************************
-//
+// *****************************************************************************
 //        MueLu: A package for multigrid based preconditioning
-//                  Copyright 2012 Sandia Corporation
 //
-// Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-// the U.S. Government retains certain rights in this software.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact
-//                    Jonathan Hu       (jhu@sandia.gov)
-//                    Andrey Prokopenko (aprokop@sandia.gov)
-//                    Ray Tuminaro      (rstumin@sandia.gov)
-//
-// ***********************************************************************
-//
+// Copyright 2012 NTESS and the MueLu contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
 // @HEADER
+
+// clang-format off
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 #include "MueLu_Exceptions.hpp"
@@ -106,14 +71,6 @@ namespace MueLu {
     if (name == "multigrid algorithm") {
       std::stringstream temp; temp << "\"" << "1" << "\"";
       if (value == temp.str() ) { ss << "<Parameter name=\"multigrid algorithm\" type=\"string\" value=\"pg\"/>"; return ss.str(); }
-    }
-
-    if (name == "repartition: enable") {
-      std::stringstream temp1; temp1 << "\"" << "1" << "\"";
-      if (value == temp1.str()) {
-        RCP<Teuchos::FancyOStream> out = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        *out << "WARNING: repartitioning in MueLu is different to MLs. Please refer to the MueLu users Manual for more information." << std::endl;
-      }
     }
 
     // put in auto-generated code here
@@ -204,9 +161,10 @@ namespace MueLu {
   "<Parameter name=\"smoother: pre overlap\" type=\"int\" value=\"0\"/>"
   "<Parameter name=\"smoother: post overlap\" type=\"int\" value=\"0\"/>"
   "<Parameter name=\"coarse: max size\" type=\"int\" value=\"2000\"/>"
-  "<Parameter name=\"coarse: type\" type=\"string\" value=\"SuperLU\"/>"
+  "<Parameter name=\"coarse: type\" type=\"string\" value=\"KLU\"/>"
   "<ParameterList name=\"coarse: params\"/>"
   "<Parameter name=\"coarse: overlap\" type=\"int\" value=\"0\"/>"
+  "<Parameter name=\"aggregation: backend\" type=\"string\" value=\"default\"/>"
   "<Parameter name=\"aggregation: type\" type=\"string\" value=\"uncoupled\"/>"
   "<Parameter name=\"aggregation: mode\" type=\"string\" value=\"uncoupled\"/>"
   "<Parameter name=\"aggregation: ordering\" type=\"string\" value=\"natural\"/>"
@@ -220,6 +178,7 @@ namespace MueLu {
   "<Parameter name=\"aggregation: penalty parameters\" type=\"Array(double)\" value=\"{12.,-.2,0,0,0} \"/>"
   "<Parameter name=\"aggregation: distance laplacian directional weights\" type=\"Array(double)\" value=\"{1,1,1}\"/>"
   "<Parameter name=\"aggregation: distance laplacian algo\" type=\"string\" value=\"default\"/>"
+  "<Parameter name=\"aggregation: distance laplacian metric\" type=\"string\" value=\"unweighted\"/>"
   "<Parameter name=\"aggregation: classical algo\" type=\"string\" value=\"default\"/>"
   "<Parameter name=\"aggregation: drop tol\" type=\"double\" value=\"0.0\"/>"
   "<Parameter name=\"aggregation: use ml scaling of drop tol\" type=\"bool\" value=\"false\"/>"
@@ -243,6 +202,7 @@ namespace MueLu {
   "<Parameter name=\"aggregation: enable phase 2a\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"aggregation: enable phase 2b\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"aggregation: enable phase 3\" type=\"bool\" value=\"true\"/>"
+  "<Parameter name=\"aggregation: match ML phase1\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"aggregation: match ML phase2a\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"aggregation: match ML phase2b\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"aggregation: phase2a agg factor\" type=\"double\" value=\"0.5\"/>"
@@ -261,6 +221,8 @@ namespace MueLu {
   "<Parameter name=\"aggregation: output file: fine graph edges\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"aggregation: output file: coarse graph edges\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"aggregation: output file: build colormap\" type=\"bool\" value=\"false\"/>"
+  "<Parameter name=\"aggregation: output file: aggregate qualities\" type=\"bool\" value=\"false\"/>"
+  "<Parameter name=\"aggregation: output file: material\" type=\"bool\" value=\"false\"/>"
   "<ParameterList name=\"aggregation: params\"/>"
   "<ParameterList name=\"strength-of-connection: params\"/>"
   "<Parameter name=\"aggregation: mesh layout\" type=\"string\" value=\"Global Lexicographic\"/>"
@@ -280,7 +242,6 @@ namespace MueLu {
   "<Parameter name=\"aggregate qualities: mode\" type=\"string\" value=\"eigenvalue\"/>"
   "<ParameterList name=\"export data\"/>"
   "<Parameter name=\"keep data\" type=\"string\" value=\"{}\"/>"
-  "<Parameter name=\"save data\" type=\"string\" value=\"{}\"/>"
   "<Parameter name=\"print initial parameters\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"print unused parameters\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"transpose: use implicit\" type=\"bool\" value=\"false\"/>"
@@ -329,6 +290,7 @@ namespace MueLu {
   "<Parameter name=\"filtered matrix: Dirichlet threshold\" type=\"double\" value=\"-1.0\"/>"
   "<Parameter name=\"filtered matrix: reuse eigenvalue\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"filtered matrix: reuse graph\" type=\"bool\" value=\"true\"/>"
+  "<Parameter name=\"matrix: compute analysis\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"emin: iterative method\" type=\"string\" value=\"cg\"/>"
   "<Parameter name=\"emin: num iterations\" type=\"int\" value=\"2\"/>"
   "<Parameter name=\"emin: num reuse iterations\" type=\"int\" value=\"1\"/>"
@@ -359,6 +321,7 @@ namespace MueLu {
   "<Parameter name=\"repartition: explicit via new copy rebalance P and R\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"repartition: rebalance Nullspace\" type=\"bool\" value=\"true\"/>"
   "<Parameter name=\"repartition: use subcommunicators\" type=\"bool\" value=\"true\"/>"
+  "<Parameter name=\"repartition: save importer\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"rap: relative diagonal floor\" type=\"Array(double)\" value=\"{}\"/>"
   "<Parameter name=\"rap: fix zero diagonals\" type=\"bool\" value=\"false\"/>"
   "<Parameter name=\"rap: fix zero diagonals threshold\" type=\"double\" value=\"0.\"/>"
@@ -375,6 +338,7 @@ namespace MueLu {
   "<Parameter name=\"reuse: type\" type=\"string\" value=\"none\"/>"
   "<Parameter name=\"use external multigrid package\" type=\"string\" value=\"none\"/>"
   "<ParameterList name=\"amgx:params\"/>"
+  "<ParameterList name=\"kokkos tuning: muelu parameter mapping\"/>"
   "<Parameter name=\"debug: graph level\" type=\"int\" value=\"-2\"/>"
   "<Parameter name=\"maxwell1: mode\" type=\"string\" value=\"standard\"/>"
   "<ParameterList name=\"maxwell1: 11list\"/>"
@@ -635,6 +599,8 @@ namespace MueLu {
       
          ("coarse: overlap","coarse: overlap")
       
+         ("aggregation: backend","aggregation: backend")
+      
          ("aggregation: type","aggregation: type")
       
          ("aggregation: mode","aggregation: mode")
@@ -660,6 +626,8 @@ namespace MueLu {
          ("aggregation: distance laplacian directional weights","aggregation: distance laplacian directional weights")
       
          ("aggregation: distance laplacian algo","aggregation: distance laplacian algo")
+      
+         ("aggregation: distance laplacian metric","aggregation: distance laplacian metric")
       
          ("aggregation: classical algo","aggregation: classical algo")
       
@@ -707,6 +675,8 @@ namespace MueLu {
       
          ("aggregation: enable phase 3","aggregation: enable phase 3")
       
+         ("aggregation: match ML phase1","aggregation: match ML phase1")
+      
          ("aggregation: match ML phase2a","aggregation: match ML phase2a")
       
          ("aggregation: match ML phase2b","aggregation: match ML phase2b")
@@ -742,6 +712,10 @@ namespace MueLu {
          ("aggregation: output file: coarse graph edges","aggregation: output file: coarse graph edges")
       
          ("aggregation: output file: build colormap","aggregation: output file: build colormap")
+      
+         ("aggregation: output file: aggregate qualities","aggregation: output file: aggregate qualities")
+      
+         ("aggregation: output file: material","aggregation: output file: material")
       
          ("aggregation: params","aggregation: params")
       
@@ -780,8 +754,6 @@ namespace MueLu {
          ("export data","export data")
       
          ("keep data","keep data")
-      
-         ("save data","save data")
       
          ("ML print initial list","print initial parameters")
       
@@ -879,6 +851,8 @@ namespace MueLu {
       
          ("filtered matrix: reuse graph","filtered matrix: reuse graph")
       
+         ("matrix: compute analysis","matrix: compute analysis")
+      
          ("emin: iterative method","emin: iterative method")
       
          ("emin: num iterations","emin: num iterations")
@@ -939,6 +913,8 @@ namespace MueLu {
       
          ("repartition: use subcommunicators","repartition: use subcommunicators")
       
+         ("repartition: save importer","repartition: save importer")
+      
          ("rap: relative diagonal floor","rap: relative diagonal floor")
       
          ("rap: fix zero diagonals","rap: fix zero diagonals")
@@ -970,6 +946,8 @@ namespace MueLu {
          ("use external multigrid package","use external multigrid package")
       
          ("amgx:params","amgx:params")
+      
+         ("kokkos tuning: muelu parameter mapping","kokkos tuning: muelu parameter mapping")
       
          ("debug: graph level","debug: graph level")
       

@@ -14,7 +14,7 @@ namespace
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-class VertexWeightSettings : public stk::unit_test_util::simple_fields::MeshFixture
+class VertexWeightSettings : public stk::unit_test_util::MeshFixture
 {
 public:
 
@@ -27,7 +27,7 @@ public:
 
   virtual ~VertexWeightSettings() {}
 
-  void setup_mesh_with_global_element_count_set(const std::string &meshSpecification, stk::mesh::BulkData::AutomaticAuraOption auraOption)
+  void setup_mesh_with_global_element_count_set(const std::string &meshSpecification, stk::mesh::BulkData::AutomaticAuraOption /*auraOption*/)
   {
     stk::io::fill_mesh(meshSpecification, get_bulk());
     set_global_element_count();

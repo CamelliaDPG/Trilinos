@@ -66,6 +66,12 @@ struct BlockPair {
     second = rhs.second;
   }
 
+  void operator=(const BlockPair& block)
+  {
+    first = block.first;
+    second = block.second;
+  }
+
   bool operator!=(const BlockPair& rhs) const
   {
     return first->mesh_meta_data_ordinal() != rhs.first->mesh_meta_data_ordinal() ||
@@ -92,6 +98,7 @@ struct BlockPair {
   const stk::mesh::Part* get_first() const { return first; }
   const stk::mesh::Part* get_second() const { return second; }
   bool is_adjacent() const { return true; }
+  bool is_valid() const {return (first != nullptr) && (second != nullptr) && (first != second); }
 
   stk::mesh::Part* first;
   stk::mesh::Part* second;

@@ -27,7 +27,7 @@ void setup_node_sharing(stk::mesh::BulkData &mesh, const std::vector< std::vecto
   }
 }
 
-class HexShellShell : public stk::unit_test_util::simple_fields::MeshFixture
+class HexShellShell : public stk::unit_test_util::MeshFixture
 {
 protected:
   HexShellShell()
@@ -52,7 +52,7 @@ private:
     {
       setup_node_sharing(get_bulk(), shared_nodeIDs_and_procs2);
     }
-    else
+    if(get_bulk().parallel_size()==3)
     {
       setup_node_sharing(get_bulk(), shared_nodeIDs_and_procs3);
     }
@@ -462,7 +462,7 @@ public:
   const stk::mesh::impl::SparseGraph& my_get_coincident_graph() {return m_coincidentGraph; }
 };
 
-class ShellMeshModification : public stk::unit_test_util::simple_fields::MeshFixture
+class ShellMeshModification : public stk::unit_test_util::MeshFixture
 {
 protected:
   ShellMeshModification()
@@ -586,7 +586,7 @@ protected:
   }
 
 private:
-  void verify_local_and_parallel_edges_from_entity_to_remote_entity(stk::mesh::Entity entity, stk::mesh::EntityId remoteEntityId, size_t numParallelEdges)
+  void verify_local_and_parallel_edges_from_entity_to_remote_entity(stk::mesh::Entity entity, stk::mesh::EntityId /*remoteEntityId*/, size_t /*numParallelEdges*/)
   {
     if(get_bulk().is_valid(entity) && get_bulk().bucket(entity).owned())
     {

@@ -2,7 +2,9 @@
 #include <cassert>
 #include <limits>
 #include "stk_util/parallel/MPICommKey.hpp"
-#include "ParallelComm.hpp"
+#include "stk_util/util/ReportHandler.hpp"
+#include "Parallel.hpp"
+
 
 namespace stk {
 
@@ -24,7 +26,7 @@ bool CommCompare::operator()(MPI_Comm comm1, MPI_Comm comm2) const
 
 namespace impl {
 
-int delete_mpi_comm_key(MPI_Comm comm, int comm_keyval, void* attribute_val, void* extra_state)
+int delete_mpi_comm_key(MPI_Comm comm, int /*comm_keyval*/, void* /*attribute_val*/, void* extra_state)
 {
   MPIKeyManager* key_manager = reinterpret_cast<MPIKeyManager*>(extra_state);
   key_manager->free_comm(comm);
@@ -44,7 +46,7 @@ MPIKeyManager::MPIKeyManager() : m_destructor([this]() { destructor(); })
   MPI_Comm_create_keyval(MPI_COMM_NULL_COPY_FN, &impl::delete_mpi_comm_key, &m_mpiAttrKey, this);
 
   int myRank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_rank(parallel_machine_world(), &myRank);
   m_currentCommKey = myRank;
 }
 

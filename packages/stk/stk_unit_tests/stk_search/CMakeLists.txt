@@ -32,7 +32,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
-FILE(GLOB SOURCES *.cpp)
+FILE(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 
 if(HAVE_STK_Trilinos)
   TRIBITS_ADD_EXECUTABLE(stk_search_utest
@@ -43,7 +43,7 @@ if(HAVE_STK_Trilinos)
   )
 
   TRIBITS_ADD_TEST(stk_search_utest
-    ARGS ""
+    ARGS "--gtest_filter=stk_search.ident_proc"
     COMM serial mpi
     PASS_REGULAR_EXPRESSION "PASS"
     FAIL_REGULAR_EXPRESSION "FAIL"
@@ -56,7 +56,17 @@ else()
   target_link_libraries(stk_search_utest stk_unit_test_utils)
   target_link_libraries(stk_search_utest stk_util_diag)
   target_link_libraries(stk_search_utest stk_util_parallel)
+  target_link_libraries(stk_search_utest stk_util_util)
   target_link_libraries(stk_search_utest stk_unit_main)
 
-  add_test(NAME "stk_search_utest" COMMAND stk_search_utest)
+  INSTALL(TARGETS stk_search_utest DESTINATION ${STK_INSTALL_BINDIR})
+
+  FOREACH(NUMPROCS 1 2 4)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS})
+    add_test(NAME "stk_search_utest_np${NUMPROCS}" 
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS} 
+             COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${NUMPROCS} ${CMAKE_CURRENT_BINARY_DIR}/stk_search_utest)
+    set_property(TEST "stk_search_utest_np${NUMPROCS}" PROPERTY PROCESSORS ${NUMPROCS})
+  ENDFOREACH()
+
 endif()

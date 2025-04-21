@@ -64,10 +64,6 @@ if( NOT DEFINED skip_clean_build_dir )
     set( skip_clean_build_dir ON )
 endif()
 
-if( NOT DEFINED skip_single_submit )
-    set( skip_single_submit ON )
-endif()
-
 if( NOT DEFINED skip_update_step )
     set( skip_update_step OFF )
 endif()
@@ -76,6 +72,9 @@ if( NOT DEFINED skip_upload_config_files )
     set( skip_upload_config_files OFF )
 endif()
 
+if( NOT DEFINED SKIP_RUN_TESTS )
+    set (SKIP_RUN_TESTS OFF)
+endif()
 
 # -----------------------------------------------------------
 # -- Miscellaneous Settings
@@ -158,6 +157,7 @@ set(CTEST_BUILD_FLAGS "-j${PARALLEL_LEVEL} -k 0")
 # * REQUIRES `CTEST_BINARY_DIRECTORY` to be set.
 if(NOT skip_upload_config_files)
     set(configure_command_file ${CTEST_BINARY_DIRECTORY}/configure_command.txt)
+    set(genconfig_build_name_file ${CTEST_BINARY_DIRECTORY}/genconfig_build_name.txt)
 endif()
 
 
@@ -169,6 +169,8 @@ endif()
 cmake_host_system_information(RESULT HOSTNAME QUERY HOSTNAME)
 
 set(CTEST_SITE "${HOSTNAME}")
+
+set(CTEST_CUSTOM_MAXIMUM_NUMBER_OF_WARNINGS 500)
 
 # See: https://cmake.org/cmake/help/latest/command/site_name.html#command:site_name
 site_name(${CTEST_SITE})

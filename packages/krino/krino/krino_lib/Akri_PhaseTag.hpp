@@ -46,8 +46,8 @@ public:
   bool operator != ( const LS_SideTag & RHS ) const { return (my_ls_identifier != RHS.my_ls_identifier || my_ls_sign != RHS.my_ls_sign); }
   friend std::ostream& operator<<(std::ostream & os, const LS_SideTag & phase);
 protected:
-  const Surface_Identifier my_ls_identifier;
-  const int my_ls_sign;
+  Surface_Identifier my_ls_identifier;
+  int my_ls_sign;
   static std::map<Surface_Identifier, Surface_Identifier> the_composite_ls_map;
 };
 
@@ -120,6 +120,7 @@ public:
   const std::string & name() const { return my_name; }
   const PhaseTag & tag() const { return my_tag; }
   PhaseTag & tag() { return my_tag; }
+  friend std::ostream& operator<<(std::ostream & os, const NamedPhase & namedPhase);
 protected:
   std::string my_name;
   PhaseTag my_tag;

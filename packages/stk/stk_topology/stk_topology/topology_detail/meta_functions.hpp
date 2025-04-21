@@ -41,6 +41,38 @@
 
 namespace stk::topology_detail {
 
+#ifndef STK_HIDE_DEPRECATED_CODE // Delete after Feb 2025
+namespace impl {
+// Temporary function used to identify the new SHELL_[TRI|QUAD]_ALL_FACE_SIDES
+// Will be removed once a proper conversion is available
+template <typename Topology>
+STK_INLINE_FUNCTION
+constexpr bool is_temporary_shell_with_all_face_sides() {
+  return (Topology::value == topology::SHELL_QUAD_4_ALL_FACE_SIDES ||
+          Topology::value == topology::SHELL_QUAD_8_ALL_FACE_SIDES ||
+          Topology::value == topology::SHELL_QUAD_9_ALL_FACE_SIDES ||
+          Topology::value == topology::SHELL_TRI_3_ALL_FACE_SIDES ||
+          Topology::value == topology::SHELL_TRI_4_ALL_FACE_SIDES ||
+          Topology::value == topology::SHELL_TRI_6_ALL_FACE_SIDES);
+}
+}
+
+//------------------------------------------------------------------------------
+
+template <typename Topology, unsigned ShellSideOrdinal>
+STK_DEPRECATED
+STK_INLINE_FUNCTION
+constexpr topology::topology_t shell_side_topology_()
+{
+  if constexpr (Topology::is_shell && Topology::dimension == 3 && ShellSideOrdinal < Topology::num_edges)
+  {
+    if constexpr (!impl::is_temporary_shell_with_all_face_sides<Topology>())
+      return Topology::shell_side_topology_vector[ShellSideOrdinal];
+  }
+  return topology::INVALID_TOPOLOGY;
+}
+#endif
+
 //------------------------------------------------------------------------------
 template <typename Topology, unsigned EdgeOrdinal>
 STK_INLINE_FUNCTION
@@ -112,6 +144,20 @@ constexpr topology::topology_t face_topology_()
 }
 
 //------------------------------------------------------------------------------
+
+template <typename Topology, unsigned SideOrdinal>
+STK_INLINE_FUNCTION
+constexpr topology::rank_t side_rank_()
+{
+  if constexpr (SideOrdinal < Topology::num_faces) {
+    return topology::FACE_RANK;
+  } else {
+    return topology::EDGE_RANK;
+  }
+  return Topology::side_rank;
+}
+
+//------------------------------------------------------------------------------
 template <typename Topology, typename OrdinalOutputFunctor, unsigned EdgeOrdinal, unsigned NumNodes, unsigned CurrentNode = 0>
 struct edge_node_ordinals_impl_ {
   STK_INLINE_FUNCTION
@@ -124,7 +170,7 @@ struct edge_node_ordinals_impl_ {
 template <typename Topology, typename OrdinalOutputFunctor, unsigned EdgeOrdinal, unsigned NumNodes>
 struct edge_node_ordinals_impl_<Topology, OrdinalOutputFunctor, EdgeOrdinal, NumNodes, NumNodes> {
   STK_INLINE_FUNCTION
-  constexpr static int execute(OrdinalOutputFunctor fillOutput) {
+  constexpr static int execute(OrdinalOutputFunctor /*fillOutput*/) {
     return 0;
   }
 };
@@ -154,7 +200,7 @@ struct face_node_ordinals_impl_ {
 template <typename Topology, typename OrdinalOutputFunctor, unsigned FaceOrdinal, unsigned NumNodes>
 struct face_node_ordinals_impl_<Topology, OrdinalOutputFunctor, FaceOrdinal, NumNodes, NumNodes> {
   STK_INLINE_FUNCTION
-  constexpr static int execute(OrdinalOutputFunctor fillOutput) {
+  constexpr static int execute(OrdinalOutputFunctor /*fillOutput*/) {
     return 0;
   }
 };
@@ -184,7 +230,7 @@ struct permutation_node_ordinals_impl_ {
 template <typename Topology, typename OrdinalOutputFunctor, unsigned PermutationOrdinal, unsigned NumNodes>
 struct permutation_node_ordinals_impl_<Topology, OrdinalOutputFunctor, PermutationOrdinal, NumNodes, NumNodes> {
   STK_INLINE_FUNCTION
-  constexpr static int execute(OrdinalOutputFunctor fillOutput) {
+  constexpr static int execute(OrdinalOutputFunctor /*fillOutput*/) {
     return 0;
   }
 };

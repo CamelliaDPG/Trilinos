@@ -17,7 +17,7 @@
 #include <Akri_String_Function_Expression.hpp>
 
 namespace stk { namespace mesh { class BulkData; } }
-namespace stk { namespace mesh { class Entity; } }
+namespace stk { namespace mesh { struct Entity; } }
 namespace stk { namespace mesh { class MetaData; } }
 namespace stk { namespace mesh { class Selector; } }
 
@@ -25,8 +25,7 @@ namespace krino {
 
 class Cylinder: public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
 public:
-  Cylinder(const std::string & n,  // surface name
-           const double e1[3],  // first endpoint of axis
+  Cylinder(const double e1[3],  // first endpoint of axis
            const double e2[3],  // second endpoint of axis
            const double r,      // radius of cylinder
            const int sign);
@@ -40,6 +39,7 @@ public:
   virtual double point_signed_distance(const stk::math::Vector3d &x) const override;
   void insert_into(BoundingBox & bbox) const override { bbox.accommodate(myBoundingBox); }
   bool does_intersect(const BoundingBox & bbox) const override { return bbox.intersects(myBoundingBox); }
+  virtual bool has_edges() const override { return true; }
 
 private:
   void set_axis_and_bounding_box();
@@ -57,8 +57,7 @@ private:
 
 class Sphere: public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
 public:
-  Sphere(const std::string & n,  // surface name
-	 const stk::math::Vector3d & center,
+  Sphere(const stk::math::Vector3d & center,
 	 const double radius,
          const int sign = 1);
 
@@ -81,7 +80,6 @@ private:
 class Ellipsoid : public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
 public:
   Ellipsoid(
-      const std::string & name,  // surface name
       const std::vector<double> & center,
       const std::vector<double> & semiAxes,
       const std::vector<double> & rotationVec,
@@ -109,12 +107,48 @@ private:
   BoundingBox myBoundingBox;
 };
 
+class Cuboid: public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
+public:
+  Cuboid(const stk::math::Vector3d & center,
+      const stk::math::Vector3d & dimensions,
+      const int sign = 1) : Cuboid(center, dimensions, stk::math::Vector3d::ZERO, sign) {}
+  Cuboid(const stk::math::Vector3d & center,
+    const stk::math::Vector3d & dimensions,
+    const stk::math::Vector3d & rotationVec,
+    const int sign = 1);
+
+  virtual ~Cuboid() {}
+
+  virtual Surface_Type type() const override { return CUBOID; }
+  virtual size_t storage_size() const override { return sizeof(Cuboid); }
+
+  virtual double point_signed_distance(const stk::math::Vector3d &x) const override;
+  virtual void insert_into(BoundingBox & bbox) const override { bbox.accommodate(myBoundingBox); }
+  virtual bool does_intersect(const BoundingBox & bbox) const override { return bbox.intersects(myBoundingBox); }
+  void fill_triangle_intersection_parametric_coordinates(const std::array<stk::math::Vector3d,3> & faceNodes, std::vector<stk::math::Vector3d> & intParamCoords) const override;
+  void fill_tetrahedon_intersection_parametric_coordinates(const std::array<stk::math::Vector3d,4> & tetNodes, std::vector<stk::math::Vector3d> & intParamCoords) const override;
+
+  virtual bool has_corners() const override { return true; }
+  virtual bool has_edges() const override { return true; }
+
+  stk::math::Vector3d vertex_location(const unsigned i) const;
+
+private:
+  void set_bounding_box();
+  int mySign;
+  stk::math::Vector3d myCenter;
+  stk::math::Vector3d myHalfDimensions;
+  std::unique_ptr<Quaternion> myRotation;
+  BoundingBox myBoundingBox;
+};
+
 class Plane: public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
 public:
-  Plane(const std::string & n,  // surface name
-	 const double normal[3],
-	 const double offset,
-	 const double multiplier);
+  Plane(const stk::math::Vector3d & normal,
+    const double offset) : Plane(normal, offset, 1.) {}
+  Plane(const stk::math::Vector3d & normal,
+    const double offset,
+    const double multiplier);
 
   virtual ~Plane() {}
 
@@ -134,8 +168,7 @@ private:
 
 class Point: public SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign {
 public:
-  Point(const std::string & n,  // surface name
-        const stk::math::Vector3d & coords);
+  Point(const stk::math::Vector3d & coords);
 
   virtual ~Point() {}
 

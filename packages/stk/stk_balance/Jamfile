@@ -75,10 +75,6 @@ local installed-developer-files =
 #
 # SECTION 2: Development install
 #
-explicit install-serial-targets ;
-alias install-serial-targets
-  :
-  ;
 
 # Dependencies listed in this target are installed in the developer's project.
 # This should include all executables and any other files needed for developer use.
@@ -171,7 +167,6 @@ lib stk_balance_lib
       [ glob 
              $(stk_balance-root)/stk_balance/*.cpp 
              $(stk_balance-root)/stk_balance/internal/*.cpp 
-             $(stk_balance-root)/stk_balance/m2n/*.cpp 
              $(stk_balance-root)/stk_balance/mesh/*.cpp
              $(stk_balance-root)/stk_balance/io/*.cpp
              $(stk_balance-root)/stk_balance/setup/*.cpp

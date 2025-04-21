@@ -108,6 +108,14 @@ GLOBAL_SET(${PACKAGE_NAME}_ETI_NODES   ${${PACKAGE_NAME}_ETI_NODES})
 # ==================================================================
 
 TRIBITS_ADD_OPTION_AND_DEFINE(
+  Tpetra_ENABLE_Reduced_ETI
+  HAVE_TPETRA_REDUCED_ETI
+  "Uses reduced ETI of Tpetra to speed compilation."
+  OFF
+  )
+
+
+TRIBITS_ADD_OPTION_AND_DEFINE(
   ${PACKAGE_NAME}_Threaded_MKL
   HAVE_TPETRA_THREADED_MKL
   "Indicates that the linked BLAS is a threaded version of the MKL."
@@ -169,13 +177,6 @@ TRIBITS_ADD_OPTION_AND_DEFINE(
 )
 
 TRIBITS_ADD_OPTION_AND_DEFINE(
-  Tpetra_ENABLE_Distributor_Timings
-  HAVE_TPETRA_DISTRIBUTOR_TIMINGS
-  "Enable the timings for the Distributor"
-  OFF
-)
-
-TRIBITS_ADD_OPTION_AND_DEFINE(
   Tpetra_ENABLE_MMM_Statistics
   HAVE_TPETRA_MMM_STATISTICS
   "Enable statistics for the MMM kernels.  Warning: This involves extra communication and should only be enabled for diagnostic purposes."
@@ -188,15 +189,6 @@ TRIBITS_ADD_OPTION_AND_DEFINE(
   "Do MV import instead of BMV import."
   OFF
   )
-
-TRIBITS_ADD_OPTION_AND_DEFINE(
-  Tpetra_ENABLE_KokkosIntegrationTest
-  HAVE_TPETRA_KOKKOSINTEGRATION_TEST
-  "Enable the KokkosIntegrationTest"
-  ON
-  )
-
-
 
 
 #

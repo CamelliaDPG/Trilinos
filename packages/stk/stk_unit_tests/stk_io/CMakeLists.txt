@@ -33,26 +33,56 @@
 # 
 
 
-FILE(GLOB SOURCES *.cpp)
-LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestMeshData.cpp)
-LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestWriteSTKMesh.cpp)
-LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestReadWriteSideSets.cpp)
-LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/AttributeTests.cpp)
+FILE(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 
+if(HAVE_STK_Trilinos)
 
-TRIBITS_ADD_EXECUTABLE(
-    stk_io_unit_tests
+  LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestMeshData.cpp)
+  LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestWriteSTKMesh.cpp)
+  LIST(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/UnitTestReadWriteSideSets.cpp)
+
+  TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+
+  TRIBITS_ADD_EXECUTABLE(stk_io_unit_tests
     SOURCES ${SOURCES}
     TESTONLYLIBS stk_unit_main
     COMM serial mpi
     NOEXEPREFIX
-    )
+  )
 
-TRIBITS_ADD_TEST(
+  TRIBITS_ADD_TEST(
     stk_io_unit_tests
     ARGS ""
     COMM serial mpi
     NUM_MPI_PROCS 1
     NOEXEPREFIX
-    )
+  )
+else()
+  add_executable(stk_io_utest ${SOURCES})
+  target_link_libraries(stk_io_utest PUBLIC stk_io_util)
+  target_link_libraries(stk_io_utest PUBLIC stk_io)
+  target_link_libraries(stk_io_utest PUBLIC stk_unit_test_utils)
+  target_link_libraries(stk_io_utest PUBLIC stk_unit_main)
+
+  target_include_directories(stk_io_utest PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  target_include_directories(stk_io_utest PUBLIC
+    ${STK_TOPLEVEL_SOURCE_DIR}/stk_unit_test_utils
+  )
+
+  INSTALL(TARGETS stk_io_utest DESTINATION ${STK_INSTALL_BINDIR})
+
+  FOREACH(NUMPROCS 1 2 3 4)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS})
+    add_test(NAME "stk_io_utest_np${NUMPROCS}"
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS} 
+             COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${NUMPROCS} ${CMAKE_CURRENT_BINARY_DIR}/stk_io_utest 
+             --gtest_filter=-*externalFile)
+    set_property(TEST "stk_io_utest_np${NUMPROCS}" PROPERTY PROCESSORS ${NUMPROCS})
+  ENDFOREACH()
+  
+endif()
 

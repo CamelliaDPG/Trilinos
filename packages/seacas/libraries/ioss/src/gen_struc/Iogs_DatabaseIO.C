@@ -1,13 +1,24 @@
-// Copyright(C) 1999-2020, 2022, 2023 National Technology & Engineering Solutions
+// Copyright(C) 1999-2020, 2022, 2023, 2024 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
+#include "Ioss_CodeTypes.h" // for Int64Vector, IntVector
+#include "Ioss_SideBlock.h" // for SideBlock
+#include "Ioss_Utils.h"     // for Utils, IOSS_ERROR
+#include "gen_struc/Iogs_DatabaseIO.h"
+#include "gen_struc/Iogs_GeneratedMesh.h" // for GeneratedMesh
+#include <cassert>                        // for assert
+#include <cmath>                          // for sqrt
+#include <fmt/format.h>
+#include <iostream> // for ostringstream, operator<<, etc
+#include <stdlib.h>
+#include <string> // for string, operator==, etc
+
 #include "Ioss_CommSet.h"         // for CommSet
 #include "Ioss_DBUsage.h"         // for DatabaseUsage
 #include "Ioss_DatabaseIO.h"      // for DatabaseIO
-#include "Ioss_ElementBlock.h"    // for ElementBlock
 #include "Ioss_EntityType.h"      // for EntityType, etc
 #include "Ioss_Field.h"           // for Field, etc
 #include "Ioss_GroupingEntity.h"  // for GroupingEntity
@@ -21,32 +32,6 @@
 #include "Ioss_SideSet.h"         // for SideSet
 #include "Ioss_StructuredBlock.h"
 #include "Ioss_VariableType.h" // for VariableType
-#include <Ioss_CodeTypes.h>    // for Int64Vector, IntVector
-#include <Ioss_SideBlock.h>    // for SideBlock
-#include <Ioss_Utils.h>        // for Utils, IOSS_ERROR
-#include <algorithm>           // for copy
-#include <cassert>             // for assert
-#include <cmath>               // for sqrt
-#include <gen_struc/Iogs_DatabaseIO.h>
-#include <gen_struc/Iogs_GeneratedMesh.h> // for GeneratedMesh
-#include <iostream>                       // for ostringstream, operator<<, etc
-#include <string>                         // for string, operator==, etc
-#include <utility>                        // for pair
-namespace Ioss {
-  class EdgeBlock;
-} // namespace Ioss
-namespace Ioss {
-  class EdgeSet;
-} // namespace Ioss
-namespace Ioss {
-  class ElementSet;
-} // namespace Ioss
-namespace Ioss {
-  class FaceBlock;
-} // namespace Ioss
-namespace Ioss {
-  class FaceSet;
-} // namespace Ioss
 
 namespace {
   template <typename INT>
@@ -128,30 +113,24 @@ namespace Iogs {
       dbState = Ioss::STATE_UNKNOWN;
     }
     else {
-      std::ostringstream errmsg;
-      errmsg << "ERROR: Structured Generated mesh option is only valid for input mesh.";
-      IOSS_ERROR(errmsg);
+      IOSS_ERROR("ERROR: Structured Generated mesh option is only valid for input mesh.");
     }
     if (props.exists("USE_CONSTANT_DF")) {
       m_useVariableDf = false;
     }
     if (util().parallel_size() > 1) {
-      std::ostringstream errmsg;
-      errmsg << "ERROR: Structured Generated mesh option is not valid for parallel yet.";
-      IOSS_ERROR(errmsg);
+      IOSS_ERROR("ERROR: Structured Generated mesh option is not valid for parallel yet.");
     }
   }
 
   DatabaseIO::~DatabaseIO() { delete m_generatedMesh; }
 
-  void DatabaseIO::read_meta_data__()
+  void DatabaseIO::read_meta_data_nl()
   {
     if (m_generatedMesh == nullptr) {
       if (get_filename() == "external") {
-        std::ostringstream errmsg;
-        errmsg << "ERROR: (gen_struc mesh) 'external' specified for mesh, but "
-               << "getGeneratedMesh was not called to set the external mesh.\n";
-        IOSS_ERROR(errmsg);
+        IOSS_ERROR("ERROR: (gen_struc mesh) 'external' specified for mesh, but "
+                   "getGeneratedMesh was not called to set the external mesh.\n");
       }
       else {
         m_generatedMesh =
@@ -170,7 +149,7 @@ namespace Iogs {
     nodeCount        = m_generatedMesh->node_count_proc();
     elementCount     = m_generatedMesh->element_count_proc();
 
-    get_step_times__();
+    get_step_times_nl();
 
     add_transient_fields(this_region);
     get_nodeblocks();
@@ -181,11 +160,11 @@ namespace Iogs {
         Ioss::Property(std::string("title"), std::string("GeneratedMesh: ") += get_filename()));
   }
 
-  bool DatabaseIO::begin__(Ioss::State /* state */) { return true; }
+  bool DatabaseIO::begin_nl(Ioss::State /* state */) { return true; }
 
-  bool DatabaseIO::end__(Ioss::State /* state */) { return true; }
+  bool DatabaseIO::end_nl(Ioss::State /* state */) { return true; }
 
-  bool DatabaseIO::begin_state__(int /* state */, double time)
+  bool DatabaseIO::begin_state_nl(int /* state */, double time)
   {
     currentTime = time;
     return true;
@@ -230,8 +209,8 @@ namespace Iogs {
 
     const Ioss::Field &id_fld = nb->get_fieldref("ids");
     std::vector<char>  ids(id_fld.get_size());
-    get_field_internal(nb, id_fld, ids.data(), id_fld.get_size());
-    fill_transient_data(nb, field, data, ids.data(), num_to_get, currentTime);
+    get_field_internal(nb, id_fld, Data(ids), id_fld.get_size());
+    fill_transient_data(nb, field, data, Data(ids), num_to_get, currentTime);
 
     return num_to_get;
   }
@@ -314,9 +293,7 @@ namespace Iogs {
     int64_t id           = sd_blk->get_property("id").get_int();
     size_t  entity_count = sd_blk->entity_count();
     if (num_to_get != entity_count) {
-      std::ostringstream errmsg;
-      errmsg << "ERROR: Partial field input not implemented for side blocks";
-      IOSS_ERROR(errmsg);
+      IOSS_ERROR("ERROR: Partial field input not implemented for side blocks");
     }
 
     Ioss::Field::RoleType role = field.get_role();
@@ -353,7 +330,7 @@ namespace Iogs {
         std::vector<int64_t> elem_side;
         m_generatedMesh->sideset_elem_sides(id, elem_side);
         if (field.get_name() == "element_side_raw") {
-          map_global_to_local(get_element_map(), elem_side.size(), 2, &elem_side[0]);
+          map_global_to_local(get_element_map(), elem_side.size(), 2, Data(elem_side));
         }
 
         if (field.is_type(Ioss::Field::INTEGER)) {
@@ -376,8 +353,8 @@ namespace Iogs {
         if (m_useVariableDf) {
           const Ioss::Field &id_fld = sd_blk->get_fieldref("ids");
           std::vector<char>  ids(id_fld.get_size());
-          get_field_internal(sd_blk, id_fld, ids.data(), id_fld.get_size());
-          fill_transient_data(sd_blk, field, data, ids.data(), num_to_get);
+          get_field_internal(sd_blk, id_fld, Data(ids), id_fld.get_size());
+          fill_transient_data(sd_blk, field, data, Data(ids), num_to_get);
         }
         else {
           fill_constant_data(field, data, 1.0);
@@ -391,8 +368,8 @@ namespace Iogs {
     else if (role == Ioss::Field::TRANSIENT) {
       const Ioss::Field &id_fld = sd_blk->get_fieldref("ids");
       std::vector<char>  ids(id_fld.get_size());
-      get_field_internal(sd_blk, id_fld, ids.data(), id_fld.get_size());
-      fill_transient_data(sd_blk, field, data, ids.data(), num_to_get, currentTime);
+      get_field_internal(sd_blk, id_fld, Data(ids), id_fld.get_size());
+      fill_transient_data(sd_blk, field, data, Data(ids), num_to_get, currentTime);
     }
     return num_to_get;
   }
@@ -447,9 +424,7 @@ namespace Iogs {
         }
       }
       else {
-        std::ostringstream errmsg;
-        errmsg << "Invalid commset type " << type;
-        IOSS_ERROR(errmsg);
+        IOSS_ERROR(fmt::format("Invalid commset type {}", type));
       }
     }
     else if (field.get_name() == "ids") {
@@ -469,7 +444,7 @@ namespace Iogs {
       nodeMap.set_size(nodeCount);
       std::vector<int64_t> map;
       m_generatedMesh->node_map(map);
-      nodeMap.set_map(map.data(), map.size(), 0, true);
+      nodeMap.set_map(Data(map), map.size(), 0, true);
     }
     return nodeMap;
   }
@@ -482,7 +457,7 @@ namespace Iogs {
       elemMap.set_size(elementCount);
       std::vector<int64_t> map;
       m_generatedMesh->element_map(map);
-      elemMap.set_map(map.data(), map.size(), 0, true);
+      elemMap.set_map(Data(map), map.size(), 0, true);
     }
     return elemMap;
   }
@@ -497,12 +472,26 @@ namespace Iogs {
     add_transient_fields(block);
   }
 
-  void DatabaseIO::get_step_times__()
+  void DatabaseIO::get_step_times_nl()
   {
     int time_step_count = m_generatedMesh->timestep_count();
     for (int i = 0; i < time_step_count; i++) {
       get_region()->add_state(i);
     }
+  }
+
+  std::vector<double> DatabaseIO::get_db_step_times_nl()
+  {
+    std::vector<double> timesteps;
+
+    int time_step_count = m_generatedMesh->timestep_count();
+    timesteps.reserve(time_step_count);
+
+    for (int i = 0; i < time_step_count; i++) {
+      timesteps.push_back(i);
+    }
+
+    return timesteps;
   }
 
   void DatabaseIO::get_structured_blocks()
@@ -533,7 +522,7 @@ namespace Iogs {
       sideset->property_add(Ioss::Property("guid", util().generate_guid(ifs + 1)));
       get_region()->add(sideset);
 
-      std::vector<std::string> touching_blocks = m_generatedMesh->sideset_touching_blocks(ifs + 1);
+      Ioss::NameList touching_blocks = m_generatedMesh->sideset_touching_blocks(ifs + 1);
       if (touching_blocks.size() == 1) {
         std::string sd_block_name  = name + "_quad4";
         std::string side_topo_name = "quad4";

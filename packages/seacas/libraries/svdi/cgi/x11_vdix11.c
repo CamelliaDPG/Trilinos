@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2021, 2023 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2021, 2023, 2025 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -554,13 +554,13 @@ static int   font_height, font_width; /* char size in device coord. */
 #define map_y(yin) ((int)(x_height - (ypad + scale * (yin))))
 
 /* macros which map X Windows coords. into ndc */
-#define ndc_map_x(xin) ((float)(((xin)-xpad) / scale))
+#define ndc_map_x(xin) ((float)(((xin) - xpad) / scale))
 #define ndc_map_y(yin) ((float)(((x_height - (yin)) - ypad) / scale))
 
 /* macro to convert measure in X window units into ndc units */
 #define ndc_units(in) ((float)((in) / scale))
 /* macro to convert measure in ndc into X window measure */
-#define x_units(in) ((int)((in)*scale))
+#define x_units(in) ((int)((in) * scale))
 
 /* macro to convert ascii(integer) to char (note: machine dependent) */
 #define a_to_c(ain) ((char)(ain)) /* for ascii machine */
@@ -662,7 +662,6 @@ void viinit(float *aspect, int *justif)
   XGetVisualInfo(display, VisualDepthMask | VisualClassMask, &visual_template, &matching_visuals);
   i = XMatchVisualInfo(display, DefaultScreen(display), 24, TrueColor, &visual_template);
   if (matching_visuals > 0 && i > 0) {
-    fprintf(stderr, "SVDI: Found a TRUECOLOR visual, trying it.....\n");
     depth  = 24;
     visual = visual_template.visual;
     valuemask |= CWBackPixel | CWColormap | CWBorderPixel;
@@ -680,7 +679,6 @@ void viinit(float *aspect, int *justif)
     XGetVisualInfo(display, VisualDepthMask | VisualClassMask, &visual_template, &matching_visuals);
     i = XMatchVisualInfo(display, DefaultScreen(display), 16, TrueColor, &visual_template);
     if (matching_visuals > 0 && i > 0) {
-      fprintf(stderr, "SVDI: Found a TRUECOLOR visual, trying it.....\n");
       depth  = 16;
       visual = visual_template.visual;
       valuemask |= CWBackPixel | CWColormap | CWBorderPixel;
@@ -693,7 +691,6 @@ void viinit(float *aspect, int *justif)
                                 1, depth, InputOutput, visual, valuemask, &setwinattr);
     }
     else {
-      /* fprintf(stderr,"SVDI: Using default visual.....\n"); */
       cmap                     = DefaultColormap(display, screen);
       visual                   = DefaultVisual(display, screen);
       visualid                 = XVisualIDFromVisual(visual);
@@ -752,7 +749,6 @@ void viinit(float *aspect, int *justif)
     /* setup color */
     if (visual->class == TrueColor || visual->class == DirectColor) {
       color_type = FULL;
-      fprintf(stderr, "SVDI: Using full color visual with %d colors\n", ncolors);
     }
     else {
       color_type = PSEUDO;

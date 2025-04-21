@@ -46,19 +46,30 @@
 #
 
 SET(HEADERS "")
-SET(SOURCES "")
 
-TRIBITS_INCLUDE_DIRECTORIES(${${PACKAGE_NAME}_SOURCE_DIR})
+FILE(GLOB HEADERS CONFIGURE_DEPENDS *.hpp)
 
-FILE(GLOB HEADERS *.hpp)
-FILE(GLOB SOURCES *.cpp)
+if(HAVE_STK_Trilinos)
+  TRIBITS_INCLUDE_DIRECTORIES(${${PACKAGE_NAME}_SOURCE_DIR})
 
-TRIBITS_ADD_LIBRARY(
-  stk_emend
-  HEADERS ${HEADERS}
-  SOURCES ${SOURCES}
-  )
+  TRIBITS_ADD_LIBRARY(
+    stk_emend
+    HEADERONLY
+    HEADERS ${HEADERS}
+    )
+else()
+    add_library(stk_emend INTERFACE ${HEADERS})
+    target_link_libraries(stk_emend INTERFACE stk_util_util)
+    target_link_libraries(stk_emend INTERFACE stk_util_parallel)
+
+    target_include_directories(stk_emend INTERFACE
+      $<BUILD_INTERFACE:${STK_TOPLEVEL_SOURCE_DIR}/stk_emend>
+      $<INSTALL_INTERFACE:include>
+    )
+
+    INSTALL(TARGETS stk_emend EXPORT stkTargets DESTINATION ${STK_INSTALL_LIBDIR})
+
+endif()
 
 INSTALL(FILES ${HEADERS} DESTINATION
     ${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}/stk_emend/independent_set)
-

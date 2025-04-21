@@ -1,48 +1,19 @@
-/*@HEADER
-// ***********************************************************************
-//
+// @HEADER
+// *****************************************************************************
 //       Ifpack2: Templated Object-Oriented Algebraic Preconditioner Package
-//                 Copyright (2009) Sandia Corporation
 //
-// Under terms of Contract DE-AC04-94AL85000, there is a non-exclusive
-// license for use of this work by or on behalf of the U.S. Government.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Michael A. Heroux (maherou@sandia.gov)
-//
-// ***********************************************************************
-//@HEADER
-*/
+// Copyright 2009 NTESS and the Ifpack2 contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
+// @HEADER
 
 #ifndef IFPACK2_LOCALSPARSETRIANGULARSOLVER_DEF_HPP
 #define IFPACK2_LOCALSPARSETRIANGULARSOLVER_DEF_HPP
 
+#include <sstream> // ostringstream
+#include <stdexcept> // runtime_error
+
+#include "Ifpack2_LocalSparseTriangularSolver_decl.hpp"
 #include "Tpetra_CrsMatrix.hpp"
 #include "Tpetra_Core.hpp"
 #include "Teuchos_StandardParameterEntryValidators.hpp"
@@ -56,6 +27,53 @@
 namespace Ifpack2 {
 
 namespace Details {
+
+#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA)
+
+inline void cusparse_error_throw(cusparseStatus_t cusparseStatus, const char* name,
+                                 const char* file, const int line) {
+  std::ostringstream out;
+#if defined(CUSPARSE_VERSION) && (10300 <= CUSPARSE_VERSION)
+  out << name << " error( " << cusparseGetErrorName(cusparseStatus) << "): " << cusparseGetErrorString(cusparseStatus);
+#else
+  out << name << " error( ";
+  switch (cusparseStatus) {
+    case CUSPARSE_STATUS_NOT_INITIALIZED:
+      out << "CUSPARSE_STATUS_NOT_INITIALIZED): cusparse handle was not "
+             "created correctly.";
+      break;
+    case CUSPARSE_STATUS_ALLOC_FAILED:
+      out << "CUSPARSE_STATUS_ALLOC_FAILED): you might tried to allocate too "
+             "much memory";
+      break;
+    case CUSPARSE_STATUS_INVALID_VALUE: out << "CUSPARSE_STATUS_INVALID_VALUE)"; break;
+    case CUSPARSE_STATUS_ARCH_MISMATCH: out << "CUSPARSE_STATUS_ARCH_MISMATCH)"; break;
+    case CUSPARSE_STATUS_MAPPING_ERROR: out << "CUSPARSE_STATUS_MAPPING_ERROR)"; break;
+    case CUSPARSE_STATUS_EXECUTION_FAILED: out << "CUSPARSE_STATUS_EXECUTION_FAILED)"; break;
+    case CUSPARSE_STATUS_INTERNAL_ERROR: out << "CUSPARSE_STATUS_INTERNAL_ERROR)"; break;
+    case CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED: out << "CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED)"; break;
+    case CUSPARSE_STATUS_ZERO_PIVOT: out << "CUSPARSE_STATUS_ZERO_PIVOT)"; break;
+    default: out << "unrecognized error code): this is bad!"; break;
+  }
+#endif  // CUSPARSE_VERSION
+  if (file) {
+    out << " " << file << ":" << line;
+  }
+  throw std::runtime_error(out.str());
+}
+
+inline void cusparse_safe_call(cusparseStatus_t cusparseStatus, const char* name, const char* file = nullptr,
+                                        const int line = 0) {
+  if (CUSPARSE_STATUS_SUCCESS != cusparseStatus) {
+    cusparse_error_throw(cusparseStatus, name, file, line);
+  }
+}
+
+#define IFPACK2_DETAILS_CUSPARSE_SAFE_CALL(call) \
+  Ifpack2::Details::cusparse_safe_call(call, #call, __FILE__, __LINE__)
+
+#endif // defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA)
+
 struct TrisolverType {
   enum Enum {
     Internal, //!< Tpetra::CrsMatrix::localSolve
@@ -126,7 +144,7 @@ public:
 
     Teuchos::RCP<HtsCrsMatrix> T_hts = Teuchos::rcpWithDealloc(
       HTST::make_CrsMatrix(rowptr.size() - 1,
-                           rowptr.data(), colidx.data(), 
+                           rowptr.data(), colidx.data(),
                            // For std/Kokkos::complex.
                            reinterpret_cast<const scalar_type*>(val.data()),
                            transpose_, conjugate_),
@@ -437,7 +455,7 @@ initialize ()
         (lclTriStruct.couldBeUpperTriangular ? "U" : "N");
       return lclTriStruct;
     } ();
-    
+
     if (reverseStorage_ && lclTriStructure.couldBeUpperTriangular &&
         htsImpl_.is_null ()) {
       // Reverse the storage for an upper triangular matrix
@@ -445,21 +463,21 @@ initialize ()
       auto ptr    = Alocal.graph.row_map;
       auto ind    = Alocal.graph.entries;
       auto val    = Alocal.values;
-    
+
       auto numRows = Alocal.numRows();
       auto numCols = Alocal.numCols();
       auto numNnz = Alocal.nnz();
-    
+
       typename decltype(ptr)::non_const_type  newptr ("ptr", ptr.extent (0));
       typename decltype(ind)::non_const_type  newind ("ind", ind.extent (0));
       decltype(val)                           newval ("val", val.extent (0));
-    
+
       // FIXME: The code below assumes UVM
       typename crs_matrix_type::execution_space().fence();
       newptr(0) = 0;
       for (local_ordinal_type row = 0, rowStart = 0; row < numRows; ++row) {
         auto A_r = Alocal.row(numRows-1 - row);
-    
+
         auto numEnt = A_r.length;
         for (local_ordinal_type k = 0; k < numEnt; ++k) {
           newind(rowStart + k) = numCols-1 - A_r.colidx(numEnt-1 - k);
@@ -469,7 +487,7 @@ initialize ()
         newptr(row+1) = rowStart;
       }
       typename crs_matrix_type::execution_space().fence();
-    
+
       // Reverse maps
       Teuchos::RCP<map_type> newRowMap, newColMap;
       {
@@ -477,11 +495,11 @@ initialize ()
         auto rowMap = A_->getRowMap();
         auto numElems = rowMap->getLocalNumElements();
         auto rowElems = rowMap->getLocalElementList();
-    
+
         Teuchos::Array<global_ordinal_type> newRowElems(rowElems.size());
         for (size_t i = 0; i < numElems; i++)
           newRowElems[i] = rowElems[numElems-1 - i];
-    
+
         newRowMap = Teuchos::rcp(new map_type(rowMap->getGlobalNumElements(), newRowElems, rowMap->getIndexBase(), rowMap->getComm()));
       }
       {
@@ -489,21 +507,21 @@ initialize ()
         auto colMap = A_->getColMap();
         auto numElems = colMap->getLocalNumElements();
         auto colElems = colMap->getLocalElementList();
-    
+
         Teuchos::Array<global_ordinal_type> newColElems(colElems.size());
         for (size_t i = 0; i < numElems; i++)
           newColElems[i] = colElems[numElems-1 - i];
-    
+
         newColMap = Teuchos::rcp(new map_type(colMap->getGlobalNumElements(), newColElems, colMap->getIndexBase(), colMap->getComm()));
       }
-    
+
       // Construct new matrix
       local_matrix_type newLocalMatrix("Upermuted", numRows, numCols, numNnz, newval, newptr, newind);
-    
+
       A_crs_ = Teuchos::rcp(new crs_matrix_type(newLocalMatrix, newRowMap, newColMap, A_crs_->getDomainMap(), A_crs_->getRangeMap()));
-    
+
       isInternallyChanged_ = true;
-    
+
       // FIXME (mfh 18 Apr 2019) Recomputing this is unnecessary, but I
       // didn't want to break any invariants, especially considering
       // that this branch is likely poorly tested.
@@ -535,7 +553,7 @@ initialize ()
       TEUCHOS_TEST_FOR_EXCEPTION
         (! G->isFillComplete (), std::runtime_error, "If you call this method, "
          "the matrix's graph must be fill complete.  It is not.");
-	  
+
       // mfh 30 Apr 2018: See GitHub Issue #2658.
       constexpr bool ignoreMapsForTriStructure = true;
       std::string prev_uplo_ = this->uplo_;
@@ -573,11 +591,32 @@ initialize ()
   {
     if (!isKokkosKernelsStream_) {
       kh_ = Teuchos::rcp (new k_handle());
-    }
-	else {
+      const bool is_lower_tri = (this->uplo_ == "L") ? true : false;
+
+      auto A_crs = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_, true);
+      auto Alocal = A_crs->getLocalMatrixDevice();
+      auto ptr    = Alocal.graph.row_map;
+      auto ind    = Alocal.graph.entries;
+      auto val    = Alocal.values;
+
+      auto numRows = Alocal.numRows();
+      kh_->create_sptrsv_handle(kokkosKernelsAlgorithm(), numRows, is_lower_tri);
+      KokkosSparse::sptrsv_symbolic(kh_.getRawPtr(), ptr, ind, val);
+    } else {
       kh_v_ = std::vector< Teuchos::RCP<k_handle> >(num_streams_);
       for (int i = 0; i < num_streams_; i++) {
         kh_v_[i] = Teuchos::rcp (new k_handle ());
+        auto A_crs_i = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_crs_v_[i], true);
+        auto Alocal_i = A_crs_i->getLocalMatrixDevice();
+        auto ptr_i    = Alocal_i.graph.row_map;
+        auto ind_i    = Alocal_i.graph.entries;
+        auto val_i    = Alocal_i.values;
+
+        auto numRows_i = Alocal_i.numRows();
+
+        const bool is_lower_tri = (this->uplo_ == "L") ? true : false;
+        kh_v_[i]->create_sptrsv_handle(kokkosKernelsAlgorithm(), numRows_i, is_lower_tri);
+        KokkosSparse::sptrsv_symbolic(kh_v_[i].getRawPtr(), ptr_i, ind_i, val_i);
       }
       kh_v_nonnull_ = true;
     }
@@ -585,6 +624,26 @@ initialize ()
 
   isInitialized_ = true;
   ++numInitialize_;
+}
+
+template<class MatrixType>
+KokkosSparse::Experimental::SPTRSVAlgorithm
+LocalSparseTriangularSolver<MatrixType>::kokkosKernelsAlgorithm() const
+{
+#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA)
+  // CuSparse only supports int type ordinals
+  // and scalar types of float, double, float complex and double complex
+  if constexpr (std::is_same<Kokkos::Cuda, HandleExecSpace>::value &&
+      std::is_same<int, local_ordinal_type>::value &&
+    (std::is_same<scalar_type, float>::value ||
+      std::is_same<scalar_type, double>::value ||
+      std::is_same<impl_scalar_type, Kokkos::complex<float>>::value ||
+      std::is_same<impl_scalar_type, Kokkos::complex<double>>::value))
+  {
+    return KokkosSparse::Experimental::SPTRSVAlgorithm::SPTRSV_CUSPARSE;
+  }
+#endif
+  return KokkosSparse::Experimental::SPTRSVAlgorithm::SEQLVLSCHD_TP1;
 }
 
 template<class MatrixType>
@@ -631,79 +690,64 @@ compute ()
      "been called by this point, but isInitialized_ is false.  "
      "Please report this bug to the Ifpack2 developers.");
 
+// NOTE (Nov-09-2022):
+// For Cuda >= 11.3 (using cusparseSpSV), always call symbolic during compute
+// even when matrix values are changed with the same sparsity pattern.
+// For Cuda >= 12.1 has a new cusparseSpSV_updateMatrix function just for updating the
+// values that is substantially faster.
+// This would all be much better handled via a KokkosSparse::sptrsv_numeric(...)
+// that could hide the Cuda implementation details.
+#if defined(KOKKOS_ENABLE_CUDA) && defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && (CUDA_VERSION >= 11030)
+  if constexpr ( std::is_same_v<typename crs_matrix_type::execution_space, Kokkos::Cuda> )
+  {
+    if (this->isKokkosKernelsSptrsv_) {
+      if (Teuchos::nonnull(kh_) && !isKokkosKernelsStream_) {
+        auto A_crs = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_crs_, true);
+        auto Alocal = A_crs->getLocalMatrixDevice();
+        auto val    = Alocal.values;
+  #if (CUSPARSE_VERSION >= 12100)
+        auto *sptrsv_handle = kh_->get_sptrsv_handle();
+        auto cusparse_handle = sptrsv_handle->get_cuSparseHandle();
+        cusparseSpSV_updateMatrix(cusparse_handle->handle,
+                          cusparse_handle->spsvDescr,
+                          val.data(),
+                          CUSPARSE_SPSV_UPDATE_GENERAL);
+  #else
+        auto ptr    = Alocal.graph.row_map;
+        auto ind    = Alocal.graph.entries;
+        KokkosSparse::sptrsv_symbolic(kh_.getRawPtr(), ptr, ind, val);
+  #endif
+      } else if (kh_v_nonnull_) {
+        for (int i = 0; i < num_streams_; i++) {
+          auto A_crs_i = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_crs_v_[i], true);
+          auto Alocal_i = A_crs_i->getLocalMatrixDevice();
+          auto val_i    = Alocal_i.values;
+  #if (CUSPARSE_VERSION >= 12100)
+          auto *sptrsv_handle = kh_v_[i]->get_sptrsv_handle();
+          auto cusparse_handle = sptrsv_handle->get_cuSparseHandle();
+          IFPACK2_DETAILS_CUSPARSE_SAFE_CALL(
+              cusparseSetStream(cusparse_handle->handle, exec_space_instances_[i].cuda_stream()));
+          cusparseSpSV_updateMatrix(cusparse_handle->handle,
+                            cusparse_handle->spsvDescr,
+                            val_i.data(),
+                            CUSPARSE_SPSV_UPDATE_GENERAL);
+  #else
+          auto ptr_i    = Alocal_i.graph.row_map;
+          auto ind_i    = Alocal_i.graph.entries;
+          KokkosSparse::sptrsv_symbolic(exec_space_instances_[i], kh_v_[i].getRawPtr(), ptr_i, ind_i, val_i);
+  #endif
+        }
+      }
+    }
+  }
+#endif
+
   if (! isComputed_) {//Only compute if not computed before
-  if (Teuchos::nonnull (htsImpl_))
-    htsImpl_->compute (*A_crs_, out_);
+    if (Teuchos::nonnull (htsImpl_))
+      htsImpl_->compute (*A_crs_, out_);
 
-  if (Teuchos::nonnull(kh_) && this->isKokkosKernelsSptrsv_) {
-    const bool is_lower_tri = (this->uplo_ == "L") ? true : false;
-  
-    auto A_crs = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_);
-    auto Alocal = A_crs->getLocalMatrixDevice();
-    auto ptr    = Alocal.graph.row_map;
-    auto ind    = Alocal.graph.entries;
-    auto val    = Alocal.values;
-
-    auto numRows = Alocal.numRows();    
-
-    // Destroy existing handle and recreate in case new matrix provided - requires rerunning symbolic analysis
-    kh_->destroy_sptrsv_handle();
-#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA)
-    // CuSparse only supports int type ordinals 
-    // and scalar types of float, double, float complex and double complex
-    if (std::is_same<Kokkos::Cuda, HandleExecSpace>::value &&
-        std::is_same<int, local_ordinal_type>::value &&
-       (std::is_same<scalar_type, float>::value ||
-        std::is_same<scalar_type, double>::value ||
-        std::is_same<scalar_type, Kokkos::complex<float>>::value ||
-        std::is_same<scalar_type, Kokkos::complex<double>>::value))
-    {
-      kh_->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SPTRSV_CUSPARSE, numRows, is_lower_tri);
-    }
-    else
-#endif
-    {
-      kh_->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SEQLVLSCHD_TP1, numRows, is_lower_tri);
-    }
-    KokkosSparse::Experimental::sptrsv_symbolic(kh_.getRawPtr(), ptr, ind, val);
-  }
-  else if (kh_v_nonnull_ && this->isKokkosKernelsSptrsv_) {
-    const bool is_lower_tri = (this->uplo_ == "L") ? true : false;
-
-    for (int i = 0; i < num_streams_; i++) {
-      auto A_crs_i = Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A_crs_v_[i]);
-      auto Alocal_i = A_crs_i->getLocalMatrixDevice();
-      auto ptr_i    = Alocal_i.graph.row_map;
-      auto ind_i    = Alocal_i.graph.entries;
-      auto val_i    = Alocal_i.values;
-   
-      auto numRows_i = Alocal_i.numRows();
-
-      // Destroy existing handle and recreate in case new matrix provided - requires rerunning symbolic analysis
-      kh_v_[i]->destroy_sptrsv_handle();
-#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA)
-      // CuSparse only supports int type ordinals 
-      // and scalar types of float, double, float complex and double complex
-      if (std::is_same<Kokkos::Cuda, HandleExecSpace>::value &&
-          std::is_same<int, local_ordinal_type>::value &&
-         (std::is_same<scalar_type, float>::value ||
-          std::is_same<scalar_type, double>::value ||
-          std::is_same<scalar_type, Kokkos::complex<float>>::value ||
-          std::is_same<scalar_type, Kokkos::complex<double>>::value))
-      {
-        kh_v_[i]->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SPTRSV_CUSPARSE, numRows_i, is_lower_tri);
-      }
-      else
-#endif
-      {
-        kh_v_[i]->create_sptrsv_handle(KokkosSparse::Experimental::SPTRSVAlgorithm::SEQLVLSCHD_TP1, numRows_i, is_lower_tri);
-      }
-      KokkosSparse::Experimental::sptrsv_symbolic(kh_v_[i].getRawPtr(), ptr_i, ind_i, val_i);
-    }
-  }
-
-  isComputed_ = true;
-  ++numCompute_;
+    isComputed_ = true;
+    ++numCompute_;
   }
 }
 
@@ -818,7 +862,7 @@ apply (const Tpetra::MultiVector<scalar_type, local_ordinal_type,
        "Please report this bug to the Ifpack2 developers.");
     auto importer = G->getImporter ();
     auto exporter = G->getExporter ();
-    
+
     if (! importer.is_null ()) {
       if (X_colMap_.is_null () || X_colMap_->getNumVectors () != X.getNumVectors ()) {
         X_colMap_ = rcp (new MV (importer->getTargetMap (), X.getNumVectors ()));
@@ -833,7 +877,7 @@ apply (const Tpetra::MultiVector<scalar_type, local_ordinal_type,
     }
     X_cur = importer.is_null () ? rcpFromRef (X) :
       Teuchos::rcp_const_cast<const MV> (X_colMap_);
-    
+
     if (! exporter.is_null ()) {
       if (Y_rowMap_.is_null () || Y_rowMap_->getNumVectors () != Y.getNumVectors ()) {
         Y_rowMap_ = rcp (new MV (exporter->getSourceMap (), Y.getNumVectors ()));
@@ -924,7 +968,7 @@ localTriangularSolve (const MV& Y,
     auto ptr    = A_lclk.graph.row_map;
     auto ind    = A_lclk.graph.entries;
     auto val    = A_lclk.values;
-	
+
     for (size_t j = 0; j < numVecs; ++j) {
       auto X_j = X.getVectorNonConst (j);
       auto Y_j = Y.getVector (j);
@@ -932,7 +976,7 @@ localTriangularSolve (const MV& Y,
       auto Y_lcl = Y_j->getLocalViewDevice (Tpetra::Access::ReadOnly);
       auto X_lcl_1d = Kokkos::subview (X_lcl, Kokkos::ALL (), 0);
       auto Y_lcl_1d = Kokkos::subview (Y_lcl, Kokkos::ALL (), 0);
-      KokkosSparse::Experimental::sptrsv_solve(kh_.getRawPtr(), ptr, ind, val, Y_lcl_1d, X_lcl_1d);
+      KokkosSparse::sptrsv_solve(kh_.getRawPtr(), ptr, ind, val, Y_lcl_1d, X_lcl_1d);
       // TODO is this fence needed...
       typename k_handle::HandleExecSpace().fence();
     }
@@ -966,11 +1010,10 @@ localTriangularSolve (const MV& Y,
         KernelHandle_rawptr_v_[i] = kh_v_[i].getRawPtr();
         stream_begin = stream_end;
       }
+      Kokkos::fence();
       KokkosSparse::Experimental::sptrsv_solve_streams( exec_space_instances_, KernelHandle_rawptr_v_,
                                                         ptr_v, ind_v, val_v, y_v, x_v );
-      for (int i = 0; i < num_streams_; i++) {
-        exec_space_instances_[i].fence();
-      }
+      Kokkos::fence();
     }
   } // End using stream interface of Kokkos Kernels Sptrsv
   else
@@ -978,7 +1021,7 @@ localTriangularSolve (const MV& Y,
     const std::string diag = this->diag_;
     // NOTE (mfh 20 Aug 2017): KokkosSparse::trsv currently is a
     // sequential, host-only code.  See
-    // https://github.com/kokkos/kokkos-kernels/issues/48. 
+    // https://github.com/kokkos/kokkos-kernels/issues/48.
 
     auto A_lcl = this->A_crs_->getLocalMatrixHost ();
 
@@ -1103,6 +1146,9 @@ description () const
   os << "Initialized: " << (isInitialized () ? "true" : "false") << ", "
      << "Computed: " << (isComputed () ? "true" : "false") << ", ";
 
+  if(isKokkosKernelsSptrsv_) os << "KK-SPTRSV, ";
+  if(isKokkosKernelsStream_) os << "KK-SolveStream, ";
+
   if (A_.is_null ()) {
     os << "Matrix: null";
   }
@@ -1225,14 +1271,6 @@ setMatrix (const Teuchos::RCP<const row_matrix_type>& A)
     if (Teuchos::nonnull (htsImpl_))
       htsImpl_->reset ();
   } // pointers are not the same
-
-  //NOTE (Nov-09-2022): 
-  //For Cuda >= 11.3 (using cusparseSpSV), always call compute before apply,
-  //even when matrix values are changed with the same sparsity pattern.
-  //So, force isComputed_ to FALSE here
-#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA) && (CUDA_VERSION >= 11030)
-  isComputed_ = false;
-#endif
 }
 
 template<class MatrixType>
@@ -1267,13 +1305,13 @@ setMatrices (const std::vector< Teuchos::RCP<crs_matrix_type> >& A_crs_v)
          "process, then A must be square.  Instead, you provided a matrix A with "
          << A_crs_v[i]->getLocalNumRows () << " rows and " << A_crs_v[i]->getLocalNumCols ()
          << " columns.");
-    
+
       // It's legal for A to be null; in that case, you may not call
       // initialize() until calling setMatrix() with a nonnull input.
       // Regardless, setting the matrix invalidates the preconditioner.
       isInitialized_ = false;
       isComputed_ = false;
-    
+
       if (A_crs_v[i].is_null ()) {
         A_crs_v_[i] = Teuchos::null;
       }
@@ -1287,14 +1325,6 @@ setMatrices (const std::vector< Teuchos::RCP<crs_matrix_type> >& A_crs_v)
       }
     } // pointers are not the same
   }
-
-  //NOTE (Nov-09-2022): 
-  //For Cuda >= 11.3 (using cusparseSpSV), always call compute before apply,
-  //even when matrix values are changed with the same sparsity pattern.
-  //So, force isComputed_ to FALSE here
-#if defined(KOKKOSKERNELS_ENABLE_TPL_CUSPARSE) && defined(KOKKOS_ENABLE_CUDA) && (CUDA_VERSION >= 11030)
-  isComputed_ = false;
-#endif
 }
 
 } // namespace Ifpack2

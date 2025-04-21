@@ -56,7 +56,7 @@ public:
 
 private:
   /** Do not try to pack a pointer for global communication */
-  template<typename T> CommBuffer &pack( const T* value ) {
+  template<typename T> CommBuffer &pack( const T* /*value*/ ) {
     STK_ThrowAssertMsg(false,"CommBuffer::pack(const T* value) not allowed. Don't pack a pointer for communication!");
     return *this;
   }
@@ -134,8 +134,7 @@ public:
   /** Pointer to base of buffer. */
   void * buffer() const ;
 
-  ~CommBuffer() {}
-  CommBuffer() : m_beg(nullptr), m_ptr(nullptr), m_end(nullptr) { }
+  CommBuffer() : m_beg(nullptr), m_ptr(nullptr), m_end(nullptr), m_offset(0) { }
 
   void set_buffer_ptrs(unsigned char* begin, unsigned char* ptr, unsigned char* end);
 
@@ -152,13 +151,14 @@ private:
   ucharp m_beg ;
   ucharp m_ptr ;
   ucharp m_end ;
+  size_t m_offset;
 };
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 // Inlined template implementations for the CommBuffer
 
-template<unsigned N>
+template <unsigned long N>
 struct CommBufferAlign {
   static size_t align( size_t i ) { i %= N ; return i ? ( N - i ) : 0 ; }
 };
@@ -172,20 +172,21 @@ template<typename T, class>
 inline
 CommBuffer &CommBuffer::pack( const T & value )
 {
-  if (std::is_same<T, std::string>::value) {
+  if constexpr (std::is_same_v<T, std::string>) {
     return pack(value);
   }
-  enum { Size = sizeof(T) };
-  size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
+  static constexpr auto Size = sizeof(T);
   if ( m_beg ) {
+    size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
     if ( m_end < m_ptr + nalign + Size ) { pack_overflow(); }
     while ( nalign ) { --nalign ; *m_ptr = 0 ; ++m_ptr ; }
-    T * tmp = reinterpret_cast<T*>(m_ptr);
+    T *tmp = reinterpret_cast<T *>(m_ptr);
     *tmp = value ;
     m_ptr = reinterpret_cast<ucharp>( ++tmp );
   }
   else {
-    m_ptr += nalign + Size ;
+    size_t nalign = CommBufferAlign<Size>::align( m_offset );
+    m_offset += nalign + Size ;
   }
   return *this;
 }
@@ -239,9 +240,9 @@ template<typename T>
 inline
 CommBuffer &CommBuffer::pack( const T * value , size_t number )
 {
-  enum { Size = sizeof(T) };
-  size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
+  static constexpr auto Size = sizeof(T);
   if ( m_beg ) {
+    size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
     if ( m_end < m_ptr + nalign + number * Size ) { pack_overflow(); }
     while ( nalign ) { --nalign ; *m_ptr = 0 ; ++m_ptr ; }
     T * tmp = reinterpret_cast<T*>(m_ptr);
@@ -249,7 +250,8 @@ CommBuffer &CommBuffer::pack( const T * value , size_t number )
     m_ptr = reinterpret_cast<ucharp>( tmp );
   }
   else {
-    m_ptr += nalign + number * Size ;
+    size_t nalign = CommBufferAlign<Size>::align( m_offset );
+    m_offset += nalign + number * Size ;
   }
   return *this;
 }
@@ -258,8 +260,13 @@ template<typename T, class>
 inline
 CommBuffer &CommBuffer::skip( size_t number )
 {
-  enum { Size = sizeof(T) };
-  m_ptr += CommBufferAlign<Size>::align( m_ptr - m_beg ) + Size * number ;
+  static constexpr auto Size = sizeof(T);
+  if ( m_beg ) {
+    m_ptr += CommBufferAlign<Size>::align( m_ptr - m_beg ) + Size * number ;
+  }
+  else {
+    m_offset += CommBufferAlign<Size>::align( m_offset ) + Size * number ;
+  }
   if ( m_beg && m_end < m_ptr ) { unpack_overflow(); }
   return *this;
 }
@@ -277,10 +284,10 @@ template<typename T, class>
 inline
 CommBuffer &CommBuffer::unpack( T & value )
 {
-  if (std::is_same<T,std::string>::value) {
+  if constexpr (std::is_same_v<T,std::string>) {
     return unpack(value);
   }
-  enum { Size = sizeof(T) };
+  static constexpr auto Size = sizeof(T);
   const size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
   T * tmp = reinterpret_cast<T*>( m_ptr + nalign );
   value = *tmp ;
@@ -319,8 +326,7 @@ CommBuffer &CommBuffer::unpack( std::map<K,V> & value )
   size_t ns;
   unpack(ns);
 
-  for (size_t i = 0; i < ns; ++i)
-  {
+  for (size_t i = 0; i < ns; ++i) {
     K key;
     unpack(key);
 
@@ -351,7 +357,7 @@ template<typename T>
 inline
 CommBuffer &CommBuffer::unpack( T * value , size_t number )
 {
-  enum { Size = sizeof(T) };
+  static constexpr auto Size = sizeof(T);
   const size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
   T * tmp = reinterpret_cast<T*>( m_ptr + nalign );
   while ( number ) { --number ; *value = *tmp ; ++tmp ; ++value ; }
@@ -388,14 +394,14 @@ CommBuffer &CommBuffer::peek( std::string& value )
   std::vector<char> chars(offset+length);
   peek(chars.data(), chars.size());
 
-  value.assign(&chars[offset], length);
+  value.assign(chars.data() + offset, length);
 
   return *this;
 }
 
 template<typename K, typename V>
 inline
-CommBuffer &CommBuffer::peek( std::map<K,V> & value )
+CommBuffer &CommBuffer::peek( std::map<K,V> & /*value*/ )
 {
   throw std::runtime_error("Peek not implemented for std::map");
 }
@@ -404,7 +410,7 @@ template<typename T>
 inline
 CommBuffer &CommBuffer::peek( T * value , size_t number )
 {
-  enum { Size = sizeof(T) };
+  static constexpr auto Size = sizeof(T);
   const size_t nalign = CommBufferAlign<Size>::align( m_ptr - m_beg );
   T * tmp = reinterpret_cast<T*>( m_ptr + nalign );
   while ( number ) { --number ; *value = *tmp ; ++tmp ; ++value ; }
@@ -422,11 +428,11 @@ size_t CommBuffer::capacity() const
 
 inline
 size_t CommBuffer::size() const
-{ return m_ptr - m_beg ; }
+{ return m_beg ? static_cast<size_t>(m_ptr - m_beg) : m_offset ; }
 
 inline
 void CommBuffer::set_size(size_t newsize_bytes)
-{ m_beg = nullptr;  m_ptr = nullptr; m_ptr += newsize_bytes ; m_end = nullptr; }
+{ m_beg = nullptr;  m_ptr = nullptr; m_offset = newsize_bytes ; m_end = nullptr; }
 
 inline
 ptrdiff_t CommBuffer::remaining() const

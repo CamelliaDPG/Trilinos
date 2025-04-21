@@ -40,30 +40,65 @@
 
 #include <stk_search/BoundingBox.hpp>
 #include <stk_search/IdentProc.hpp>
+#include <stk_search/BoxIdent.hpp>
 
 #include <stk_search/CoarseSearch.hpp>
 
 #include <stk_util/parallel/ParallelComm.hpp>
 #include <stk_util/parallel/CommSparse.hpp>
+#include <stk_util/parallel/DeviceAwareMPI.hpp>
 
 #include <stk_unit_test_utils/getOption.h>
 
 #include <iomanip>
 
-typedef stk::search::IdentProc<int,int> Ident;
 typedef stk::search::Point<double> Point;
 typedef stk::search::Sphere<double> Sphere;
-typedef stk::search::Box<double> StkBox;
-typedef std::pair<StkBox,Ident> StkBoxWithId;
-typedef std::vector< StkBoxWithId > StkBoxVector;
-
 typedef stk::search::Box<float> FloatBox;
-typedef std::vector<std::pair<Ident,Ident> > SearchResults;
-typedef std::pair<FloatBox, Ident> FloatBoxWithId;
-typedef std::vector<FloatBoxWithId> FloatBoxVector;
+typedef stk::search::Box<double> StkBox;
+
+typedef int Ident;
+typedef stk::search::IdentProc<int,int> IdentProc;
+
+typedef std::pair<FloatBox, Ident> FloatBoxIdentPair;
+typedef std::pair<StkBox,Ident> StkBoxIdentPair;
+typedef std::pair<Sphere,Ident> SphereIdentPair;
+typedef std::pair<FloatBox, IdentProc> FloatBoxIdentProcPair;
+typedef std::pair<StkBox,IdentProc> StkBoxIdentProcPair;
+
+typedef std::vector<FloatBoxIdentProcPair> FloatBoxIdentProcVector;
+typedef std::vector<StkBoxIdentProcPair> StkBoxIdentProcVector;
+typedef std::vector<FloatBoxIdentPair> FloatBoxIdentVector;
+typedef std::vector<StkBoxIdentPair> StkBoxIdentVector;
+
+typedef stk::search::BoxIdent<FloatBox, Ident> FloatBoxIdent;
+typedef stk::search::BoxIdent<StkBox, Ident> StkBoxIdent;
+typedef stk::search::BoxIdent<Sphere, Ident> SphereIdent;
+typedef stk::search::BoxIdentProc<FloatBox, IdentProc> FloatBoxIdentProc;
+typedef stk::search::BoxIdentProc<StkBox, IdentProc> StkBoxIdentProc;
+typedef stk::search::BoxIdentProc<Sphere, IdentProc> SphereIdentProc;
+
+typedef stk::search::IdentProcIntersection<IdentProc, IdentProc> IdentProcIntersection;
+typedef stk::search::IdentIntersection<Ident, Ident> IdentIntersection;
+typedef std::vector<std::pair<IdentProc,IdentProc>> SearchResults;
+typedef std::vector<std::pair<Ident,Ident>> LocalSearchResults;
 
 namespace stk {
 namespace unit_test_util {
+
+inline
+bool can_run_device_tests(MPI_Comm comm)
+{
+  const int numProcs = stk::parallel_machine_size(comm);
+  if (numProcs == 1) {
+    return true;
+  }
+#ifdef STK_ENABLE_GPU
+  return stk::have_device_aware_mpi();
+#else
+  return true;
+#endif
+}
 
 template<class VolumeType>
 VolumeType generateBoundingVolume(double x, double y, double z, double radius);
@@ -100,9 +135,58 @@ StkBox generateBoundingVolume< StkBox >(double x, double y, double z, double rad
 }
 
 template <typename VolumeType>
-std::pair<VolumeType, Ident> generateBoundingVolume(double x, double y, double z, double radius, int id, int proc)
+std::pair<VolumeType, IdentProc> generateBoundingVolume(double x, double y, double z, double radius, int id, int proc)
 {
-  return std::make_pair(generateBoundingVolume<VolumeType>(x,y,z,radius), Ident(id,proc));
+  return std::make_pair(generateBoundingVolume<VolumeType>(x,y,z,radius), IdentProc(id,proc));
+}
+
+template<class BoxType>
+KOKKOS_FUNCTION
+BoxType device_generateBox(double x, double y, double z, double radius);
+
+template<>
+KOKKOS_INLINE_FUNCTION
+Point device_generateBox<Point>(double x, double y, double z, double /*radius*/)
+{
+  return Point(x,y,z);
+}
+
+template<>
+KOKKOS_INLINE_FUNCTION
+Sphere device_generateBox<Sphere>(double x, double y, double z, double radius)
+{
+  return Sphere(Point(x, y, z), radius);
+}
+
+template<>
+KOKKOS_INLINE_FUNCTION
+StkBox device_generateBox<StkBox>(double x, double y, double z, double radius)
+{
+  Point min_corner(x-radius, y-radius, z-radius);
+  Point max_corner(x+radius, y+radius, z+radius);
+  return StkBox(min_corner, max_corner);
+}
+
+template <typename BoxType, typename IdentProcType>
+KOKKOS_FUNCTION
+stk::search::BoxIdentProc<BoxType, IdentProcType> device_generateBoxIdentProc(double x, double y, double z,
+                                                                              double radius, int id, int proc)
+{
+  return stk::search::BoxIdentProc<BoxType, IdentProcType>{device_generateBox<BoxType>(x, y, z, radius),
+                                                           IdentProcType{id, proc}};
+}
+
+template <typename BoxType, typename IdentType>
+KOKKOS_FUNCTION
+stk::search::BoxIdent<BoxType, IdentType> device_generateBoxIdent(double x, double y, double z,
+                                                                  double radius, IdentType id)
+{
+  return stk::search::BoxIdent<BoxType, IdentType>{device_generateBox<BoxType>(x, y, z, radius), id};
+}
+
+template <typename BoxIdent>
+auto box_ident_to_pair(BoxIdent const& ident) {
+  return std::make_pair(ident.box, ident.ident);
 }
 
 //======================
@@ -133,7 +217,7 @@ inline void gatherResultstoProcZero(MPI_Comm comm, SearchResults& boxIdPairResul
         {
             for (size_t j=0;j<boxIdPairResults.size();++j)
             {
-                commSparse.send_buffer(procIdDestination).pack< std::pair<Ident, Ident> >(boxIdPairResults[j]);
+                commSparse.send_buffer(procIdDestination).pack< std::pair<IdentProc, IdentProc> >(boxIdPairResults[j]);
             }
         }
 
@@ -152,8 +236,8 @@ inline void gatherResultstoProcZero(MPI_Comm comm, SearchResults& boxIdPairResul
             stk::CommBuffer &buf = commSparse.recv_buffer( p );
             while ( buf.remaining() )
             {
-                std::pair<Ident, Ident> temp;
-                buf.unpack< std::pair<Ident, Ident> >( temp );
+                std::pair<IdentProc, IdentProc> temp;
+                buf.unpack< std::pair<IdentProc, IdentProc> >( temp );
                 boxIdPairResults.push_back(temp);
             }
         }
@@ -190,67 +274,6 @@ inline void printPeformanceStats(double elapsedTime, MPI_Comm comm)
 
     }
 }
-
-namespace simple_fields {
-
-template<class VolumeType>
-VolumeType generateBoundingVolume(double x, double y, double z, double radius);
-
-template<>
-inline
-Point generateBoundingVolume<Point>(double x, double y, double z, double /*radius*/)
-{
-  return Point(x,y,z);
-}
-
-template<>
-inline
-Sphere generateBoundingVolume<Sphere>(double x, double y, double z, double radius)
-{
-  return Sphere(Point(x,y,z),radius);
-}
-
-//       ------------
-//      |            |
-//      |      radius|
-//      |      ------|
-//      |            |
-//      |            |
-//       ------------
-// width = 2*radius
-template<>
-inline
-StkBox generateBoundingVolume< StkBox >(double x, double y, double z, double radius)
-{
-  Point min_corner(x-radius,y-radius,z-radius);
-  Point max_corner(x+radius,y+radius,z+radius);
-  return StkBox(min_corner,max_corner);
-}
-
-template <typename VolumeType>
-std::pair<VolumeType, Ident> generateBoundingVolume(double x, double y, double z, double radius, int id, int proc)
-{
-  return std::make_pair(generateBoundingVolume<VolumeType>(x,y,z,radius), Ident(id,proc));
-}
-
-//======================
-
-inline size_t getGoldValueForTest()
-{
-  return stk::unit_test_util::getGoldValueForTest();
-}
-
-inline void gatherResultstoProcZero(MPI_Comm comm, SearchResults& boxIdPairResults)
-{
-  stk::unit_test_util::gatherResultstoProcZero(comm, boxIdPairResults);
-}
-
-inline void printPeformanceStats(double elapsedTime, MPI_Comm comm)
-{
-  stk::unit_test_util::printPeformanceStats(elapsedTime, comm);
-}
-
-} // namespace simple_fields
 
 } // namespace unit_test_util
 } // namespace stk

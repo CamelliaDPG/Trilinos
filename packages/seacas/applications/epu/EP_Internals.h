@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 1999-2020, 2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2020, 2022, 2023 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
@@ -11,34 +11,12 @@
 #include <vector> // for vector
 namespace Excn {
   class Block;
-} // namespace Excn
-namespace Excn {
   class CommunicationMetaData;
-} // namespace Excn
-namespace Excn {
   class Mesh;
-} // namespace Excn
-namespace Excn {
   template <typename INT> class NodeSet;
-} // namespace Excn
-namespace Excn {
   template <typename INT> class SideSet;
-} // namespace Excn
-namespace Excn {
   template <typename INT> class EdgeBlock;
-} // namespace Excn
-namespace Excn {
   template <typename INT> class FaceBlock;
-} // namespace Excn
-namespace Excn {
-} // namespace Excn
-namespace Excn {
-} // namespace Excn
-namespace Excn {
-} // namespace Excn
-namespace Excn {
-} // namespace Excn
-namespace Excn {
 } // namespace Excn
 
 /*!
@@ -91,9 +69,9 @@ namespace Excn {
   template <typename INT> class Internals
   {
   public:
-    Internals(int exoid, int maximum_name_length)
-        : exodusFilePtr(exoid), nodeMapVarID(), elementMapVarID(), commIndexVar(0),
-          elemCommIndexVar(0), maximumNameLength(maximum_name_length)
+    Internals(int exoid, int maximum_name_length, int change_set_number)
+        : exodusFilePtr(exoid), maximumNameLength(maximum_name_length),
+          changeSetNumber(change_set_number)
     {
     }
 
@@ -126,11 +104,12 @@ namespace Excn {
     int put_non_define_data(const std::vector<EdgeBlock<INT>> &edgeblocks);
     int put_non_define_data(const std::vector<FaceBlock<INT>> &faceblocks);
 
-    int exodusFilePtr;
-    int nodeMapVarID[3];
-    int elementMapVarID[2];
-    int commIndexVar;
-    int elemCommIndexVar;
-    int maximumNameLength;
+    int exodusFilePtr{};
+    int nodeMapVarID[3]{};
+    int elementMapVarID[2]{};
+    int commIndexVar{};
+    int elemCommIndexVar{};
+    int maximumNameLength{};
+    int changeSetNumber{0};
   };
 } // namespace Excn

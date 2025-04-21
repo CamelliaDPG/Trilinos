@@ -13,6 +13,7 @@
 #include <Akri_DiagWriter.hpp>
 #include <Akri_MeshSurface.hpp>
 #include <Akri_Parser.hpp>
+#include <stk_mesh/base/MetaData.hpp>
 
 #include <stk_util/environment/RuntimeDoomed.hpp>
 
@@ -23,9 +24,6 @@ namespace {
 Sphere *
 parse_sphere(const Parser::Node & ic_node)
 {
-  std::string name;
-  ic_node.get_if_present("name", name);
-
   std::vector<double> center;
   if (ic_node.get_if_present("center", center))
   {
@@ -54,15 +52,12 @@ parse_sphere(const Parser::Node & ic_node)
     stk::RuntimeDoomedAdHoc() << "Missing radius for IC sphere.\n";
   }
 
-  return new Sphere(name, stk::math::Vector3d(center.data()), radius, sign);
+  return new Sphere(stk::math::Vector3d(center.data()), radius, sign);
 }
 
 Ellipsoid *
 parse_ellipsoid(const Parser::Node & ic_node)
 {
-  std::string name;
-  ic_node.get_if_present("name", name);
-
   std::vector<double> center;
   if (ic_node.get_if_present("center", center))
   {
@@ -107,15 +102,64 @@ parse_ellipsoid(const Parser::Node & ic_node)
     }
   }
 
-  return new Ellipsoid(name, center, semiaxes, rotationVec, sign);
+  return new Ellipsoid(center, semiaxes, rotationVec, sign);
+}
+
+Cuboid *
+parse_cuboid(const Parser::Node & ic_node)
+{
+  std::vector<double> center;
+  if (ic_node.get_if_present("center", center))
+  {
+    if (center.size() != 3)
+    {
+      stk::RuntimeDoomedAdHoc() << "Expecting 3 real values for center for cuboid.\n";
+    }
+  }
+  else
+  {
+    stk::RuntimeDoomedAdHoc() << "Missing center for cuboid.\n";
+  }
+
+  std::vector<double> dimensions;
+  if (ic_node.get_if_present("dimensions", dimensions))
+  {
+    if (dimensions.size() != 3)
+    {
+      stk::RuntimeDoomedAdHoc() << "Expecting 3 real values for dimensions for cuboid.\n";
+    }
+  }
+  else
+  {
+    stk::RuntimeDoomedAdHoc() << "Missing dimensions for IC cuboid.\n";
+  }
+
+  double sign = 1.0;
+  if (ic_node.get_if_present("sign", sign))
+  {
+    if (sign != -1.0 && sign == 1.0)
+    {
+      stk::RuntimeDoomedAdHoc() << "Sign for sphere must be -1 or 1.\n";
+    }
+  }
+
+  std::vector<double> rotation;
+  if (ic_node.get_if_present("rotation", rotation))
+  {
+    if (rotation.size() != 3)
+    {
+      stk::RuntimeDoomedAdHoc() << "Expecting 3 real values for rotation for cuboid.\n";
+    }
+
+    return new Cuboid(stk::math::Vector3d(center.data()), stk::math::Vector3d(dimensions.data()), stk::math::Vector3d(rotation.data()), sign);
+  }
+
+  return new Cuboid(stk::math::Vector3d(center.data()), stk::math::Vector3d(dimensions.data()), sign);
 }
 
 Plane *
 parse_plane(const Parser::Node & ic_node)
 {
-  std::string name;
-  ic_node.get_if_present("name", name);
-
   std::vector<double> normal;
   if (ic_node.get_if_present("normal", normal))
   {
@@ -148,15 +192,12 @@ parse_plane(const Parser::Node & ic_node)
     stk::RuntimeDoomedAdHoc() << "Missing offset for IC plane.\n";
   }
 
-  return new Plane(name, normal.data(), offset, multiplier);
+  return new Plane(normal.data(), offset, multiplier);
 }
 
 Cylinder *
 parse_cylinder(const Parser::Node & ic_node)
 {
-  std::string name;
-  ic_node.get_if_present("name", name);
-
   std::vector<double> p1;
   if (ic_node.get_if_present("p1", p1))
   {
@@ -198,7 +239,7 @@ parse_cylinder(const Parser::Node & ic_node)
     }
   }
 
-  return new Cylinder(name, p1.data(), p2.data(), radius, sign);
+  return new Cylinder(p1.data(), p2.data(), radius, sign);
 }
 
 Surface *
@@ -269,7 +310,7 @@ parse_facets(const Parser::Node & ic_node, const stk::diag::Timer &parent_timer)
   return surface;
 }
 
-MeshSurface *
+Surface *
 parse_mesh_surface(const Parser::Node & ic_node, const stk::mesh::MetaData & meta)
 {
   std::string surface_name;
@@ -291,8 +332,11 @@ parse_mesh_surface(const Parser::Node & ic_node, const stk::mesh::MetaData & met
   const stk::mesh::Field<double>* coords = reinterpret_cast<const stk::mesh::Field<double>*>(&auxMeta.get_current_coordinates().field());
   STK_ThrowRequire(nullptr != coords);
 
-  const stk::mesh::Selector surface_selector = stk::mesh::Selector(io_part);
-  return new MeshSurface(meta, *coords, surface_selector, sign);
+  const stk::mesh::Selector surfaceSelector = stk::mesh::Selector(io_part);
+
+  if (meta.spatial_dimension() == 2)
+    return new MeshSurface<Facet2d>(meta, *coords, surfaceSelector, sign);
+  return new MeshSurface<Facet3d>(meta, *coords, surfaceSelector, sign);
 }
 
 LevelSet_String_Function *
@@ -346,6 +390,10 @@ Surface_Parser::parse(const Parser::Node & parserNode, const stk::mesh::MetaData
   else if ( parserNode.get_null_if_present("ellipsoid") )
   {
     return parse_ellipsoid(parserNode);
+  }
+  else if ( parserNode.get_null_if_present("cuboid") )
+  {
+    return parse_cuboid(parserNode);
   }
   else if ( parserNode.get_null_if_present("plane") )
   {

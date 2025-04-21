@@ -1,43 +1,10 @@
 // @HEADER
-// ************************************************************************
-//
+// *****************************************************************************
 //                           Intrepid2 Package
-//                 Copyright (2007) Sandia Corporation
 //
-// Under terms of Contract DE-AC04-94AL85000, there is a non-exclusive
-// license for use of this work by or on behalf of the U.S. Government.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Kyungjoo Kim  (kyukim@sandia.gov), or
-//                    Mauro Perego  (mperego@sandia.gov)
-//
-// ************************************************************************
+// Copyright 2007 NTESS and the Intrepid2 contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
 // @HEADER
 
 /** \file   Intrepid2_CellTools.hpp
@@ -54,7 +21,7 @@
 #include "Shards_CellTopology.hpp"
 #include "Shards_BasicTopologies.hpp"
 
-#include "Teuchos_RCP.hpp" 
+#include "Teuchos_RCP.hpp"
 
 #include "Intrepid2_Types.hpp"
 #include "Intrepid2_Utils.hpp"
@@ -65,23 +32,25 @@
 
 #include "Intrepid2_HGRAD_LINE_C1_FEM.hpp"
 #include "Intrepid2_HGRAD_LINE_C2_FEM.hpp"
-#include "Intrepid2_HGRAD_QUAD_C1_FEM.hpp"
-#include "Intrepid2_HGRAD_HEX_C1_FEM.hpp"
 
 #include "Intrepid2_HGRAD_TRI_C1_FEM.hpp"
-#include "Intrepid2_HGRAD_TET_C1_FEM.hpp"
-#include "Intrepid2_HGRAD_WEDGE_C1_FEM.hpp"
-#include "Intrepid2_HGRAD_PYR_C1_FEM.hpp"
-
-#include "Intrepid2_HGRAD_QUAD_C2_FEM.hpp"
-#include "Intrepid2_HGRAD_HEX_C2_FEM.hpp"
-
 #include "Intrepid2_HGRAD_TRI_C2_FEM.hpp"
+
+#include "Intrepid2_HGRAD_QUAD_C1_FEM.hpp"
+#include "Intrepid2_HGRAD_QUAD_C2_FEM.hpp"
+
+#include "Intrepid2_HGRAD_TET_C1_FEM.hpp"
 #include "Intrepid2_HGRAD_TET_C2_FEM.hpp"
 #include "Intrepid2_HGRAD_TET_COMP12_FEM.hpp"
 
+#include "Intrepid2_HGRAD_HEX_C1_FEM.hpp"
+#include "Intrepid2_HGRAD_HEX_C2_FEM.hpp"
+
+#include "Intrepid2_HGRAD_WEDGE_C1_FEM.hpp"
 #include "Intrepid2_HGRAD_WEDGE_C2_FEM.hpp"
-//#include "Intrepid2_HGRAD_WEDGE_I2_FEM.hpp"
+
+#include "Intrepid2_HGRAD_PYR_C1_FEM.hpp"
+#include "Intrepid2_HGRAD_PYR_I2_FEM.hpp"
 
 #include "Intrepid2_Data.hpp"
 #include "Intrepid2_CellData.hpp"
@@ -122,10 +91,10 @@ namespace Intrepid2 {
 
   private:
 
-    /** \brief Generates default HGrad basis based on cell topology 
-        \param cellTopo            [in] - cell topology 
+    /** \brief Generates default HGrad basis based on cell topology
+        \param cellTopo            [in] - cell topology
      */
-    template<typename outputValueType, 
+    template<typename outputValueType,
              typename pointValueType>
     static Teuchos::RCP<Basis<DeviceType,outputValueType,pointValueType> >
     createHGradBasis( const shards::CellTopology cellTopo ) {
@@ -142,16 +111,16 @@ namespace Intrepid2 {
       case shards::Pyramid<5>::key:       r_val = Teuchos::rcp(new Basis_HGRAD_PYR_C1_FEM    <DeviceType,outputValueType,pointValueType>()); break;
 
       case shards::Triangle<6>::key:      r_val = Teuchos::rcp(new Basis_HGRAD_TRI_C2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
+      case shards::Quadrilateral<8>::key: r_val = Teuchos::rcp(new Basis_HGRAD_QUAD_I2_FEM   <DeviceType,outputValueType,pointValueType>()); break;
       case shards::Quadrilateral<9>::key: r_val = Teuchos::rcp(new Basis_HGRAD_QUAD_C2_FEM   <DeviceType,outputValueType,pointValueType>()); break;
       case shards::Tetrahedron<10>::key:  r_val = Teuchos::rcp(new Basis_HGRAD_TET_C2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
       case shards::Tetrahedron<11>::key:  r_val = Teuchos::rcp(new Basis_HGRAD_TET_COMP12_FEM<DeviceType,outputValueType,pointValueType>()); break;
-        //case shards::Hexahedron<20>::key:   r_val = Teuchos::rcp(new Basis_HGRAD_HEX_I2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
+      case shards::Hexahedron<20>::key:   r_val = Teuchos::rcp(new Basis_HGRAD_HEX_I2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
       case shards::Hexahedron<27>::key:   r_val = Teuchos::rcp(new Basis_HGRAD_HEX_C2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
-        //case shards::Wedge<15>::key:        r_val = Teuchos::rcp(new Basis_HGRAD_WEDGE_I2_FEM  <DeviceType,outputValueType,pointValueType>()); break;
+      case shards::Wedge<15>::key:        r_val = Teuchos::rcp(new Basis_HGRAD_WEDGE_I2_FEM  <DeviceType,outputValueType,pointValueType>()); break;
       case shards::Wedge<18>::key:        r_val = Teuchos::rcp(new Basis_HGRAD_WEDGE_C2_FEM  <DeviceType,outputValueType,pointValueType>()); break;
-        //case shards::Pyramid<13>::key:      r_val = Teuchos::rcp(new Basis_HGRAD_PYR_I2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
+      case shards::Pyramid<13>::key:      r_val = Teuchos::rcp(new Basis_HGRAD_PYR_I2_FEM    <DeviceType,outputValueType,pointValueType>()); break;
 
-      case shards::Quadrilateral<8>::key: 
       case shards::Beam<2>::key:
       case shards::Beam<3>::key:
       case shards::ShellLine<2>::key:
@@ -160,7 +129,7 @@ namespace Intrepid2 {
       case shards::ShellTriangle<6>::key:
       case shards::ShellQuadrilateral<4>::key:
       case shards::ShellQuadrilateral<8>::key:
-      case shards::ShellQuadrilateral<9>::key: 
+      case shards::ShellQuadrilateral<9>::key:
       default: {
         INTREPID2_TEST_FOR_EXCEPTION( true, std::invalid_argument,
                                       ">>> ERROR (Intrepid2::CellTools::createHGradBasis): Cell topology not supported.");
@@ -205,7 +174,7 @@ public:
                 \mbox{jacobian}(c,p,i,j) = [DF_{c}(\mbox{points}(c,p))]_{ij} \quad c=0,\ldots, C
         \f]
 
-                Requires pointer to HGrad basis that defines reference to physical cell mapping.  
+                Requires pointer to HGrad basis that defines reference to physical cell mapping.
                 See Section \ref sec_cell_topology_ref_map_DF for definition of the Jacobian.
 
                 \warning
@@ -220,17 +189,17 @@ public:
         \param  startCell        [in] - first cell index in cellWorkset for which we should compute the Jacobian; corresponds to the 0 index in Jacobian and/or points container.  Default: 0.
         \param  endCell            [in] - first cell index in cellWorkset that we do not process; endCell - startCell must equal the extent of the Jacobian container in dimension 0.  Default: -1, a special value that indicates the extent of the cellWorkset should be used.
      */
-    template<typename jacobianValueType,    class ...jacobianProperties,
-             typename pointValueType,       class ...pointProperties,
+    template<typename JacobianViewType,
+             typename PointViewType,
              typename WorksetType,
              typename HGradBasisType>
     static void
-    setJacobian(       Kokkos::DynRankView<jacobianValueType,jacobianProperties...>       jacobian,
-                 const Kokkos::DynRankView<pointValueType,pointProperties...>             points,
-                 const WorksetType worksetCell,
+    setJacobian(       JacobianViewType             jacobian,
+                 const PointViewType                points,
+                 const WorksetType                  worksetCell,
                  const Teuchos::RCP<HGradBasisType> basis,
                  const int startCell=0, const int endCell=-1);
-    
+
     /** \brief  Computes the Jacobian matrix \e DF of the reference-to-physical frame map \e F.
 
                 There are two use cases:
@@ -265,15 +234,15 @@ public:
         \param  startCell        [in] - first cell index in cellWorkset for which we should compute the Jacobian; corresponds to the 0 index in Jacobian and/or points container.  Default: 0.
         \param  endCell            [in] - first cell index in cellWorkset that we do not process; endCell - startCell must equal the extent of the Jacobian container in dimension 0.  Default: -1, a special value that indicates the extent of the cellWorkset should be used.
      */
-    template<typename jacobianValueType,    class ...jacobianProperties,
+    template<typename JacobianViewType,
              typename BasisGradientsType,
              typename WorksetType>
     static void
-    setJacobian(       Kokkos::DynRankView<jacobianValueType,jacobianProperties...> jacobian,
-                 const WorksetType worksetCell,
+    setJacobian(       JacobianViewType   jacobian,
+                 const WorksetType        worksetCell,
                  const BasisGradientsType gradients,
                  const int startCell=0, const int endCell=-1);
-    
+
     /** \brief  Computes the Jacobian matrix \e DF of the reference-to-physical frame map \e F.
 
                 There are two use cases:
@@ -308,19 +277,19 @@ public:
         \param  cellTopo          [in]  - cell topology of the cells stored in \c cellWorkset
      */
 
-    template<typename jacobianValueType,    class ...jacobianProperties,
-             typename pointValueType,       class ...pointProperties,
-             typename worksetCellValueType, class ...worksetCellProperties>
+    template<typename JacobianViewType,
+             typename PointViewType,
+             typename WorksetCellViewType>
     static void
-    setJacobian(      Kokkos::DynRankView<jacobianValueType,jacobianProperties...> jacobian,
-                 const Kokkos::DynRankView<pointValueType,pointProperties...>       points,
-                 const Kokkos::DynRankView<worksetCellValueType,worksetCellProperties...> worksetCell,
+    setJacobian(       JacobianViewType    jacobian,
+                 const PointViewType       points,
+                 const WorksetCellViewType worksetCell,
                  const shards::CellTopology cellTopo ) {
-    using nonConstPointValueType = std::remove_const_t<pointValueType>;
+    using nonConstPointValueType = typename PointViewType::non_const_value_type;
     auto basis = createHGradBasis<nonConstPointValueType,nonConstPointValueType>(cellTopo);
-    setJacobian(jacobian, 
-                points, 
-                worksetCell, 
+    setJacobian(jacobian,
+                points,
+                worksetCell,
                 basis);
    }
 
@@ -334,11 +303,11 @@ public:
         \param  jacobianInv       [out] - rank-4 array with dimensions (C,P,D,D) with the inverse Jacobians
         \param  jacobian          [in]  - rank-4 array with dimensions (C,P,D,D) with the Jacobians
     */
-    template<typename jacobianInvValueType, class ...jacobianInvProperties,
-             typename jacobianValueType,    class ...jacobianProperties>
+    template<typename JacobianInvViewType,
+             typename JacobianViewType>
     static void
-    setJacobianInv(       Kokkos::DynRankView<jacobianInvValueType,jacobianInvProperties...> jacobianInv,
-                    const Kokkos::DynRankView<jacobianValueType,jacobianProperties...>       jacobian );
+    setJacobianInv(       JacobianInvViewType jacobianInv,
+                    const JacobianViewType    jacobian );
 
     /** \brief  Computes the determinant of the Jacobian matrix \e DF of the reference-to-physical frame map \e F.
 
@@ -350,11 +319,11 @@ public:
         \param  jacobianDet       [out] - rank-2 array with dimensions (C,P) with Jacobian determinants
         \param  jacobian          [in]  - rank-4 array with dimensions (C,P,D,D) with the Jacobians
     */
-    template<typename jacobianDetValueType, class ...jacobianDetProperties,
-             typename jacobianValueType,    class ...jacobianProperties>
+    template<typename JacobianDetViewType,
+             typename JacobianViewType>
     static void
-    setJacobianDet(       Kokkos::DynRankView<jacobianDetValueType,jacobianDetProperties...>  jacobianDet,
-                    const Kokkos::DynRankView<jacobianValueType,jacobianProperties...>        jacobian );
+    setJacobianDet(       JacobianDetViewType jacobianDet,
+                    const JacobianViewType    jacobian );
 
     /** \brief  Allocates and returns a Data container suitable for storing determinants corresponding to the Jacobians in the Data container provided
 
@@ -380,14 +349,14 @@ public:
     template<class PointScalar>
     static void setJacobianDet( Data<PointScalar,DeviceType> & jacobianDet,
                                const Data<PointScalar,DeviceType> & jacobian);
-    
+
     /** \brief  Computes reciprocals of determinants corresponding to the Jacobians in the Data container provided
 
-        \param  jacobianDet   [out]  - data with shape (C,P), as returned by CellTools::allocateJacobianDet()
-        \param  jacobian          [in]    - data with shape (C,P,D,D), as returned by CellGeometry::allocateJacobianData()
+        \param  jacobianDetInv   [out]  - data with shape (C,P), as returned by CellTools::allocateJacobianDet()
+        \param  jacobian                 [in]    - data with shape (C,P,D,D), as returned by CellGeometry::allocateJacobianData()
     */
     template<class PointScalar>
-    static void setJacobianDetInv( Data<PointScalar,DeviceType> & jacobianDet,
+    static void setJacobianDetInv( Data<PointScalar,DeviceType> & jacobianDetInv,
                                   const Data<PointScalar,DeviceType> & jacobian);
 
     /** \brief  Computes determinants corresponding to the Jacobians in the Data container provided
@@ -398,7 +367,7 @@ public:
     template<class PointScalar>
     static void setJacobianInv( Data<PointScalar,DeviceType> & jacobianInv,
                                const Data<PointScalar,DeviceType> & jacobian);
-    
+
     /** \brief  Multiplies the Jacobian with shape (C,P,D,D) by the reciprocals of the determinants, with shape (C,P), entrywise.
 
         \param  jacobianDividedByDet   [out]  - data container with shape (C,P,D,D), as returned by CellTools::allocateJacobianInv()
@@ -409,7 +378,7 @@ public:
     static void setJacobianDividedByDet( Data<PointScalar,DeviceType> & jacobianDividedByDet,
                                         const Data<PointScalar,DeviceType> & jacobian,
                                         const Data<PointScalar,DeviceType> & jacobianDetInv);
-    
+
     //============================================================================================//
     //                                                                                            //
     //                     Node information                                                       //
@@ -424,7 +393,7 @@ public:
         Requires cell topology with a reference cell.
 
         \param  cellCenter        [out] - coordinates of the specified reference cell center
-        \param  cell              [in]  - cell topology 
+        \param  cell              [in]  - cell topology
     */
     template<typename cellCenterValueType, class ...cellCenterProperties>
     static void
@@ -505,9 +474,9 @@ public:
         \remark When \c subcellDim = dimension of the \c parentCell this method returns the Cartesian
         coordinates of the nodes of the reference cell itself. Note that this requires \c subcellOrd=0.
     */
-    template<typename subcellNodeValueType, class ...subcellNodeProperties>
+    template<typename SubcellNodeViewType>
     static void
-    getReferenceSubcellNodes(       Kokkos::DynRankView<subcellNodeValueType,subcellNodeProperties...> subcellNodes,
+    getReferenceSubcellNodes(       SubcellNodeViewType  subcellNodes,
                               const ordinal_type         subcellDim,
                               const ordinal_type         subcellOrd,
                               const shards::CellTopology parentCell );
@@ -537,11 +506,11 @@ public:
         \param  edgeOrd           [in]  - ordinal of the edge whose tangent is computed
         \param  parentCell        [in]  - cell topology of the parent reference cell
     */
-    template<typename refEdgeTangentValueType, class ...refEdgeTangentProperties>
+    template<typename RefEdgeTangentViewType>
     static void
-    getReferenceEdgeTangent(       Kokkos::DynRankView<refEdgeTangentValueType,refEdgeTangentProperties...> refEdgeTangent,
-                             const ordinal_type         edgeOrd,
-                             const shards::CellTopology parentCell );
+    getReferenceEdgeTangent(       RefEdgeTangentViewType refEdgeTangent,
+                             const ordinal_type           edgeOrd,
+                             const shards::CellTopology   parentCell );
 
     /** \brief  Computes pairs of constant tangent vectors to faces of a 3D reference cells.
 
@@ -579,10 +548,10 @@ public:
         \param  faceOrd           [in]  - ordinal of the face whose tangents are computed
         \param  parentCell        [in]  - cell topology of the parent 3D reference cell
     */
-    template<typename refFaceTanValueType, class ...refFaceTanProperties>
+    template<typename RefFaceTanViewType>
     static void
-    getReferenceFaceTangents(       Kokkos::DynRankView<refFaceTanValueType,refFaceTanProperties...> refFaceTanU,
-                                    Kokkos::DynRankView<refFaceTanValueType,refFaceTanProperties...> refFaceTanV,
+    getReferenceFaceTangents(       RefFaceTanViewType   refFaceTanU,
+                                    RefFaceTanViewType   refFaceTanV,
                               const ordinal_type         faceOrd,
                               const shards::CellTopology parentCell );
 
@@ -612,7 +581,6 @@ public:
         (\hat{x}(t),\hat{y}(t))                   & \mbox{for 2D parent cells} \\[1ex]
         (\hat{x}(u,v),\hat{y}(u,v),\hat{z}(u,v))  & \mbox{for 3D parent cells}
         \end{array}\right.
-
         \f]
         For sides of 2D cells \e R=[-1,1] and for sides of 3D cells
         \f[
@@ -648,11 +616,11 @@ public:
         \param  sideOrd           [in]  - ordinal of the side whose normal is computed
         \param  parentCell        [in]  - cell topology of the parent reference cell
     */
-    template<typename refSideNormalValueType, class ...refSideNormalProperties>
+    template<typename RefSideNormalViewType>
     static void
-    getReferenceSideNormal(       Kokkos::DynRankView<refSideNormalValueType,refSideNormalProperties...> refSideNormal,
-                            const ordinal_type         sideOrd,
-                            const shards::CellTopology parentCell );
+    getReferenceSideNormal(       RefSideNormalViewType refSideNormal,
+                            const ordinal_type          sideOrd,
+                            const shards::CellTopology  parentCell );
 
     /** \brief  Computes constant normal vectors to faces of 3D reference cell.
 
@@ -692,11 +660,11 @@ public:
         \param  faceOrd           [in]  - ordinal of the face whose normal is computed
         \param  parentCell        [in]  - cell topology of the parent reference cell
     */
-    template<typename refFaceNormalValueType, class ...refFaceNormalProperties>
+    template<typename RefFaceNormalViewType>
     static void
-    getReferenceFaceNormal(       Kokkos::DynRankView<refFaceNormalValueType,refFaceNormalProperties...> refFaceNormal,
-                            const ordinal_type         faceOrd,
-                            const shards::CellTopology parentCell );
+    getReferenceFaceNormal(       RefFaceNormalViewType refFaceNormal,
+                            const ordinal_type          faceOrd,
+                            const shards::CellTopology  parentCell );
 
     /** \brief  Computes non-normalized tangent vectors to physical edges in an edge workset
         \f$\{\mathcal{E}_{c,i}\}_{c=0}^{N}\f$; (see \ref sec_cell_topology_subcell_wset for definition of edge worksets).
@@ -1009,8 +977,8 @@ public:
         This corresponds to mapping multiple sets of reference points to a matching number of
         physical cells.
 
-        Requires pointer to HGrad basis that defines reference to physical cell mapping.  
-        See Section \ref sec_cell_topology_ref_map for definition of the mapping function. 
+        Requires pointer to HGrad basis that defines reference to physical cell mapping.
+        See Section \ref sec_cell_topology_ref_map for definition of the mapping function.
 
         \warning
         The array \c refPoints represents an arbitrary set of points in the reference
@@ -1026,15 +994,15 @@ public:
         \param  basis                   [in]  - pointer to HGrad basis used in reference-to-physical cell mapping
 
     */
-    template<typename physPointValueType,   class ...physPointProperties,
-             typename refPointValueType,    class ...refPointProperties,
+    template<typename PhysPointValueType,
+             typename RefPointValueType,
              typename WorksetType,
              typename HGradBasisPtrType>
     static void
-    mapToPhysicalFrame(       Kokkos::DynRankView<physPointValueType,physPointProperties...>     physPoints,
-                        const Kokkos::DynRankView<refPointValueType,refPointProperties...>       refPoints,
-                        const WorksetType worksetCell,
-                        const HGradBasisPtrType basis );
+    mapToPhysicalFrame(       PhysPointValueType physPoints,
+                        const RefPointValueType  refPoints,
+                        const WorksetType        worksetCell,
+                        const HGradBasisPtrType  basis );
 
     /** \brief  Computes \e F, the reference-to-physical frame map.
 
@@ -1076,19 +1044,19 @@ public:
         \param  cellTopo          [in]  - cell topology of the cells stored in \c cellWorkset
 
     */
-    template<typename physPointValueType,   class ...physPointProperties,
-             typename refPointValueType,    class ...refPointProperties,
-             typename worksetCellValueType, class ...worksetCellProperties>
+    template<typename PhysPointViewType,
+             typename RefPointViewType,
+             typename WorksetCellViewType>
     static void
-    mapToPhysicalFrame(       Kokkos::DynRankView<physPointValueType,physPointProperties...>     physPoints,
-                        const Kokkos::DynRankView<refPointValueType,refPointProperties...>       refPoints,
-                        const Kokkos::DynRankView<worksetCellValueType,worksetCellProperties...> worksetCell,
+    mapToPhysicalFrame(       PhysPointViewType    physPoints,
+                        const RefPointViewType     refPoints,
+                        const WorksetCellViewType  worksetCell,
                         const shards::CellTopology cellTopo ) {
-      using nonConstRefPointValueType = std::remove_const_t<refPointValueType>;
+      using nonConstRefPointValueType = typename RefPointViewType::non_const_value_type;
       auto basis = createHGradBasis<nonConstRefPointValueType,nonConstRefPointValueType>(cellTopo);
-      mapToPhysicalFrame(physPoints, 
-                         refPoints, 
-                         worksetCell, 
+      mapToPhysicalFrame(physPoints,
+                         refPoints,
+                         worksetCell,
                          basis);
     }
 
@@ -1155,7 +1123,7 @@ public:
 
     /** \brief  Computes parameterization maps of 1- and 2-subcells of reference cells.
 
-        Overload of the previous function (see explanation above) where the subcell parametrization is used instead of 
+        Overload of the previous function (see explanation above) where the subcell parametrization is used instead of
         passing the parent cell topology.
     */
 
@@ -1191,7 +1159,7 @@ public:
 
         Applies \f$ F^{-1}_{c} \f$ for \b all cells in a cell workset to \b multiple point sets
         having the same number of points, indexed by cell ordinal, and stored in a rank-3
-        (C,P,D) array. Returns a rank-3 (C,P,D) array such that 
+        (C,P,D) array. Returns a rank-3 (C,P,D) array such that
         \f[
         \mbox{refPoints}(c,p,d) = \Big(F^{-1}_c(physPoint(c,p,*)) \Big)_d
         \f]
@@ -1243,13 +1211,13 @@ public:
 
         Applies \f$ F^{-1}_{c} \f$ for \b all cells in a cell workset to \b multiple point sets
         having the same number of points, indexed by cell ordinal, and stored in a rank-3
-        (C,P,D) array. Returns a rank-3 (C,P,D) array such that 
+        (C,P,D) array. Returns a rank-3 (C,P,D) array such that
         \f[
         \mbox{refPoints}(c,p,d) = \Big(F^{-1}_c(physPoint(c,p,*)) \Big)_d
         \f]
 
-        Requires pointer to HGrad basis that defines reference to physical cell mapping.  
-        See Section \ref sec_cell_topology_ref_map for definition of the mapping function. 
+        Requires pointer to HGrad basis that defines reference to physical cell mapping.
+        See Section \ref sec_cell_topology_ref_map for definition of the mapping function.
 
         \warning
         The array \c physPoints represents an arbitrary set (or sets) of points in the physical
@@ -1282,7 +1250,7 @@ public:
 
         Applies \f$ F^{-1}_{c} \f$ for \b all cells in a cell workset to \b multiple point sets
         having the same number of points, indexed by cell ordinal, and stored in a rank-3
-        (C,P,D) array. Returns a rank-3 (C,P,D) array such that 
+        (C,P,D) array. Returns a rank-3 (C,P,D) array such that
         \f[
         \mbox{refPoints}(c,p,d) = \Big(F^{-1}_c(physPoint(c,p,*)) \Big)_d
         \f]
@@ -1407,11 +1375,11 @@ public:
     */
     template<typename subcvCoordValueType, class ...subcvCoordProperties,
              typename cellCoordValueType,  class ...cellCoordProperties>
-    static void 
-    getSubcvCoords(       Kokkos::DynRankView<subcvCoordValueType,subcvCoordProperties...> subcvCoords, 
+    static void
+    getSubcvCoords(       Kokkos::DynRankView<subcvCoordValueType,subcvCoordProperties...> subcvCoords,
                     const Kokkos::DynRankView<cellCoordValueType,cellCoordProperties...>   cellCoords,
                     const shards::CellTopology primaryCell );
-    
+
     //============================================================================================//
     //                                                                                            //
     //                                        Inclusion tests                                     //
@@ -1419,89 +1387,78 @@ public:
     //============================================================================================//
 
     /** \brief  Checks if a point belongs to a reference cell.
-        
+
         Requires cell topology with a reference cell.
-        
-        \param  point             [in]  - reference coordinates of the point tested for inclusion
-        \param  cellTopo          [in]  - cell topology 
+
+        \param  point             [in]  - rank-1 view (D) of the point tested for inclusion
+        \param  cellTopo          [in]  - cell topology
         \param  threshold         [in]  - "tightness" of the inclusion test
-        \return 1 if the point is in the closure of the specified reference cell and 0 otherwise.
+        \return true if the point is in the closure of the specified reference cell and false otherwise.
     */
-    template<typename pointValueType, class ...pointProperties>
-    static bool 
-    checkPointInclusion( const Kokkos::DynRankView<pointValueType,pointProperties...> point,
+    template<typename PointViewType>
+    static bool
+    checkPointInclusion( const PointViewType        point,
                          const shards::CellTopology cellTopo,
-                         const double               thres = threshold() );
-
-    // template<class ArrayPoint>
-    // static int checkPointsetInclusion(const ArrayPoint &            points,
-    //                                   const shards::CellTopology &  cellTopo,
-    //                                   const double &                threshold = INTREPID2_THRESHOLD);
+                         const typename ScalarTraits<typename PointViewType::value_type>::scalar_type thres =
+                               threshold<typename ScalarTraits<typename PointViewType::value_type>::scalar_type>() );
 
 
 
-    /** \brief  Checks every point in a set for inclusion in a reference cell.
-
-                Requires cell topology with a reference cell. Admissible ranks and dimensions of the
-                input point array and the corresponding rank and dimension of the output array are as follows:
-                \verbatim
-                |-------------------|-------------|-------------|-------------|
-                |  rank: (in)/(out) |    1/1      |     2/1     |    3/2      |
-                |-------------------|-------------|-------------|-------------|
-                |  points    (in)   |     (D)     |    (I, D)   |  (I, J, D)  |
-                |-------------------|-------------|-------------|-------------|
-                |  inRefCell (out)  |     (1)     |    (I)      |  (I, J)     |
-                |------------------ |-------------|-------------|-------------|
-                \endverbatim
-                Example: if \c points is rank-3 array with dimensions (I, J, D), then
-        \f[
-               \mbox{inRefCell}(i,j) =
-                 \left\{\begin{array}{rl}
-                    1 & \mbox{if $points(i,j,*)\in\hat{\mathcal{C}}$} \\[2ex]
-                    0 & \mbox{if $points(i,j,*)\notin\hat{\mathcal{C}}$}
-                 \end{array}\right.
-          \f]
-        \param  inRefCell         [out] - rank-1 or 2 array with results from the pointwise inclusion test
-        \param  refPoints         [in]  - rank-1,2 or 3 array (point, vector of points, matrix of points)
-        \param  cellTopo          [in]  - cell topology of the cells stored in \c cellWorkset
+    /** \brief  Checks every point for inclusion in the reference cell of a given topology.
+        The points can belong to a global set and stored in a rank-2 view (P,D) ,
+        or to multiple sets indexed by a cell ordinal and stored in a rank-3 view (C,P,D).
+        The cell topology key is a template argument.
+        Requires cell topology with a reference cell.
+        \param  inCell            [out] - rank-1 view (P) or rank-2 view (C,P). On return, its entries will be set to 1 or 0 depending on whether points are included in cells
+        \param  point             [in]  - rank-2 view (P,D) or rank-3 view (C,P,D) with reference coordinates of the points tested for inclusion
         \param  threshold         [in]  - "tightness" of the inclusion test
     */
-    template<typename inCellValueType, class ...inCellProperties,                                                       
-             typename pointValueType, class ...pointProperties>
-    static void checkPointwiseInclusion(       Kokkos::DynRankView<inCellValueType,inCellProperties...> inCell,                     
-                                         const Kokkos::DynRankView<pointValueType,pointProperties...> points,                       
-                                         const shards::CellTopology cellTopo,                                                       
-                                         const double thres = threshold() );
+    template<unsigned cellTopologyKey,
+             typename OutputViewType,
+             typename InputViewType>
+    static void checkPointwiseInclusion(       OutputViewType inCell,
+                                         const InputViewType points,
+                                         const typename ScalarTraits<typename InputViewType::value_type>::scalar_type thresh =
+                                               threshold<typename ScalarTraits<typename InputViewType::value_type>::scalar_type>());
 
-    /** \brief  Checks every point in a set or multiple sets for inclusion in physical cells from a cell workset.
 
-                Checks every point from \b multiple point sets indexed by a cell ordinal, and stored in a rank-3
-                (C,P,D) array, for inclusion in the physical cell having the same cell ordinal, for \b all
+
+    /** \brief  Checks every point in multiple sets indexed by a cell ordinal for inclusion in the reference cell of a given topology.
+        Requires cell topology with a reference cell.
+
+        \param  inRefCell         [out] - rank-2 view (C,P) with results from the pointwise inclusion test
+        \param  refPoints         [in]  - rank-3 view (C,P,D)
+        \param  cellTopo          [in]  - cell topology
+        \param  threshold         [in]  - "tightness" of the inclusion test
+    */
+    template<typename InCellViewType,
+             typename PointViewType>
+    static void checkPointwiseInclusion(       InCellViewType inCell,
+                                         const PointViewType points,
+                                         const shards::CellTopology cellTopo,
+                                         const typename ScalarTraits<typename PointViewType::value_type>::scalar_type thres =
+                                               threshold<typename ScalarTraits<typename PointViewType::value_type>::scalar_type>() );
+
+    /** \brief  Checks every points for inclusion in physical cells from a cell workset.
+                The points can belong to a global set and stored in a rank-2 (P,D) view,
+                or to multiple sets indexed by a cell ordinal and stored in a rank-3 (C,P,D) view
                 cells in a cell workset.
 
-                For multiple point sets in a rank-3 array (C,P,D) returns a rank-2 (C,P) array such that
-        \f[
-                \mbox{inCell}(c,p) =
-                  \left\{\begin{array}{rl}
-                      1 & \mbox{if $points(c,p,*)\in {\mathcal{C}}$} \\ [2ex]
-                      0 & \mbox{if $points(c,p,*)\notin {\mathcal{C}}$}
-                \end{array}\right.
-        \f]
-
-        \param  inCell            [out] - rank-1  array with results from the pointwise inclusion test
-        \param  points            [in]  - rank-2 array with dimensions (P,D) with the physical points
-        \param  cellWorkset       [in]  - rank-3 array with dimensions (C,N,D) with the nodes of the cell workset
-        \param  cellTopo          [in]  - cell topology of the cells stored in \c cellWorkset
+        \param  inCell            [out] - rank-2 view (P,D)  with results from the pointwise inclusion test
+        \param  points            [in]  - rank-2 view (P,D) or rank-3 view (C,P,D) with the physical points
+        \param  cellWorkset       [in]  - rank-3 view with dimensions (C,N,D) with the nodes of the cell workset
+        \param  cellTopo          [in]  - cell topology
         \param  threshold         [in]  - tolerance for inclusion tests on the input points
       */
-    template<typename inCellValueType, class ...inCellProperties,                                                       
-             typename pointValueType, class ...pointProperties,                                                        
-             typename cellWorksetValueType, class ...cellWorksetProperties>  
-    static void checkPointwiseInclusion(       Kokkos::DynRankView<inCellValueType,inCellProperties...> inCell,                     
-                                         const Kokkos::DynRankView<pointValueType,pointProperties...> points,                       
-                                         const Kokkos::DynRankView<cellWorksetValueType,cellWorksetProperties...> cellWorkset,      
-                                         const shards::CellTopology cellTopo,                                                       
-                                         const double thres = threshold() );
+    template<typename inCellValueType, class ...inCellProperties,
+             typename pointValueType, class ...pointProperties,
+             typename cellWorksetValueType, class ...cellWorksetProperties>
+    static void checkPointwiseInclusion(       Kokkos::DynRankView<inCellValueType,inCellProperties...> inCell,
+                                         const Kokkos::DynRankView<pointValueType,pointProperties...> points,
+                                         const Kokkos::DynRankView<cellWorksetValueType,cellWorksetProperties...> cellWorkset,
+                                         const shards::CellTopology cellTopo,
+                                         const typename ScalarTraits<pointValueType>::scalar_type thres =
+                                               threshold<typename ScalarTraits<pointValueType>::scalar_type>() );
 
 
     // //============================================================================================//
@@ -1599,8 +1556,8 @@ public:
       \param  cellWorkset       [in]  - rank-3 (C,N,D) array required
       \param  cellTopo          [in]  - cell topology with a reference cell required
   */
-  template<typename refPointViewType, 
-           typename physPointViewType, 
+  template<typename refPointViewType,
+           typename physPointViewType,
            typename worksetCellViewType>
   static void
   CellTools_mapToReferenceFrameArgs( const refPointViewType     refPoints,
@@ -1617,9 +1574,9 @@ public:
       \param  cellWorkset       [in]  - rank-3 (C,N,D) array required
       \param  cellTopo          [in]  - cell topology with a reference cell required
   */
-  template<typename refPointViewType, 
-           typename initGuessViewType, 
-           typename physPointViewType, 
+  template<typename refPointViewType,
+           typename initGuessViewType,
+           typename physPointViewType,
            typename worksetCellViewType>
   static void
   CellTools_mapToReferenceFrameInitGuess( const refPointViewType     refPoints,
@@ -1627,23 +1584,6 @@ public:
                                           const physPointViewType    physPoints,
                                           const worksetCellViewType  worksetCell,
                                           const shards::CellTopology cellTopo );
-
-  // /** \brief  Validates arguments to Intrepid2::CellTools::checkPointwiseInclusion
-  //     \param  inCell            [out] - rank-1  (P) array required
-  //     \param  physPoints        [in]  - rank-2  (P,D) array required
-  //     \param  cellWorkset       [in]  - rank-3  (C,N,D) array required
-  //     \param  whichCell         [in]  - 0 <= whichCell < C required
-  //     \param  cellTopo          [in]  - cell topology with a reference cell required
-  // */
-  // template<class ArrayIncl, class ArrayPoint, class ArrayCell>
-  // static void
-  // validateArguments_checkPointwiseInclusion(ArrayIncl        &            inCell,
-  //                                           const ArrayPoint &            physPoints,
-  //                                           const ArrayCell  &            cellWorkset,
-  //                                           const int &                   whichCell,
-  //                                           const shards::CellTopology &  cell);
-
-
 
 }
 
@@ -1658,11 +1598,7 @@ public:
 
 #include "Intrepid2_CellToolsDefControlVolume.hpp"
 
-// not yet converted ...
 #include "Intrepid2_CellToolsDefInclusion.hpp"
-
-// #include "Intrepid2_CellToolsDefDebug.hpp"
 
 
 #endif
-

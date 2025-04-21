@@ -1,44 +1,10 @@
 // @HEADER
-//
-// ***********************************************************************
-//
+// *****************************************************************************
 //           Amesos2: Templated Direct Sparse Solver Package
-//                  Copyright 2011 Sandia Corporation
 //
-// Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-// the U.S. Government retains certain rights in this software.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Questions? Contact Michael A. Heroux (maherou@sandia.gov)
-//
-// ***********************************************************************
-//
+// Copyright 2011 NTESS and the Amesos2 contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
 // @HEADER
 
 /**
@@ -273,6 +239,68 @@ namespace Amesos2 {
                     node_t> > source_map,
         EDistribution distribution );
 
+    template<typename KV, typename host_ordinal_type_array>
+    int
+    gather (KV& kokkos_new_view,
+            host_ordinal_type_array &perm_g2l,
+            host_ordinal_type_array &recvCountRows,
+            host_ordinal_type_array &recvDisplRows,
+            EDistribution distribution) const
+    {
+      auto comm = this->getComm();
+      int myRank = comm->getRank();
+      int nCols = this->mv_->NumVectors();
+      int nRows = this->mv_->GlobalLength();
+      int nRows_l = this->mv_->MyLength();
+      if (myRank == 0) {
+        Kokkos::resize(kokkos_new_view, nRows, nCols);
+        if (int(perm_g2l.extent(0)) == nRows) {
+          Kokkos::resize(this->buf_, nRows, 1);
+        } else {
+          Kokkos::resize(this->buf_, 0, 1);
+        }
+      }
+      {
+        for (int j=0; j<nCols; j++) {
+          scalar_t * recvbuf = reinterpret_cast<scalar_t*> (myRank != 0 || this->buf_.extent(0) > 0 ? this->buf_.data() : &kokkos_new_view(0,j));
+          Teuchos::gatherv<int, scalar_t> (const_cast<scalar_t*> ((*this->mv_)[j]), nRows_l,
+                                           recvbuf, recvCountRows.data(), recvDisplRows.data(),
+                                           0, *comm);
+          if (myRank == 0 && this->buf_.extent(0) > 0) {
+            for (int i=0; i<nRows; i++) kokkos_new_view(perm_g2l(i),j) = this->buf_(i,0);
+          }
+        }
+      }
+      return 0;
+    }
+
+    template<typename KV, typename host_ordinal_type_array>
+    int
+    scatter (KV& kokkos_new_view,
+             host_ordinal_type_array &perm_g2l,
+             host_ordinal_type_array &sendCountRows,
+             host_ordinal_type_array &sendDisplRows,
+             EDistribution distribution) const
+    {
+      auto comm = this->getMap()->getComm();
+      int myRank = comm->getRank();
+      int nCols = this->mv_->NumVectors();
+      int nRows = this->mv_->GlobalLength();
+      int nRows_l = this->mv_->MyLength();
+      {
+        for (int j=0; j<nCols; j++) {
+          if (myRank == 0 && this->buf_.extent(0) > 0) {
+            for (int i=0; i<nRows; i++) this->buf_(i, 0) = kokkos_new_view(perm_g2l(i),j);
+          }
+          scalar_t * sendbuf = reinterpret_cast<scalar_t*> (myRank != 0 || this->buf_.extent(0) > 0 ? this->buf_.data() : &kokkos_new_view(0,j));
+          Teuchos::scatterv<int, scalar_t> (sendbuf, sendCountRows.data(), sendDisplRows.data(),
+                                            reinterpret_cast<scalar_t*> ((*this->mv_)[j]), nRows_l,
+                                            0, *comm);
+        }
+      }
+      return 0;
+    }
+
     /// Get a short description of this adapter class
     std::string description() const;
 
@@ -286,6 +314,7 @@ namespace Amesos2 {
 
     /// The multi-vector this adapter wraps
     Teuchos::RCP<multivec_t> mv_;
+    mutable Kokkos::View<scalar_t**, Kokkos::LayoutLeft, Kokkos::HostSpace> buf_;
 
     mutable Teuchos::RCP<Epetra_Import> importer_;
     mutable Teuchos::RCP<Epetra_Export> exporter_;

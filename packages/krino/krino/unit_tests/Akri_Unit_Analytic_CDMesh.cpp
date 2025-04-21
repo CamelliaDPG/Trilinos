@@ -17,6 +17,7 @@
 #include <Akri_NodeToCapturedDomains.hpp>
 #include <Akri_Phase_Support.hpp>
 #include <Akri_Snap.hpp>
+#include <Akri_Unit_BoundingBoxMesh.hpp>
 #include <Akri_Unit_LogRedirecter.hpp>
 #include <gtest/gtest.h>
 #include <stk_io/IossBridge.hpp>
@@ -71,6 +72,13 @@ public:
     phase_support.decompose_blocks(ls_sets);
   }
 
+  void setup_phase_support_on_block1()
+  {
+    AuxMetaData & aux_meta = AuxMetaData::get(fixture.meta_data());
+    auto & block1_part = aux_meta.get_part("block_1");
+    setup_phase_support({&block1_part});
+  }
+
   stk::mesh::Part & declare_input_block(const std::string & name, const stk::topology topo)
   {
     auto & block_part = fixture.meta_data().declare_part_with_topology(name, topo);
@@ -80,30 +88,7 @@ public:
 
   void decompose_mesh(const InterfaceGeometry & interfaceGeometry)
   {
-    NodeToCapturedDomainsMap nodesToCapturedDomains;
-    if (cdfemSupport.get_cdfem_edge_degeneracy_handling() == SNAP_TO_INTERFACE_WHEN_QUALITY_ALLOWS_THEN_SNAP_TO_NODE)
-    {
-      const double minIntPtWeightForEstimatingCutQuality = cdfemSupport.get_snapper().get_edge_tolerance();
-      nodesToCapturedDomains = snap_as_much_as_possible_while_maintaining_quality(krino_mesh->stk_bulk(),
-          krino_mesh->get_active_part(),
-          cdfemSupport.get_snap_fields(),
-          interfaceGeometry,
-          cdfemSupport.get_global_ids_are_parallel_consistent(),
-          cdfemSupport.get_snapping_sharp_feature_angle_in_degrees(),
-          minIntPtWeightForEstimatingCutQuality,
-          cdfemSupport.get_max_edge_snap());
-    }
-    interfaceGeometry.prepare_to_process_elements(krino_mesh->stk_bulk(), nodesToCapturedDomains);
-
-    krino_mesh->generate_nonconformal_elements();
-    if (cdfemSupport.get_cdfem_edge_degeneracy_handling() == SNAP_TO_INTERFACE_WHEN_QUALITY_ALLOWS_THEN_SNAP_TO_NODE)
-      krino_mesh->snap_nearby_intersections_to_nodes(interfaceGeometry, nodesToCapturedDomains);
-    krino_mesh->set_phase_of_uncut_elements(interfaceGeometry);
-    krino_mesh->triangulate(interfaceGeometry);
-    krino_mesh->decompose(interfaceGeometry);
-    krino_mesh->stash_field_data(-1);
-    krino_mesh->modify_mesh();
-    krino_mesh->prolongation();
+    krino_mesh->decompose_mesh(interfaceGeometry, -1);
   }
 
   void commit()
@@ -135,8 +120,7 @@ public:
     else
       cdfemSupport.set_cdfem_edge_degeneracy_handling(SNAP_TO_NODE);
 
-    auto & block1_part = aux_meta.get_part("block_1");
-    setup_phase_support({&block1_part});
+    setup_phase_support_on_block1();
 
     fixture.set_domain(domain, meshSize);
     fixture.populate_mesh();
@@ -178,6 +162,7 @@ class SphereDecompositionFixture : public AnalyticDecompositionFixture<MESH_FIXT
 public:
   SphereDecompositionFixture()
   {
+    this->setup_phase_support_on_block1();
     mySphereGeometry.reset(new AnalyticSurfaceInterfaceGeometry({this->surfaceIdentifier}, {&mySphere}, AuxMetaData::get(this->fixture.meta_data()).active_part(), this->cdfemSupport, Phase_Support::get(this->fixture.meta_data())));
   }
 protected:
@@ -189,7 +174,7 @@ protected:
     return domain;
   }
   double get_mesh_size() const { return 1./6.; }
-  Sphere mySphere{"test sphere",  stk::math::Vector3d::ZERO, 0.35};
+  Sphere mySphere{stk::math::Vector3d::ZERO, 0.35};
   std::unique_ptr<AnalyticSurfaceInterfaceGeometry> mySphereGeometry;
 };
 
@@ -242,11 +227,8 @@ public:
         {{4,5,6}}, {{4,6,7}}
       }};
     for (auto && facetVerts : facetsVerts)
-    {
-      std::unique_ptr<Facet> facet = std::make_unique<Facet3d>( cubeVerts[facetVerts[0]], cubeVerts[facetVerts[1]], cubeVerts[facetVerts[2]] );
-      myCube.add( std::move(facet) );
-    }
-
+      myCube.emplace_back_3d( cubeVerts[facetVerts[0]], cubeVerts[facetVerts[1]], cubeVerts[facetVerts[2]] );
+    this->setup_phase_support_on_block1();
     myCubeGeometry.reset(new AnalyticSurfaceInterfaceGeometry({this->surfaceIdentifier}, {&myCube}, AuxMetaData::get(this->fixture.meta_data()).active_part(), this->cdfemSupport, Phase_Support::get(this->fixture.meta_data())));
   }
 protected:
@@ -258,7 +240,7 @@ protected:
     return domain;
   }
   double get_mesh_size() const { return 1./6.; }
-  Faceted_Surface myCube{"test cube"};
+  Faceted_Surface<Facet3d> myCube;
   std::unique_ptr<AnalyticSurfaceInterfaceGeometry> myCubeGeometry;
 };
 

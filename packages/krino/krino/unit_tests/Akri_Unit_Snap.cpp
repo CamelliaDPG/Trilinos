@@ -14,6 +14,7 @@
 #include <Akri_VolumePreservingSnappingLimiter.hpp>
 #include <Akri_MeshSpecs.hpp>
 #include <Akri_Intersection_Points.hpp>
+#include <Akri_Quality.hpp>
 #include <Akri_QualityMetric.hpp>
 #include <Akri_Unit_InterfaceGeometry.hpp>
 
@@ -442,7 +443,7 @@ protected:
     IntersectionPointFromNodalLevelsetInterfaceGeometry geometry;
     geometry.set_nodal_levelset(mMesh, get_assigned_node_global_ids(), nodeLSValues);
     NodeToCapturedDomainsMap nodesToCapturedDomains;
-    return build_all_intersection_points(mMesh, geometry, nodesToCapturedDomains);
+    return build_all_intersection_points(mMesh, mMesh.mesh_meta_data().universal_part(), geometry, nodesToCapturedDomains);
   }
 
   std::vector<size_t> get_allowed_snap_indices(const std::vector<IntersectionPoint> & intersectionPoints, const stk::mesh::Entity snapNode)
@@ -470,7 +471,7 @@ protected:
         const stk::math::Vector3d snapLocation = compute_intersection_point_location(mMesh.mesh_meta_data().spatial_dimension(), coordsField, intersectionPoint);
         const double minAcceptableQuality = std::max(minQualityThatIsForSureNotInverted, cutQualityEstimate);
 
-        const double postSnapQuality = compute_quality_if_node_is_snapped_terminating_early_if_below_threshold(mMesh, elementSelector, coordsField, snapNode, snapLocation, qualityMetric, minAcceptableQuality);
+        const double postSnapQuality = compute_quality_if_node_is_moved_terminating_early_if_below_threshold(mMesh, elementSelector, coordsField, snapNode, snapLocation, qualityMetric, minAcceptableQuality);
         if (qualityMetric.is_first_quality_metric_better_than_second(postSnapQuality, minAcceptableQuality))
         {
           allowedSnapIndices.push_back(intPtIndex);

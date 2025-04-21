@@ -9,7 +9,7 @@
 namespace
 {
 
-class ElemGraphDeleteElementsTester : public stk::unit_test_util::simple_fields::MeshFixture
+class ElemGraphDeleteElementsTester : public stk::unit_test_util::MeshFixture
 {
 protected:
   ElemGraphDeleteElementsTester() : elementGraph(nullptr) { }
@@ -97,7 +97,7 @@ protected:
     EXPECT_EQ(numActiveElements, counts[stk::topology::ELEM_RANK]);
   }
 
-  void expect_correct_number_of_connections_in_graph_after_deletes(stk::mesh::Selector locallyOwned,
+  void expect_correct_number_of_connections_in_graph_after_deletes(stk::mesh::Selector /*locallyOwned*/,
                                                                    size_t goldNumGlobalConnectionsAfterDeletes,
                                                                    stk::mesh::EntityVector &elems)
   {

@@ -1,4 +1,4 @@
-C Copyright(C) 1999-2022 National Technology & Engineering Solutions
+C Copyright(C) 1999-2025 National Technology & Engineering Solutions
 C of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 C NTESS, the U.S. Government retains certain rights in this software.
 C
@@ -57,7 +57,7 @@ C     --   none
       include 'gp_attrot.blk'
       INCLUDE 'argparse.inc'
 
-      CHARACTER*2048 FILIN, FILOUT, SCRATCH, SYNTAX, HELP
+      CHARACTER*2048 FILIN, FILOUT, SCRATCH, SYNTAX, HELP, VALUE
       CHARACTER*80 SCRSTR
 
 C... String containing name of common element topology in model
@@ -99,7 +99,8 @@ C     --A - the dynamic numeric memory base array
 
 C .. Get filename from command line.  If not specified, emit error message
       SYNTAX =
-     *  'Syntax is: "grepos [-name_length len] [-64] file_in file_out"'
+     *  'Syntax is: "grepos [-name_length len] [-64] ' //
+     $     '[-change_set #] file_in file_out"'
       HELP = 'Documentation: https://sandialabs.github.io' //
      $     '/seacas-docs/sphinx/html/index.html#grepos'
       NARG = argument_count()
@@ -108,30 +109,6 @@ C .. Get filename from command line.  If not specified, emit error message
         CALL PRTERR ('CMDSPEC', SYNTAX(:LENSTR(SYNTAX)))
         CALL PRTERR ('CMDSPEC', HELP(:LENSTR(HELP)))
         GOTO 60
-      end if
-
-C ... Parse options...
-      name_len = 0
-      l64bit = .false.
-      if (narg .gt. 2) then
-        iarg = 1
-        do
-          CALL get_argument(iarg,FILIN, LNAM)
-          if (filin(:lnam) .eq. '-name_length') then
-            CALL get_argument(iarg+1,FILIN, LNAM)
-            read (filin(:lnam), '(i10)') name_len
-            iarg = iarg + 2
-          else if (filin(:lnam) .eq. '-64') then
-            l64bit = .true.
-            iarg = iarg + 1
-          else
-            SCRATCH = 'Unrecognized command option "'//FILIN(:LNAM)//'"'
-            CALL PRTERR ('FATAL', SCRATCH(:LENSTR(SCRATCH)))
-            CALL PRTERR ('CMDSPEC', SYNTAX(:LENSTR(SYNTAX)))
-            CALL PRTERR ('CMDSPEC', HELP(:LENSTR(HELP)))
-          end if
-          if (iarg .gt. narg-2) exit
-        end do
       end if
 
 C     --Open the input database and read the initial variables
@@ -159,6 +136,53 @@ C     --Open the input database and read the initial variables
          CALL PRTERR ('FATAL', SCRATCH(:LENSTR(SCRATCH)))
          GOTO 60
       END IF
+
+C ... Parse options...
+      name_len = 0
+      l64bit = .false.
+      if (narg .gt. 2) then
+        iarg = 1
+        do
+          CALL get_argument(iarg,FILIN, LNAM)
+          if (filin(:lnam) .eq. '-name_length') then
+            CALL get_argument(iarg+1,FILIN, LNAM)
+            read (filin(:lnam), '(i10)') name_len
+            iarg = iarg + 2
+          else if (filin(:lnam) .eq. '-64') then
+            l64bit = .true.
+            iarg = iarg + 1
+          else if (filin(:lnam) .eq. '-change_set' .or.
+     *      filin(:lnam) .eq. '--change_set') then
+C ... Convert `value` to an integer.
+            CALL get_argument(iarg+1,value,  lv)
+            iarg = iarg + 2
+            read (value(:lv), '(i10)') nchange
+C ... Check that file contains at least that many change sets...
+            ndbr = iand(ndbin, EX_FILE_ID_MASK)
+            call exinq(ndbr, EX_INQ_NUM_CHILD_GROUPS,
+     $           idum, rdum, cdum, ierr)
+            if (nchange .gt. idum) then
+               write (SCRATCH,*) 'Selected change set', nchange,
+     $              'but there are only ', idum, ' change sets in file.'
+               call sqzstr(scratch, lscratch)
+               call PRTERR('CMDERR', SCRATCH(:LSCRATCH))
+               goto 60
+            else
+               write (scratch,99) nchange
+ 99            format(1x,'NOTE: Selecting change set ', i3)
+               call sqzstr(scratch, lscratch)
+               call PRTERR('CMDSPEC', scratch(:lscratch))
+               ndbin = ndbr + nchange
+            end if
+          else
+            SCRATCH = 'Unrecognized command option "'//FILIN(:LNAM)//'"'
+            CALL PRTERR ('FATAL', SCRATCH(:LENSTR(SCRATCH)))
+            CALL PRTERR ('CMDSPEC', SYNTAX(:LENSTR(SYNTAX)))
+            CALL PRTERR ('CMDSPEC', HELP(:LENSTR(HELP)))
+          end if
+          if (iarg .gt. narg-2) exit
+        end do
+      end if
 
       call exgini(ndbin, title, ndim, numnp, numel, nelblk,
      *     numnps, numess, ierr)
@@ -863,7 +887,7 @@ C     can only map nodeset variables if the nodesets are the same...
             do i=0,numnps0-1
                if (ia(kinpss+i) .eq.0) then
                   if (IA(KNNNS0+i) .ne. IA(KNNNS+i1)) then
-                     write (*,900) 'Nodeset', ia(kidns0+i)
+                     write (*,900) 'Nodeset', ia(kidns0+i), 'nodeset'
                   end if
                   i1 = i1 + 1
                end if
@@ -946,15 +970,18 @@ C     ... Fix up the truth table if the sideset count changes...
 
             call muntt(numess0, numess, nvarss,
      $           ia(kssvok0), ia(kssvok), ia(kiesss))
+         endif
 
 C ... check that the sidesets that are retained contain the same number
 C     of faces that the original sidesets contain.  At the current time,
 C     can only map sideset variables if the sidesets are the same...
+         if (delel .and. nvarss .gt. 0) then
             i1 = 0
             do i=0,numess0-1
                if (ia(kiesss+i) .eq.0) then
                   if (IA(KNESS0+i) .ne. IA(KNESS+i1)) then
-                     write (*,900) 'Sideset', ia(kidss0+i)
+                     write (*,900) 'Sideset', ia(kidss0+i), 'sideset'
+                     stop 'Cannot Map Sideset Variables'
                   end if
                   i1 = i1 + 1
                end if
@@ -1283,18 +1310,12 @@ C     number element blocks, and truth table.
      &     14X,'GG   GG  RR  RR   EE       PP       OO   OO       SS'/
      &     14X,' GGGGG   RR   RR  EEEEEEE  PP        OOOOO   SSSSSS ')
  900  FORMAT(/,'WARNING: ',A,i5,' is a different size in the output',
-     $     /,9x,'database than in the input database.  If there are',
-     $     /,9x,'variables on this sideset, they will be transferred',
+     $     /,9x,'database than in the input database. The ',
+     $     /,9x,'variables on this ',A,' will be transferred',
      $     /,9x,'incorrectly. Contact gdsjaar@sandia.gov',
      $     /,9x,'if you need this capability.')
       END
 
-      SUBROUTINE INIMAP(LEN, MAP)
-      INTEGER MAP(*)
-      DO 10 I=1, LEN
-        MAP(I) = I
- 10   CONTINUE
-      END
       subroutine exgqaw(ndb, qarec, ierr)
       include 'gp_params.blk'
       character*(mxstln) qarec(4, *)

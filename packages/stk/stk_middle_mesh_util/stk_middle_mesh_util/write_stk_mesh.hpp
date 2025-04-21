@@ -1,7 +1,6 @@
-#ifdef STK_BUILT_IN_SIERRA
 
-#ifndef WRITE_STK_MESH_H
-#define WRITE_STK_MESH_H
+#ifndef STK_MIDDLE_MESH_UTILS_WRITE_STK_MESH_H
+#define STK_MIDDLE_MESH_UTILS_WRITE_STK_MESH_H
 
 #include "stk_io/DatabasePurpose.hpp"
 #include "stk_io/StkMeshIoBroker.hpp"
@@ -28,7 +27,7 @@ class StkMeshWriter
     using VertIdType = StkMeshCreator::VertIdType;
     using FieldType       = StkMeshCreator::FieldType;
 
-    StkMeshWriter(stk::mesh::MetaData& metaDataIn, stk::mesh::BulkData& bulkDataIn, stk::mesh::MetaData& metaDataOut,
+    StkMeshWriter(stk::mesh::MetaData& /*metaDataIn*/, stk::mesh::BulkData& bulkDataIn, stk::mesh::MetaData& metaDataOut,
                   stk::mesh::BulkData& bulkDataOut, FieldType* gidField)
       : // m_meta_data_in(meta_data_in),
       m_bulkDataIn(bulkDataIn)
@@ -70,4 +69,3 @@ class StkMeshWriter
 } // namespace stk
 #endif
 
-#endif

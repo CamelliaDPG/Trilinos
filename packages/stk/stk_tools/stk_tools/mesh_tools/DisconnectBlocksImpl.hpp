@@ -49,8 +49,6 @@
 #include <utility>
 #include <vector>
 
-namespace stk { namespace mesh { class BulkData; } }
-
 namespace stk {
 namespace tools {
 namespace impl {
@@ -116,6 +114,7 @@ using DisconnectGroupVector = std::vector<DisconnectGroup>;
 using PreservedSharingInfo = std::map<stk::mesh::EntityId, std::vector<int>>;
 using NodeMapIterator = NodeMapType::iterator;
 using ReconnectMapKey = std::pair<stk::mesh::EntityId, unsigned>;
+using InternalSidePerPair = std::vector<std::pair<stk::mesh::Entity, BlockPair>>;
 
 struct ReconnectNodeInfo {
   stk::mesh::EntityId reconnectNodeId = stk::mesh::InvalidEntityId;
@@ -130,14 +129,101 @@ typedef std::map<ReconnectMapKey, ReconnectNodeInfo> ReconnectMap;
 class NullStream : public std::ostream {
   class NullBuffer : public std::streambuf {
   public:
-    int overflow( int c ) { return c; }
+    int overflow( int c ) override { return c; }
   } m_nb;
 public:
   NullStream() : std::ostream( &m_nb ) {}
 };
 
+enum class InternalFaceDisconnectState {KEEP, DESTROY, NOOP};
+
+inline std::ostream &operator<<(std::ostream &out, const InternalFaceDisconnectState &t)
+{
+  switch (t) {
+  case InternalFaceDisconnectState::KEEP: return out << "KEEP"; break;
+  case InternalFaceDisconnectState::DESTROY: return out << "DESTROY"; break;
+  case InternalFaceDisconnectState::NOOP: return out << "NOOP"; break;
+  default: return out << "INVALID"; break;
+  }
+  return out << "INVALID[" << (unsigned)t << "]";
+}
+
+struct InternalFaceInfo
+{
+  BlockPair blockPair;
+  stk::mesh::Entity elemInFirstBlock;
+  stk::mesh::ConnectivityOrdinal faceOrdinalInFirstBlock;
+  stk::mesh::Entity elemInSecondBlock;
+  stk::mesh::ConnectivityOrdinal faceOrdinalInSecondBlock;
+  stk::mesh::Entity internalFace;
+  std::pair<bool, bool> isInBlockPairSideset;
+  std::map<std::pair<stk::mesh::Entity,stk::mesh::ConnectivityOrdinal>, stk::mesh::Entity> nodeMap;
+
+  InternalFaceInfo(const BlockPair& blockPair_,
+                   const stk::mesh::Entity elemInFirstBlock_,
+                   const stk::mesh::ConnectivityOrdinal faceOrdinalInFirstBlock_,
+                   const stk::mesh::Entity elemInSecondBlock_,
+                   const stk::mesh::ConnectivityOrdinal faceOrdinalInSecondBlock_,
+                   const stk::mesh::Entity internalFace_,
+                   const std::pair<bool, bool>& isInBlockPairSideset_)
+  : blockPair(blockPair_)
+  , elemInFirstBlock(elemInFirstBlock_)
+  , faceOrdinalInFirstBlock(faceOrdinalInFirstBlock_)
+  , elemInSecondBlock(elemInSecondBlock_)
+  , faceOrdinalInSecondBlock(faceOrdinalInSecondBlock_)
+  , internalFace(internalFace_)
+  , isInBlockPairSideset(isInBlockPairSideset_) {}
+
+  InternalFaceInfo(const InternalFaceInfo&) = default;
+
+  operator stk::mesh::Entity() const { return internalFace; }
+
+  bool operator<(const InternalFaceInfo &rhs) const
+  {
+    return internalFace < rhs.internalFace;
+  };
+
+  bool operator<(const stk::mesh::Entity &rhs) const
+  {
+    return internalFace < rhs;
+  };
+  
+  void operator=(const InternalFaceInfo &info)
+  {
+    blockPair = info.blockPair;
+    elemInFirstBlock = info.elemInFirstBlock;
+    faceOrdinalInFirstBlock = info.faceOrdinalInFirstBlock;
+    elemInSecondBlock = info.elemInSecondBlock;
+    faceOrdinalInSecondBlock = info.faceOrdinalInSecondBlock;
+    internalFace = info.internalFace;
+    isInBlockPairSideset = info.isInBlockPairSideset;
+  };
+
+  bool operator==(const InternalFaceInfo &rhs) const
+  {
+    return internalFace == rhs.internalFace;
+  };
+
+  bool operator==(const stk::mesh::Entity &rhs) const
+  {
+    return internalFace == rhs;
+  };
+
+  bool operator!=(const InternalFaceInfo &rhs) const
+  {
+    return internalFace != rhs.internalFace;
+  };
+
+  bool operator!=(const stk::mesh::Entity &rhs) const
+  {
+    return internalFace != rhs;
+  };
+};
+
 struct LinkInfo
 {
+  using DisconnectInternalFaces = std::vector<InternalFaceInfo>;
+
   PreservedSharingInfo sharedInfo;
   NodeMapType clonedNodeMap;
   NodeMapType originalNodeMap;
@@ -147,6 +233,7 @@ struct LinkInfo
   std::ostringstream os;
   NullStream ns;
   ReconnectMap reconnectMap;
+  DisconnectInternalFaces internalSides;
 
   double startTime;
   double setupTime;
@@ -206,6 +293,10 @@ void add_to_sharing_lookup(const stk::mesh::BulkData& bulk, stk::mesh::Entity no
 void add_nodes_to_disconnect(const stk::mesh::BulkData & bulk,
                              const BlockPair & blockPair,
                              LinkInfo& info);
+
+void add_sidesets_to_disconnect(stk::mesh::BulkData const& bulk,
+                                BlockPair const& blockPair,
+                                LinkInfo& info);
 
 void create_new_duplicate_node_IDs(stk::mesh::BulkData & bulk, LinkInfo& info);
 

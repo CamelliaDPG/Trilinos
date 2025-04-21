@@ -32,21 +32,34 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
+FILE(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 
-TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
-TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-TRIBITS_INCLUDE_DIRECTORIES(${${PARENT_PACKAGE_NAME}_BINARY_DIR}/stk_util/stk_util)
-TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../../stk_coupling)
-
-FILE(GLOB SOURCES *.cpp)
-
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-    stk_coupling_doc_tests
+if(HAVE_STK_Trilinos)
+  TRIBITS_ADD_EXECUTABLE_AND_TEST(stk_coupling_doc_tests
     SOURCES ${SOURCES}
     TESTONLYLIBS stk_unit_main
     ARGS "--gtest_filter=StkCouplingHowTo.use*"
     COMM mpi
     NUM_MPI_PROCS 1
     NOEXEPREFIX
-    )
+  )
+else()
+  add_executable(stk_coupling_doc_tests ${SOURCES})
+  target_link_libraries(stk_coupling_doc_tests stk_coupling)
+  target_link_libraries(stk_coupling_doc_tests stk_unit_test_utils)
+  target_link_libraries(stk_coupling_doc_tests stk_util_parallel)
+  target_link_libraries(stk_coupling_doc_tests stk_unit_main)
+
+
+  INSTALL(TARGETS stk_coupling_doc_tests DESTINATION ${STK_INSTALL_BINDIR})
+
+  FOREACH(NUMPROCS 1)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS})
+    add_test(NAME "stk_coupling_doc_tests_np${NUMPROCS}"
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS} 
+             COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${NUMPROCS} ${CMAKE_CURRENT_BINARY_DIR}/stk_coupling_doc_tests)
+    set_property(TEST "stk_coupling_doc_tests_np${NUMPROCS}" PROPERTY PROCESSORS ${NUMPROCS})
+  ENDFOREACH()
+
+endif()
 

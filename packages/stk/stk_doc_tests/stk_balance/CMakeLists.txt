@@ -33,14 +33,31 @@
 # 
 
 
-FILE(GLOB SOURCES *.cpp)
+FILE(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-    stk_balance_doc_tests
+if(HAVE_STK_Trilinos)
+  TRIBITS_ADD_EXECUTABLE_AND_TEST(stk_balance_doc_tests
     SOURCES ${SOURCES}
     TESTONLYLIBS stk_unit_main
     ARGS ""
     COMM serial mpi
     NUM_MPI_PROCS 1-4
-    )
+  )
+else()
+  add_executable(stk_balance_doc_tester ${SOURCES})
+  target_link_libraries(stk_balance_doc_tester stk_balance_lib)
+  target_link_libraries(stk_balance_doc_tester stk_unit_test_utils)
+  target_link_libraries(stk_balance_doc_tester stk_unit_main)
+
+  INSTALL(TARGETS stk_balance_doc_tester DESTINATION ${STK_INSTALL_BINDIR})
+
+  FOREACH(NUMPROCS 1 2 3 4)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS})
+    add_test(NAME "stk_balance_doc_tester_np${NUMPROCS}"
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS} 
+             COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${NUMPROCS} ${CMAKE_CURRENT_BINARY_DIR}/stk_balance_doc_tester)
+    set_property(TEST "stk_balance_doc_tester_np${NUMPROCS}" PROPERTY PROCESSORS ${NUMPROCS})
+  ENDFOREACH()
+
+endif()
 

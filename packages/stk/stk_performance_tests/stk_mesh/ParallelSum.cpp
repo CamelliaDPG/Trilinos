@@ -11,11 +11,15 @@
 #include <gtest/gtest.h>
 #include <stk_util/parallel/Parallel.hpp>      // for parallel_machine_rank
 #include <stk_util/parallel/ParallelComm.hpp>  // for parallel_data_exchange...
+#include "stk_mesh/base/Types.hpp"             // for BucketVector, EntityPr...
 #include <stk_mesh/base/Bucket.hpp>            // for Bucket
 #include <stk_mesh/base/BulkData.hpp>          // for BulkData, BulkData::NO...
 #include <stk_mesh/base/MeshBuilder.hpp>
 #include <stk_mesh/base/FieldBase.hpp>         // for field_data, FieldBase
 #include <stk_mesh/base/FieldParallel.hpp>     // for parallel_sum, parallel...
+#include <stk_mesh/base/NgpFieldParallel.hpp>
+#include <stk_mesh/base/GetNgpMesh.hpp>
+#include <stk_mesh/base/GetNgpField.hpp>
 #include <stk_mesh/base/GetEntities.hpp>       // for count_selected_entities
 #include <stk_mesh/base/Part.hpp>              // for Part
 #include <stk_mesh/base/Selector.hpp>          // for Selector, operator|
@@ -25,7 +29,6 @@
 #include "stk_mesh/base/Entity.hpp"            // for Entity
 #include "stk_mesh/base/Field.hpp"             // for Field
 #include "stk_mesh/base/MetaData.hpp"          // for MetaData, put_field_on...
-#include "stk_mesh/base/Types.hpp"             // for BucketVector, EntityPr...
 #include "stk_util/environment/Env.hpp"        // for parallel_rank, paralle...
 #include "stk_util/environment/perf_util.hpp"  // for get_max_hwm_across_procs
 #include <cstddef>                             // for size_t
@@ -39,10 +42,10 @@ namespace stk { namespace mesh { class Ghosting; } }
 
 namespace STKperf {
 
-static const int X_DIM = 500; //num_elems_x
-static const int Y_DIM = 500; //num_elems_y
+static const int X_DIM = 800; //num_elems_x
+static const int Y_DIM = 800; //num_elems_y
 
-static const int NUM_FIELDS = 40;
+static const int NUM_FIELDS = 120;
 
 static const int NUM_ITERS = 40;
 
@@ -51,7 +54,7 @@ stk::mesh::EntityId node_id( unsigned x , unsigned y , unsigned z, unsigned nx, 
   return 1 + x + ( nx + 1 ) * ( y + ( ny + 1 ) * z );
 }
 
-void do_stk_test(bool with_ghosts=false)
+void do_stk_test(bool with_ghosts=false, bool device_mpi=false)
 {
   using namespace stk::mesh;
 
@@ -68,14 +71,15 @@ void do_stk_test(bool with_ghosts=false)
       }
       return;
   }
-  int z_dim = parallel_size*2;
 
-  //vector of mesh-dimensions holds the number of elements in each dimension.
-  //Hard-wired to 3. This test can run with spatial-dimension less than 3,
-  //(if generated-mesh can do that) but not greater than 3.
+  const int xdim = X_DIM;
+  const int ydim = Y_DIM;
+  const int zdim = parallel_size*2;
+  const int numFields = NUM_FIELDS;
+  const int numIters = NUM_ITERS;
 
   std::ostringstream oss;
-  oss << "generated:" << X_DIM << "x" << Y_DIM << "x" << z_dim;
+  oss << "generated:" << xdim << "x" << ydim << "x" << zdim;
 
   stk::mesh::MeshBuilder builder(pm);
   unsigned spatialDim = 3;
@@ -84,14 +88,13 @@ void do_stk_test(bool with_ghosts=false)
   std::shared_ptr<stk::mesh::BulkData> bulkPtr = builder.create();
   stk::mesh::MetaData& meta = bulkPtr->mesh_meta_data();
   stk::mesh::BulkData& bulk = *bulkPtr;
-  meta.use_simple_fields();
   if (parallel_rank == 0)
   {
       std::cerr << "Mesh: " << oss.str() << std::endl;
   }
 
-  std::vector<const FieldBase*> fields(NUM_FIELDS);
-  for (int i = 0; i < NUM_FIELDS; ++i) {
+  std::vector<const FieldBase*> fields(numFields);
+  for (int i = 0; i < numFields; ++i) {
     std::ostringstream oss2;
     oss2 << "field_" << i;
     FieldBase* field = &meta.declare_field<double>(stk::topology::NODE_RANK, oss2.str());
@@ -163,7 +166,7 @@ void do_stk_test(bool with_ghosts=false)
   stk::mesh::BucketVector const& node_buckets = bulk.get_buckets(stk::topology::NODE_RANK, communicated_nodes);
   for (int b = 0, be = node_buckets.size(); b < be; ++b) {
     stk::mesh::Bucket const& bucket = *node_buckets[b];
-    for (int i = 0; i < NUM_FIELDS; ++i) {
+    for (int i = 0; i < numFields; ++i) {
       const ScalarField& field = dynamic_cast<const ScalarField&>(*fields[i]);
       double* data = stk::mesh::field_data(field, bucket);
       for (int n = 0, ne = bucket.size(); n < ne; ++n) {
@@ -175,16 +178,35 @@ void do_stk_test(bool with_ghosts=false)
   MPI_Barrier(pm);
 
   double start_time = stk::cpu_time();
+  NgpMesh* ngpMesh = nullptr;
+  if (device_mpi) {
+    ngpMesh = & stk::mesh::get_updated_ngp_mesh(bulk);
+  }
 
-  for (int t = 0; t < NUM_ITERS; ++t) {
-      if (with_ghosts)
-      {
-          stk::mesh::parallel_sum_including_ghosts(bulk, fields);
+  std::vector<NgpField<double>*> ngpFields(numFields);
+  if (device_mpi) {
+    for (int i = 0; i < numFields; ++i) {
+      ngpFields[i] = &stk::mesh::get_updated_ngp_field<double>(*fields[i]);
+    }
+  }
+
+  for (int t = 0; t < numIters; ++t) {
+    if (with_ghosts) {
+      STK_ThrowRequireMsg(!device_mpi, "NGP parallel_sum_including_ghosts not implemented yet.");
+      stk::mesh::parallel_sum_including_ghosts(bulk, fields);
+    }
+    else {
+      if (device_mpi) {
+        stk::mesh::parallel_sum(*ngpMesh, ngpFields);
       }
-      else
-      {
-          stk::mesh::parallel_sum(bulk, fields);
+      else {
+        stk::mesh::parallel_sum(bulk, fields);
+
+        for (int i = 0; i < numFields; ++i) {
+          ngpFields[i] = &stk::mesh::get_updated_ngp_field<double>(*fields[i]);
+        }
       }
+    }
   }
 
   double stk_sum_time = stk::cpu_time() - start_time;
@@ -192,9 +214,15 @@ void do_stk_test(bool with_ghosts=false)
   double max_time;
   MPI_Reduce(static_cast<void*>(&stk_sum_time), static_cast<void*>(&max_time), 1, MPI_DOUBLE, MPI_MAX, 0 /*root*/, MPI_COMM_WORLD);
 
-  double power2 = std::pow(2,NUM_ITERS);
-  double power3 = std::pow(3,NUM_ITERS);
+  double power2 = std::pow(2,numIters);
+  double power3 = std::pow(3,numIters);
   const double tolerance = 1.e-8;
+
+  if (device_mpi) {
+    for (int i = 0; i < numFields; ++i) {
+      ngpFields[i]->sync_to_host();
+    }
+  }
 
   // Sanity check
   size_t num_comm_nodes = 0;
@@ -202,7 +230,7 @@ void do_stk_test(bool with_ghosts=false)
     stk::mesh::Bucket const& bucket = *node_buckets[b];
     const bool isShared = bucket.shared();
     num_comm_nodes += bucket.size();
-    for (int f = 0; f < NUM_FIELDS; ++f) {
+    for (int f = 0; f < numFields; ++f) {
       const ScalarField& field = dynamic_cast<const ScalarField&>(*fields[f]);
       const double* stk_data = stk::mesh::field_data(field, bucket);
       const double expected_shared_value = static_cast<double>(f+1) * power2;
@@ -210,15 +238,15 @@ void do_stk_test(bool with_ghosts=false)
       const double expected = isShared ? expected_shared_value : expected_ghosted_value;
       for (int n = 0, ne = bucket.size(); n < ne; ++n) {
         const double relativeError = std::abs(stk_data[n] - expected) / expected;
-        EXPECT_NEAR(0.0, relativeError, tolerance);
+        EXPECT_NEAR(0.0, relativeError, tolerance)<<"node "<<bulk.identifier(bucket[n])<<", expected="<<expected<<", stk_data="<<stk_data[n];
       }
     }
   }
 
-  size_t expected_num_shared_nodes = (X_DIM+1) * (Y_DIM+1);
+  size_t expected_num_shared_nodes = (xdim+1) * (ydim+1);
   if (parallel_rank != 0 && parallel_rank != last_proc)
   {
-      expected_num_shared_nodes += (X_DIM+1) * (Y_DIM+1);
+      expected_num_shared_nodes += (xdim+1) * (ydim+1);
   }
   if (parallel_rank == 0 || parallel_rank == last_proc || parallel_rank == next_to_last_proc)
   {
@@ -228,7 +256,7 @@ void do_stk_test(bool with_ghosts=false)
 
   size_t hwm_max = stk::get_max_hwm_across_procs(pm);
 
-  stk::print_stats_for_performance_compare(std::cout, max_time, hwm_max, NUM_ITERS, pm);
+  stk::print_stats_for_performance_compare(std::cout, max_time, hwm_max, numIters, pm);
 }
 
 TEST(ParallelDataExchange, test_nonsym_known_sizes_from_proc0_to_all_other_procs)
@@ -328,6 +356,13 @@ TEST(STKMesh_perf, parallel_sum)
 {
     const bool with_ghosts = false;
     do_stk_test(with_ghosts);
+}
+
+TEST(STKMesh_perf, parallel_sum_device_mpi)
+{
+    const bool with_ghosts = false;
+    const bool device_mpi = true;
+    do_stk_test(with_ghosts, device_mpi);
 }
 
 TEST(STKMesh_perf, parallel_sum_including_ghosts)

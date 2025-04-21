@@ -447,7 +447,7 @@ void DefaultFieldDataManager::reallocate_field_data(EntityRank rank, const std::
     }
 }
 
-void DefaultFieldDataManager::remove_field_data_for_entity(EntityRank rank, unsigned bucket_id, unsigned bucket_ord, const std::vector<FieldBase *> &fields)
+void DefaultFieldDataManager::remove_field_data_for_entity(EntityRank /*rank*/, unsigned /*bucket_id*/, unsigned /*bucket_ord*/, const std::vector<FieldBase *> & /*fields*/)
 {
 
 }
@@ -513,7 +513,7 @@ void DefaultFieldDataManager::grow_bucket_capacity(const FieldVector & allFields
 }
 
 void
-DefaultFieldDataManager::reset_empty_field_data(EntityRank rank, unsigned bucketId, unsigned bucketSize,
+DefaultFieldDataManager::reset_empty_field_data(EntityRank /*rank*/, unsigned bucketId, unsigned bucketSize,
                                                 unsigned bucketCapacity, const FieldVector & fields)
 {
   for (const FieldBase * field : fields) {
@@ -550,15 +550,15 @@ ContiguousFieldDataManager::~ContiguousFieldDataManager()
     }
 }
 
-void ContiguousFieldDataManager::initialize_entity_field_data(EntityRank rank, unsigned bucket_id, unsigned bucket_ord, const std::vector<FieldBase *> &fields)
+void ContiguousFieldDataManager::initialize_entity_field_data(EntityRank /*rank*/, unsigned /*bucket_id*/, unsigned /*bucket_ord*/, const std::vector<FieldBase *> & /*fields*/)
 {
 
 }
 void ContiguousFieldDataManager::allocate_bucket_field_data(const EntityRank rank,
                                                             const std::vector<FieldBase *> & fields,
                                                             const PartVector& superset_parts,
-                                                            unsigned size,
-                                                            unsigned capacity)
+                                                            unsigned /*size*/,
+                                                            unsigned /*capacity*/)
 {
   if (m_field_raw_data.empty()) {
     m_field_raw_data.resize(fields.size(), nullptr);
@@ -625,7 +625,7 @@ void ContiguousFieldDataManager::clear_bucket_field_data(const EntityRank rm_ran
 }
 
 
-void ContiguousFieldDataManager::deallocate_bucket_field_data(const EntityRank rank, const unsigned bucket_id, const size_t capacity,
+void ContiguousFieldDataManager::deallocate_bucket_field_data(const EntityRank rank, const unsigned bucket_id, const size_t /*capacity*/,
         const std::vector<FieldBase*>&  fields)
 {
     if(fields.empty())
@@ -698,7 +698,7 @@ void ContiguousFieldDataManager::reorder_bucket_field_data(EntityRank rank, cons
 }
 
 void ContiguousFieldDataManager::remove_field_data_for_entity(EntityRank rm_rank, unsigned rm_bucket_id,
-                                                              unsigned rm_bucket_ord, const std::vector<FieldBase *> &allFields)
+                                                              unsigned /*rm_bucket_ord*/, const std::vector<FieldBase *> &allFields)
 {
     for(size_t field_index = 0; field_index < allFields.size(); field_index++)
     {
@@ -729,6 +729,10 @@ void ContiguousFieldDataManager::remove_field_data_for_entity(EntityRank rm_rank
                 resetFieldMetaDataPointers(rm_bucket_id+1, numBucketsOfRank, field_meta_data_vector,
                                            m_field_raw_data[field_ordinal], new_field_data-allocationToRemove);
 
+                ASAN_UNPOISON_MEMORY_REGION(new_field_data + sizeOfBucketsToTheLeft + currentBucketStorageUsed,
+                                            currentBucketAllocation - currentBucketStorageUsed);
+                ASAN_UNPOISON_MEMORY_REGION(new_field_data + sizeOfBucketsToTheLeft + currentBucketAllocation,
+                                            rightHalfSize);
                 std::memmove(new_field_data + sizeOfBucketsToTheLeft + newBucketAllocation,
                              m_field_raw_data[field_ordinal] + sizeOfBucketsToTheLeft + currentBucketAllocation, rightHalfSize);
                 m_num_bytes_used_per_field[field_ordinal] -= allocationToRemove;
@@ -787,7 +791,7 @@ void ContiguousFieldDataManager::allocate_field_data(EntityRank rank,
   }
 }
 
-void ContiguousFieldDataManager::allocate_new_field_meta_data(const EntityRank rank, const std::vector<Bucket*> & buckets, const std::vector<FieldBase*>& allFields)
+void ContiguousFieldDataManager::allocate_new_field_meta_data(const EntityRank /*rank*/, const std::vector<Bucket*> & buckets, const std::vector<FieldBase*>& allFields)
 {
     for (FieldBase* field : allFields) {
         for (stk::mesh::Bucket * bucket : buckets) {
@@ -947,9 +951,16 @@ void ContiguousFieldDataManager::add_field_data_for_entity(const std::vector<Fie
                 const size_t newBucketAllocation = stk::adjust_up_to_alignment_boundary(newBucketStorageUsed,
                                                                                         alignment_increment_bytes);
                 const size_t extraAllocationNeeded = newBucketAllocation - currentBucketAllocation;
-                const size_t newFieldSizeNeeded = m_num_bytes_used_per_field[field_ordinal] + extraAllocationNeeded + m_extra_capacity;
-                const size_t newFieldSize = std::max(newFieldSizeNeeded, m_num_bytes_allocated_per_field[field_ordinal]);
-                bool requiresNewAllocation = newFieldSize > m_num_bytes_allocated_per_field[field_ordinal];
+                const size_t newFieldSizeNeeded = m_num_bytes_used_per_field[field_ordinal] + extraAllocationNeeded;
+
+                bool requiresNewAllocation = false;
+                size_t newFieldSize = m_num_bytes_allocated_per_field[field_ordinal];
+
+                // Only reallocate if we've outgrown the extra capacity
+                if (newFieldSizeNeeded > m_num_bytes_allocated_per_field[field_ordinal]) {
+                  requiresNewAllocation = true;
+                  newFieldSize = newFieldSizeNeeded + m_extra_capacity;
+                }
 
                 unsigned char* new_field_data = m_field_raw_data[field_ordinal];
                 FieldMetaDataVector& field_meta_data_vector = const_cast<FieldMetaDataVector&>(field.get_meta_data_for_field());
@@ -1014,8 +1025,8 @@ void ContiguousFieldDataManager::swap_fields(const int field1, const int field2)
 }
 
 void
-ContiguousFieldDataManager::reset_empty_field_data(EntityRank rank, unsigned bucketId, unsigned bucketSize,
-                                                   unsigned bucketCapacity, const FieldVector & fields)
+ContiguousFieldDataManager::reset_empty_field_data(EntityRank /*rank*/, unsigned bucketId, unsigned bucketSize,
+                                                   unsigned /*bucketCapacity*/, const FieldVector & fields)
 {
   for (const FieldBase * field : fields) {
     const FieldMetaData & fieldMetaData = field->get_meta_data_for_field()[bucketId];

@@ -7,7 +7,19 @@ include(CMakeFindDependencyMacro)
 
 @KOKKOSKERNELS_TPL_EXPORTS@
 
-find_dependency(Kokkos HINTS @Kokkos_DIR@)
+IF(NOT Kokkos_FOUND)
+  find_dependency(Kokkos HINTS @Kokkos_DIR@)
+ENDIF()
 
 INCLUDE("${KokkosKernels_CMAKE_DIR}/KokkosKernelsTargets.cmake")
 
+IF(NOT TARGET KokkosKernels::all_libs)
+  # CMake Error at <prefix>/lib/cmake/Kokkos/KokkosConfigCommon.cmake:10 (ADD_LIBRARY):
+  #   ADD_LIBRARY cannot create ALIAS target "Kokkos::all_libs" because target
+  #   "KokkosKernels::kokkoskernels" is imported but not globally visible.
+  IF(CMAKE_VERSION VERSION_LESS "3.18")
+    SET_TARGET_PROPERTIES(Kokkos::kokkoskernels PROPERTIES IMPORTED_GLOBAL ON)
+  ENDIF()
+  ADD_LIBRARY(KokkosKernels::all_libs ALIAS Kokkos::kokkoskernels)
+  ADD_LIBRARY(KokkosKernels::kokkoskernels ALIAS Kokkos::kokkoskernels)
+ENDIF()

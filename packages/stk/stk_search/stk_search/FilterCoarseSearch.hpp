@@ -154,10 +154,10 @@ public:
 
   void add_search_filter_info(const EntityKey key,
                               const std::vector<double>& paramCoords,
-                              const double parametricDistance,
-                              const bool isWithinParametricTolerance,
-                              const double geometricDistanceSquared,
-                              const bool isWithinGeometricTolerance) override
+                              const double /*parametricDistance*/,
+                              const bool /*isWithinParametricTolerance*/,
+                              const double /*geometricDistanceSquared*/,
+                              const bool /*isWithinGeometricTolerance*/) override
   {
     m_searchFilterInfo[key] = paramCoords;
   }
@@ -196,10 +196,10 @@ public:
 
   void add_search_filter_info(const EntityKey key,
                               const std::vector<double>& paramCoords,
-                              const double parametricDistance,
-                              const bool isWithinParametricTolerance,
-                              const double geometricDistanceSquared,
-                              const bool isWithinGeometricTolerance) override
+                              const double /*parametricDistance*/,
+                              const bool /*isWithinParametricTolerance*/,
+                              const double /*geometricDistanceSquared*/,
+                              const bool /*isWithinGeometricTolerance*/) override
   {
     m_searchFilterInfo.push_back(std::make_pair(key, paramCoords));
     m_isSorted = false;
@@ -257,19 +257,11 @@ double get_distance_from_centroid(MESH& mesh, const typename MESH::EntityKey k, 
 template <typename EntityProcRelationVec>
 void remove_non_local_range_entities(EntityProcRelationVec& rangeToDomain, int localProc)
 {
-  size_t keep = 0;
-  for(size_t i=0; i<rangeToDomain.size(); ++i) {
-    int rangeProc = rangeToDomain[i].first.proc();
-    if (rangeProc == localProc) {
-      if (i > keep) {
-        rangeToDomain[keep] = rangeToDomain[i];
-      }
-      ++keep;
-    }
-  }
-  if(keep<rangeToDomain.size()) {
-    rangeToDomain.resize(keep);
-  }
+  using ValueType = typename EntityProcRelationVec::value_type;
+  rangeToDomain.erase(
+    std::remove_if(rangeToDomain.begin(), rangeToDomain.end(),
+                   [&](const ValueType& x) { return (static_cast<int>(x.first.proc()) != localProc); }),
+    rangeToDomain.end());
 }
 
 template <typename EntityProcRelationVec>

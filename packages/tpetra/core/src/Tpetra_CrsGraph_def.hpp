@@ -1,40 +1,10 @@
 // @HEADER
-// ***********************************************************************
-//
+// *****************************************************************************
 //          Tpetra: Templated Linear Algebra Services Package
-//                 Copyright (2008) Sandia Corporation
 //
-// Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
-// the U.S. Government retains certain rights in this software.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// 1. Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//
-// 2. Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-//
-// 3. Neither the name of the Corporation nor the names of the
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY SANDIA CORPORATION "AS IS" AND ANY
-// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL SANDIA CORPORATION OR THE
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// ************************************************************************
+// Copyright 2008 NTESS and the Tpetra contributors.
+// SPDX-License-Identifier: BSD-3-Clause
+// *****************************************************************************
 // @HEADER
 
 #ifndef TPETRA_CRSGRAPH_DEF_HPP
@@ -395,7 +365,7 @@ namespace Tpetra {
             const Teuchos::RCP<Teuchos::ParameterList>& params) :
     dist_object_type (rowMap)
     , rowMap_ (rowMap)
-    , k_numAllocPerRow_ (numEntPerRow.h_view)
+    , k_numAllocPerRow_ (numEntPerRow.view_host())
     , numAllocForAllRows_ (0)
   {
     const char tfecfFuncName[] =
@@ -412,7 +382,7 @@ namespace Tpetra {
 
     if (debug_) {
       for (size_t r = 0; r < lclNumRows; ++r) {
-        const size_t curRowCount = numEntPerRow.h_view(r);
+        const size_t curRowCount = numEntPerRow.view_host()(r);
         TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
           (curRowCount == Teuchos::OrdinalTraits<size_t>::invalid (),
            std::invalid_argument, "numEntPerRow(" << r << ") "
@@ -435,7 +405,7 @@ namespace Tpetra {
     dist_object_type (rowMap)
     , rowMap_ (rowMap)
     , colMap_ (colMap)
-    , k_numAllocPerRow_ (numEntPerRow.h_view)
+    , k_numAllocPerRow_ (numEntPerRow.view_host())
     , numAllocForAllRows_ (0)
   {
     const char tfecfFuncName[] =
@@ -452,7 +422,7 @@ namespace Tpetra {
 
     if (debug_) {
       for (size_t r = 0; r < lclNumRows; ++r) {
-        const size_t curRowCount = numEntPerRow.h_view(r);
+        const size_t curRowCount = numEntPerRow.view_host()(r);
         TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
           (curRowCount == Teuchos::OrdinalTraits<size_t>::invalid (),
            std::invalid_argument, "numEntPerRow(" << r << ") "
@@ -728,6 +698,61 @@ namespace Tpetra {
     lclIndsPacked_wdv = local_inds_wdv_type(lclGraph.entries);
     lclIndsUnpacked_wdv = lclIndsPacked_wdv;
     setRowPtrs(lclGraph.row_map);
+
+    set_need_sync_host_uvm_access(); // lclGraph_ potentially still in a kernel
+
+    if (! params.is_null() && params->isParameter("sorted") &&
+        ! params->get<bool>("sorted")) {
+      indicesAreSorted_ = false;
+    }
+    else {
+      indicesAreSorted_ = true;
+    }
+
+    const bool callComputeGlobalConstants =
+      params.get () == nullptr ||
+      params->get ("compute global constants", true);
+    if (callComputeGlobalConstants) {
+      this->computeGlobalConstants ();
+    }
+    fillComplete_ = true;
+    checkInternalState ();
+  }
+
+  template <class LocalOrdinal, class GlobalOrdinal, class Node>
+  CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
+  CrsGraph (const row_ptrs_device_view_type& rowPointers,
+            const local_inds_wdv_type& columnIndices,
+            const Teuchos::RCP<const map_type>& rowMap,
+            const Teuchos::RCP<const map_type>& colMap,
+            const Teuchos::RCP<const map_type>& domainMap,
+            const Teuchos::RCP<const map_type>& rangeMap,
+            const Teuchos::RCP<const import_type>& importer,
+            const Teuchos::RCP<const export_type>& exporter,
+            const Teuchos::RCP<Teuchos::ParameterList>& params) :
+    DistObject<GlobalOrdinal, LocalOrdinal, GlobalOrdinal, node_type> (rowMap),
+    rowMap_ (rowMap),
+    colMap_ (colMap),
+    rangeMap_ (rangeMap.is_null () ? rowMap : rangeMap),
+    domainMap_ (domainMap.is_null () ? rowMap : domainMap),
+    importer_ (importer),
+    exporter_ (exporter),
+    numAllocForAllRows_ (0),
+    storageStatus_ (Details::STORAGE_1D_PACKED),
+    indicesAreAllocated_ (true),
+    indicesAreLocal_ (true)
+  {
+    staticAssertions();
+    const char tfecfFuncName[] = "Tpetra::CrsGraph(row_ptrs_device_view_type,local_inds_wdv_type"
+      "Map,Map,Map,Map,Import,Export,params): ";
+
+    TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
+      (colMap.is_null (), std::runtime_error,
+       "The input column Map must be nonnull.");
+
+    lclIndsPacked_wdv = columnIndices;
+    lclIndsUnpacked_wdv = lclIndsPacked_wdv;
+    setRowPtrs(rowPointers);
 
     set_need_sync_host_uvm_access(); // lclGraph_ potentially still in a kernel
 
@@ -1287,7 +1312,6 @@ namespace Tpetra {
 
     if (numRows > 0) { // reallocate k_numRowEntries_ & fill w/ 0s
       using Kokkos::ViewAllocateWithoutInitializing;
-      typedef decltype (k_numRowEntries_) row_ent_type;
       const char label[] = "Tpetra::CrsGraph::numRowEntries";
       if (verbose) {
         std::ostringstream os;
@@ -1295,7 +1319,7 @@ namespace Tpetra {
            << endl;
         std::cerr << os.str();
       }
-      row_ent_type numRowEnt (ViewAllocateWithoutInitializing (label), numRows);
+      num_row_entries_type numRowEnt (ViewAllocateWithoutInitializing (label), numRows);
       // DEEP_COPY REVIEW - VALUE-TO-HOSTMIRROR
       Kokkos::deep_copy (execution_space(), numRowEnt, static_cast<size_t> (0)); // fill w/ 0s
       Kokkos::fence("CrsGraph::allocateIndices"); // TODO: Need to understand downstream failure points and move this fence.
@@ -1342,10 +1366,10 @@ namespace Tpetra {
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
   getLocalIndsViewHost (const RowInfo& rowinfo) const
   {
-    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0) 
+    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0)
       return typename local_inds_dualv_type::t_host::const_type ();
     else
-      return lclIndsUnpacked_wdv.getHostSubview(rowinfo.offset1D, 
+      return lclIndsUnpacked_wdv.getHostSubview(rowinfo.offset1D,
                                         rowinfo.allocSize,
                                         Access::ReadOnly);
   }
@@ -1354,12 +1378,12 @@ namespace Tpetra {
   typename CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
                     local_inds_dualv_type::t_host
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
-  getLocalIndsViewHostNonConst (const RowInfo& rowinfo) 
+  getLocalIndsViewHostNonConst (const RowInfo& rowinfo)
   {
-    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0) 
+    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0)
       return typename local_inds_dualv_type::t_host ();
     else
-      return lclIndsUnpacked_wdv.getHostSubview(rowinfo.offset1D, 
+      return lclIndsUnpacked_wdv.getHostSubview(rowinfo.offset1D,
                                         rowinfo.allocSize,
                                         Access::ReadWrite);
   }
@@ -1370,10 +1394,10 @@ namespace Tpetra {
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
   getGlobalIndsViewHost (const RowInfo& rowinfo) const
   {
-    if (rowinfo.allocSize == 0 || gblInds_wdv.extent(0) == 0) 
+    if (rowinfo.allocSize == 0 || gblInds_wdv.extent(0) == 0)
       return typename global_inds_dualv_type::t_host::const_type ();
     else
-      return gblInds_wdv.getHostSubview(rowinfo.offset1D, 
+      return gblInds_wdv.getHostSubview(rowinfo.offset1D,
                                         rowinfo.allocSize,
                                         Access::ReadOnly);
   }
@@ -1384,10 +1408,10 @@ namespace Tpetra {
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
   getLocalIndsViewDevice (const RowInfo& rowinfo) const
   {
-    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0) 
+    if (rowinfo.allocSize == 0 || lclIndsUnpacked_wdv.extent(0) == 0)
       return typename local_inds_dualv_type::t_dev::const_type ();
     else
-      return lclIndsUnpacked_wdv.getDeviceSubview(rowinfo.offset1D, 
+      return lclIndsUnpacked_wdv.getDeviceSubview(rowinfo.offset1D,
                                           rowinfo.allocSize,
                                           Access::ReadOnly);
   }
@@ -1398,10 +1422,10 @@ namespace Tpetra {
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
   getGlobalIndsViewDevice (const RowInfo& rowinfo) const
   {
-    if (rowinfo.allocSize == 0 || gblInds_wdv.extent(0) == 0) 
+    if (rowinfo.allocSize == 0 || gblInds_wdv.extent(0) == 0)
       return typename global_inds_dualv_type::t_dev::const_type ();
     else
-      return gblInds_wdv.getDeviceSubview(rowinfo.offset1D, 
+      return gblInds_wdv.getDeviceSubview(rowinfo.offset1D,
                                           rowinfo.allocSize,
                                           Access::ReadOnly);
   }
@@ -2032,16 +2056,16 @@ namespace Tpetra {
            std::logic_error, "The graph is globally indexed and "
            "k_rowPtrs_ has nonzero size " << rowPtrsUnpacked_host.extent(0)
            << ", but k_rowPtrs_(lclNumRows=" << lclNumRows << ")="
-           << rowPtrsUnpacked_host(lclNumRows) 
+           << rowPtrsUnpacked_host(lclNumRows)
            << " != gblInds_wdv.extent(0)="
            << gblInds_wdv.extent(0) << "." << suffix);
       }
       TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
         (this->isLocallyIndexed () &&
          rowPtrsUnpacked_host.extent (0) != 0 &&
-         (static_cast<size_t> (rowPtrsUnpacked_host.extent (0)) != 
+         (static_cast<size_t> (rowPtrsUnpacked_host.extent (0)) !=
               static_cast<size_t> (lclNumRows + 1) ||
-          rowPtrsUnpacked_host(lclNumRows) != 
+          rowPtrsUnpacked_host(lclNumRows) !=
               static_cast<size_t> (this->lclIndsUnpacked_wdv.extent (0))),
          std::logic_error, "If k_rowPtrs_ has nonzero size and "
          "the graph is locally indexed, then "
@@ -2113,7 +2137,7 @@ namespace Tpetra {
            "k_rowPtrs_ has nonzero length, but rowPtrsUnpacked_host_.extent(0) = "
            << rowPtrsUnpacked_host.extent (0) << " != getLocalNumRows()+1 = "
            << (this->getLocalNumRows () + 1) << "." << suffix);
-        const size_t actualNumAllocated = 
+        const size_t actualNumAllocated =
               rowPtrsUnpacked_host(this->getLocalNumRows());
         TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
           (this->isLocallyIndexed () &&
@@ -2320,7 +2344,7 @@ namespace Tpetra {
   void
   CrsGraph<LocalOrdinal, GlobalOrdinal, Node>::
   getLocalRowView (
-    const LocalOrdinal localRow, 
+    const LocalOrdinal localRow,
     local_inds_host_view_type &indices) const
   {
     const char tfecfFuncName[] = "getLocalRowView: ";
@@ -2334,7 +2358,7 @@ namespace Tpetra {
     const RowInfo rowInfo = getRowInfo (localRow);
     if (rowInfo.localRow != Teuchos::OrdinalTraits<size_t>::invalid () &&
         rowInfo.numEntries > 0) {
-      indices = lclIndsUnpacked_wdv.getHostSubview(rowInfo.offset1D, 
+      indices = lclIndsUnpacked_wdv.getHostSubview(rowInfo.offset1D,
                                            rowInfo.numEntries,
                                            Access::ReadOnly);
     }
@@ -2374,7 +2398,7 @@ namespace Tpetra {
     const RowInfo rowInfo = getRowInfoFromGlobalRowIndex (globalRow);
     if (rowInfo.localRow != Teuchos::OrdinalTraits<size_t>::invalid () &&
         rowInfo.numEntries > 0) {
-      indices = gblInds_wdv.getHostSubview(rowInfo.offset1D, 
+      indices = gblInds_wdv.getHostSubview(rowInfo.offset1D,
                                            rowInfo.numEntries,
                                            Access::ReadOnly);
     }
@@ -2788,7 +2812,7 @@ namespace Tpetra {
     // It makes sense to clear them out here, because at the end of
     // this method, the graph is allocated on the calling process.
     numAllocForAllRows_ = 0;
-    k_numAllocPerRow_ = decltype (k_numAllocPerRow_) ();
+    k_numAllocPerRow_ =  decltype (k_numAllocPerRow_) ();
 
     checkInternalState ();
   }
@@ -2814,28 +2838,12 @@ namespace Tpetra {
 
     nc_row_map_type ptr_rot ("Tpetra::CrsGraph::ptr", size);
 
-    // FIXME get rid of the else-clause when the minimum CXX standard required is bumped to C++17
-#ifdef KOKKOS_ENABLE_CXX17
     if constexpr (same) { // size_t == row_offset_type
       using lexecution_space = typename device_type::execution_space;
       Kokkos::deep_copy (lexecution_space(),
                          ptr_rot,
                          ptr_in);
     }
-#else
-    if (same) { // size_t == row_offset_type
-      // This compile-time logic ensures that the compiler never sees
-      // an assignment of View<row_offset_type*, ...> to View<size_t*,
-      // ...> unless size_t == row_offset_type.
-      input_view_type ptr_decoy (rowPointers.getRawPtr (), size); // never used
-      // DEEP_COPY REVIEW - HOST-TO-DEVICE
-      Kokkos::deep_copy (execution_space(),
-                         Kokkos::Impl::if_c<same,
-                           nc_row_map_type,
-                           input_view_type>::select (ptr_rot, ptr_decoy),
-                         ptr_in);
-    }
-#endif
     else { // size_t != row_offset_type
       // CudaUvmSpace != HostSpace, so this will be false in that case.
       constexpr bool inHostMemory =
@@ -3329,7 +3337,7 @@ namespace Tpetra {
     // that process to avoid communiation in the Import setup.
     this->makeImportExport (remotePIDs, mustBuildColMap);
 
-    // Create the Kokkos::StaticCrsGraph, if it doesn't already exist.
+    // Create the KokkosSparse::StaticCrsGraph, if it doesn't already exist.
     this->fillLocalGraph (params);
 
     const bool callComputeGlobalConstants = params.get () == nullptr ||
@@ -3500,7 +3508,6 @@ namespace Tpetra {
   fillLocalGraph (const Teuchos::RCP<Teuchos::ParameterList>& params)
   {
     using ::Tpetra::Details::computeOffsetsFromCounts;
-    typedef decltype (k_numRowEntries_) row_entries_type;
     typedef typename local_graph_device_type::row_map_type row_map_type;
     typedef typename row_map_type::non_const_type non_const_row_map_type;
     typedef typename local_graph_device_type::entries_type::non_const_type lclinds_1d_type;
@@ -3603,13 +3610,13 @@ namespace Tpetra {
       size_t lclTotalNumEntries = 0;
       {
         // Allocate the packed row offsets array.
-        ptr_d = 
+        ptr_d =
           non_const_row_map_type ("Tpetra::CrsGraph::ptr", lclNumRows + 1);
         ptr_d_const = ptr_d;
 
         // It's ok that k_numRowEntries_ is a host View; the
         // function can handle this.
-        typename row_entries_type::const_type numRowEnt_h = k_numRowEntries_;
+        typename num_row_entries_type::const_type numRowEnt_h = k_numRowEntries_;
         if (debug_) {
           TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
             (size_t(numRowEnt_h.extent (0)) != lclNumRows,
@@ -3657,7 +3664,7 @@ namespace Tpetra {
         typename local_inds_dualv_type::t_dev::const_type,
         row_map_type,
         typename local_graph_device_type::row_map_type> inds_packer_type;
-      inds_packer_type f (ind_d, 
+      inds_packer_type f (ind_d,
                           lclIndsUnpacked_wdv.getDeviceView(Access::ReadOnly),
                           ptr_d, this->getRowPtrsUnpackedDevice());
       {
@@ -3693,7 +3700,7 @@ namespace Tpetra {
     else { // We don't have to pack, so just set the pointers.
       //Set both packed and unpacked rowptrs to this
       this->setRowPtrs(rowPtrsUnpacked_dev_);
-      lclIndsPacked_wdv = lclIndsUnpacked_wdv; 
+      lclIndsPacked_wdv = lclIndsUnpacked_wdv;
 
       if (debug_) {
         auto rowPtrsPacked_dev = this->getRowPtrsPackedDevice();
@@ -3710,9 +3717,9 @@ namespace Tpetra {
           TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
             (valToCheck != size_t(lclIndsPacked_wdv.extent (0)),
              std::logic_error, "(\"Optimize Storage\"=false branch) "
-             "rowPtrsPacked_dev_(" << (numOffsets-1) << ")=" 
+             "rowPtrsPacked_dev_(" << (numOffsets-1) << ")="
              << valToCheck
-             << " != lclIndsPacked_wdv.extent(0)=" 
+             << " != lclIndsPacked_wdv.extent(0)="
              << lclIndsPacked_wdv.extent (0) << ".");
         }
       }
@@ -3743,7 +3750,7 @@ namespace Tpetra {
 
       // Free graph data structures that are only needed for
       // unpacked 1-D storage.
-      k_numRowEntries_ = row_entries_type ();
+      k_numRowEntries_ = num_row_entries_type ();
 
       // Keep the new 1-D packed allocations.
       lclIndsUnpacked_wdv = lclIndsPacked_wdv;
@@ -4238,8 +4245,7 @@ namespace Tpetra {
     typedef GlobalOrdinal GO;
     typedef device_type DT;
     typedef typename local_graph_device_type::row_map_type::non_const_value_type offset_type;
-    typedef decltype (k_numRowEntries_) row_entries_type;
-    typedef typename row_entries_type::non_const_value_type num_ent_type;
+    typedef typename num_row_entries_type::non_const_value_type num_ent_type;
     const char tfecfFuncName[] = "makeIndicesLocal: ";
     ProfilingRegion regionMakeIndicesLocal ("Tpetra::CrsGraph::makeIndicesLocal");
 
@@ -4274,7 +4280,7 @@ namespace Tpetra {
 
     if (this->isGloballyIndexed () && lclNumRows != 0) {
       // This is a host-accessible View.
-      typename row_entries_type::const_type h_numRowEnt =
+      typename num_row_entries_type::const_type h_numRowEnt =
         this->k_numRowEntries_;
 
       auto rowPtrsUnpacked_host = this->getRowPtrsUnpackedHost();
@@ -4316,7 +4322,7 @@ namespace Tpetra {
         std::cerr << os.str();
       }
 
-      local_inds_dualv_type lclInds_dualv = 
+      local_inds_dualv_type lclInds_dualv =
           local_inds_dualv_type(view_alloc(label, WithoutInitializing),
                                   numEnt);
       lclIndsUnpacked_wdv = local_inds_wdv_type(lclInds_dualv);
@@ -4335,7 +4341,7 @@ namespace Tpetra {
            << h_numRowEnt.extent(0) << endl;
         std::cerr << os.str();
       }
-      auto k_numRowEnt = 
+      auto k_numRowEnt =
            Kokkos::create_mirror_view_and_copy (device_type (), h_numRowEnt);
 
       using ::Tpetra::Details::convertColumnIndicesFromGlobalToLocal;
@@ -4728,7 +4734,7 @@ namespace Tpetra {
                 out << " ";
                 if (isGloballyIndexed()) {
                   auto rowview = gblInds_wdv.getHostView(Access::ReadOnly);
-                  for (size_t j=0; j < rowinfo.numEntries; ++j){ 
+                  for (size_t j=0; j < rowinfo.numEntries; ++j){
                     GlobalOrdinal colgid = rowview[j + rowinfo.offset1D];
                     out << colgid << " ";
                   }
@@ -4982,7 +4988,7 @@ namespace Tpetra {
     if (refill_num_row_entries) { // Case 1: Unpacked storage
       // We can't assume correct *this capture until C++17, and it's
       // likely more efficient just to capture what we need anyway.
-      num_row_entries = 
+      num_row_entries =
           row_ptrs_type(view_alloc("num_row_entries", WithoutInitializing), N);
       Kokkos::deep_copy(num_row_entries, this->k_numRowEntries_);
       Kokkos::parallel_for
@@ -5849,10 +5855,8 @@ namespace Tpetra {
     }
 
     execute_sync_host_uvm_access(); // protect host UVM access
-    Kokkos::parallel_reduce
-      ("Tpetra::CrsGraph::pack: totalNumPackets",
-       inputRange,
-       [=, &prefix] (const LO i, size_t& curTotalNumPackets) {
+    totalNumPackets = 0;
+    for (size_t i=0; i<numExportLIDs; ++i) {
          const LO lclRow = exportLIDs_h[i];
          const GO gblRow = rowMap.getGlobalElement (lclRow);
          if (gblRow == Tpetra::Details::OrdinalTraits<GO>::invalid ()) {
@@ -5868,10 +5872,9 @@ namespace Tpetra {
          else {
            const size_t numEnt = this->getNumEntriesInGlobalRow (gblRow);
            numPacketsPerLID_h(i) = numEnt;
-           curTotalNumPackets += numEnt;
+           totalNumPackets += numEnt;
          }
-      },
-      totalNumPackets);
+      }
 
     if (verbose) {
       std::ostringstream os;
@@ -6496,8 +6499,6 @@ namespace Tpetra {
       return;
     }
     haveLocalOffRankOffsets_ = false;
-    k_offRankOffsets_ = offset_device_view_type(Kokkos::ViewAllocateWithoutInitializing("offRankOffset"), lclNumRows+1);
-    offsets = k_offRankOffsets_;
 
     const map_type& colMap = * (this->getColMap ());
     const map_type& domMap = * (this->getDomainMap ());
@@ -6513,11 +6514,16 @@ namespace Tpetra {
 
     TEUCHOS_ASSERT(this->isSorted ());
     if (isFillComplete ()) {
+      k_offRankOffsets_ = offset_device_view_type(Kokkos::ViewAllocateWithoutInitializing("offRankOffset"), lclNumRows+1);
       auto lclGraph = this->getLocalGraphDevice ();
       ::Tpetra::Details::getGraphOffRankOffsets (k_offRankOffsets_,
                                                  lclColMap, lclDomMap,
                                                  lclGraph);
+      offsets = k_offRankOffsets_;
       haveLocalOffRankOffsets_ = true;
+    } else {
+      TEUCHOS_TEST_FOR_EXCEPTION_CLASS_FUNC
+      (true, std::logic_error, "Can't get off-rank offsets for non-fill-complete graph");
     }
   }
 
@@ -7443,7 +7449,7 @@ namespace Tpetra {
     output = this->haveLocalConstants_ == graph.haveLocalConstants_ ? output : false;
     output = this->haveGlobalConstants_ == graph.haveGlobalConstants_ ? output : false;
     output = this->haveLocalOffRankOffsets_ == graph.haveLocalOffRankOffsets_ ? output : false;
-    output = this->sortGhostsAssociatedWithEachProcessor_ == this->sortGhostsAssociatedWithEachProcessor_ ? output : false;
+    output = this->sortGhostsAssociatedWithEachProcessor_ == graph.sortGhostsAssociatedWithEachProcessor_ ? output : false;
 
     // Compare nonlocals_ -- std::map<GlobalOrdinal, std::vector<GlobalOrdinal> >
     // nonlocals_ isa std::map<GO, std::vector<GO> >
@@ -7497,22 +7503,22 @@ namespace Tpetra {
     }
 
     // Check lclGraph_ isa
-    // Kokkos::StaticCrsGraph<LocalOrdinal, Kokkos::LayoutLeft, execution_space>
-    // Kokkos::StaticCrsGraph has 3 data members in it:
-    //   Kokkos::View<size_type*, ...> row_map            
+    // KokkosSparse::StaticCrsGraph<LocalOrdinal, Kokkos::LayoutLeft, execution_space>
+    // KokkosSparse::StaticCrsGraph has 3 data members in it:
+    //   Kokkos::View<size_type*, ...> row_map
     //           (local_graph_device_type::row_map_type)
-    //   Kokkos::View<data_type*, ...> entries            
+    //   Kokkos::View<data_type*, ...> entries
     //           (local_graph_device_type::entries_type)
-    //   Kokkos::View<size_type*, ...> row_block_offsets  
+    //   Kokkos::View<size_type*, ...> row_block_offsets
     //           (local_graph_device_type::row_block_type)
-    // There is currently no Kokkos::StaticCrsGraph comparison function 
+    // There is currently no KokkosSparse::StaticCrsGraph comparison function
     // that's built-in, so we will just compare
-    // the three data items here. This can be replaced if Kokkos ever 
+    // the three data items here. This can be replaced if Kokkos ever
     // puts in its own comparison routine.
     local_graph_host_type thisLclGraph = this->getLocalGraphHost();
     local_graph_host_type graphLclGraph = graph.getLocalGraphHost();
 
-    output = thisLclGraph.row_map.extent(0) == graphLclGraph.row_map.extent(0) 
+    output = thisLclGraph.row_map.extent(0) == graphLclGraph.row_map.extent(0)
            ? output : false;
     if(output && thisLclGraph.row_map.extent(0) > 0)
     {
@@ -7534,15 +7540,15 @@ namespace Tpetra {
                ? output : false;
     }
 
-    output = 
-      thisLclGraph.row_block_offsets.extent(0) == 
+    output =
+      thisLclGraph.row_block_offsets.extent(0) ==
       graphLclGraph.row_block_offsets.extent(0) ? output : false;
     if(output && thisLclGraph.row_block_offsets.extent(0) > 0)
     {
       auto lclGraph_rbo_host_this = thisLclGraph.row_block_offsets;
       auto lclGraph_rbo_host_graph = graphLclGraph.row_block_offsets;
       for (size_t i=0; output && i < lclGraph_rbo_host_this.extent(0); i++)
-        output = lclGraph_rbo_host_this(i) == lclGraph_rbo_host_graph(i) 
+        output = lclGraph_rbo_host_this(i) == lclGraph_rbo_host_graph(i)
                ? output : false;
     }
 

@@ -1,18 +1,18 @@
-// Copyright(C) 1999-2023 National Technology & Engineering Solutions
+// Copyright(C) 1999-2024 National Technology & Engineering Solutions
 // of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
 // NTESS, the U.S. Government retains certain rights in this software.
 //
 // See packages/seacas/LICENSE for details
 
-#include <Ioss_CodeTypes.h>
-#include <heartbeat/Iohb_DatabaseIO.h>
-
+#include "Ioss_CodeTypes.h"
+#include "heartbeat/Iohb_DatabaseIO.h"
+#include "heartbeat/Iohb_Layout.h"
 #include <cassert>
 #include <cstddef>
 #include <ctime>
+#include <fmt/ostream.h>
 #include <fstream>
 #include <string>
-
 #include <vector>
 
 #include "Ioss_DBUsage.h"
@@ -22,31 +22,15 @@
 #include "Ioss_IOFactory.h"
 #include "Ioss_ParallelUtils.h"
 #include "Ioss_Property.h"
-#include "Ioss_Region.h"
+#include "Ioss_PropertyManager.h"
 #include "Ioss_State.h"
 #include "Ioss_Utils.h"
-#include "Ioss_VariableType.h"
-#include <heartbeat/Iohb_Layout.h>
-
-namespace Ioss {
-  class CommSet;
-  class EdgeBlock;
-  class EdgeSet;
-  class ElementBlock;
-  class ElementSet;
-  class FaceBlock;
-  class FaceSet;
-  class NodeBlock;
-  class NodeSet;
-  class SideBlock;
-  class SideSet;
-} // namespace Ioss
 
 namespace {
   std::string time_stamp(const std::string &format)
   {
     if (format.empty()) {
-      return std::string("");
+      return {""};
     }
     const int   length = 256;
     static char time_string[length];
@@ -57,9 +41,9 @@ namespace {
     size_t error = strftime(time_string, length, format.c_str(), local_time);
     if (error != 0) {
       time_string[length - 1] = '\0';
-      return std::string(time_string);
+      return {time_string};
     }
-    return std::string("[ERROR]");
+    return {"[ERROR]"};
   }
 
   std::ostream *open_stream(const std::string &filename, bool *needs_delete, bool append_file)
@@ -182,9 +166,7 @@ namespace Iohb {
         new_this->logStream = open_stream(get_filename(), &(new_this->streamNeedsDelete), append);
 
         if (new_this->logStream == nullptr) {
-          std::ostringstream errmsg;
-          errmsg << "ERROR: Could not create heartbeat file '" << get_filename() << "'\n";
-          IOSS_ERROR(errmsg);
+          IOSS_ERROR(fmt::format("ERROR: Could not create heartbeat file '{}'\n", get_filename()));
         }
       }
 
@@ -225,11 +207,15 @@ namespace Iohb {
         new_this->flushInterval_ = properties.get("FLUSH_INTERVAL").get_int();
       }
 
+      if (properties.exists("HEARTBEAT_FLUSH_INTERVAL")) {
+        new_this->flushInterval_ = properties.get("HEARTBEAT_FLUSH_INTERVAL").get_int();
+      }
+
       if (properties.exists("TIME_STAMP_FORMAT")) {
         new_this->tsFormat = properties.get("TIME_STAMP_FORMAT").get_string();
       }
 
-      bool show_time_stamp = false;
+      bool show_time_stamp = !new_this->tsFormat.empty();
       Ioss::Utils::check_set_bool_property(properties, "SHOW_TIME_STAMP", show_time_stamp);
       if (show_time_stamp) {
         if (tsFormat.empty()) {
@@ -259,6 +245,14 @@ namespace Iohb {
       }
 
       Ioss::Utils::check_set_bool_property(properties, "SHOW_TIME_FIELD", new_this->addTimeField);
+
+      if (properties.exists("FULL_PRECISION")) {
+        bool precision = true;
+        Ioss::Utils::check_set_bool_property(properties, "FULL_PRECISION", precision);
+        if (precision) {
+          new_this->precision_ = -1;
+        }
+      }
 
       // SpyHis format is specific format, so don't override these settings:
       if (fileFormat == Iohb::Format::SPYHIS) {
@@ -290,11 +284,11 @@ namespace Iohb {
     }
   }
 
-  bool DatabaseIO::begin__(Ioss::State /* state */) { return true; }
+  bool DatabaseIO::begin_nl(Ioss::State /* state */) { return true; }
 
-  bool DatabaseIO::end__(Ioss::State /* state */) { return true; }
+  bool DatabaseIO::end_nl(Ioss::State /* state */) { return true; }
 
-  bool DatabaseIO::begin_state__(int /* state */, double time)
+  bool DatabaseIO::begin_state_nl(int /* state */, double time)
   {
     // If this is the first time, open the output stream and see if user wants a legend
     initialize();
@@ -313,33 +307,34 @@ namespace Iohb {
     return true;
   }
 
-  void DatabaseIO::flush_database__() const
+  void DatabaseIO::flush_database_nl() const
   {
     if (myProcessor == 0) {
       logStream->flush();
     }
   }
 
-  bool DatabaseIO::end_state__(int /* state */, double /* time */)
+  bool DatabaseIO::end_state_nl(int /* state */, double /* time */)
   {
     if (legend_ != nullptr) {
       if (fileFormat == Iohb::Format::SPYHIS) {
         time_t calendar_time = time(nullptr);
         // ctime include \n; the legend is output twice for SPYHIS.
-        *logStream << "% Sierra SPYHIS Output " << ctime(&calendar_time);
-        *logStream << *legend_ << '\n'; // Legend output twice for SPYHIS
+        fmt::print(*logStream, "% Sierra SPYHIS Output {}{}\n", ctime(&calendar_time),
+                   legend_->layout()); // ctime includes \n
       }
 
-      *logStream << *legend_ << '\n';
+      fmt::print(*logStream, "{}\n", legend_->layout());
       legend_.reset();
     }
 
-    *logStream << *layout_ << '\n';
+    fmt::print(*logStream, "{}\n", layout_->layout());
     layout_.reset();
 
     // Flush the buffer to disk...
     // flush if there is more than 'flushInterval_' seconds since the last flush to avoid
     // the flush eating up cpu time for small fast jobs...
+    // If want a flush every step for some reason, set `flushInterval_` to 0.0.
 
     // This code is derived from code in finalize_write() in Ioex_DatabaseIO.C
     // See other comments there...
@@ -386,7 +381,7 @@ namespace Iohb {
           layout.add_literal(" ");
           layout.add_literal(*reinterpret_cast<std::string *>(data));
           if (logStream != nullptr) {
-            *logStream << layout << '\n';
+            fmt::print(*logStream, "{}\n", layout.layout());
           }
         }
         else {
@@ -395,9 +390,7 @@ namespace Iohb {
       }
       else {
         if (layout_ == nullptr) {
-          std::ostringstream errmsg;
-          errmsg << "INTERNAL ERROR: Unexpected nullptr layout.\n";
-          IOSS_ERROR(errmsg);
+          IOSS_ERROR("INTERNAL ERROR: Unexpected nullptr layout.\n");
         }
         if (field.get_type() == Ioss::Field::INTEGER) {
           assert(field.transformed_count() == 1);
@@ -420,9 +413,7 @@ namespace Iohb {
       }
     }
     else {
-      std::ostringstream errmsg;
-      errmsg << "ERROR: Can not handle non-TRANSIENT or non-REDUCTION fields on regions.\n";
-      IOSS_ERROR(errmsg);
+      IOSS_ERROR("ERROR: Can not handle non-TRANSIENT or non-REDUCTION fields on regions.\n");
     }
     return num_to_get;
   }

@@ -376,6 +376,7 @@ See the following use cases:
 * `Enable all packages (and optionally all tests)`_
 * `Disable a package and all its dependencies`_
 * `Remove all package enables in the cache`_
+* `Speed up debugging dependency handling`_
 
 
 Determine the list of packages that can be enabled
@@ -505,7 +506,7 @@ packages.
 
 If one wants to enable a package along with the enable of other packages, but
 not the test suite for that package, then one can use a "exclude-list"
-appraoch to disable the tests for that package by configuring with, for
+approach to disable the tests for that package by configuring with, for
 example::
 
   -D <Project>_ENABLE_<TRIBITS_PACKAGE_1>=ON \
@@ -520,7 +521,7 @@ packages that might get implicitly enabled).  One might use this approach if
 one wants to build and install package ``<TRIBITS_PACKAGE_2>`` but does not
 want to build and run the test suite for that package.
 
-Alternatively, one can use an "include-list" appraoch to enable packages and
+Alternatively, one can use an "include-list" approach to enable packages and
 only enable tests for specific packages, for example, configuring with::
 
   -D <Project>_ENABLE_<TRIBITS_PACKAGE_1>=ON \
@@ -654,6 +655,22 @@ expensive configure time checks (like the standard CMake compiler checks) and
 to preserve other cache variables that you have set and don't want to loose.
 For example, one would want to do this to avoid more expensive compiler and
 TPL checks.
+
+
+Speed up debugging dependency handling
++++++++++++++++++++++++++++++++++++++++
+
+To speed up debugging the package enable/disable dependency handling, set the
+cache variable::
+
+  -D <Project>_TRACE_DEPENDENCY_HANDLING_ONLY=ON
+
+This will result in only performing the package enable/disable dependency
+handling logic and tracing what would be done to configure the compilers and
+configure the various enabled packages but not actually do that work.  This
+can greatly speed up the time to complete the ``cmake`` configure command when
+debugging the dependency handling (or when creating tests that check that
+behavior).
 
 
 Selecting compiler and linker options
@@ -1333,7 +1350,7 @@ c) **Setting up to run MPI programs:**
 
   MPI test and example executables are passed to CTest ``add_test()`` as::
 
-    add_test(
+    add_test(NAME <testName> COMMAND
       ${MPI_EXEC} ${MPI_EXEC_PRE_NUMPROCS_FLAGS}
       ${MPI_EXEC_NUMPROCS_FLAG} <NP>
       ${MPI_EXEC_POST_NUMPROCS_FLAGS}
@@ -1470,6 +1487,13 @@ libraries.  The second flag tells cmake to locate static library versions of
 any required TPLs.  The third flag tells the auto-detection routines that
 search for extra required libraries (such as the mpi library and the gfortran
 library for gnu compilers) to locate static versions.
+
+The TPL_FIND_SHARED_LIBS setting can also be set per-TPL, in the case that
+the desire is to find shared libraries for one TPL, but static libraries for
+all others::
+
+ -D TPL_FIND_SHARED_LIBS=OFF \
+ -D <TPLNAME>_FIND_SHARED_LIBS=ON
 
 
 Changing include directories in downstream CMake projects to non-system
@@ -2213,6 +2237,21 @@ This will override the global behavior set by
 ``<TRIBITS_PACKAGE>``.
 
 
+Setting or disabling Python
+----------------------------
+
+To set which Python interpreter is used, configure with::
+
+  -D Python3_EXECUTABLE=<python-path>
+
+Otherwise, Python will be found automatically by default using
+``find_python(Python3)`` internally (see `FindPython3.cmake`_).
+
+To disable the finding and usage of Python, configure with (empty)::
+
+  -D Python3_EXECUTABLE=
+
+
 Outputting package dependency information
 -----------------------------------------
 
@@ -2932,6 +2971,20 @@ the source distribution tarball.
 NOTE: If the base ``.git/`` directory is missing, then no
 ``<Project>RepoVersion.txt`` file will get generated and a ``NOTE`` message is
 printed to cmake STDOUT.
+
+
+Show parent(s) commit info in the repo version output
+-----------------------------------------------------
+
+.. _<Project>_SHOW_GIT_COMMIT_PARENTS:
+
+When working with local git repos for the project sources, one can include
+the repo's head commit parent(s) info in the repo version output using::
+
+   -D <Project>_SHOW_GIT_COMMIT_PARENTS=ON
+
+For each parent commit, this will include their SHA1, author name, date, email
+and its 80 character summary message in the repo version output string.
 
 
 Generating git version date files
@@ -4458,5 +4511,8 @@ dashboard``.
 .. _TriBITS TribitsExampleApp Tests: https://github.com/TriBITSPub/TriBITS/blob/master/test/core/ExamplesUnitTests/TribitsExampleApp_Tests.cmake
 
 .. _xSDK Community Package Policies: https://doi.org/10.6084/m9.figshare.4495136
+
+.. _FindPython3.cmake: https://cmake.org/cmake/help/latest/module/FindPython3.html
+
 
 ..  LocalWords:  templated instantiation Makefiles CMake

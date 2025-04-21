@@ -47,7 +47,6 @@
 #include <stk_mesh/base/Entity.hpp>
 #include <stk_mesh/base/MetaData.hpp>
 #include <stk_mesh/base/BulkData.hpp>
-#include <stk_mesh/base/GetBuckets.hpp>
 #include <stk_mesh/base/CreateEdges.hpp>
 #include <stk_mesh/base/Comm.hpp>
 
@@ -126,7 +125,7 @@ TEST(hex_edges, hex_edges)
     const double timers[NUM_TIMERS] = {mesh_create_time, create_edges_time, total_time};
     const char* timer_names[NUM_TIMERS] = {"Create mesh", "Create edges", "Total time"};
 
-    stk::print_timers_and_memory(&timer_names[0], &timers[0], NUM_TIMERS);
+    stk::print_timers_and_memory(timer_names, timers, NUM_TIMERS);
     std::cout<<"Global HWM: "<<stk::human_bytes(global_hwm)<<std::endl;
   }
 
@@ -199,7 +198,7 @@ TEST(hex_edges, minimal_hex_edges)
     const double timers[NUM_TIMERS] = {mesh_create_time, create_edges_time, total_time};
     const char* timer_names[NUM_TIMERS] = {"Create mesh", "Create edges", "Total time"};
 
-    stk::print_timers_and_memory(&timer_names[0], &timers[0], NUM_TIMERS);
+    stk::print_timers_and_memory(timer_names, timers, NUM_TIMERS);
     std::cout<<"Global HWM: "<<stk::human_bytes(global_hwm)<<std::endl;
   }
 

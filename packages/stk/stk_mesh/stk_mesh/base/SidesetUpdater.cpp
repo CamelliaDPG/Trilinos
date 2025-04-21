@@ -11,7 +11,6 @@
 #include "stk_mesh/base/Entity.hpp"     // for Entity
 #include "stk_mesh/base/Selector.hpp"   // for Selector
 #include "stk_mesh/base/GetEntities.hpp"
-#include "stk_mesh/base/SideSetUtil.hpp"
 #include "stk_mesh/base/Types.hpp"      // for EntityId, EntityVector
 #include "stk_mesh/base/SideSetUtil.hpp"
 #include "stk_mesh/base/SidesetUpdater.hpp"
@@ -46,7 +45,7 @@ void ReconstructionSidesetUpdater::fill_sidesets_element_belongs_to(Entity elem)
   }
 }
 
-void ReconstructionSidesetUpdater::entity_added(Entity entity)
+void ReconstructionSidesetUpdater::entity_added(Entity /*entity*/)
 {
 
 }
@@ -313,11 +312,11 @@ void ReconstructionSidesetUpdater::set_reduced_values(const std::vector<size_t> 
   }
 }
 
-void ReconstructionSidesetUpdater::elements_about_to_move_procs_notification(const EntityProcVec &elemProcPairsToMove)
+void ReconstructionSidesetUpdater::elements_about_to_move_procs_notification(const EntityProcVec &/*elemProcPairsToMove*/)
 {
 }
 
-void ReconstructionSidesetUpdater::elements_moved_procs_notification(const EntityProcVec &elemProcPairsToMove)
+void ReconstructionSidesetUpdater::elements_moved_procs_notification(const EntityProcVec &/*elemProcPairsToMove*/)
 {
 }
 
@@ -348,11 +347,11 @@ void ReconstructionSidesetUpdater::insert_parts(Entity entity, const OrdinalVect
   }
 }
 
-void ReconstructionSidesetUpdater::entity_parts_added(Entity entity, const OrdinalVector& parts)
+void ReconstructionSidesetUpdater::entity_parts_added(Entity /*entity*/, const OrdinalVector& /*parts*/)
 {
 }
 
-void ReconstructionSidesetUpdater::entity_parts_removed(Entity entity, const OrdinalVector& parts)
+void ReconstructionSidesetUpdater::entity_parts_removed(Entity /*entity*/, const OrdinalVector& /*parts*/)
 {
 }
 

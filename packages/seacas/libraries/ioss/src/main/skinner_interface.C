@@ -1,33 +1,40 @@
 /*
- * Copyright(C) 1999-2022 National Technology & Engineering Solutions
+ * Copyright(C) 1999-2025 National Technology & Engineering Solutions
  * of Sandia, LLC (NTESS).  Under the terms of Contract DE-NA0003525 with
  * NTESS, the U.S. Government retains certain rights in this software.
  *
  * See packages/seacas/LICENSE for details
  */
+#include <cstdlib> // for exit, EXIT_SUCCESS, getenv
+#include <fmt/core.h>
+#include <iostream> // for operator<<, basic_ostream, etc
+#include <stdio.h>
+#include <string> // for char_traits, string
+
 #include "Ioss_GetLongOpt.h" // for GetLongOption, etc
+#include "Ioss_Sort.h"
 #include "Ioss_Utils.h"
 #include "skinner_interface.h"
-#include <cstddef> // for nullptr
-#include <cstdlib> // for exit, EXIT_SUCCESS, getenv
-#include <fmt/format.h>
-#include <iostream> // for operator<<, basic_ostream, etc
-#include <string>   // for char_traits, string
+#include "tokenize.h"
 
-Skinner::Interface::Interface() { enroll_options(); }
-
-Skinner::Interface::~Interface() = default;
+Skinner::Interface::Interface(std::string app_version) : version(std::move(app_version))
+{
+  enroll_options();
+}
 
 void Skinner::Interface::enroll_options()
 {
   options_.usage("[options] input_file[s] output_file");
 
-  options_.enroll("help", Ioss::GetLongOption::NoValue, "Print this summary and exit", nullptr);
+  options_.enroll("help", Ioss::GetLongOption::OptType::NoValue, "Print this summary and exit",
+                  nullptr);
 
-  options_.enroll("version", Ioss::GetLongOption::NoValue, "Print version and exit", nullptr);
+  options_.enroll("version", Ioss::GetLongOption::OptType::NoValue, "Print version and exit",
+                  nullptr);
 
-  options_.enroll("64-bit", Ioss::GetLongOption::NoValue, "True if using 64-bit integers", nullptr);
-  options_.enroll("in_type", Ioss::GetLongOption::MandatoryValue,
+  options_.enroll("64-bit", Ioss::GetLongOption::OptType::NoValue, "True if using 64-bit integers",
+                  nullptr);
+  options_.enroll("in_type", Ioss::GetLongOption::OptType::MandatoryValue,
                   "Database type for input file: generated"
 #if defined(SEACAS_HAVE_PAMGEN)
                   "|pamgen"
@@ -44,7 +51,7 @@ void Skinner::Interface::enroll_options()
                   ".\n\t\tIf not specified, guess from extension or exodus is the default.",
                   "unknown");
 
-  options_.enroll("out_type", Ioss::GetLongOption::MandatoryValue,
+  options_.enroll("out_type", Ioss::GetLongOption::OptType::MandatoryValue,
                   "Database type for output file:"
 #if defined(SEACAS_HAVE_EXODUS)
                   " exodus"
@@ -55,92 +62,109 @@ void Skinner::Interface::enroll_options()
                   ".\n\t\tIf not specified, guess from extension or exodus is the default.",
                   "unknown");
 
-  options_.enroll("no_output", Ioss::GetLongOption::NoValue,
-                  "Do not produce output file, just generate the faces", nullptr);
+  options_.enroll("no_output", Ioss::GetLongOption::OptType::NoValue,
+                  "Do not produce output file, just generate the faces", nullptr, nullptr, true);
 
-  options_.enroll("ignore_face_hash_ids", Ioss::GetLongOption::NoValue,
+  options_.enroll(
+      "output_transient", Ioss::GetLongOption::OptType::NoValue,
+      "Transfer nodal and element transient data from the input mesh to the output mesh.", nullptr);
+
+  options_.enroll("Maximum_Time", Ioss::GetLongOption::OptType::MandatoryValue,
+                  "Maximum time on input database to transfer to output database", nullptr);
+
+  options_.enroll("Minimum_Time", Ioss::GetLongOption::OptType::MandatoryValue,
+                  "Minimum time on input database to transfer to output database", nullptr);
+
+  options_.enroll("select_times", Ioss::GetLongOption::OptType::MandatoryValue,
+                  "comma-separated list of times that should be transferred to output database",
+                  nullptr, nullptr, true);
+
+  options_.enroll("ignore_face_hash_ids", Ioss::GetLongOption::OptType::NoValue,
                   "Don't use face ids from hash of node ids; just use 1..num_face", nullptr);
 
-  options_.enroll("blocks", Ioss::GetLongOption::NoValue,
-                  "Skin block-by-block instead of entire model boundary", nullptr);
+  options_.enroll("blocks", Ioss::GetLongOption::OptType::NoValue,
+                  "Skin block-by-block instead of entire model boundary", nullptr, nullptr, true);
 
-  options_.enroll("netcdf4", Ioss::GetLongOption::NoValue,
+  options_.enroll("netcdf4", Ioss::GetLongOption::OptType::NoValue,
                   "Output database will be a netcdf4 "
                   "hdf5-based file instead of the "
                   "classical netcdf file format",
                   nullptr);
 
-  options_.enroll("shuffle", Ioss::GetLongOption::NoValue,
+  options_.enroll("shuffle", Ioss::GetLongOption::OptType::NoValue,
                   "Use a netcdf4 hdf5-based file and use hdf5s shuffle mode with compression.",
                   nullptr);
 
-  options_.enroll("compress", Ioss::GetLongOption::MandatoryValue,
+  options_.enroll("compress", Ioss::GetLongOption::OptType::MandatoryValue,
                   "Specify the hdf5 compression level [0..9] to be used on the output file.",
-                  nullptr);
+                  nullptr, nullptr, true);
 
+#if defined(SEACAS_HAVE_MPI)
   options_.enroll(
-      "compose", Ioss::GetLongOption::OptionalValue,
+      "compose", Ioss::GetLongOption::OptType::OptionalValue,
       "If no argument, specify single-file output; if 'external', then file-per-processor.\n"
       "\t\tAll other options are ignored and just exist for backward-compatibility",
-      nullptr, "true");
+      nullptr, "nullptr, true");
 
   options_.enroll(
-      "rcb", Ioss::GetLongOption::NoValue,
+      "rcb", Ioss::GetLongOption::OptType::NoValue,
       "Use recursive coordinate bisection method to decompose the input mesh in a parallel run.",
       nullptr);
   options_.enroll(
-      "rib", Ioss::GetLongOption::NoValue,
+      "rib", Ioss::GetLongOption::OptType::NoValue,
       "Use recursive inertial bisection method to decompose the input mesh in a parallel run.",
       nullptr);
 
   options_.enroll(
-      "hsfc", Ioss::GetLongOption::NoValue,
+      "hsfc", Ioss::GetLongOption::OptType::NoValue,
       "Use hilbert space-filling curve method to decompose the input mesh in a parallel run.",
       nullptr);
 
   options_.enroll(
-      "metis_sfc", Ioss::GetLongOption::NoValue,
+      "metis_sfc", Ioss::GetLongOption::OptType::NoValue,
       "Use the metis space-filling-curve method to decompose the input mesh in a parallel run.",
       nullptr);
 
   options_.enroll(
-      "kway", Ioss::GetLongOption::NoValue,
+      "kway", Ioss::GetLongOption::OptType::NoValue,
       "Use the metis kway graph-based method to decompose the input mesh in a parallel run.",
       nullptr);
 
-  options_.enroll("kway_geom", Ioss::GetLongOption::NoValue,
+  options_.enroll("kway_geom", Ioss::GetLongOption::OptType::NoValue,
                   "Use the metis kway graph-based method with geometry speedup to decompose the "
                   "input mesh in a parallel run.",
                   nullptr);
 
-  options_.enroll("linear", Ioss::GetLongOption::NoValue,
+  options_.enroll("linear", Ioss::GetLongOption::OptType::NoValue,
                   "Use the linear method to decompose the input mesh in a parallel run.\n"
                   "\t\telements in order first n/p to proc 0, next to proc 1.",
                   nullptr);
 
-  options_.enroll("cyclic", Ioss::GetLongOption::NoValue,
+  options_.enroll("cyclic", Ioss::GetLongOption::OptType::NoValue,
                   "Use the cyclic method to decompose the input mesh in a parallel run.\n"
                   "\t\telements handed out to id % proc_count",
                   nullptr);
 
   options_.enroll(
-      "random", Ioss::GetLongOption::NoValue,
+      "random", Ioss::GetLongOption::OptType::NoValue,
       "Use the random method to decompose the input mesh in a parallel run.\n"
       "\t\telements assigned randomly to processors in a way that preserves balance (do "
       "not use for a real run)",
       nullptr);
 
-  options_.enroll("external", Ioss::GetLongOption::NoValue,
+  options_.enroll("external", Ioss::GetLongOption::OptType::NoValue,
                   "Files are decomposed externally into a file-per-processor in a parallel run.",
+                  nullptr, nullptr, true);
+#endif
+
+  options_.enroll("debug", Ioss::GetLongOption::OptType::NoValue, "turn on debugging output",
                   nullptr);
 
-  options_.enroll("debug", Ioss::GetLongOption::NoValue, "turn on debugging output", nullptr);
-
-  options_.enroll("statistics", Ioss::GetLongOption::NoValue,
+  options_.enroll("statistics", Ioss::GetLongOption::OptType::NoValue,
                   "output parallel io timing statistics", nullptr);
 
-  options_.enroll("copyright", Ioss::GetLongOption::NoValue, "Show copyright and license data.",
-                  nullptr);
+  options_.enroll("copyright", Ioss::GetLongOption::OptType::NoValue,
+                  "Show copyright and license data.", nullptr);
 }
 
 bool Skinner::Interface::parse_options(int argc, char **argv)
@@ -153,7 +177,7 @@ bool Skinner::Interface::parse_options(int argc, char **argv)
                "variable:\n"
                "\t{}\n\n",
                options);
-    options_.parse(options, options_.basename(*argv));
+    options_.parse(options, Ioss::GetLongOption::basename(*argv));
   }
 
   int option_index = options_.parse(argc, argv);
@@ -173,18 +197,34 @@ bool Skinner::Interface::parse_options(int argc, char **argv)
   }
 
   if (options_.retrieve("version") != nullptr) {
-    // Version is printed up front, just exit...
+    fmt::print(stderr, "skinner\tVersion: {}\n", version);
     exit(0);
   }
 
-  ints64Bit_      = options_.retrieve("64-bit") != nullptr;
-  netcdf4_        = options_.retrieve("netcdf4") != nullptr;
-  shuffle         = options_.retrieve("shuffle") != nullptr;
-  noOutput_       = options_.retrieve("no_output") != nullptr;
-  useFaceHashIds_ = options_.retrieve("ignore_face_hash_ids") == nullptr;
-  debug           = options_.retrieve("debug") != nullptr;
-  statistics      = options_.retrieve("statistics") != nullptr;
-  blocks_         = options_.retrieve("blocks") != nullptr;
+  ints64Bit_       = options_.retrieve("64-bit") != nullptr;
+  netcdf4_         = options_.retrieve("netcdf4") != nullptr;
+  shuffle          = options_.retrieve("shuffle") != nullptr;
+  noOutput_        = options_.retrieve("no_output") != nullptr;
+  outputTransient_ = options_.retrieve("output_transient") != nullptr;
+  useFaceHashIds_  = options_.retrieve("ignore_face_hash_ids") == nullptr;
+  debug            = options_.retrieve("debug") != nullptr;
+  statistics       = options_.retrieve("statistics") != nullptr;
+  blocks_          = options_.retrieve("blocks") != nullptr;
+
+  maximum_time = options_.get_option_value("Maximum_Time", maximum_time);
+  minimum_time = options_.get_option_value("Minimum_Time", minimum_time);
+
+  {
+    const char *temp = options_.retrieve("select_times");
+    if (temp != nullptr) {
+      auto time_str = Ioss::tokenize(std::string(temp), ",");
+      for (const auto &str : time_str) {
+        auto time = std::stod(str);
+        selected_times.push_back(time);
+      }
+      Ioss::sort(selected_times.begin(), selected_times.end());
+    }
+  }
 
   {
     const char *temp = options_.retrieve("compress");
@@ -193,6 +233,7 @@ bool Skinner::Interface::parse_options(int argc, char **argv)
     }
   }
 
+#if defined(SEACAS_HAVE_MPI)
   if (options_.retrieve("rcb") != nullptr) {
     decomp_method = "RCB";
   }
@@ -234,6 +275,15 @@ bool Skinner::Interface::parse_options(int argc, char **argv)
   }
 
   {
+    const char *temp = options_.retrieve("compose");
+    if (temp != nullptr) {
+      compose_output = Ioss::Utils::lowercase(temp);
+    }
+  }
+
+#endif
+
+  {
     const char *temp = options_.retrieve("in_type");
     if (temp != nullptr) {
       inFiletype_ = temp;
@@ -247,15 +297,8 @@ bool Skinner::Interface::parse_options(int argc, char **argv)
     }
   }
 
-  {
-    const char *temp = options_.retrieve("compose");
-    if (temp != nullptr) {
-      compose_output = Ioss::Utils::lowercase(temp);
-    }
-  }
-
   if (options_.retrieve("copyright") != nullptr) {
-    Ioss::Utils::copyright(std::cerr, "1999-2022");
+    Ioss::Utils::copyright(std::cerr, "1999-2023");
     exit(EXIT_SUCCESS);
   }
 

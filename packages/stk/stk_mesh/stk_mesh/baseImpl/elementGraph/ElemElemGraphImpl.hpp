@@ -55,8 +55,6 @@ namespace stk { namespace mesh {
 namespace impl
 {
 
-static const LocalId INVALID_LOCAL_ID = std::numeric_limits<impl::LocalId>::max();
-
 struct RemoteElementData
 {
 public:
@@ -109,7 +107,7 @@ struct ParallelInfo
 public:
     ParallelInfo(int proc, int perm, stk::topology other_elem_topology) :
         m_permutation(perm), m_remote_element_topology(other_elem_topology), remoteElementData(proc) {}
-    ParallelInfo(int proc, int perm, stk::mesh::EntityId chosen_face_id, stk::topology other_elem_topology) :
+    ParallelInfo(int proc, int perm, stk::mesh::EntityId /*chosen_face_id*/, stk::topology other_elem_topology) :
         m_permutation(perm), m_remote_element_topology(other_elem_topology), remoteElementData(proc) {}
     ParallelInfo() :
         m_permutation(INVALID_PERMUTATION), m_remote_element_topology(stk::topology::INVALID_TOPOLOGY), remoteElementData(-1) {}

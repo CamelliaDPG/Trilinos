@@ -83,18 +83,8 @@ typedef std::vector< unsigned >     PermutationIndexVector;
 typedef std::vector<Entity>         EntityVector;
 typedef std::vector<EntityKey>      EntityKeyVector;
 
-template< typename Scalar = void ,
-          class Tag1 = void , class Tag2 = void ,
-          class Tag3 = void , class Tag4 = void ,
-          class Tag5 = void , class Tag6 = void ,
-          class Tag7 = void >
-  class Field ;
-
-/** \brief Maximum
- *  \ref "multi-dimensional array" dimension of a
- *  \ref stk::mesh::Field "field"
- */
-enum { MaximumFieldDimension = 7 };
+template <typename Scalar = void>
+class Field;
 
 enum class Operation
 {
@@ -118,30 +108,15 @@ enum EntityState : char { Unchanged = 0 ,
                    Created  = 1 ,
                    Modified = 2 ,
                    Deleted  = 3 };
-inline
-std::ostream& operator<<(std::ostream& os, EntityState state)
-{
-  switch(state) {
-  case Unchanged: os<<"Unchanged"; break;
-  case Created: os<<"Created"; break;
-  case Modified: os<<"Modified"; break;
-  case Deleted: os<<"Deleted"; break;
-  default: break;
-  };
-  return os;
-}
-
-template< class FieldType > struct FieldTraits ;
-
+//
 //MeshIndex describes an Entity's location in the mesh, specifying which bucket,
 //and the offset (ordinal) into that bucket.
-//Ultimately we want this struct to contain two ints rather than a pointer and an int...
 struct MeshIndex
 {
   Bucket* bucket;
   unsigned bucket_ordinal;
 
-  MeshIndex(Bucket *bucketIn, size_t ordinal) : bucket(bucketIn), bucket_ordinal(ordinal) {}
+  constexpr MeshIndex(Bucket* bucketIn, size_t ordinal) : bucket(bucketIn), bucket_ordinal(ordinal) {}
 };
 
 // Smaller than MeshIndex and replaces bucket pointer with bucket_id to
@@ -151,6 +126,16 @@ struct FastMeshIndex
   unsigned bucket_id;
   unsigned bucket_ord;
 };
+
+constexpr bool operator<(const FastMeshIndex& lhs, const FastMeshIndex& rhs)
+{
+  return lhs.bucket_id == rhs.bucket_id ? lhs.bucket_ord < rhs.bucket_ord : lhs.bucket_id < rhs.bucket_id;
+}
+
+constexpr bool operator==(const FastMeshIndex& lhs, const FastMeshIndex& rhs)
+{
+  return lhs.bucket_id == rhs.bucket_id && lhs.bucket_ord == rhs.bucket_ord;
+}
 
 NAMED_PAIR(BucketInfo, unsigned, bucket_id, unsigned, num_entities_this_bucket)
 
@@ -177,19 +162,20 @@ typedef Ordinal RelationIdentifier;
 typedef Ordinal FieldArrayRank;
 
 typedef uint64_t EntityId ;
-static const EntityId InvalidEntityId = std::numeric_limits<stk::mesh::EntityId>::max();
+static constexpr EntityId InvalidEntityId = std::numeric_limits<stk::mesh::EntityId>::max();
 
 typedef std::vector<EntityId> EntityIdVector;
 
-static const EntityRank InvalidEntityRank = stk::topology::INVALID_RANK;
-static const PartOrdinal InvalidPartOrdinal = InvalidOrdinal;
-static const RelationIdentifier InvalidRelationIdentifier = InvalidOrdinal;
-static const int InvalidProcessRank = -1;
+static constexpr EntityRank InvalidEntityRank = stk::topology::INVALID_RANK;
+static constexpr PartOrdinal InvalidPartOrdinal = InvalidOrdinal;
+static constexpr RelationIdentifier InvalidRelationIdentifier = InvalidOrdinal;
+static constexpr int InvalidProcessRank = -1;
 
-  inline unsigned GetInvalidLocalId() {
-    static unsigned InvalidLocalId = std::numeric_limits<unsigned int>::max();
-    return InvalidLocalId;
-  }
+constexpr unsigned GetInvalidLocalId()
+{
+  unsigned InvalidLocalId = std::numeric_limits<unsigned int>::max();
+  return InvalidLocalId;
+}
 
 /**
 * Predefined identifiers for mesh object relationship types.
@@ -203,9 +189,9 @@ struct RelationType
     INVALID   = 10
   };
 
-  RelationType(relation_type_t value = INVALID) : m_value(value) {}
+  constexpr RelationType(relation_type_t value = INVALID) : m_value(value) {}
 
-  operator relation_type_t() const { return m_value; }
+  constexpr operator relation_type_t() const { return m_value; }
 
   relation_type_t m_value;
 };
@@ -253,25 +239,6 @@ typedef PairIter<const EntityCommInfo*>  PairIterEntityComm ;
 /** \} */
 
 //----------------------------------------------------------------------
-/** \ingroup stk_mesh_relations
- *  \brief  A relation stencil maps entity relationships to ordinals.
- *
- *  A relation stencil function is the inverse mapping of a contiguous
- *  span of non-negative integers to a template of entity relations.
- *  For example, a triangle-to-vertex relation stencil would map:
- *  -  0 = relation_stencil( Element , Node , 0 )
- *  -  1 = relation_stencil( Element , Node , 1 )
- *  -  2 = relation_stencil( Element , Node , 2 )
- *
- *  If the input entity relationship is within the stencil then
- *  a stencil function returns a non-negative integer;
- *  otherwise a stencil function returns a negative value.
- */
-typedef int ( * relation_stencil_ptr )( EntityRank  from_type ,
-                                        EntityRank  to_type ,
-                                        unsigned  identifier );
-
-//----------------------------------------------------------------------
 /** \brief  Span of a sorted relations for a given domain entity.
  *
  *  The span is sorted by
@@ -302,7 +269,15 @@ using ConnectivityOrdinal = uint16_t;
 constexpr ConnectivityOrdinal INVALID_CONNECTIVITY_ORDINAL = 65535;
 #else
 using ConnectivityOrdinal = uint32_t;
-constexpr ConnectivityOrdinal INVALID_CONNECTIVITY_ORDINAL = ~0U;
+constexpr ConnectivityOrdinal INVALID_CONNECTIVITY_ORDINAL = std::numeric_limits<ConnectivityOrdinal>::max();
+#endif
+
+#ifdef STK_16BIT_UPWARDCONN_INDEX_TYPE
+using UpwardConnIndexType = uint16_t;
+constexpr UpwardConnIndexType INVALID_UPWARDCONN_INDEX = 65535;
+#else
+using UpwardConnIndexType = uint32_t;
+constexpr UpwardConnIndexType INVALID_UPWARDCONN_INDEX = std::numeric_limits<UpwardConnIndexType>::max();
 #endif
 
 enum Permutation : unsigned char

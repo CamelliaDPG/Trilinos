@@ -1,6 +1,7 @@
 #include <stk_mesh/base/SideSetUtil.hpp>
 #include <stk_mesh/base/SideSetEntry.hpp>
 #include "stk_mesh/base/BulkData.hpp"
+#include "stk_mesh/base/Relation.hpp"
 #include "stk_mesh/base/MetaData.hpp"
 #include "stk_mesh/base/Types.hpp"
 #include "stk_mesh/base/SidesetUpdater.hpp"
@@ -10,6 +11,7 @@
 #include "stk_mesh/baseImpl/elementGraph/GraphEdgeData.hpp"
 #include "stk_mesh/baseImpl/elementGraph/GraphTypes.hpp"
 #include "stk_mesh/baseImpl/SideSetUtilImpl.hpp"
+#include "stk_mesh/baseImpl/MeshImplUtils.hpp"
 #include "stk_util/util/SortAndUnique.hpp"
 #include "stk_util/diag/StringUtil.hpp"           // for Type, etc
 #include "stk_util/util/string_case_compare.hpp"
@@ -20,111 +22,6 @@
 
 namespace stk {
 namespace mesh {
-
-bool is_elem_side_pair_in_sideset(const stk::mesh::SideSet& sset, stk::mesh::Entity elem, stk::mesh::ConnectivityOrdinal ordinal)
-{
-    bool isPresent = false;
-    for(const stk::mesh::SideSetEntry& entry : sset)
-    {   
-        if(entry.element == elem && entry.side == ordinal)
-        {
-            isPresent = true;
-            break;
-        }
-    }   
-
-    return isPresent;
-}
-
-std::pair<bool,bool> old_is_positive_sideset_polarity(const stk::mesh::BulkData &bulk,
-                                                  const stk::mesh::Part& sideSetPart,
-                                                  stk::mesh::Entity face,
-                                                  const stk::mesh::Part* activePart)
-{
-    std::pair<bool,bool> returnValue(false,false);
-
-    stk::mesh::EntityRank sideRank = bulk.mesh_meta_data().side_rank();
-    STK_ThrowRequire(bulk.entity_rank(face) == sideRank);
-    STK_ThrowAssert(bulk.bucket(face).member(sideSetPart));
-
-    const stk::mesh::Part &parentPart = stk::mesh::get_sideset_parent(sideSetPart);
-
-    const stk::mesh::SideSet* ssetPtr = nullptr;
-    try {
-        ssetPtr = &bulk.get_sideset(parentPart);
-    }
-    catch(std::exception&) {
-        return returnValue;
-    }
-
-    const stk::mesh::SideSet& sset = *ssetPtr;
-
-    const stk::mesh::Entity* sideElements = bulk.begin_elements(face);
-    const unsigned numSideElements = bulk.num_elements(face);
-
-    int numFound = 0;
-
-    bool foundElemWithPermutationZero = false;
-
-    stk::mesh::Entity foundElem;
-
-    stk::mesh::Selector activeSelector = (activePart == nullptr) ? bulk.mesh_meta_data().universal_part() : *activePart;
-
-    for(unsigned i=0; i<numSideElements; ++i)
-    {
-        stk::mesh::Entity elem = sideElements[i];
-
-        if (!activeSelector(bulk.bucket(elem))) {
-            continue;
-        }
-
-        const stk::mesh::Entity * elem_sides = bulk.begin(elem, sideRank);
-        stk::mesh::ConnectivityOrdinal const * side_ordinal = bulk.begin_ordinals(elem, sideRank);
-        stk::mesh::Permutation const * side_permutations = bulk.begin_permutations(elem, sideRank);
-        const unsigned num_elem_sides = bulk.num_connectivity(elem, sideRank);
-
-        for(unsigned k = 0; k < num_elem_sides; ++k)
-        {
-            if(elem_sides[k] == face)
-            {
-                if(is_elem_side_pair_in_sideset(sset, elem, side_ordinal[k])) {
-                    numFound++;
-                    foundElem = elem;
-
-                    if (side_permutations[k] == 0) {
-                        foundElemWithPermutationZero = true;
-                    }
-                }
-            }
-        }
-    }
-
-    returnValue.first = true;
-
-    if(numFound == 1) {
-        returnValue.second = foundElemWithPermutationZero;
-    } else if(numFound == 0 && numSideElements == 1) {
-
-        stk::mesh::Entity elem = sideElements[0];
-        const stk::mesh::Entity * elem_sides = bulk.begin(elem, sideRank);
-        stk::mesh::Permutation const * side_permutations = bulk.begin_permutations(elem, sideRank);
-        const size_t num_elem_sides = bulk.num_connectivity(elem, sideRank);
-
-        for(size_t k = 0; k < num_elem_sides; ++k)
-        {
-            if(elem_sides[k] == face)
-            {
-                if (side_permutations[k] == 0) {
-                    foundElemWithPermutationZero = true;
-                }
-            }
-        }
-
-        returnValue.second = !foundElemWithPermutationZero;
-    }
-
-    return returnValue;
-}
 
 stk::mesh::EntityVector get_sides(stk::mesh::BulkData &bulkData, const stk::mesh::Part& sidesetPart)
 {
@@ -160,11 +57,13 @@ void fill_sideset(const stk::mesh::Part& sidesetPart, stk::mesh::BulkData& bulkD
             const stk::mesh::ConnectivityOrdinal *ordinals = bulkData.begin_element_ordinals(side);
 
             for(unsigned i=0;i<numElements;++i) {
-                bool isOwned = bulkData.bucket(elements[i]).owned();
-                bool isSelected = elementSelector(bulkData.bucket(elements[i]));
+                const stk::mesh::Bucket& bucket = bulkData.bucket(elements[i]);
+                bool isOwned = bucket.owned();
+                bool isSelected = elementSelector(bucket);
 
                 if(isOwned && isSelected) {
-                    newSides.emplace_back(elements[i], ordinals[i]);
+                    stk::mesh::ConnectivityOrdinal sideOrdOffset = bulkData.entity_rank(side) == stk::topology::FACE_RANK ? 0 : bucket.topology().num_faces();
+                    newSides.emplace_back(elements[i], ordinals[i] + sideOrdOffset);
                 }
             }
         }
@@ -179,9 +78,9 @@ bool is_face_represented_in_sideset(const stk::mesh::BulkData& bulk, const stk::
     STK_ThrowRequire(bulk.entity_rank(face) == sideRank);
 
     std::vector<stk::mesh::Entity> side_elements;
-    std::vector<stk::mesh::Entity> side_nodes(bulk.begin_nodes(face), bulk.end_nodes(face));
 
-    stk::mesh::get_entities_through_relations(bulk, side_nodes, stk::topology::ELEMENT_RANK, side_elements);
+    stk::mesh::ConnectedEntities sideNodes = bulk.get_connected_entities(face, stk::topology::NODE_RANK);
+    stk::mesh::impl::find_entities_these_nodes_have_in_common(bulk, stk::topology::ELEM_RANK, sideNodes.size(), sideNodes.data(), side_elements);
 
     bool found = false;
 

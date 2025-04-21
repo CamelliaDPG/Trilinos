@@ -26,10 +26,6 @@ CDFEM_Options_Parser::parse(const Parser::Node & region_node, stk::mesh::MetaDat
     CDFEM_Support & cdfem_support = CDFEM_Support::get(meta);
     RefinementSupport & refinementSupport = RefinementSupport::get(meta);
 
-    bool usePercept = false;
-    cdfem_node.get_if_present("use_percept", usePercept);
-    refinementSupport.set_use_percept(usePercept);
-
     std::string cdfem_edge_degeneracy_handling_string;
     if (cdfem_node.get_if_present("cdfem_edge_degeneracy_handling", cdfem_edge_degeneracy_handling_string))
     {
@@ -52,6 +48,10 @@ CDFEM_Options_Parser::parse(const Parser::Node & region_node, stk::mesh::MetaDat
       }
     }
 
+    bool myFlagUseFacetsInsteadOfLevelSets = false;
+    cdfem_node.get_if_present("use_facets_to_perform_decomposition", myFlagUseFacetsInsteadOfLevelSets);
+    cdfem_support.set_use_facets_instead_of_levelset_fields( myFlagUseFacetsInsteadOfLevelSets );
+
     double cdfem_edge_tol = 0.0;
     if (cdfem_node.get_if_present("cdfem_edge_tolerance", cdfem_edge_tol))
     {
@@ -72,6 +72,12 @@ CDFEM_Options_Parser::parse(const Parser::Node & region_node, stk::mesh::MetaDat
         stk::RuntimeDoomedAdHoc() << "max_edge_snap must be in the range of 0 to 1: " << cdfem_node.info();
       }
       cdfem_support.set_max_edge_snap( maxEdgeSnap );
+    }
+
+    double snappingSharpFeatureAngleInDegrees = 135.;
+    if (cdfem_node.get_if_present("sharp_feature_angle_when_snapping", snappingSharpFeatureAngleInDegrees))
+    {
+      cdfem_support.set_snapping_sharp_feature_angle_in_degrees( snappingSharpFeatureAngleInDegrees );
     }
 
     std::string cdfem_simplex_generation_method_string;

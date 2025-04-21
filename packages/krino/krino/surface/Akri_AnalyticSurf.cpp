@@ -8,13 +8,13 @@
 
 #include <Akri_AnalyticSurf.hpp>
 #include <Akri_Transformation.hpp>
+#include <Akri_IntersectionUtils.hpp>
 
 #include <cmath>
 
 namespace krino{
 
-Cylinder::Cylinder(const std::string & n,  // surface name
-                   const double e1[3],  // first endpoint of axis
+Cylinder::Cylinder(const double e1[3],  // first endpoint of axis
                    const double e2[3],  // second endpoint of axis
                    const double r,      // radius of cylinder
                    const int sign)
@@ -124,8 +124,7 @@ Cylinder::point_signed_distance(const stk::math::Vector3d &x) const
   return dist_sign*D;
 }
 
-Point::Point(const std::string & n,  // surface name
-             const stk::math::Vector3d & coords)
+Point::Point(const stk::math::Vector3d & coords)
     : SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign(),
       my_coords(coords)
 {
@@ -147,8 +146,7 @@ bool Point::does_intersect(const BoundingBox & bbox) const
   return bbox.contains(my_coords);
 }
 
-Sphere::Sphere(const std::string & n,  // surface name
-               const stk::math::Vector3d & center,
+Sphere::Sphere(const stk::math::Vector3d & center,
                const double radius,
                const int sign)
     : SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign(),
@@ -193,7 +191,6 @@ Sphere::point_signed_distance(const stk::math::Vector3d &x) const
 }
 
 Ellipsoid::Ellipsoid(
-      const std::string & name,  // surface name
       const std::vector<double> & center,
       const std::vector<double> & semiAxes,
       const std::vector<double> & rotationVec,
@@ -259,10 +256,103 @@ Ellipsoid::point_signed_distance(const stk::math::Vector3d &x) const
   return mySign*(mySemiAxesNorm*std::sqrt(dx*dx+dy*dy+dz*dz)-mySemiAxesNorm);
 }
 
-Plane::Plane(const std::string & n,  // surface name
-               const double normal[3],
-               const double offset,
-               const double multiplier)
+Cuboid::Cuboid(const stk::math::Vector3d & center,
+    const stk::math::Vector3d & dimensions,
+    const stk::math::Vector3d & rotationVec,
+    const int sign)
+: SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign(),
+  mySign(sign),
+  myCenter(center),
+  myHalfDimensions(0.5*dimensions)
+{
+  if (!rotationVec.zero_length())
+  {
+    // myRotation is the rotation used for the cuboid, which is the opposite of the rotation of the query points
+    myRotation = std::make_unique<Quaternion>();
+    myRotation->set_from_rotation_vector(rotationVec);
+  }
+
+  set_bounding_box();
+}
+
+void
+Cuboid::set_bounding_box()
+{
+  myBoundingBox.clear();
+  if (!myRotation)
+  {
+    myBoundingBox.accommodate(myCenter-myHalfDimensions);
+    myBoundingBox.accommodate(myCenter+myHalfDimensions);
+  }
+  else
+  {
+    for (unsigned i=0; i<8; ++i)
+      myBoundingBox.accommodate(vertex_location(i));
+  }
+}
+
+stk::math::Vector3d Cuboid::vertex_location(const unsigned i) const
+{
+  const std::array<std::array<int,3>,8> vertexDeltas
+  {{
+    {{-1,-1,-1}}, {{+1,-1,-1}}, {{+1,+1,-1}}, {{-1,+1,-1}},
+    {{-1,-1,+1}}, {{+1,-1,+1}}, {{+1,+1,+1}}, {{-1,+1,+1}}
+  }};
+  const std::array<int,3> & delta = vertexDeltas[i];
+  const stk::math::Vector3d locationInCuboidCoords(myCenter[0]+delta[0]*myHalfDimensions[0], myCenter[1]+delta[1]*myHalfDimensions[1], myCenter[2]+delta[2]*myHalfDimensions[2]);
+  if (!myRotation)
+    return locationInCuboidCoords;
+  return myRotation->rotate_3d_vector(locationInCuboidCoords);
+}
+
+double
+Cuboid::point_signed_distance(const stk::math::Vector3d &x) const
+{
+  stk::math::Vector3d ptInCuboidCoords = x-myCenter;
+  if (myRotation)
+    ptInCuboidCoords = myRotation->reverse_rotate_3d_vector(ptInCuboidCoords);
+  // This calculation is far from obvious.  It is derived in an YouTube video.
+  const stk::math::Vector3d delta(std::abs(ptInCuboidCoords[0])-myHalfDimensions[0], std::abs(ptInCuboidCoords[1])-myHalfDimensions[1], std::abs(ptInCuboidCoords[2])-myHalfDimensions[2]);
+  const stk::math::Vector3d clip(std::max(delta[0],0.), std::max(delta[1],0.), std::max(delta[2],0.));
+  return mySign*(clip.length() + std::min(0., std::max(delta[0], std::max(delta[1], delta[2]))));
+}
+
+void Cuboid::fill_triangle_intersection_parametric_coordinates(const std::array<stk::math::Vector3d,3> & faceNodes, std::vector<stk::math::Vector3d> & intParamCoords) const
+{
+  intParamCoords.clear();
+
+  if (does_bounding_box_intersect_triangle_3d(myBoundingBox, faceNodes))
+  {
+    const auto [triArea, triNormal] = CalcTriangle3<double>::area_and_normal(faceNodes);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(0), vertex_location(1), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(1), vertex_location(2), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(2), vertex_location(3), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(3), vertex_location(0), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(4), vertex_location(5), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(5), vertex_location(6), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(6), vertex_location(7), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(7), vertex_location(4), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(0), vertex_location(4), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(1), vertex_location(5), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(2), vertex_location(6), intParamCoords);
+    append_triangle_edge_intersection_parametric_coordinates(faceNodes, triArea, triNormal, vertex_location(3), vertex_location(7), intParamCoords);
+  }
+}
+
+void Cuboid::fill_tetrahedon_intersection_parametric_coordinates(const std::array<stk::math::Vector3d,4> & tetNodes, std::vector<stk::math::Vector3d> & intParamCoords) const
+{
+  intParamCoords.clear();
+  if (does_bounding_box_intersect_tetrahedron(myBoundingBox, tetNodes))
+  {
+    for (unsigned i=0; i<8; ++i)
+      append_tetrahedron_intersection_parametric_coordinates(tetNodes, vertex_location(i), intParamCoords);
+  }
+}
+
+
+Plane::Plane(const stk::math::Vector3d & normal,
+    const double offset,
+    const double multiplier)
     : SurfaceThatDoesntTakeAdvantageOfNarrowBandAndThereforeHasCorrectSign(),
       myMultiplier(multiplier),
       myNormal(normal),

@@ -30,7 +30,7 @@ class SubElementNode;
 class ProlongationElementData;
 class InterfaceGeometry;
 class IntersectionPoint;
-class ElementIntersection;
+struct ElementIntersection;
 class Surface_Identifier;
 
 class ElementObj {
@@ -61,15 +61,6 @@ public:
 
   const MasterElement & master_elem() const { return my_master_elem; }
   stk::topology topology() const { return my_master_elem.get_topology(); }
-  void std_intg_pts( sierra::Array<const double,DIM,NINT> & intg_pt_locations,
-    sierra::Array<const double,NINT> & intg_weights,
-    sierra::ArrayContainer<double,NINT> & det_J,
-    const sierra::ArrayContainer<double,DIM,NPE_COORD> & coords,
-    const MasterElement & me ) const;
-  void std_intg_pts( sierra::Array<const double,DIM,NINT> & intg_pt_locations,
-    sierra::Array<const double,NINT> & intg_weights,
-    sierra::ArrayContainer<double,NINT> & det_J,
-    const sierra::ArrayContainer<double,DIM,NPE_COORD> & coords ) const { std_intg_pts(intg_pt_locations, intg_weights, det_J, coords, my_master_elem); }
 
   void fill_node_owner_coords(const Mesh_Element * owner, std::vector<stk::math::Vector3d> & coords) const;
   stk::math::Vector3d compute_local_coords_from_owner_coordinates(const Mesh_Element * owner, const stk::math::Vector3d & coords) const;
@@ -151,8 +142,8 @@ public:
 
   std::string visualize(const CDMesh & mesh) const;
   double interface_crossing_position(const InterfaceID interface, const std::array<stk::math::Vector3d,2> & edgeNodeCoords) const;
-  int interface_node_sign(const InterfaceID interface, const SubElementNode * node) const;
-  void fill_face_interior_intersections(const NodeVec & faceNodes, const InterfaceID & interface1, const InterfaceID & interface2, std::vector<ElementIntersection> & faceIntersectionPoints) const;
+  std::pair<int, double> interface_edge_crossing_sign_and_position(const InterfaceID interface, const SubElementNode * node1, const SubElementNode * node2) const;
+  void fill_face_interior_intersections(const NodeVec & faceNodes, std::vector<ElementIntersection> & faceIntersectionPoints) const;
   double interface_crossing_position(const InterfaceID interface, const SubElementNode * node1, const SubElementNode * node2) const;
   std::function<bool(const std::array<unsigned,4> &)> get_diagonal_picker() const;
 
@@ -167,6 +158,7 @@ public:
   bool have_interface(const InterfaceID interface) const { return std::binary_search(myCuttingInterfaces.begin(), myCuttingInterfaces.end(), interface); }
   int get_num_interfaces() const { return myCuttingInterfaces.size(); }
   int get_interface_index(const InterfaceID interface) const;
+  int get_interface_sign_for_uncrossed_subelement(const InterfaceID interface, const std::vector<stk::math::Vector3d> & elemNodeCoords) const;
   const std::vector<InterfaceID> & get_sorted_cutting_interfaces() const { return myCuttingInterfaces; }
   virtual void determine_decomposed_elem_phase(const std::vector<Surface_Identifier> & surfaceIDs) override;
   void set_have_interface() { my_have_interface = true; }

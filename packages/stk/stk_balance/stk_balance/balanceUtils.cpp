@@ -35,17 +35,17 @@ BalanceSettings::BalanceSettings()
     m_graphEdgeWeightMultiplier(DefaultSettings::graphEdgeWeightMultiplier)
 {}
 
-size_t BalanceSettings::getNumNodesRequiredForConnection(stk::topology element1Topology, stk::topology element2Topology) const
+size_t BalanceSettings::getNumNodesRequiredForConnection(stk::topology /*element1Topology*/, stk::topology /*element2Topology*/) const
 {
   return 1;
 }
 
-double BalanceSettings::getGraphEdgeWeight(stk::topology element1Topology, stk::topology element2Topology) const
+double BalanceSettings::getGraphEdgeWeight(stk::topology /*element1Topology*/, stk::topology /*element2Topology*/) const
 {
   return 1;
 }
 
-int BalanceSettings::getGraphVertexWeight(stk::topology type) const
+int BalanceSettings::getGraphVertexWeight(stk::topology /*type*/) const
 {
   return 1;
 }
@@ -105,19 +105,19 @@ bool BalanceSettings::includeSearchResultsInGraph() const
   return false;
 }
 
-void BalanceSettings::setIncludeSearchResultsInGraph(bool doContactSearch) 
+void BalanceSettings::setIncludeSearchResultsInGraph(bool /*doContactSearch*/) 
 {
 }
 
-double BalanceSettings::getToleranceForFaceSearch(const stk::mesh::BulkData & mesh,
-                                                  const stk::mesh::FieldBase & coordField,
-                                                  const stk::mesh::Entity * faceNodes,
-                                                  const unsigned numFaceNodes) const
+double BalanceSettings::getToleranceForFaceSearch(const stk::mesh::BulkData & /*mesh*/,
+                                                  const stk::mesh::FieldBase & /*coordField*/,
+                                                  const stk::mesh::Entity * /*faceNodes*/,
+                                                  const unsigned /*numFaceNodes*/) const
 {
   return 0.0;
 }
 
-void BalanceSettings::setToleranceFunctionForFaceSearch(std::shared_ptr<stk::balance::FaceSearchTolerance> faceSearchTolerance)
+void BalanceSettings::setToleranceFunctionForFaceSearch(std::shared_ptr<stk::balance::FaceSearchTolerance> /*faceSearchTolerance*/)
 {
 }
 
@@ -213,7 +213,7 @@ double BalanceSettings::getImbalanceTolerance() const
   return 1.01;
 }
 
-void BalanceSettings::setDecompMethod(const std::string& method)
+void BalanceSettings::setDecompMethod(const std::string& /*method*/)
 {
 }
 
@@ -254,10 +254,10 @@ void BalanceSettings::setNumCriteria(int num_criteria)
   m_vertexWeightFields.resize(m_numCriteria); 
 }
 
-void BalanceSettings::modifyDecomposition(DecompositionChangeList & decomp) const
+void BalanceSettings::modifyDecomposition(DecompositionChangeList & /*decomp*/) const
 {}
 
-double BalanceSettings::getParticleRadius(stk::mesh::Entity particle) const
+double BalanceSettings::getParticleRadius(stk::mesh::Entity /*particle*/) const
 {
   return 0.5;
 }
@@ -301,7 +301,8 @@ std::string BalanceSettings::getOutputSubdomainFieldName() const
 
 std::string BalanceSettings::getDiagnosticElementWeightFieldName() const
 {
-  return "stk_balance_diagnostic_element_weight";
+
+  return "stk_balance_diagnostic_element_weight" + std::to_string(getNumCriteria());
 }
 
 std::string BalanceSettings::getVertexConnectivityWeightFieldName() const
@@ -309,24 +310,25 @@ std::string BalanceSettings::getVertexConnectivityWeightFieldName() const
   return "stk_balance_vertex_connectivity_weight";
 }
 
-stk::mesh::Part * BalanceSettings::getSpiderPart(const stk::mesh::BulkData & stkMeshBulkData) const
+stk::mesh::Part * BalanceSettings::getSpiderPart(const stk::mesh::BulkData & /*stkMeshBulkData*/) const
 {
   return nullptr;
 }
 
-const stk::mesh::Field<int> * BalanceSettings::getSpiderVolumeConnectivityCountField(const stk::mesh::BulkData & stkMeshBulkData) const
+const stk::mesh::Field<int> * BalanceSettings::getSpiderVolumeConnectivityCountField(const stk::mesh::BulkData & /*stkMeshBulkData*/) const
 {
   return nullptr;
 }
 
-const stk::mesh::Field<int> * BalanceSettings::getOutputSubdomainField(const stk::mesh::BulkData & stkMeshBulkData) const
+const stk::mesh::Field<int> * BalanceSettings::getOutputSubdomainField(const stk::mesh::BulkData & /*stkMeshBulkData*/) const
 {
   return nullptr;
 }
 
 const stk::mesh::Field<double> * BalanceSettings::getDiagnosticElementWeightField(const stk::mesh::BulkData & stkMeshBulkData) const
 {
-  if (m_diagnosticElementWeightsField == nullptr) {
+  if (m_diagnosticElementWeightsField == nullptr ||
+      (getDiagnosticElementWeightFieldName() != m_diagnosticElementWeightsField->name())) {
     m_diagnosticElementWeightsField =
         stkMeshBulkData.mesh_meta_data().get_field<double>(stk::topology::ELEM_RANK,
                                                            getDiagnosticElementWeightFieldName());
@@ -503,46 +505,86 @@ int GraphCreationSettings::getGraphVertexWeight(stk::topology type) const
   switch(type)
   {
   case stk::topology::PARTICLE:
-  case stk::topology::LINE_2:
+  case stk::topology::LINE_2_1D:
+  case stk::topology::LINE_3_1D:
   case stk::topology::BEAM_2:
   case stk::topology::BEAM_3:
+  case stk::topology::SHELL_LINE_2:
+  case stk::topology::SHELL_LINE_3:
   case stk::topology::SPRING_2:
   case stk::topology::SPRING_3:
     return 1;
-  case stk::topology::SHELL_TRIANGLE_3:
-    return 3;
-  case stk::topology::SHELL_TRIANGLE_6:
-    return 8;
-  case stk::topology::SHELL_QUADRILATERAL_4:
-    return 6;
-  case stk::topology::SHELL_QUADRILATERAL_8:
-    return 8;
   case stk::topology::TRI_3_2D:
     return 3;
+  case stk::topology::TRI_4_2D:
+    return 4;
+  case stk::topology::TRI_6_2D:
+    return 6;
   case stk::topology::QUAD_4_2D:
     return 6;
-  case stk::topology::HEXAHEDRON_8:
-    return 3;
-  case stk::topology::HEXAHEDRON_20:
+  case stk::topology::QUAD_8_2D:
     return 8;
+  case stk::topology::QUAD_9_2D:
+    return 9;
+  case stk::topology::SHELL_TRI_3:
+    return 3;
+  case stk::topology::SHELL_TRI_4:
+    return 4;
+  case stk::topology::SHELL_TRI_6:
+    return 8;
+  case stk::topology::SHELL_TRI_3_ALL_FACE_SIDES:
+    return 3;
+  case stk::topology::SHELL_TRI_4_ALL_FACE_SIDES:
+    return 4;
+  case stk::topology::SHELL_TRI_6_ALL_FACE_SIDES:
+    return 8;
+  case stk::topology::SHELL_QUAD_4:
+    return 6;
+  case stk::topology::SHELL_QUAD_8:
+    return 8;
+  case stk::topology::SHELL_QUAD_9:
+    return 9;
+  case stk::topology::SHELL_QUAD_4_ALL_FACE_SIDES:
+    return 6;
+  case stk::topology::SHELL_QUAD_8_ALL_FACE_SIDES:
+    return 8;
+  case stk::topology::SHELL_QUAD_9_ALL_FACE_SIDES:
+    return 9;
+  case stk::topology::TET_4:
+    return 1;
+  case stk::topology::TET_8:
+    return 5;
+  case stk::topology::TET_10:
+    return 6;
+  case stk::topology::TET_11:
+    return 7;
   case stk::topology::PYRAMID_5:
     return 1;
-  case stk::topology::TETRAHEDRON_4:
-    return 1;
-  case stk::topology::TETRAHEDRON_10:
+  case stk::topology::PYRAMID_13:
+    return 5;
+  case stk::topology::PYRAMID_14:
     return 6;
   case stk::topology::WEDGE_6:
     return 2;
   case stk::topology::WEDGE_12:
-    // TODO
+    return 10;
   case stk::topology::WEDGE_15:
     return 12;
+  case stk::topology::WEDGE_18:
+    return 14;
+  case stk::topology::HEX_8:
+    return 3;
+  case stk::topology::HEX_20:
+    return 8;
+  case stk::topology::HEX_27:
+    return 10;
   default:
     if ( type.is_superelement( ))
     {
       return 10;
     }
-    throw("Invalid Element Type In WeightsOfElement");
+    STK_ThrowErrorMsg("Unrecognized element type (" << type << ") in getGraphVertexWeight()");
+    return 0;  // Keep compiler happy about always having a return value
   }
 }
 
@@ -650,8 +692,11 @@ int GraphCreationSettings::getConnectionTableIndex(stk::topology elementTopology
   case stk::topology::TRI_4_2D:
   case stk::topology::QUAD_4_2D:
   case stk::topology::SHELL_TRI_3:
+  case stk::topology::SHELL_TRI_3_ALL_FACE_SIDES:
   case stk::topology::SHELL_TRI_4:
+  case stk::topology::SHELL_TRI_4_ALL_FACE_SIDES:
   case stk::topology::SHELL_QUAD_4:
+  case stk::topology::SHELL_QUAD_4_ALL_FACE_SIDES:
     tableIndex = 2;
     break;
   case stk::topology::TET_4:
@@ -664,8 +709,11 @@ int GraphCreationSettings::getConnectionTableIndex(stk::topology elementTopology
   case stk::topology::QUAD_8_2D:
   case stk::topology::QUAD_9_2D:
   case stk::topology::SHELL_TRI_6:
+  case stk::topology::SHELL_TRI_6_ALL_FACE_SIDES:
   case stk::topology::SHELL_QUAD_8:
+  case stk::topology::SHELL_QUAD_8_ALL_FACE_SIDES:
   case stk::topology::SHELL_QUAD_9:
+  case stk::topology::SHELL_QUAD_9_ALL_FACE_SIDES:
     tableIndex = 4;
     break;
   case stk::topology::TET_8:
@@ -673,6 +721,7 @@ int GraphCreationSettings::getConnectionTableIndex(stk::topology elementTopology
   case stk::topology::TET_11:
   case stk::topology::PYRAMID_13:
   case stk::topology::PYRAMID_14:
+  case stk::topology::WEDGE_12:
   case stk::topology::WEDGE_15:
   case stk::topology::WEDGE_18:
   case stk::topology::HEX_20:
@@ -686,8 +735,7 @@ int GraphCreationSettings::getConnectionTableIndex(stk::topology elementTopology
     }
     else
     {
-      std::cerr << "Topology is " << elementTopology << std::endl;
-      throw("Invalid Element Type in GetDimOfElement");
+      STK_ThrowErrorMsg("Unrecognized element type (" << elementTopology << ") in getConnectionTableIndex()");
     }
     break;
   };
@@ -716,8 +764,11 @@ int GraphCreationSettings::getEdgeWeightTableIndex(stk::topology elementTopology
   case stk::topology::TRI_4_2D:
   case stk::topology::QUAD_4_2D:
   case stk::topology::SHELL_TRI_3:
+  case stk::topology::SHELL_TRI_3_ALL_FACE_SIDES:
   case stk::topology::SHELL_TRI_4:
+  case stk::topology::SHELL_TRI_4_ALL_FACE_SIDES:
   case stk::topology::SHELL_QUAD_4:
+  case stk::topology::SHELL_QUAD_4_ALL_FACE_SIDES:
     tableIndex = 2;
     break;
   case stk::topology::TET_4:
@@ -732,10 +783,13 @@ int GraphCreationSettings::getEdgeWeightTableIndex(stk::topology elementTopology
   case stk::topology::QUAD_8_2D:
   case stk::topology::QUAD_9_2D:
   case stk::topology::SHELL_TRI_6:
+  case stk::topology::SHELL_TRI_6_ALL_FACE_SIDES:
   case stk::topology::SHELL_QUAD_9:
+  case stk::topology::SHELL_QUAD_9_ALL_FACE_SIDES:
     tableIndex = 5;
     break;
   case stk::topology::SHELL_QUAD_8:
+  case stk::topology::SHELL_QUAD_8_ALL_FACE_SIDES:
   case stk::topology::TET_8:
   case stk::topology::TET_10:
   case stk::topology::TET_11:
@@ -757,8 +811,7 @@ int GraphCreationSettings::getEdgeWeightTableIndex(stk::topology elementTopology
     }
     else
     {
-      std::cerr << "Topology is " << elementTopology << std::endl;
-      throw("Invalid Element Type in GetDimOfElement");
+      STK_ThrowErrorMsg("Unrecognized element type (" << elementTopology << ") in getEdgeWeightTableIndex()");
     }
     break;
   };

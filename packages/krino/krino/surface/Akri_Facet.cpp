@@ -8,6 +8,7 @@
 
 #include <Akri_Facet.hpp>
 #include <Akri_BoundingBox.hpp>
+#include <Akri_IntersectionUtils.hpp>
 #include <Akri_Transformation.hpp>
 #include <stk_util/parallel/ParallelComm.hpp>
 
@@ -17,23 +18,31 @@ namespace krino{
 //
 //--------------------------------------------------------------------------------
 
-std::unique_ptr<Facet>
-Facet::unpack_from_buffer( stk::CommBuffer & b )
+static void unpack_vector3d_from_buffer( stk::math::Vector3d & vec, stk::CommBuffer & b )
 {
-  std::unique_ptr<Facet> facet;
+  b.unpack(vec[0]);
+  b.unpack(vec[1]);
+  b.unpack(vec[2]);
+}
 
-  int dim = 0;
-  b.unpack(dim);
+static void unpack_vector2d_from_buffer( stk::math::Vector3d & vec, stk::CommBuffer & b )
+{
+  b.unpack(vec[0]);
+  b.unpack(vec[1]);
+  vec[2] = 0.;
+}
 
-  STK_ThrowRequire(dim == 2 || dim == 3);
+static void unpack_vectors_from_buffer( std::array<stk::math::Vector3d,3> & vecs, stk::CommBuffer & b )
+{
+  unpack_vector3d_from_buffer(vecs[0], b);
+  unpack_vector3d_from_buffer(vecs[1], b);
+  unpack_vector3d_from_buffer(vecs[2], b);
+}
 
-  if (dim == 3)
-    facet = Facet3d::unpack_from_buffer(b);
-  else
-    facet = Facet2d::unpack_from_buffer(b);
-
-  STK_ThrowRequire(facet);
-  return facet;
+static void unpack_vectors_from_buffer( std::array<stk::math::Vector3d,2> & vecs, stk::CommBuffer & b )
+{
+  unpack_vector2d_from_buffer(vecs[0], b);
+  unpack_vector2d_from_buffer(vecs[1], b);
 }
 
 //--------------------------------------------------------------------------------
@@ -41,68 +50,73 @@ Facet::unpack_from_buffer( stk::CommBuffer & b )
 void
 Facet2d::pack_into_buffer(stk::CommBuffer & b) const
 {
-  const int dim = 2;
-  b.pack(dim);
   for (int n = 0; n < 2; ++n )
-  {
-    const stk::math::Vector3d & pt = facet_vertex(n);
-    b.pack(pt[0]);
-    b.pack(pt[1]);
-  }
+    for (int d = 0; d < 2; ++d )
+      b.pack(myCoords[n][d]);
 }
 
-std::unique_ptr<Facet2d>
-Facet2d::unpack_from_buffer( stk::CommBuffer & b  )
+Facet2d::Facet2d( stk::CommBuffer & b )
 {
-  std::unique_ptr<Facet2d> facet;
-
-  double vx, vy;
-  b.unpack(vx);
-  b.unpack(vy);
-  stk::math::Vector3d x0( vx, vy, 0.0 );
-  b.unpack(vx);
-  b.unpack(vy);
-  stk::math::Vector3d x1( vx, vy, 0.0 );
-
-  facet = std::make_unique<Facet2d>( x0, x1 );
-  return facet;
+  unpack_vectors_from_buffer(myCoords, b);
 }
 
 void
 Facet3d::pack_into_buffer(stk::CommBuffer & b) const
 {
-  const int dim = 3;
-  b.pack(dim);
   for (int n = 0; n < 3; ++n )
-  {
-    const stk::math::Vector3d & pt = facet_vertex(n);
-    b.pack(pt[0]);
-    b.pack(pt[1]);
-    b.pack(pt[2]);
-  }
+    for (int d = 0; d < 3; ++d )
+      b.pack(myCoords[n][d]);
 }
 
-std::unique_ptr<Facet3d>
-Facet3d::unpack_from_buffer( stk::CommBuffer & b  )
+Facet3d::Facet3d( stk::CommBuffer & b )
 {
-  std::unique_ptr<Facet3d> facet;
+  unpack_vectors_from_buffer(myCoords, b);
+}
 
-  double vx, vy, vz;
-  b.unpack(vx);
-  b.unpack(vy);
-  b.unpack(vz);
-  stk::math::Vector3d x0( vx, vy, vz );
-  b.unpack(vx);
-  b.unpack(vy);
-  b.unpack(vz);
-  stk::math::Vector3d x1( vx, vy, vz );
-  b.unpack(vx);
-  b.unpack(vy);
-  b.unpack(vz);
-  stk::math::Vector3d x2( vx, vy, vz );
+void
+FacetWithVelocity2d::pack_into_buffer(stk::CommBuffer & b) const
+{
+  Facet2d::pack_into_buffer(b);
+  for (int n = 0; n < 2; ++n )
+    for (int d = 0; d < 2; ++d )
+      b.pack(myVelocity[n][d]);
+}
 
-  facet = std::make_unique<Facet3d>( x0, x1, x2 );
-  return facet;
+FacetWithVelocity2d::FacetWithVelocity2d( stk::CommBuffer & b )
+: Facet2d(b)
+{
+  unpack_vectors_from_buffer(myVelocity, b);
+}
+
+void
+FacetWithVelocity3d::pack_into_buffer(stk::CommBuffer & b) const
+{
+  Facet3d::pack_into_buffer(b);
+  for (int n = 0; n < 3; ++n )
+    for (int d = 0; d < 3; ++d )
+      b.pack(myVelocity[n][d]);
+}
+
+FacetWithVelocity3d::FacetWithVelocity3d( stk::CommBuffer & b )
+: Facet3d(b)
+{
+  unpack_vectors_from_buffer(myVelocity, b);
+}
+
+stk::math::Vector3d FacetWithVelocity2d::velocity_at_closest_point( const stk::math::Vector3d & queryPt ) const
+{
+  stk::math::Vector3d closestPt;
+  stk::math::Vector2d paramAtClosestPt;
+  closest_point(queryPt, closestPt, paramAtClosestPt);
+  return (1.-paramAtClosestPt[0]) * myVelocity[0] + paramAtClosestPt[0] * myVelocity[1];
+}
+
+stk::math::Vector3d FacetWithVelocity3d::velocity_at_closest_point( const stk::math::Vector3d & queryPt ) const
+{
+  stk::math::Vector3d closestPt;
+  stk::math::Vector2d paramAtClosestPt;
+  closest_point(queryPt, closestPt, paramAtClosestPt);
+  return (1.0-paramAtClosestPt[0]-paramAtClosestPt[1]) * myVelocity[0] + paramAtClosestPt[0] * myVelocity[1] + paramAtClosestPt[1] * myVelocity[2];
 }
 
 std::ostream & Facet3d::put( std::ostream & os ) const
@@ -159,51 +173,10 @@ Facet3d::Facet3d( const stk::math::Vector3d & pt0,
 {
 }
 
-Facet3d::Facet3d( const double * pt0,
-    const double * pt1,
-    const double * pt2)
-    : myCoords{stk::math::Vector3d(pt0), stk::math::Vector3d(pt1), stk::math::Vector3d(pt2)}
-{
-}
-
 Facet2d::Facet2d( const stk::math::Vector3d & pt0,
     const stk::math::Vector3d & pt1  )
     : myCoords{pt0, pt1}
 {
-}
-
-Facet2d::Facet2d( const double * pt0,
-    const double * pt1  )
-    : myCoords{stk::math::Vector3d(pt0,2), stk::math::Vector3d(pt1,2)}
-{
-}
-
-template <typename VecType, size_t N>
-bool are_all_components_lo(const VecType & bboxMin, const std::array<const double*,N> & points, const unsigned comp)
-{
-  for (size_t i=0; i<N; ++i)
-    if (points[i][comp] >= bboxMin[comp])
-      return false;
-  return true;
-}
-
-template <typename VecType, size_t N>
-bool are_all_components_hi(const VecType & bboxMax, const std::array<const double*,N> & points, const unsigned comp)
-{
-  for (size_t i=0; i<N; ++i)
-    if (points[i][comp] <= bboxMax[comp])
-      return false;
-  return true;
-}
-
-template <size_t N>
-bool does_bounding_box_intersect_facet(const BoundingBox & bbox, const std::array<const double*,N> & points, const unsigned ndim)
-{
-  for (unsigned comp=0; comp<ndim; ++comp)
-    if (are_all_components_lo(bbox.get_min(), points, comp) ||
-        are_all_components_hi(bbox.get_max(), points, comp))
-      return false;
-  return true;
 }
 
 void Facet3d::insert_into(BoundingBox & bbox) const
@@ -215,8 +188,7 @@ void Facet3d::insert_into(BoundingBox & bbox) const
 
 bool Facet3d::does_intersect(const BoundingBox & bbox) const
 {
-  const std::array<const double*,3> pointData{myCoords[0].data(), myCoords[1].data(), myCoords[2].data()};
-  return does_bounding_box_intersect_facet(bbox, pointData, 3);
+  return does_bounding_box_intersect_triangle_3d(bbox, myCoords);
 }
 
 void Facet2d::insert_into(BoundingBox & bbox) const
@@ -227,8 +199,7 @@ void Facet2d::insert_into(BoundingBox & bbox) const
 
 bool Facet2d::does_intersect(const BoundingBox & bbox) const
 {
-  const std::array<const double*,2> pointData{myCoords[0].data(), myCoords[1].data()};
-  return does_bounding_box_intersect_facet(bbox, pointData, 2);
+  return does_bounding_box_intersect_edge_2d(bbox, myCoords);
 }
 
 double Facet3d::mean_squared_edge_length() const

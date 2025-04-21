@@ -1,4 +1,6 @@
-#ifdef STK_BUILT_IN_SIERRA
+#include <stk_util/stk_config.h>
+
+#ifdef STK_BUILT_FOR_SIERRA
 
 #include "stk_middle_mesh_util/constants.hpp"
 #include "stk_middle_mesh_util/stk_interface.hpp"
@@ -31,7 +33,7 @@ void read_stk_mesh(const std::string& fname, stk::mesh::BulkData& bulkData)
   reader.populate_field_data();
 }
 
-TEST(StkInterface, twoToThree)
+TEST(StkInterface, twoToThree_externalFile)
 {
   if (utils::impl::comm_size(MPI_COMM_WORLD) > 1)
     GTEST_SKIP();
@@ -59,8 +61,6 @@ TEST(StkInterface, twoToThree)
 
   auto& metaData  = bulkDataPtr->mesh_meta_data();
   auto& metaData2 = bulkData2Ptr->mesh_meta_data();
-  metaData.use_simple_fields();
-  metaData2.use_simple_fields();
 
   read_stk_mesh(fnameOut, bulkData);
   read_stk_mesh(fnameOut2, bulkData2);
@@ -128,7 +128,8 @@ TEST(StkInterface, twoToThree)
     EXPECT_EQ(gidCountR.count(entry), 1u);
 }
 
+}
+}
+}
+
 #endif
-}
-}
-}

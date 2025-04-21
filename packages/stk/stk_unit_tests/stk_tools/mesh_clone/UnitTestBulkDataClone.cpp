@@ -239,14 +239,14 @@ void expect_superset_sharing(const stk::mesh::BulkData& oldBulk, stk::mesh::Enti
         );
 }
 
-class CloningMesh : public stk::unit_test_util::simple_fields::MeshFixture
+class CloningMesh : public stk::unit_test_util::MeshFixture
 {
 protected:
   const char *get_mesh_spec_for_1x1x8_with_sideset() const {return "generated:1x1x8|sideset:x";}
   stk::mesh::BulkData::AutomaticAuraOption get_no_auto_aura_option() const {return stk::mesh::BulkData::NO_AUTO_AURA;}
 
   CloningMesh()
-    : stk::unit_test_util::simple_fields::MeshFixture(3, {"node", "edge", "face", "element", "constraint"})
+    : stk::unit_test_util::MeshFixture(3, {"node", "edge", "face", "element", "constraint"})
   { }
 
   void create_constraints()
@@ -254,9 +254,9 @@ protected:
     size_t numConstraintsPerProc = 10;
     size_t localConstraintId = 1;
     get_bulk().modification_begin();
-    stk::mesh::Entity constraint = get_bulk().declare_constraint(get_bulk().parallel_rank() * numConstraintsPerProc + localConstraintId);
     stk::mesh::Part *submesh = get_meta().get_part("submesh");
-    get_bulk().change_entity_parts(constraint, stk::mesh::ConstPartVector{submesh}, {});
+    STK_ThrowRequire(submesh != nullptr);
+    stk::mesh::Entity constraint = get_bulk().declare_entity(stk::topology::CONSTRAINT_RANK, get_bulk().parallel_rank() * numConstraintsPerProc + localConstraintId, *submesh);
     declare_constraint_relations_to_block1_elements(constraint);
     get_bulk().modification_end();
   }

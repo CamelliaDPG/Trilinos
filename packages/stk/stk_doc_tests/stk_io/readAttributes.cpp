@@ -52,7 +52,7 @@
 
 namespace {
 
-class ExodusFileWithAttributes : public stk::unit_test_util::simple_fields::MeshFixture { };
+class ExodusFileWithAttributes : public stk::unit_test_util::MeshFixture { };
 
 stk::mesh::FieldVector get_attribute_fields_for_part(const stk::mesh::MetaData &meta, const stk::mesh::Part *ioPart)
 {
@@ -83,10 +83,8 @@ std::vector<double> get_attributes_of_first_element(const stk::mesh::BulkData &b
   stk::mesh::get_entities(bulk, stk::topology::ELEM_RANK, *ioPart, elements);
 
   std::vector<double> attributes;
-  if(!elements.empty())
-  {
-    for(const stk::mesh::FieldBase *field : attributeFields)
-    {
+  if(!elements.empty()) {
+    for(const stk::mesh::FieldBase *field : attributeFields) {
       unsigned numAttribute = stk::mesh::field_scalars_per_entity(*field, elements[0]);
       double *dataForElement = static_cast<double*> (stk::mesh::field_data(*field, elements[0]));
       for(unsigned i=0; i<numAttribute; ++i)
@@ -96,7 +94,7 @@ std::vector<double> get_attributes_of_first_element(const stk::mesh::BulkData &b
   return attributes;
 }
 
-TEST_F(ExodusFileWithAttributes, readAttributes_haveFieldsWithAttributes)
+TEST_F(ExodusFileWithAttributes, readAttributes_haveFieldsWithAttributes_externalFile)
 {
   setup_mesh("hex_spider.exo", stk::mesh::BulkData::AUTO_AURA);
 
@@ -112,12 +110,11 @@ void mark_field_as_attribute(stk::mesh::FieldBase &field)
   stk::io::set_field_role(field, Ioss::Field::ATTRIBUTE);
 }
 
-TEST_F(ExodusFileWithAttributes, addAttribute_haveFieldsWithAttribute)
+TEST_F(ExodusFileWithAttributes, addAttribute_haveFieldsWithAttribute_externalFile)
 {
   allocate_bulk(stk::mesh::BulkData::AUTO_AURA);
 
   stk::io::StkMeshIoBroker stkIo;
-  stkIo.use_simple_fields();
   stkIo.set_bulk_data(get_bulk());
   stkIo.add_mesh_database("hex_spider.exo", stk::io::READ_MESH);
   stkIo.create_input_mesh();

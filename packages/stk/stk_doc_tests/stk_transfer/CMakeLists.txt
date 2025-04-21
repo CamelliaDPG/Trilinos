@@ -32,23 +32,43 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
+FILE(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
 
-TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
-TRIBITS_INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-
-FILE(GLOB SOURCES *.cpp)
-
-IF(NOT Trilinos_ENABLE_STKTransferUtil)
+IF(NOT ${PROJECT_NAME}_ENABLE_STKTransferUtil)
 LIST(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/howToUseLeastSquaresInterpolation.cpp")
 ENDIF()
 
-TRIBITS_ADD_EXECUTABLE_AND_TEST(
-    stk_transfer_doc_tests
+if(HAVE_STK_Trilinos)
+  TRIBITS_ADD_EXECUTABLE_AND_TEST(stk_transfer_doc_tests
     SOURCES ${SOURCES}
     TESTONLYLIBS stk_unit_main
-    ARGS "--gtest_filter=StkTransferHowTo.use*"
+    ARGS "--gtest_filter=StkTransferHowTo.useCopyTransfer"
     COMM mpi
     NUM_MPI_PROCS 2
     NOEXEPREFIX
-    )
+  )
+else()
+  add_executable(stk_transfer_doc_tests ${SOURCES})
+  if(${PROJECT_NAME}_ENABLE_STKTransferUtil)
+    target_link_libraries(stk_transfer_doc_tests stk_transfer_util)
+  endif()
+  target_link_libraries(stk_transfer_doc_tests stk_transfer)
+  target_link_libraries(stk_transfer_doc_tests stk_coupling)
+  target_link_libraries(stk_transfer_doc_tests stk_unit_test_utils)
+  target_link_libraries(stk_transfer_doc_tests stk_util_parallel)
+  target_link_libraries(stk_transfer_doc_tests stk_unit_main)
+
+
+  INSTALL(TARGETS stk_transfer_doc_tests DESTINATION ${STK_INSTALL_BINDIR})
+
+  FOREACH(NUMPROCS 1 2)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS})
+    add_test(NAME "stk_transfer_doc_tests_np${NUMPROCS}"
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/np${NUMPROCS} 
+             COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${NUMPROCS} ${CMAKE_CURRENT_BINARY_DIR}/stk_transfer_doc_tests 
+             --gtest_filter=StkTransferHowTo.useCopyTransfer)
+    set_property(TEST "stk_transfer_doc_tests_np${NUMPROCS}" PROPERTY PROCESSORS ${NUMPROCS})
+  ENDFOREACH()
+
+endif()
 

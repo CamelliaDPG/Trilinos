@@ -31,7 +31,7 @@ void IncrementalMeshBoundarySnapper::snap()
   {
     bool amIRoot = utils::impl::comm_rank(m_mesh2->get_comm()) == 0;
 
-    if (m_improver1->verbose_output() && amIRoot) {
+    if (m_improver2->verbose_output() && amIRoot) {
       std::cout << "\napplying displacement to mesh2" << std::endl;
     }
     apply_displacement(m_mesh2, m_mesh2Data, m_improver2, "mesh2");
@@ -59,7 +59,7 @@ void IncrementalMeshBoundarySnapper::record_final_position_and_restore_initial_p
 
 void IncrementalMeshBoundarySnapper::apply_displacement(MeshPtr mesh, FieldPtr field,
                                                         std::shared_ptr<MeshQualityImprover> improver,
-                                                        const std::string& prefix)
+                                                        const std::string& /*prefix*/)
 {
   bool amIRoot = utils::impl::comm_rank(mesh->get_comm()) == 0;
   auto& data = *field;

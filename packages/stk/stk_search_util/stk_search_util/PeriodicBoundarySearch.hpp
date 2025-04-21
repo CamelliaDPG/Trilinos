@@ -39,7 +39,6 @@
 #include <stk_search/CoarseSearch.hpp>
 #include <stk_search/BoundingBox.hpp>
 #include <stk_search/IdentProc.hpp>
-#include <stk_mesh/base/GetBuckets.hpp>
 #include <stk_mesh/base/GetEntities.hpp>
 #include <stk_mesh/base/FieldParallel.hpp>
 #include <stk_util/parallel/ParallelReduce.hpp>
@@ -524,13 +523,10 @@ private:
 
     stk::mesh::BucketVector const& buckets = m_bulk_data.get_buckets( stk::topology::NODE_RANK, side_selector );
 
-    size_t num_nodes = 0;
-
     for (size_t bindex = 0, num_buckets = buckets.size(); bindex < num_buckets; ++bindex) {
       stk::mesh::Bucket & b = *buckets[bindex];
       Point center;
       for (size_t ord =0, num_entities = b.size(); ord < num_entities; ++ord) {
-        ++num_nodes;
         m_get_coordinates(b[ord], &center[0]);
         SearchId search_id( m_bulk_data.entity_key(b[ord]), parallel_rank);
         aabb_vector.emplace_back( Sphere(center, search_tolerance), search_id);
@@ -620,20 +616,20 @@ private:
 
   void rotate_coordinates(
       SphereIdVector & side_1_vector,
-      SphereIdVector & side_2_vector,
+      SphereIdVector & /*side_2_vector*/,
       const matrix3x3 & rotation) const
   {
     for (auto && side_1 : side_1_vector)
     {
-      double *center = &side_1.first.center()[0];
+      double *center = &(side_1.first.center()[0]);
       std::vector<double> ctr(center, center+3);
-      rotation.transformVec(&ctr[0], center);
+      rotation.transformVec(ctr.data(), center);
     }
   }
 
   void apply_affine_to_coordinates(
       SphereIdVector & side_1_vector,
-      SphereIdVector & side_2_vector,
+      SphereIdVector & /*side_2_vector*/,
       const matrix3x3 & rotation,
       const std::vector<double> & translation) const
   {

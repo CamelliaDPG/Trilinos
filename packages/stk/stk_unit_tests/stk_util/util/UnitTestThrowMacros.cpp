@@ -48,25 +48,25 @@ bool test_error_handler_called = false;
 bool test_invarg_handler_called = false;
 
 void
-test_assert_handler(const char* expr,
-                    const std::string& location,
-                    std::ostringstream& message)
+test_assert_handler(const char* /*expr*/,
+                    const std::string& /*location*/,
+                    std::ostringstream& /*message*/)
 {
   test_assert_handler_called = true;
 }
 
 void
-test_error_handler(const char* expr,
-                   const std::string& location,
-                   std::ostringstream& message)
+test_error_handler(const char* /*expr*/,
+                   const std::string& /*location*/,
+                   std::ostringstream& /*message*/)
 {
   test_error_handler_called = true;
 }
 
 void
-test_invarg_handler(const char* expr,
-                    const std::string& location,
-                    std::ostringstream& message)
+test_invarg_handler(const char* /*expr*/,
+                    const std::string& /*location*/,
+                    std::ostringstream& /*message*/)
 {
   test_invarg_handler_called = true;
 }
@@ -248,7 +248,7 @@ TEST(UnitTestingOfThrowMacros, testUnit)
 
 void testNGPThrowRequireMsg()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     bool test = false;
     STK_NGP_ThrowRequireMsg(test == true, "Error testing whatever");
   });
@@ -260,7 +260,7 @@ void testNGPThrowRequireMsg()
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowRequireMsg)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   // Also, OpenMP seems to produce an abort (in adddition to a throw?).
@@ -295,7 +295,7 @@ TEST(UnitTestingOfThrowMacros, NGP_ThrowRequireMsg)
 
 void testNGPThrowRequire()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     bool test = false;
     STK_NGP_ThrowRequire(test == true);
   });
@@ -303,7 +303,7 @@ void testNGPThrowRequire()
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowRequire)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //
@@ -338,7 +338,7 @@ void testNGPThrowAssertMsg()
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowAssertMsg_debug)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //
@@ -365,14 +365,14 @@ TEST(UnitTestingOfThrowMacros, NGP_ThrowAssertMsg_debug)
 #ifdef NDEBUG
 void testNGPThrowAssertMsg()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     STK_NGP_ThrowAssertMsg(false, "Error testing whatever");
   });
 }
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowAssertMsg_release)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //
@@ -387,7 +387,7 @@ TEST(UnitTestingOfThrowMacros, NGP_ThrowAssertMsg_release)
 
 void testNGPThrowErrorMsgIf()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     bool test = true;
     STK_NGP_ThrowErrorMsgIf(test == true, "Error testing whatever");
   });
@@ -395,7 +395,7 @@ void testNGPThrowErrorMsgIf()
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowErrorMsgIf)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //
@@ -419,7 +419,7 @@ TEST(UnitTestingOfThrowMacros, NGP_ThrowErrorMsgIf)
 
 void testNGPThrowErrorIf()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     bool test = true;
     STK_NGP_ThrowErrorIf(test == true);
   });
@@ -427,7 +427,7 @@ void testNGPThrowErrorIf()
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowErrorIf)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //
@@ -449,14 +449,14 @@ TEST(UnitTestingOfThrowMacros, NGP_ThrowErrorIf)
 
 void testNGPThrowErrorMsg()
 {
-  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & i){
+  Kokkos::parallel_for(stk::ngp::DeviceRangePolicy(0, 1), KOKKOS_LAMBDA(const int & /*i*/){
     STK_NGP_ThrowErrorMsg("Error testing whatever");
   });
 }
 
 TEST(UnitTestingOfThrowMacros, NGP_ThrowErrorMsg)
 {
-#if defined(KOKKOS_ENABLE_CUDA) || defined(_OPENMP) || defined(KOKKOS_ENABLE_HIP)
+#if defined(STK_ENABLE_GPU) || defined(_OPENMP)
   // Unable to test a device-side abort, as this eventually results in a throw
   // inside Kokkos::finalize().
   //

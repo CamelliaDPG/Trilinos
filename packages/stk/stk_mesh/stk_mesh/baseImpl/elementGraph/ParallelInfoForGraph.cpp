@@ -183,8 +183,8 @@ void pack_edge(stk::CommSparse &comm, const ElemElemGraph& graph, const stk::mes
 }
 
 void unpack_remote_side_info_value(stk::CommSparse &comm,
-                                   const stk::mesh::BulkData& bulkData,
-                                   const ElemElemGraph& graph, int proc,
+                                   const stk::mesh::BulkData& /*bulkData*/,
+                                   const ElemElemGraph& /*graph*/, int proc,
                                    const stk::mesh::GraphEdge& edge,
                                    stk::mesh::impl::ParallelSideInfoValue& sideInfoValue)
 {
@@ -308,7 +308,7 @@ void unpack_selector_value(stk::CommSparse& comm, int rank, RemoteSelectedValue 
     remoteSelectedValue.set_id_as_selected(id);
 }
 
-void unpack_selected_states(const stk::mesh::BulkData& bulkData,
+void unpack_selected_states(const stk::mesh::BulkData& /*bulkData*/,
                             stk::CommSparse& comm,
                             RemoteSelectedValue &remoteSelectedValue)
 {
@@ -325,11 +325,8 @@ void update_selected_values(const ElemElemGraph& graph,
     const stk::mesh::impl::ParallelGraphInfo& parallel_info = graph.get_parallel_graph().get_parallel_graph_info();
     for(const stk::mesh::impl::ParallelGraphInfo::value_type& edgeAndParInfo : parallel_info)
     {
-        const stk::mesh::GraphEdge &graphEdge = edgeAndParInfo.first;
-        if(remoteSelectedValue.is_id_selected(-graphEdge.elem2()))
-            selInfo[graphEdge.elem2()] = true;
-        else
-            selInfo[graphEdge.elem2()] = false;
+        auto graphEdge_elem2 = edgeAndParInfo.first.elem2();
+        selInfo[graphEdge_elem2] = remoteSelectedValue.is_id_selected(-graphEdge_elem2);
     }
 }
 

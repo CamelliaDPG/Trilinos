@@ -36,7 +36,6 @@
 
 #include "stk_util/stk_config.h"
 #include "Kokkos_Core.hpp"
-#include "Kokkos_DualView.hpp"
 #include "stk_mesh/base/Ngp.hpp"
 #include "stk_mesh/base/NgpFieldBase.hpp"
 #include "stk_mesh/base/BulkData.hpp"
@@ -54,15 +53,14 @@
 namespace stk {
 namespace mesh {
 
-template<typename T, template <typename> class NgpDebugger>
+template<typename T, typename NgpMemSpace, template <typename, typename> class NgpDebugger>
 class HostField : public NgpFieldBase
 {
- private:
-  using ExecSpace = stk::ngp::ExecSpace;
-
  public:
+  using ExecSpace = stk::ngp::ExecSpace;
+  using MemSpace = NgpMemSpace;
   using value_type = T;
-  using StkDebugger = typename NgpDebugger<T>::StkFieldSyncDebuggerType;
+  using StkDebugger = typename NgpDebugger<T, NgpMemSpace>::StkFieldSyncDebuggerType;
 
   HostField()
     : NgpFieldBase(),
@@ -72,7 +70,7 @@ class HostField : public NgpFieldBase
   {
   }
 
-  HostField(const stk::mesh::BulkData& b, const stk::mesh::FieldBase& f, bool isFromGetUpdatedNgpField = false)
+  HostField(const stk::mesh::BulkData& b, const stk::mesh::FieldBase& f, [[maybe_unused]] bool isFromGetUpdatedNgpField = false)
     : NgpFieldBase(),
       hostBulk(&b),
       field(&f),
@@ -81,10 +79,10 @@ class HostField : public NgpFieldBase
     field->template make_field_sync_debugger<StkDebugger>();
   }
 
-  HostField(const HostField<T, NgpDebugger>&) = default;
-  HostField(HostField<T, NgpDebugger>&&) = default;
-  HostField<T, NgpDebugger>& operator=(const HostField<T, NgpDebugger>&) = default;
-  HostField<T, NgpDebugger>& operator=(HostField<T, NgpDebugger>&&) = default;
+  HostField(const HostField<T, NgpMemSpace, NgpDebugger>&) = default;
+  HostField(HostField<T, NgpMemSpace, NgpDebugger>&&) = default;
+  HostField<T, NgpMemSpace, NgpDebugger>& operator=(const HostField<T, NgpMemSpace, NgpDebugger>&) = default;
+  HostField<T, NgpMemSpace, NgpDebugger>& operator=(HostField<T, NgpMemSpace, NgpDebugger>&&) = default;
 
   void update_field(const ExecSpace& newExecSpace) override
   {
@@ -98,7 +96,7 @@ class HostField : public NgpFieldBase
     update_field();
   }
 
-  void set_field_states(HostField<T, NgpDebugger>* fields[]) {}
+  void set_field_states(HostField<T, NgpMemSpace, NgpDebugger>* fields[]) {}
 
   size_t num_syncs_to_host() const override { return field->num_syncs_to_host(); }
   size_t num_syncs_to_device() const override { return field->num_syncs_to_device(); }
@@ -110,12 +108,25 @@ class HostField : public NgpFieldBase
     return stk::mesh::field_scalars_per_entity(*field, entity.bucket_id);
   }
 
+  unsigned get_extent0_per_entity(const stk::mesh::FastMeshIndex& entity) const {
+    return stk::mesh::field_extent0_per_entity(*field, entity.bucket_id);
+  }
+
+  unsigned get_extent1_per_entity(const stk::mesh::FastMeshIndex& entity) const {
+    return stk::mesh::field_extent1_per_entity(*field, entity.bucket_id);
+  }
+
+  unsigned get_extent_per_entity(const stk::mesh::FastMeshIndex& entity, unsigned dimension) const {
+    return stk::mesh::field_extent_per_entity(*field, dimension, entity.bucket_id);
+  }
+
   unsigned debug_get_bucket_offset(unsigned bucketOrdinal) const override {
     return bucketOrdinal;
   }
 
-  T& get(const HostMesh& ngpMesh, stk::mesh::Entity entity, int component,
-         const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
+  T& get(const HostMesh& /*ngpMesh*/, stk::mesh::Entity entity, int component,
+         [[maybe_unused]] const char * fileName = HOST_DEBUG_FILE_NAME,
+         [[maybe_unused]] int lineNumber = HOST_DEBUG_LINE_NUMBER) const
   {
     T *data = static_cast<T *>(stk::mesh::field_data(*field, entity));
     STK_ThrowAssert(data);
@@ -123,39 +134,26 @@ class HostField : public NgpFieldBase
   }
 
   T& get(stk::mesh::FastMeshIndex entity, int component,
-         const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
+         [[maybe_unused]] const char * fileName = HOST_DEBUG_FILE_NAME,
+         [[maybe_unused]] int lineNumber = HOST_DEBUG_LINE_NUMBER) const
   {
     T *data = static_cast<T *>(stk::mesh::field_data(*field, entity.bucket_id, entity.bucket_ord));
     STK_ThrowAssert(data);
     return data[component];
   }
 
-  T& get(HostMesh::MeshIndex entity, int component,
-         const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
-  {
-    T* data = static_cast<T *>(stk::mesh::field_data(*field, entity.bucket->bucket_id(), entity.bucketOrd));
-    STK_ThrowAssert(data);
-    return data[component];
-  }
-
   T& operator()(const stk::mesh::FastMeshIndex& index, int component,
-                const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
+                [[maybe_unused]] const char * fileName = HOST_DEBUG_FILE_NAME,
+                [[maybe_unused]] int lineNumber = HOST_DEBUG_LINE_NUMBER) const
   {
     T *data = static_cast<T *>(stk::mesh::field_data(*field, index.bucket_id, index.bucket_ord));
     STK_ThrowAssert(data);
     return data[component];
   }
 
-  T& operator()(const HostMesh::MeshIndex& index, int component,
-                const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
-  {
-    T* data = static_cast<T *>(stk::mesh::field_data(*field, index.bucket->bucket_id(), index.bucketOrd));
-    STK_ThrowAssert(data);
-    return data[component];
-  }
-
   EntityFieldData<T> operator()(const stk::mesh::FastMeshIndex& index,
-                                const char * fileName = HOST_DEBUG_FILE_NAME, int lineNumber = HOST_DEBUG_LINE_NUMBER) const
+                                [[maybe_unused]] const char * fileName = HOST_DEBUG_FILE_NAME,
+                                [[maybe_unused]] int lineNumber = HOST_DEBUG_LINE_NUMBER) const
   {
     T *data = static_cast<T *>(stk::mesh::field_data(*field, index.bucket_id, index.bucket_ord));
     unsigned numScalars = stk::mesh::field_scalars_per_entity(*field, index.bucket_id);
@@ -200,10 +198,12 @@ class HostField : public NgpFieldBase
   void sync_to_host() override
   {
     sync_to_host(Kokkos::DefaultExecutionSpace());
-    Kokkos::fence();
+    if constexpr (!std::is_same_v<Kokkos::DefaultExecutionSpace,Kokkos::Serial>) {
+      Kokkos::fence();
+    }
   }
 
-  void sync_to_host(const ExecSpace& execSpace) override
+  void sync_to_host(const ExecSpace& /*execSpace*/) override
   {
     if (need_sync_to_host()) {
       copy_device_to_host();
@@ -211,7 +211,7 @@ class HostField : public NgpFieldBase
     }
   }
 
-  void sync_to_host(ExecSpace&& execSpace) override
+  void sync_to_host(ExecSpace&& /*execSpace*/) override
   {
     if (need_sync_to_host()) {
       copy_device_to_host();
@@ -225,7 +225,7 @@ class HostField : public NgpFieldBase
     Kokkos::fence();
   }
 
-  void sync_to_device(const ExecSpace& execSpace) override
+  void sync_to_device(const ExecSpace& /*execSpace*/) override
   {
     if (need_sync_to_device()) {
       if (hostBulk->synchronized_count() != synchronizedCount) {
@@ -236,7 +236,7 @@ class HostField : public NgpFieldBase
     }
   }
 
-  void sync_to_device(ExecSpace&& execSpace) override
+  void sync_to_device(ExecSpace&& /*execSpace*/) override
   {
     if (need_sync_to_device()) {
       if (hostBulk->synchronized_count() != synchronizedCount) {
@@ -251,15 +251,16 @@ class HostField : public NgpFieldBase
 
   FieldState state() const { return field->state(); }
 
-  void rotate_multistate_data() override { }
-
   void update_bucket_pointer_view() override { }
 
+  void swap_field_views(NgpFieldBase * /*other*/) override { }
   void swap(HostField<T> &other) { }
 
   stk::mesh::EntityRank get_rank() const { return field ? field->entity_rank() : stk::topology::INVALID_RANK; }
 
   unsigned get_ordinal() const { return field->mesh_meta_data_ordinal(); }
+
+  const FieldBase* get_field_base() const { return field; }
 
   void debug_initialize_debug_views() override {}
   void debug_modification_begin() override {}

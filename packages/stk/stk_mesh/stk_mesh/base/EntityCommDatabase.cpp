@@ -137,7 +137,7 @@ void unpack_entity_info(
   EntityKey        & key ,
   int              & owner ,
   PartVector       & parts ,
-  std::vector<Relation> & relations )
+  RelationVector& relations )
 {
   unsigned nparts = 0 ;
   unsigned nrel = 0 ;
@@ -302,7 +302,7 @@ void pack_field_values(const BulkData& mesh, CommBuffer & buf , Entity entity )
 }
 
 bool unpack_field_values(const BulkData& mesh,
-                         CommBuffer & buf , Entity entity , std::ostream & error_msg )
+                         CommBuffer & buf , Entity entity , [[maybe_unused]] std::ostream & error_msg )
 {
     if (!mesh.is_field_updating_active()) {
         return true;
