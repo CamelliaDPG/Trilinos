@@ -178,6 +178,38 @@ namespace Intrepid2
      */
     div_int2 = 0.25 * div_eseas;
   }
+
+/// Transforms values in H(curl) computed on the ESEAS pyramid to values on the Intrepid2 H(curl) pyramid.  It is allowed for outputs to be in the same memory location as inputs (e.g. xcomp_int2 may refer to the same location as xcomp_eseas).
+  template<class OutputScalar>
+  KOKKOS_INLINE_FUNCTION
+  void transformHCURLFromESEASPyramidValue(      OutputScalar &xcomp_int2,        OutputScalar &ycomp_int2,        OutputScalar &zcomp_int2,
+                                           const OutputScalar &xcomp_eseas, const OutputScalar &ycomp_eseas, const OutputScalar &zcomp_eseas)
+  {
+    /*
+     Jacobian of ESEAS ref to Intrepid2 ref pyramid:
+     [ 2 0 1 ]
+     [ 0 2 1 ] =: DF_C
+     [ 0 0 1 ]
+     
+     [ 0.5 0.0 -0.5 ]
+     [ 0.0 0.5 -0.5 ] = inv(DF_C)
+     [ 0.0 0.0 -1.0 ]
+     */
+    xcomp_int2 = 0.5 * xcomp_eseas - 0.50 * zcomp_eseas;
+    ycomp_int2 = 0.5 * ycomp_eseas - 0.50 * zcomp_eseas;
+    zcomp_int2 =                     -1.0 * zcomp_eseas;
+  }
+
+/// Transforms curls in H(curl) computed on the ESEAS pyramid to values on the Intrepid2 H(curl) pyramid.
+  template<class OutputScalar>
+  KOKKOS_INLINE_FUNCTION
+  void transformHCURLFromESEASPyramidCURL(      OutputScalar &xcomp_int2,        OutputScalar &ycomp_int2,        OutputScalar &zcomp_int2,
+                                          const OutputScalar &xcomp_eseas, const OutputScalar &ycomp_eseas, const OutputScalar &zcomp_eseas)
+  {
+    // this is the same as the HDIV VALUE transformation
+    transformHDIVFromESEASPyramidValue(xcomp_int2,  ycomp_int2,  zcomp_int2,
+                                       xcomp_eseas, ycomp_eseas, zcomp_eseas);
+  }
 } // end namespace Intrepid2
 
 #endif /* Intrepid2_Intrepid2_PyramidCoords_h */

@@ -986,6 +986,18 @@ namespace Intrepid2
               std::cout << fieldOrdinalOffset-1 << std::endl;
             }
           } // family IV
+          
+          // transform from ESEAS H(curl) space to Intrepid2 space
+          // (what's in output_ to this point is in ESEAS space)
+          for (ordinal_type fieldOrdinal=0; fieldOrdinal<numFields_; fieldOrdinal++)
+          {
+            OutputScalar & xcomp = output_(fieldOrdinal,pointOrdinal,0);
+            OutputScalar & ycomp = output_(fieldOrdinal,pointOrdinal,1);
+            OutputScalar & zcomp = output_(fieldOrdinal,pointOrdinal,2);
+            
+            transformHCURLFromESEASPyramidValue(xcomp,ycomp,zcomp,
+                                                xcomp,ycomp,zcomp);
+          }
         } // end OPERATOR_VALUE
           break;
         case OPERATOR_CURL:
@@ -1027,7 +1039,7 @@ namespace Intrepid2
                 
                 Kokkos::Array<OutputScalar, 3> curl_EE_i;
                 E_E_CURL(curl_EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
-               
+                
                 for (ordinal_type d=0; d<3; d++)
                 {
                   output_(fieldOrdinalOffset,pointOrdinal,d) = mu_c_b * curl_EE_i[d] + grad_mu_cross_EE[d];
@@ -1057,7 +1069,7 @@ namespace Intrepid2
               {
                 Kokkos::Array<OutputScalar, 3> curl_EE_i;
                 E_E_CURL(curl_EE_i, i, Pi, s0, s1, s0_grad, s1_grad);
-               
+                
                 for (ordinal_type d=0; d<3; d++)
                 {
                   output_(fieldOrdinalOffset,pointOrdinal,d) = curl_EE_i[d];
@@ -1105,7 +1117,7 @@ namespace Intrepid2
               const auto & Pj    = (familyNumber == 1) ? P2    : P1;
               const auto & Lj    = (familyNumber == 1) ? L2    : L1;
               const auto & Lj_dt = (familyNumber == 1) ? L2_dt : L1_dt;
-
+              
               const auto & s0 = (familyNumber == 1) ? muX_0 : muY_0;
               const auto & s1 = (familyNumber == 1) ? muX_1 : muY_1;
               
@@ -1169,7 +1181,7 @@ namespace Intrepid2
               // face 0,3 --> c=0
               // face 1,2 --> c=1
               int c = ((faceOrdinal == 0) || (faceOrdinal == 3)) ? 0 : 1;
-            
+              
               for (int familyNumber=1; familyNumber<=2; familyNumber++)
               {
                 int fieldOrdinal = faceFieldOrdinalOffset + familyNumber - 1;
@@ -1199,7 +1211,7 @@ namespace Intrepid2
                     
                     Kokkos::Array<OutputScalar, 3> ETRI_CURL;
                     E_TRI_CURL(ETRI_CURL, i, j, P, s0, s1, s0_grad, s1_grad, s2_grad, Pj, Lj, Lj_dt);
-                                        
+                    
                     Kokkos::Array<OutputScalar, 3> EE;
                     E_E(EE, i, P, s0, s1, s0_grad, s1_grad);
                     Kokkos::Array<OutputScalar, 3> ETRI;
@@ -1240,7 +1252,7 @@ namespace Intrepid2
               }
             }
           } // INTERIOR FAMILY I
-
+          
           // FAMILY II & III
           {
             // rename scratch
@@ -1260,7 +1272,7 @@ namespace Intrepid2
             const auto & muX_0_grad = muGrad[0][0], & muX_1_grad = muGrad[1][0];
             const auto & muY_0_grad = muGrad[0][1], & muY_1_grad = muGrad[1][1];
             const auto & muZ_0_grad = muGrad[0][2], & muZ_1_grad = muGrad[1][2];
-                        
+            
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muX01, polyOrder_, muX_1, muX_0 + muX_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muY01, polyOrder_, muY_1, muY_0 + muY_1);
             Polynomials::shiftedScaledIntegratedLegendreValues(Li_muZ01, polyOrder_, muZ_1, muZ_0 + muZ_1);
@@ -1333,7 +1345,7 @@ namespace Intrepid2
               }
             }
           }
-
+          
           // FAMILY IV
           {
             // rename scratch
@@ -1392,6 +1404,17 @@ namespace Intrepid2
                 fieldOrdinalOffset++;
               }
             }
+          }
+          // transform from ESEAS H(curl) space to Intrepid2 space
+          // (what's in output_ to this point is in ESEAS space)
+          for (ordinal_type fieldOrdinal=0; fieldOrdinal<numFields_; fieldOrdinal++)
+          {
+            OutputScalar & xcomp = output_(fieldOrdinal,pointOrdinal,0);
+            OutputScalar & ycomp = output_(fieldOrdinal,pointOrdinal,1);
+            OutputScalar & zcomp = output_(fieldOrdinal,pointOrdinal,2);
+            
+            transformHCURLFromESEASPyramidCURL(xcomp,ycomp,zcomp,
+                                               xcomp,ycomp,zcomp);
           }
         } // end OPERATOR_CURL block
           break;
