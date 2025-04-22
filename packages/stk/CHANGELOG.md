@@ -1,5 +1,23 @@
 # CHANGELOG
 
+5.23.8-03 (STK_VERSION 5230803) 4/22/2025
+  stk_tools: fix compiler error in pmesh lib when SEACASNemesis
+             is not enabled.
+  stk_transfer: Change from libstk_transfer.a to libstk_transfer_lib.a
+                In preparation for the coming-soon stk_transfer executable.
+                This is consistent with stk_balance_lib and stk_balance exe
+                and avoids duplicate target names.
+
+5.23.8-02 (STK_VERSION 5230802) 4/10/2025
+  stk_util: CommSparse can switch underlying comm scheme to pre-post recvs
+            instead of the default which is sends and probes. This can be
+            set at run-time with an environment variable:
+                export STK_UNKNOWN_PATTERN_EXCHANGER=Prepost
+  stk_mesh: Ghost comm info is now symmetric. This produces a change in
+            the procs returned from BulkData::comm_procs(entity, procs). Now
+            the ghost-receiver procs know about each other. Previously they
+            only knew about the entity owner.
+
 5.23.8-01 (STK_VERSION 5230801) 3/27/2025
   stk_util: Remove unused diag/Resource2.h, diag/String.hpp
   stk_util: Fix size_t issue by including <cstddef> in parallel/ReceiveCounter.hpp
