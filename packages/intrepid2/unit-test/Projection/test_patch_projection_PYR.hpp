@@ -325,7 +325,7 @@ int PatchProjectionPyr(const bool verbose) {
   
   typedef CellTools<DeviceType> ct;
   typedef OrientationTools<DeviceType> ots;
-  typedef Experimental::ProjectionTools<DeviceType> pts;
+  typedef ProjectionTools<DeviceType> pts;
   typedef RealSpaceTools<DeviceType> rst;
   typedef FunctionSpaceTools<DeviceType> fst;
 
@@ -524,7 +524,7 @@ int PatchProjectionPyr(const bool verbose) {
           {
             ordinal_type targetCubDegree(basis.getDegree()),targetDerivCubDegree(basis.getDegree());
 
-            Experimental::ProjectionStruct<DeviceType,ValueType> projStruct;
+            ProjectionStruct<DeviceType,ValueType> projStruct;
             if(useL2Projection) {
               projStruct.createL2ProjectionStruct(&basis, targetCubDegree);
             } else {
@@ -832,7 +832,7 @@ int PatchProjectionPyr(const bool verbose) {
             {
               ordinal_type targetCubDegree(cub_degree),targetDerivCubDegree(cub_degree-1);
 
-              Experimental::ProjectionStruct<DeviceType,ValueType> projStruct;
+              ProjectionStruct<DeviceType,ValueType> projStruct;
               if(useL2Projection) {
                 projStruct.createL2ProjectionStruct(&basis, targetCubDegree);
               } else {
@@ -1187,7 +1187,7 @@ int PatchProjectionPyr(const bool verbose) {
         {
           ordinal_type targetCubDegree(basis.getDegree()),targetDerivCubDegree(basis.getDegree()-1);
 
-          Experimental::ProjectionStruct<DeviceType,ValueType> projStruct;
+          ProjectionStruct<DeviceType,ValueType> projStruct;
           if(useL2Projection) {
             projStruct.createL2ProjectionStruct(&basis, targetCubDegree);
           } else {
@@ -1434,7 +1434,7 @@ int PatchProjectionPyr(const bool verbose) {
         {
           ordinal_type targetCubDegree(basis.getDegree());
 
-          Experimental::ProjectionStruct<DeviceType,ValueType> projStruct;
+          ProjectionStruct<DeviceType,ValueType> projStruct;
           if(useL2Projection) {
             projStruct.createL2ProjectionStruct(&basis, targetCubDegree);
           } else {

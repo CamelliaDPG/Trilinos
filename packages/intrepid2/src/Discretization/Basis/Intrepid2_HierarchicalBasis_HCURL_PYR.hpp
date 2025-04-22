@@ -1489,7 +1489,7 @@ namespace Intrepid2
       const auto & p           = polyOrder;
       this->basisCardinality_  = 3 * p * p * p + 5 * p;
       this->basisDegree_       = p;
-      this->basisCellTopology_ = shards::CellTopology(shards::getCellTopologyData<shards::Pyramid<> >() );
+      this->basisCellTopologyKey_ = shards::Pyramid<>::key;
       this->basisType_         = BASIS_FEM_HIERARCHICAL;
       this->basisCoordinates_  = COORDINATES_CARTESIAN;
       this->functionSpace_     = FUNCTION_SPACE_HCURL;

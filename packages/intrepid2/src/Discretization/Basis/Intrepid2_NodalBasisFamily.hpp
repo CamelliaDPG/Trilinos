@@ -136,6 +136,17 @@ namespace Intrepid2 {
     using HDIV_TET  = Basis_HDIV_TET_In_FEM<ExecutionSpace,OutputValueType,PointValueType>;
     using HVOL_TET  = Basis_HVOL_TET_Cn_FEM<ExecutionSpace,OutputValueType,PointValueType>;
     
+    // high-order wedge bases are not defined by this family
+    using HGRAD_WEDGE = void;
+    using HCURL_WEDGE = void;
+    using HDIV_WEDGE  = void;
+    using HVOL_WEDGE  = void;
+    
+    // high-order pyramid bases are not defined by this family
+    using HGRAD_PYR = void;
+    using HCURL_PYR = void;
+    using HDIV_PYR  = void;
+    using HVOL_PYR  = void;
   };
 }
 

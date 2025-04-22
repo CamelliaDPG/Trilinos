@@ -328,7 +328,7 @@ namespace Intrepid2
       \param [in] polyOrder   - the polynomial order of the basis.
       \param [in] pointType   - type of lattice used for creating the DoF coordinates.
      */
-  template<class BasisFamily>
+  template <class BasisFamily, typename U = typename BasisFamily::HVOL_WEDGE, typename std::enable_if<!std::is_void<U>::value, int>::type = 0>
   static typename BasisFamily::BasisPtr getWedgeBasis(Intrepid2::EFunctionSpace fs, int polyOrder, const EPointType pointType=POINTTYPE_DEFAULT)
   {
     using Teuchos::rcp;
@@ -341,6 +341,14 @@ namespace Intrepid2
       default:
         INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported function space");
     }
+  }
+
+  /** \brief  Factory method for isotropic wedge bases in the given family.  This defines SFINAE for the case where high-order wedge bases are not provided, as with NodalBasisFamily.  We assume that if HVOL is provided, all are and conversely, if HVOL is not, none are.
+     */
+  template <class BasisFamily, typename U = typename BasisFamily::HVOL_WEDGE, typename std::enable_if<std::is_void<U>::value, int>::type = 0>
+  static typename BasisFamily::BasisPtr getWedgeBasis(Intrepid2::EFunctionSpace fs, int polyOrder, const EPointType pointType=POINTTYPE_DEFAULT)
+  {
+    INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Basis family does not support high-order wedge bases");
   }
 
   /** \brief  Factory method for anisotropic wedge bases in the given family.
@@ -368,7 +376,7 @@ namespace Intrepid2
       \param [in] polyOrder   - the polynomial order of the basis.
       \param [in] pointType   - type of lattice used for creating the DoF coordinates.
      */
-  template<class BasisFamily>
+  template <class BasisFamily, typename U = typename BasisFamily::HVOL_PYR, typename std::enable_if<!std::is_void<U>::value, int>::type = 0>
   static typename BasisFamily::BasisPtr getPyramidBasis(Intrepid2::EFunctionSpace fs, ordinal_type polyOrder, const EPointType pointType=POINTTYPE_DEFAULT)
   {
     using Teuchos::rcp;
@@ -382,6 +390,14 @@ namespace Intrepid2
         INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported function space");
     }
   }
+
+/** \brief  Factory method for pyramid bases in the given family.  This defines SFINAE for the case where high-order pyramid bases are not provided, as with NodalBasisFamily.  We assume that if HVOL is provided, all are and conversely, if HVOL is not, none are.
+   */
+template <class BasisFamily, typename U = typename BasisFamily::HVOL_PYR, typename std::enable_if<std::is_void<U>::value, int>::type = 0>
+static typename BasisFamily::BasisPtr getPyramidBasis(Intrepid2::EFunctionSpace fs, int polyOrder, const EPointType pointType=POINTTYPE_DEFAULT)
+{
+  INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Basis family does not support high-order pyramid bases");
+}
   
   /** \brief  Factory method for isotropic bases in the given family on the specified cell topology.
       \param [in] cellTopo    - the cell topology on which the basis is defined.
@@ -401,6 +417,7 @@ namespace Intrepid2
       case shards::Hexahedron<>::key:    return getHexahedronBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Tetrahedron<>::key:   return getTetrahedronBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Wedge<>::key:         return getWedgeBasis<BasisFamily>(fs,polyOrder,pointType);
+      case shards::Pyramid<>::key:       return getPyramidBasis<BasisFamily>(fs,polyOrder,pointType);
       default:
         INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported cell topology");
     }
