@@ -261,15 +261,65 @@ getCoeffMatrix_HCURL(OutputViewType &output,
   auto cellTagToOrdinal = cellBasis.getAllDofOrdinal();
   auto subcellTagToOrdinal = subcellBasis.getAllDofOrdinal();
 
+  std::map<int,int> edgeIDMap; // speculative: do we have the edge numbering wrong in pyramid??
+  if (cellTopo.getKey() == shards::Pyramid<5>::key)
+  {
+    edgeIDMap[0] = 0;
+    edgeIDMap[1] = 1;
+    edgeIDMap[2] = 2;
+    edgeIDMap[3] = 3;
+  
+    // it's edge 5 where we first see a test fail
+    edgeIDMap[4] = 7; // worked when mapped to 4
+    edgeIDMap[5] = 6; // works when mapped to 6; fails when mapped to 5
+    edgeIDMap[6] = 5; // works when mapped to 5 or 6??
+    edgeIDMap[7] = 4; // failed when mapped to 7
+  }
+  
   for (ordinal_type i=0;i<ndofSubcell;++i) {
-    const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellId, i);
+    const ordinal_type subcellIdMapped = ((subcellDim == 1) && (edgeIDMap.size() > 0)) ? edgeIDMap[subcellId] : subcellId;
+    const ordinal_type ic = cellTagToOrdinal(subcellDim, subcellIdMapped, i);
+    
+//    {
+//      // DEBUGGING
+//      if ((subcellDim == 1) && (subcellId == 5))
+//      {
+//        std::cout << "ic = " << ic << std::endl;
+//      }
+//    }
+    {
+      // DEBUGGING
+      if ((subcellDim == 1) && (subcellId == 5))
+      {
+        for (ordinal_type j=0;j<ndofSubcell;++j) {
+          for (ordinal_type d=0; d<cellDim; ++d)
+          {
+            std::cout << "cellBasisValues( "    << ic << "," << j << "," << d << ") = " << cellBasisValues(ic,j,d) << std::endl;
+          }
+        }
+        for (ordinal_type k=0;k<subcellDim;++k) {
+          for (ordinal_type d=0; d<cellDim; ++d)
+          {
+            std::cout << "trJacobianF( "        << k << "," << d              << ") = " << trJacobianF(k,d)        << std::endl;
+          }
+        }
+        for (ordinal_type j=0;j<ndofSubcell;++j) {
+          for (ordinal_type k=0;k<subcellDim;++k) {
+            std::cout << "refSubcellTangents( " << j << "," << k              << ") = " << refSubcellTangents(j,k) << std::endl;
+          }
+        }
+      }
+    }
+    
     for (ordinal_type j=0;j<ndofSubcell;++j) {
       const ordinal_type isc = subcellTagToOrdinal(subcellDim, 0, i);
       value_type refEntry = 0, ortEntry =0;
       for (ordinal_type k=0;k<subcellDim;++k) {
         ortEntry += subCellValues(isc,j,k)*refSubcellTangents(j,k);
         for (ordinal_type d=0; d<cellDim; ++d)
+        {
           refEntry +=  cellBasisValues(ic,j,d)*trJacobianF(k,d)*refSubcellTangents(j,k);
+        }
       }
       PsiMat(j,i) = refEntry;
       PhiMat(j,i) = ortEntry;
@@ -305,30 +355,30 @@ getCoeffMatrix_HCURL(OutputViewType &output,
 //          }
 //        }
 //        
-//        // Print PsiMat matrix
-//        std::cout  << "PsiMat:\n";
-//        std::cout  << "[";
-//        for (ordinal_type i=0;i<ndofSubcell;++i) {
-//          std::cout  << "[";
-//          for (ordinal_type j=0;j<ndofSubcell;++j) {
-//            std::cout << PsiMat(i,j) << " ";
-//          }
-//          std::cout  << "];\n";
-//        }
-//        std::cout  << "];\n";
-//        std::cout <<std::endl;
-//        
-//        // Print PhiMat matrix
-//        std::cout  << "PhiMat:\n";
-//        std::cout  << "[";
-//        for (ordinal_type i=0;i<ndofSubcell;++i) {
-//          std::cout  << "[";
-//          for (ordinal_type j=0;j<ndofSubcell;++j) {
-//            std::cout << PhiMat(i,j) << " ";
-//          }
-//          std::cout  << "];\n";
-//        }
-//        std::cout  << "];\n";
+        // Print PsiMat matrix
+        std::cout  << "PsiMat:\n";
+        std::cout  << "[";
+        for (ordinal_type i=0;i<ndofSubcell;++i) {
+          std::cout  << "[";
+          for (ordinal_type j=0;j<ndofSubcell;++j) {
+            std::cout << PsiMat(i,j) << " ";
+          }
+          std::cout  << "];\n";
+        }
+        std::cout  << "];\n";
+        std::cout <<std::endl;
+        
+        // Print PhiMat matrix
+        std::cout  << "PhiMat:\n";
+        std::cout  << "[";
+        for (ordinal_type i=0;i<ndofSubcell;++i) {
+          std::cout  << "[";
+          for (ordinal_type j=0;j<ndofSubcell;++j) {
+            std::cout << PhiMat(i,j) << " ";
+          }
+          std::cout  << "];\n";
+        }
+        std::cout  << "];\n";
 //      }
 //    }
     /*
