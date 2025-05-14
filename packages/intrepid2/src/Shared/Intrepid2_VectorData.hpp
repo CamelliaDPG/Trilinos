@@ -16,6 +16,11 @@
 #ifndef Intrepid2_VectorData_h
 #define Intrepid2_VectorData_h
 
+#include <Kokkos_Core.hpp>
+#include <Kokkos_Array.hpp>
+
+#include <Intrepid2_TensorData.hpp>
+
 namespace Intrepid2 {
 /** \class Intrepid2::VectorData
     \brief Reference-space field values for a basis, designed to support typical vector-valued bases.
@@ -297,7 +302,7 @@ namespace Intrepid2 {
     //! Simple 1-argument constructor for the case of trivial tensor product structure.  The argument should have shape (F,P,D) where D has extent equal to the spatial dimension.
     VectorData(TensorData<Scalar,DeviceType> data)
     :
-    VectorData(Kokkos::Array< TensorData<Scalar,DeviceType>, 1>(data), true)
+    VectorData(Kokkos::Array< TensorData<Scalar,DeviceType>, 1>({data}), true)
     {}
     
     //! Simple 1-argument constructor for the case of trivial tensor product structure.  The argument should have shape (F,P,D) where D has extent equal to the spatial dimension.
@@ -516,5 +521,8 @@ namespace Intrepid2 {
     }
   };
 }
+
+// we do ETI for doubles and default ExecutionSpace's device_type
+extern template class Intrepid2::VectorData<double,Kokkos::DefaultExecutionSpace::device_type>;
 
 #endif /* Intrepid2_VectorData_h */

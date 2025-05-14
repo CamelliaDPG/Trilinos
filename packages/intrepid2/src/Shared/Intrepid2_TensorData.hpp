@@ -537,4 +537,7 @@ namespace Intrepid2
   };
 }
 
+// we do ETI for doubles and default ExecutionSpace's device_type
+extern template class Intrepid2::TensorData<double,Kokkos::DefaultExecutionSpace::device_type>;
+
 #endif /* Intrepid2_TensorData_h */
