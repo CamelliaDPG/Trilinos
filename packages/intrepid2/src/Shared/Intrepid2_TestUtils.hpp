@@ -254,8 +254,6 @@ namespace Intrepid2
 /** \brief Returns a DynRankView containing regularly-spaced points on the specified cell topology.
     \param [in] cellTopo - the cell topology on which the points will be defined.
     \param [in] numPoints_1D - the number of points that will be defined along each edge.
-
-The total number of points defined will be a triangular number; if n=numPointsBase, then the point count is the nth triangular number, given by n*(n+1)/2.
 */
   template <typename PointValueType, typename DeviceType>
   inline ViewType<PointValueType,DeviceType> getInputPointsView(shards::CellTopology &cellTopo, int numPoints_1D)
@@ -386,8 +384,8 @@ The total number of points defined will be a triangular number; if n=numPointsBa
     }
   }
 
-  // ! This returns a vector whose entries are vector<int>s containing 1-3 polynomial orders from 1 up to and including those specified
-  // ! Intended for testing bases that support anisotropic polynomial degree, such as the hierarchical bases
+  //! This returns a vector whose entries are vector<int>s containing 1-3 polynomial orders from 1 up to and including those specified
+  //! Intended for testing bases that support anisotropic polynomial degree, such as the hierarchical bases
   inline std::vector< std::vector<int> > getBasisTestCasesUpToDegree(int spaceDim, int minDegree, int polyOrder_x, int polyOrder_y=-1, int polyOrder_z=-1)
   {
     std::vector<int> degrees(spaceDim);
