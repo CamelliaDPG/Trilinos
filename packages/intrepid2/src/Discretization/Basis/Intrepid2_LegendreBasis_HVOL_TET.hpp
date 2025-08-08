@@ -289,7 +289,7 @@ namespace Intrepid2
     /** \brief True if orientation is required
     */
     virtual bool requireOrientation() const override {
-      return (this->getDegree() > 2);
+      return false;
     }
 
     // since the getValues() below only overrides the FEM variant, we specify that
