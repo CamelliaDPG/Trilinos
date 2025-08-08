@@ -36,10 +36,28 @@ namespace
   using Scalar = double;
 
 /*** Tags for templated tests **/
+class Hex
+{
+public:
+  static const unsigned shardsTopoKey = shards::Hexahedron<>::key;
+};
+
 class Tet
 {
 public:
   static const unsigned shardsTopoKey = shards::Tetrahedron<>::key;
+};
+
+class Tri
+{
+public:
+  static const unsigned shardsTopoKey = shards::Triangle<>::key;
+};
+
+class Wedge
+{
+public:
+  static const unsigned shardsTopoKey = shards::Wedge<>::key;
 };
 
 class P1
@@ -121,11 +139,33 @@ public:
     return -1;
   }
 
-  void testOrientationsArePermutations(const Intrepid2::CellTopology &cellTopo, BasisPtr<DeviceType,Scalar,Scalar> basis,
+  template<class TopoTag, class BasisFamilyTag>
+  Orientation identityPermutation(TopoTag topoTag, BasisFamilyTag basisFamilyTag)
+  {
+    Orientation identityOrt; // default constructor for Orientation is identity in all faces/edges relative to Shards face/edge ordering
+    // but ESEAS has different face ordering for tet faces 2 and 3
+    
+    // TODO: if we *DON'T* change shards Wedge face ordering, then we'll also want to do something for all Wedge bases here.  (Legacy) Shards disagrees with both Intrepid2 nodal and hierarchical bases on the face ordering.
+    
+    if (std::is_same<typename BasisFamilyTag::BasisFamily, HierarchicalBasisFamily<DeviceType,Scalar,Scalar>>::value)
+    {
+      // Hierarchical (ESEAS)
+      if (TopoTag::shardsTopoKey == shards::Tetrahedron<>::key)
+      {
+        const int numTriFaces = 4;
+        std::vector<ordinal_type> subcellOrts(numTriFaces,0);
+        subcellOrts[2] = 3;
+        subcellOrts[3] = 3;
+        identityOrt.setFaceOrientation(numTriFaces, &subcellOrts[0]);
+      }
+    }
+    return identityOrt;
+  }
+
+  void testOrientationsArePermutations(Orientation identityOrt, const Intrepid2::CellTopology &cellTopo, BasisPtr<DeviceType,Scalar,Scalar> basis,
                                        Teuchos::FancyOStream &out, bool &success)
   {
     // 1. Check that the identity orientation (0's for every edge and face) is a permutation
-    Orientation identityOrt; // default constructor for Orientation is identity
     ScalarView<Orientation, DeviceType> identityOrtView("identity orientations", 15);
     Kokkos::deep_copy(identityOrtView, identityOrt);
     
@@ -140,33 +180,45 @@ public:
     //    - store each cell orientation into one of two std::vectors, depending on whether it is a permutation or not.
     
     std::vector<Orientation> permutationOrts, nonPermutationOrts;
-    
-    permutationOrts.push_back(Orientation()); // place identity there to start
-    
+        
     using BasisType = Basis<DeviceType,Scalar,Scalar>;
     const auto matData = OrientationTools<DeviceType>::createCoeffMatrix<BasisType>(basis.get());
     auto matDataHost = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultHostExecutionSpace(), matData);
     
-    ordinal_type edgeCount = cellTopo.getEdgeCount();
+    ordinal_type edgeCount  = cellTopo.getEdgeCount();
+    ordinal_type faceOffset = 0;
+    for (ordinal_type edge=0; edge<edgeCount; edge++)
+    {
+      ordinal_type numDofs = basis->getDofCount(1, edge);
+      if (numDofs > 0) faceOffset = edgeCount;
+    }
     
     for (ordinal_type d=1; d<cellTopo.getDimension(); d++)
     {
       ordinal_type subcellCount = cellTopo.getSubcellCount(d);
-      auto maxOrt = ortMax(cellTopo.getSubcell(d,0));
-      
       ScalarView<Orientation, DeviceType> singleOrtView("single-orientation view",1);
       
       for (ordinal_type sc=0; sc<subcellCount; sc++)
       {
+        auto maxOrt = ortMax(cellTopo.getSubcell(d,sc));
         ordinal_type numDofs   = basis->getDofCount(d, sc);
         
-        std::vector<ordinal_type> subcellOrts(subcellCount,0);
-        // matData indices: (scIndex,scOrt,dofRow,dofCol)
-        int scIndex = (d==1) ? sc : sc + edgeCount; // 2D faces get entries offset by edgeCount; no support for higher dimensions
-        for (ordinal_type scOrt=1; scOrt<=maxOrt; scOrt++) // start with ort=1; ort=0 is the identity
+        std::vector<ordinal_type> subcellOrts(subcellCount);
+        if (d==1)
         {
-          Orientation ort; // starts as identity
-          subcellOrts[sc] = scOrt;
+          identityOrt.getEdgeOrientation(&subcellOrts[0], subcellCount);
+        }
+        else if (d==2)
+        {
+          identityOrt.getFaceOrientation(&subcellOrts[0], subcellCount);
+        }
+        
+        // matData indices: (scIndex,scOrt,dofRow,dofCol)
+        int scIndex = (d==1) ? sc : sc + faceOffset; // 2D faces get entries offset if there are edge dofs; no support for higher dimensions
+        for (ordinal_type scOrt=0; scOrt<=maxOrt; scOrt++)
+        {
+          Orientation ort = identityOrt;
+          subcellOrts[sc] = scOrt; // all entries besides sc remain as they were (whatever corresponds to identity)
           
           if (d == 1)
           {
@@ -179,35 +231,65 @@ public:
           
           bool isPermutation = true;
           // matData indices: (scIndex,scOrt,dofRow,dofCol)
-          for (ordinal_type row=0; row<numDofs; row++)
+          if (numDofs > 1) // coefficient data is not computed for subcells with dof count 0 or 1 (but these *are* permutations)
           {
-            int nnz = 0;
-            for (ordinal_type col=0; col<numDofs; col++)
-            {
-              if (matDataHost(scIndex,scOrt,row,col) != 0)
-              {
-                nnz++;
-              }
-            }
-            if (nnz != 1) isPermutation = false;
-          }
-          for (ordinal_type col=0; col<numDofs; col++)
-          {
-            int nnz = 0;
             for (ordinal_type row=0; row<numDofs; row++)
             {
-              if (matDataHost(scIndex,scOrt,row,col) != 0)
+              int nnz = 0;
+              for (ordinal_type col=0; col<numDofs; col++)
               {
-                nnz++;
+                if (matDataHost(scIndex,scOrt,row,col) != 0)
+                {
+                  nnz++;
+                }
+              }
+              if (nnz != 1) isPermutation = false;
+            }
+            for (ordinal_type col=0; col<numDofs; col++)
+            {
+              int nnz = 0;
+              for (ordinal_type row=0; row<numDofs; row++)
+              {
+                if (matDataHost(scIndex,scOrt,row,col) != 0)
+                {
+                  nnz++;
+                }
+              }
+              if (nnz != 1)
+              {
+                out << "For subcell " << sc << " of dimension " << d << ", scOrt " << scOrt << " is not a permutation.\n";
+                isPermutation = false;
               }
             }
-            if (nnz != 1) isPermutation = false;
+          }
+          {
+            // DEBUGGING
+            if (!isPermutation)
+            {
+              out << "Non-permutation matrix data:\n";
+              
+              for (ordinal_type col=0; col<numDofs; col++)
+              {
+                out << "| ";
+                for (ordinal_type row=0; row<numDofs; row++)
+                {
+                  double value = matDataHost(scIndex,scOrt,row,col);
+                  if (abs(value) < 1e-10) value = 0;
+                  out << value << " ";
+                }
+                out << " |\n";
+              }
+            }
           }
           if (isPermutation)    permutationOrts.push_back(ort);
           else               nonPermutationOrts.push_back(ort);
           Kokkos::deep_copy(singleOrtView, ort);
           bool ortIsPermutation = OrientationTools<DeviceType>::orientationsArePermutations(singleOrtView, basis.get());
           TEST_EQUALITY(isPermutation, ortIsPermutation);
+          if (isPermutation != ortIsPermutation)
+          {
+            out << "Failure with ort " << ort << std::endl;
+          }
         }
       }
     }
@@ -217,6 +299,7 @@ public:
     const ordinal_type numPermutationOrts = static_cast<ordinal_type>(permutationOrts.size());
     ScalarView<Orientation, DeviceType> permutationOrtsView("permutation orientations", numPermutationOrts);
     auto permutationOrtsViewHost = Kokkos::create_mirror(permutationOrtsView);
+    out << "There are " << numPermutationOrts << " permutation orientations.\n";
     for (ordinal_type permOrtOrdinal=0; permOrtOrdinal<numPermutationOrts; permOrtOrdinal++)
     {
       permutationOrtsViewHost(permOrtOrdinal) = permutationOrts[permOrtOrdinal];
@@ -227,6 +310,7 @@ public:
     
     // 4. Place all non-permutation orientations (if any) into a single view; verify orientationsArePermutations() returns false
     const ordinal_type numNonPermutationOrts = static_cast<ordinal_type>(nonPermutationOrts.size());
+    out << "There are " << numNonPermutationOrts << " non-permutation orientations.\n";
     if (numNonPermutationOrts > 0)
     {
       ScalarView<Orientation, DeviceType> nonPermutationOrtsView("non-permutation orientations", numNonPermutationOrts);
@@ -260,8 +344,45 @@ public:
     Intrepid2::CellTopology cellTopo(shardsTopo, 0);
     auto basis = getBasis<BasisFamily>(shardsTopo, fs, polyOrder);
     
-    testOrientationsArePermutations(cellTopo, basis, out, success);
+    TopoTag topoTag;
+    BasisFamilyTag basisFamilyTag;
+    
+    Orientation identityOrt = identityPermutation(topoTag, basisFamilyTag);
+    
+    testOrientationsArePermutations(identityOrt, cellTopo, basis, out, success);
   }
 
-  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Tet, HCURL, Nodal, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Hex, HGRAD, Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Hex, HGRAD, Nodal,        P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Hex, HGRAD, DNodal,       P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Hex, HCURL, Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Hex, HDIV,  Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HCURL, Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HCURL, Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HCURL, Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HCURL, Nodal,        P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HCURL, DNodal,       P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Nodal,        P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Nodal,        P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tet, HDIV,  Nodal,        P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HGRAD, Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HGRAD, Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HCURL, Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HCURL, Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HCURL, Hierarchical, P3);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HCURL, Hierarchical, P4);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HDIV,  Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations,   Tri, HDIV,  Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HGRAD, Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HGRAD, Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HCURL, Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HCURL, Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HCURL, Hierarchical, P5);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HDIV,  Hierarchical, P1);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HDIV,  Hierarchical, P2);
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HDIV,  DNodal,       P2); // no wedge support in vanilla Nodal
+  TEUCHOS_UNIT_TEST_TEMPLATE_4_INSTANT(OrientationTools, OrientationsArePermutations, Wedge, HDIV,  Hierarchical, P5);
 } // namespace
