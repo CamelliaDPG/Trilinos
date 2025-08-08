@@ -904,7 +904,7 @@ namespace Intrepid2 {
       case FUNCTION_SPACE_HVOL:
         if (operatorType == OPERATOR_VALUE)
         {
-          // vector-valued container
+          // scalar-valued
           OutputViewAllocatable dataView("BasisValues HVOL VALUE data", numFields, numPoints);
           return dataView;
         }
