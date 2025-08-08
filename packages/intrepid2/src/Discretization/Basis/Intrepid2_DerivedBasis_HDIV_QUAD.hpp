@@ -252,7 +252,7 @@ namespace Intrepid2
         op1 = Intrepid2::OPERATOR_VALUE;
         op2 = Intrepid2::OPERATOR_VALUE;
         
-        // family 2 goes in the x component; 0 in the x component
+        // family 2 goes in the x component; 0 in the y component
         auto outputValuesComponent1 = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),0);
         auto outputValuesComponent2 = Kokkos::subview(outputValues,Kokkos::ALL(),Kokkos::ALL(),1);
         
