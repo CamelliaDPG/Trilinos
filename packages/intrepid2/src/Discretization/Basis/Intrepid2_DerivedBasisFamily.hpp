@@ -323,6 +323,14 @@ namespace Intrepid2
     }
   }
 
+  //! SFINAE helper for checking whether BasisFamily provides wedge basis.
+  //! we assume that if HGRAD_WEDGE is defined, so is CURL, DIV, VOL
+  template <typename T, typename = void>
+  struct has_wedge : std::false_type {};
+
+  template <typename T>
+  struct has_wedge<T, std::void_t<typename T::HGRAD_WEDGE>> : std::true_type {};
+
   /** \brief  Factory method for isotropic wedge bases in the given family.
       \param [in] fs          - the function space for the basis.
       \param [in] polyOrder   - the polynomial order of the basis.
@@ -331,15 +339,22 @@ namespace Intrepid2
   template<class BasisFamily>
   static typename BasisFamily::BasisPtr getWedgeBasis(Intrepid2::EFunctionSpace fs, int polyOrder, const EPointType pointType=POINTTYPE_DEFAULT)
   {
-    using Teuchos::rcp;
-    switch (fs)
+    if constexpr (has_wedge<BasisFamily>::value)
     {
-      case FUNCTION_SPACE_HVOL:  return rcp(new typename BasisFamily::HVOL_WEDGE (polyOrder, pointType));
-      case FUNCTION_SPACE_HCURL: return rcp(new typename BasisFamily::HCURL_WEDGE(polyOrder, pointType));
-      case FUNCTION_SPACE_HDIV:  return rcp(new typename BasisFamily::HDIV_WEDGE (polyOrder, pointType));
-      case FUNCTION_SPACE_HGRAD: return rcp(new typename BasisFamily::HGRAD_WEDGE(polyOrder, pointType));
-      default:
-        INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported function space");
+      using Teuchos::rcp;
+      switch (fs)
+      {
+        case FUNCTION_SPACE_HVOL:  return rcp(new typename BasisFamily::HVOL_WEDGE (polyOrder, pointType));
+        case FUNCTION_SPACE_HCURL: return rcp(new typename BasisFamily::HCURL_WEDGE(polyOrder, pointType));
+        case FUNCTION_SPACE_HDIV:  return rcp(new typename BasisFamily::HDIV_WEDGE (polyOrder, pointType));
+        case FUNCTION_SPACE_HGRAD: return rcp(new typename BasisFamily::HGRAD_WEDGE(polyOrder, pointType));
+        default:
+          INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported function space");
+      }
+    }
+    else
+    {
+      INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "This BasisFamily does not provide wedge basis.");
     }
   }
 
@@ -403,6 +418,7 @@ namespace Intrepid2
       case shards::Triangle<>::key:      return getTriangleBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Hexahedron<>::key:    return getHexahedronBasis<BasisFamily>(fs,polyOrder,pointType);
       case shards::Tetrahedron<>::key:   return getTetrahedronBasis<BasisFamily>(fs,polyOrder,pointType);
+      case shards::Wedge<>::key:         return getWedgeBasis<BasisFamily>(fs,polyOrder,pointType);
       default:
         INTREPID2_TEST_FOR_EXCEPTION(true, std::invalid_argument, "Unsupported cell topology");
     }
