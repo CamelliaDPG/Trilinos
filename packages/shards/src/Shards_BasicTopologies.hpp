@@ -813,8 +813,8 @@ typedef
 typedef
   MakeTypeList< IndexList< 0 , 1 , 4 , 3 ,   6 , 10 , 12 ,  9 ,  15 > ,
                 IndexList< 1 , 2 , 5 , 4 ,   7 , 11 , 13 , 10 ,  16 > ,
-                IndexList< 0 , 3 , 5 , 2 ,   9 , 14 , 11 ,  8 ,  17 > ,
-                IndexList< 0 , 2 , 1 ,       8 ,  7 ,  6 > ,
+                IndexList< 2 , 0 , 3 , 5 ,   8 ,  9 , 14 , 11 ,  17 > ,
+                IndexList< 0 , 1 , 2 ,       6 ,  7 ,  8 > ,
                 IndexList< 3 , 4 , 5 ,      12 , 13 , 14 >
   >::type WedgeFaceNodeMap ;
 
