@@ -94,21 +94,35 @@ bool
       Kokkos::View<ordinal_type**, LayoutType, DeviceType, MemoryTraits> edgeOrientations("edgeOrientations", numEdges, maxEdgeOrtCount);
       Kokkos::View<ordinal_type**, LayoutType, DeviceType, MemoryTraits> faceOrientations("faceOrientations", numFaces, maxFaceOrtCount);
       
+      Kokkos::deep_copy(edgeOrientations, -1); // -1 indicates not set
+      Kokkos::deep_copy(faceOrientations, -1);
+      
       Kokkos::View<ordinal_type*, LayoutType, DeviceType, MemoryTraits> edgeDofCounts("edgeDofCounts",numEdges);
       Kokkos::View<ordinal_type*, LayoutType, DeviceType, MemoryTraits> faceDofCounts("faceDofCounts",numFaces);
       auto edgeDofCountsHost = Kokkos::create_mirror_view(edgeDofCounts);
       auto faceDofCountsHost = Kokkos::create_mirror_view(faceDofCounts);
       
+      Kokkos::View<ordinal_type*, LayoutType, DeviceType, MemoryTraits> edgeOrtCounts("edgeOrtCounts",numEdges);
+      Kokkos::View<ordinal_type*, LayoutType, DeviceType, MemoryTraits> faceOrtCounts("faceOrtCounts",numFaces);
+      auto edgeOrtCountsHost = Kokkos::create_mirror_view(edgeOrtCounts);
+      auto faceOrtCountsHost = Kokkos::create_mirror_view(faceOrtCounts);
+      
       for (int edge=0; edge<numEdges; edge++)
       {
         edgeDofCountsHost(edge) = basis->getDofCount(1, edge);
+        edgeOrtCountsHost(edge) = static_cast<ordinal_type>(edgeOrientationSets[edge].size());
+        std::cout << "There are " << edgeOrtCountsHost(edge) << " distinct orientations present for edge " << edge << std::endl;
       }
       for (int face=0; face<numFaces; face++)
       {
         faceDofCountsHost(face) = basis->getDofCount(2, face);
+        faceOrtCountsHost(face) = static_cast<ordinal_type>(faceOrientationSets[face].size());
+        std::cout << "There are " << faceOrtCountsHost(face) << " distinct orientations present for face " << face << std::endl;
       }
       Kokkos::deep_copy(edgeDofCounts,edgeDofCountsHost);
       Kokkos::deep_copy(faceDofCounts,faceDofCountsHost);
+      Kokkos::deep_copy(edgeOrtCounts,edgeOrtCountsHost);
+      Kokkos::deep_copy(faceOrtCounts,faceOrtCountsHost);
       
       auto edgeOrientationsHost = Kokkos::create_mirror_view(edgeOrientations);
       auto faceOrientationsHost = Kokkos::create_mirror_view(faceOrientations);
@@ -153,42 +167,47 @@ bool
           bool isPermutation = true;
           using namespace std;
           cout << "Processing edge orts.\n";
-          for (int ortOrdinal=0; ortOrdinal<maxEdgeOrtCount; ortOrdinal++)
+          ordinal_type edgeOrtCount = edgeOrtCounts(edge);
+          if (ndofEdge > 1)
           {
-            ordinal_type ortEdge = edgeOrientations(edge,ortOrdinal);
-            cout << "ort " << ortEdge << ":";
-            for (ordinal_type row=0;row<ndofEdge;++row) {
-              int nonzerosFound = 0; // in row
-              cout << "| ";
+            for (int ortOrdinal=0; ortOrdinal<edgeOrtCount; ortOrdinal++)
+            {
+              ordinal_type ortEdge = edgeOrientations(edge,ortOrdinal);
+              if (ortEdge == -1) break;
+              cout << "ort " << ortEdge << " for edge " << edge << ":\n";
+              for (ordinal_type row=0;row<ndofEdge;++row) {
+                int nonzerosFound = 0; // in row
+                cout << "| ";
+                for (ordinal_type col=0;col<ndofEdge;++col)
+                {
+                  cout << matData(edge,ortEdge,row,col) << " ";
+                  if (matData(edge,ortEdge,row,col) != 0) nonzerosFound++;
+                }
+                cout << "|\n";
+                //              cout << "nonzerosFound: " << nonzerosFound << endl;
+                if (nonzerosFound != 1)
+                {
+                  isPermutation = false;
+                  break;
+                }
+              }
               for (ordinal_type col=0;col<ndofEdge;++col)
               {
-                cout << matData(edge,ortEdge,row,col) << " ";
-                if (matData(edge,ortEdge,row,col) != 0) nonzerosFound++;
+                int nonzerosFound = 0; // in col
+                for (ordinal_type row=0;row<ndofEdge;++row)
+                {
+                  if (matData(edge,ortEdge,row,col) != 0) nonzerosFound++;
+                }
+                if (nonzerosFound != 1)
+                {
+                  isPermutation = false;
+                  break;
+                }
               }
-              cout << "|\n";
-              cout << "nonzerosFound: " << nonzerosFound << endl;
-              if (nonzerosFound != 1)
+              if (!isPermutation)
               {
-                isPermutation = false;
                 break;
               }
-            }
-            for (ordinal_type col=0;col<ndofEdge;++col)
-            {
-              int nonzerosFound = 0; // in col
-              for (ordinal_type row=0;row<ndofEdge;++row)
-              {
-                if (matData(edge,ortEdge,row,col) != 0) nonzerosFound++;
-              }
-              if (nonzerosFound != 1)
-              {
-                isPermutation = false;
-                break;
-              }
-            }
-            if (!isPermutation)
-            {
-              break;
             }
           }
           localCount = isPermutation ? localCount : localCount + 1;
@@ -199,44 +218,50 @@ bool
         Kokkos::parallel_reduce("Face non-permutation counter", numFaces, KOKKOS_LAMBDA(const int face, int& localCount)
                                 {
           ordinal_type ndofFace = faceDofCounts(face);
+          ordinal_type faceOrtCount = faceOrtCounts(face);
           bool isPermutation = true;
-          for (int ortOrdinal=0; ortOrdinal<maxFaceOrtCount; ortOrdinal++)
+          using namespace std;
+          cout << "Processing face orts for face " << face << ".\n";
+          if (ndofFace > 1)
           {
-            using namespace std;
-            cout << "Processing face orts.\n";
-            ordinal_type ortFace = faceOrientations(face,ortOrdinal);
-            for (ordinal_type row=0;row<ndofFace;++row) {
-              cout << "| ";
-              int nonzerosFound = 0; // in row
+            for (int ortOrdinal=0; ortOrdinal<faceOrtCount; ortOrdinal++)
+            {
+              ordinal_type ortFace = faceOrientations(face,ortOrdinal);
+              if (ortFace == -1) break;
+              cout << "face ort " << ortFace << ":\n";
+              for (ordinal_type row=0;row<ndofFace;++row) {
+                cout << "| ";
+                int nonzerosFound = 0; // in row
+                for (ordinal_type col=0;col<ndofFace;++col)
+                {
+                  cout << matData(numEdges*edgeDofsExist+face,ortFace,row,col) << " ";
+                  if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
+                }
+                cout << "|\n";
+                //              cout << "nonzerosFound: " << nonzerosFound << endl;
+                if (nonzerosFound != 1)
+                {
+                  isPermutation = false;
+                  //                break;
+                }
+              }
               for (ordinal_type col=0;col<ndofFace;++col)
               {
-                cout << matData(numEdges*edgeDofsExist+face,ortFace,row,col) << " ";
-                if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
+                int nonzerosFound = 0; // in col
+                for (ordinal_type row=0;row<ndofFace;++row)
+                {
+                  if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
+                }
+                if (nonzerosFound != 1)
+                {
+                  isPermutation = false;
+                  break;
+                }
               }
-              cout << "|\n";
-              cout << "nonzerosFound: " << nonzerosFound << endl;
-              if (nonzerosFound != 1)
+              if (!isPermutation)
               {
-                isPermutation = false;
                 break;
               }
-            }
-            for (ordinal_type col=0;col<ndofFace;++col)
-            {
-              int nonzerosFound = 0; // in col
-              for (ordinal_type row=0;row<ndofFace;++row)
-              {
-                if (matData(numEdges*edgeDofsExist+face,ortFace,row,col) != 0) nonzerosFound++;
-              }
-              if (nonzerosFound != 1)
-              {
-                isPermutation = false;
-                break;
-              }
-            }
-            if (!isPermutation)
-            {
-              break;
             }
           }
           localCount = isPermutation ? localCount : localCount + 1;
