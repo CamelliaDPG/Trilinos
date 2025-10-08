@@ -305,6 +305,11 @@ namespace Intrepid2 {
       {
         return basisValues_.rank() + 1; // transformation adds a cell dimension
       }
+      else if (!transform_.isValid())
+      {
+        // invalid transform is understood as identity on each cell
+        return basisValues_.rank() + 1; // transformation adds a cell dimension
+      }
       else if (transform_.rank() == 3)
       {
         if (basisValues_.rank() == 3)
