@@ -101,23 +101,52 @@ namespace Intrepid2 {
     variationTypes[2]  = CONSTANT;
     variationTypes[3]  = CONSTANT;
     
-    if ( cellVaries && pointVaries )
-    {
+    int jacDataRank     = jacobian.getUnderlyingViewRank();
+      
+    if ( jacDataRank == 4 )
+    { // (C,P,D,D) --> (C,P)
       auto data = jacobian.getUnderlyingView4();
-      auto detData = getMatchingViewWithLabel(data, "Jacobian det data", data.extent_int(0), data.extent_int(1));
-      return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
+      auto detData = getMatchingViewWithLabel(data, "Jacobian det data", data.extent_int(0),data.extent_int(1));
+      return Data<PointScalar,DeviceType>(data,2,extents,variationTypes);
     }
-    else if (cellVaries || pointVaries)
+    else if (jacDataRank == 3)
     {
       auto data = jacobian.getUnderlyingView3();
-      auto detData = getMatchingViewWithLabel(data, "Jacobian det data", data.extent_int(0));
+      if ( cellVaries && pointVaries )
+      { // (C,P,DD) --> (C,P)
+        auto detData = getMatchingViewWithLabel(data, "Jacobian det data",data.extent(0),data.extent(1));
+        return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
+      }
+      else
+      { // (C,D,D) or (P,D,D) --> (C) or (P)
+        auto detData = getMatchingViewWithLabel(data, "Jacobian det data",data.extent(0));
+        return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
+      }
+    }
+    else if (jacDataRank == 2)
+    {
+      auto data = jacobian.getUnderlyingView2();
+      if (cellVaries || pointVaries)
+      { // (C,DD) or (P,DD) --> (C) or (P)
+        auto detData = getMatchingViewWithLabel(data, "Jacobian det data",data.extent(0));
+        return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
+      }
+      else
+      { // (D,D) --> (1)
+        auto detData = getMatchingViewWithLabel(data, "Jacobian det data",1);
+        return Data<PointScalar,DeviceType>(detData,1,extents,variationTypes);
+      }
+    }
+    else if (jacDataRank == 1)
+    { // (DD)
+      auto data = jacobian.getUnderlyingView1();
+      auto detData = getMatchingViewWithLabel(data, "Jacobian det data",1);
       return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
     }
     else
     {
-      auto data = jacobian.getUnderlyingView1();
-      auto detData = getMatchingViewWithLabel(data, "Jacobian det data", 1);
-      return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
+      INTREPID2_TEST_FOR_EXCEPTION_DEVICE_SAFE(true, std::invalid_argument, "allocateJacobianDet requires jacobian to vary in *some* dimension…");
+      return Data<PointScalar,DeviceType>(); // unreachable statement; this line added to avoid compiler warning on CUDA
     }
   }
 
@@ -133,25 +162,25 @@ namespace Intrepid2 {
     {
       auto jacData = jacobian.getUnderlyingView4();
       auto invData = getMatchingViewWithLabel(jacData, "Jacobian inv data",jacData.extent(0),jacData.extent(1),jacData.extent(2),jacData.extent(3));
-      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes);
+      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes,jacobian.blockPlusDiagonalLastNonDiagonal());
     }
     else if (jacDataRank == 3)
     {
       auto jacData = jacobian.getUnderlyingView3();
       auto invData = getMatchingViewWithLabel(jacData, "Jacobian inv data",jacData.extent(0),jacData.extent(1),jacData.extent(2));
-      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes);
+      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes,jacobian.blockPlusDiagonalLastNonDiagonal());
     }
     else if (jacDataRank == 2)
     {
       auto jacData = jacobian.getUnderlyingView2();
       auto invData = getMatchingViewWithLabel(jacData, "Jacobian inv data",jacData.extent(0),jacData.extent(1));
-      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes);
+      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes,jacobian.blockPlusDiagonalLastNonDiagonal());
     }
     else if (jacDataRank == 1)
     {
       auto jacData = jacobian.getUnderlyingView1();
       auto invData = getMatchingViewWithLabel(jacData, "Jacobian inv data",jacData.extent(0));
-      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes);
+      return Data<PointScalar,DeviceType>(invData,4,extents,variationTypes,jacobian.blockPlusDiagonalLastNonDiagonal());
     }
     else
     {
@@ -286,7 +315,7 @@ namespace Intrepid2 {
         Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpaceType>(0,data.extent_int(0)),
         KOKKOS_LAMBDA (const int &cellPointOrdinal) {
           const int blockWidth   = jacobian.blockPlusDiagonalLastNonDiagonal() + 1;
-          const int numDiagonals = data.extent_int(2) - blockWidth * blockWidth;
+          const int numDiagonals = data.extent_int(1) - blockWidth * blockWidth;
           const int spaceDim     = blockWidth + numDiagonals;
           
           PointScalar det = 1.0;
