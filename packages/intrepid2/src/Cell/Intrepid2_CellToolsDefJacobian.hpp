@@ -107,7 +107,7 @@ namespace Intrepid2 {
     { // (C,P,D,D) --> (C,P)
       auto data = jacobian.getUnderlyingView4();
       auto detData = getMatchingViewWithLabel(data, "Jacobian det data", data.extent_int(0),data.extent_int(1));
-      return Data<PointScalar,DeviceType>(data,2,extents,variationTypes);
+      return Data<PointScalar,DeviceType>(detData,2,extents,variationTypes);
     }
     else if (jacDataRank == 3)
     {
