@@ -205,6 +205,127 @@ OverlappingRowMatrix (const Teuchos::RCP<const row_matrix_type>& A,
   Kokkos::resize(Values_,MaxNumEntries_);
 }
 
+template<class MatrixType>
+OverlappingRowMatrix<MatrixType>::
+OverlappingRowMatrix (const Teuchos::RCP<const row_matrix_type>& A,
+                      const Teuchos::Array<global_ordinal_type>& gidsThisRank) :
+  A_ (Teuchos::rcp_dynamic_cast<const crs_matrix_type> (A, true)),
+  OverlapLevel_ (1) // arbitrary overlap level > 0
+{
+  using Teuchos::RCP;
+  using Teuchos::rcp;
+  using Teuchos::Array;
+  using Teuchos::outArg;
+  using Teuchos::REDUCE_SUM;
+  using Teuchos::reduceAll;
+  typedef Tpetra::global_size_t GST;
+  typedef Tpetra::CrsGraph<local_ordinal_type,
+                           global_ordinal_type, node_type> crs_graph_type;
+  TEUCHOS_TEST_FOR_EXCEPTION
+    (A_.is_null (), std::runtime_error,
+     "Ifpack2::OverlappingRowMatrix: The input matrix must be a "
+     "Tpetra::CrsMatrix with the same scalar_type, local_ordinal_type, "
+     "global_ordinal_type, and device_type typedefs as MatrixType.");
+
+  RCP<const crs_graph_type> A_crsGraph = A_->getCrsGraph ();
+  const size_t numMyRowsA = A_->getLocalNumRows ();
+  const local_ordinal_type local_invalid =
+    Teuchos::OrdinalTraits<local_ordinal_type>::invalid ();
+
+  Array<global_ordinal_type> ExtElements;
+  for (local_ordinal_type i = 0; i < gidsThisRank.size(); i++)
+  {
+    const auto &gid = gidsThisRank[i];
+    if (A_->getRowMap()->getLocalElement(gid) == local_invalid)
+    {
+      ExtElements.push_back(gid);
+    }
+  }
+  
+  // build the map containing all the nodes (original
+  // matrix + extended matrix)
+  Array<global_ordinal_type> mylist (numMyRowsA + ExtElements.size ());
+  for (local_ordinal_type i = 0; (size_t)i < numMyRowsA; ++i) {
+    mylist[i] = A_->getRowMap ()->getGlobalElement (i);
+  }
+  for (local_ordinal_type i = 0; i < ExtElements.size (); ++i) {
+    mylist[i + numMyRowsA] = ExtElements[i];
+  }
+
+  const global_ordinal_type global_invalid =
+    Teuchos::OrdinalTraits<global_ordinal_type>::invalid ();
+  RowMap_ = rcp (new map_type (global_invalid, mylist (),
+                               Teuchos::OrdinalTraits<global_ordinal_type>::zero (),
+                               A_->getComm ()));
+  Importer_ = rcp (new import_type (A_->getRowMap (), RowMap_));
+  ColMap_ = RowMap_;
+
+  // now build the map corresponding to all the external nodes
+  // (with respect to A().RowMatrixRowMap().
+  ExtMap_ = rcp (new map_type (global_invalid, ExtElements (),
+                               Teuchos::OrdinalTraits<global_ordinal_type>::zero (),
+                               A_->getComm ()));
+  ExtImporter_ = rcp (new import_type (A_->getRowMap (), ExtMap_));
+
+  {
+    auto ExtMatrixDynGraph = rcp (new crs_matrix_type (ExtMap_, ColMap_, 0));
+    ExtMatrixDynGraph->doImport (*A_, *ExtImporter_, Tpetra::INSERT);
+    ExtMatrixDynGraph->fillComplete (A_->getDomainMap (), RowMap_);
+    auto ExtLclMatrix = ExtMatrixDynGraph->getLocalMatrixDevice();
+    auto ExtMatrixStaticGraph = rcp (new crs_graph_type(ExtLclMatrix.graph,
+      ExtMap_,
+      ColMap_,
+      ExtMatrixDynGraph->getDomainMap(),
+      ExtMatrixDynGraph->getRangeMap()));
+    ExtMatrix_ = rcp (new crs_matrix_type(ExtMatrixStaticGraph, ExtLclMatrix.values));
+    ExtMatrix_->fillComplete ();
+  }
+
+  // fix indices for overlapping matrix
+  const size_t numMyRowsB = ExtMatrix_->getLocalNumRows ();
+
+  GST NumMyNonzeros_tmp = A_->getLocalNumEntries () + ExtMatrix_->getLocalNumEntries ();
+  GST NumMyRows_tmp = numMyRowsA + numMyRowsB;
+  {
+    GST inArray[2], outArray[2];
+    inArray[0] = NumMyNonzeros_tmp;
+    inArray[1] = NumMyRows_tmp;
+    outArray[0] = 0;
+    outArray[1] = 0;
+    reduceAll<int, GST> (* (A_->getComm ()), REDUCE_SUM, 2, inArray, outArray);
+    NumGlobalNonzeros_ = outArray[0];
+    NumGlobalRows_ = outArray[1];
+  }
+  // reduceAll<int, GST> (* (A_->getComm ()), REDUCE_SUM, NumMyNonzeros_tmp,
+  //                      outArg (NumGlobalNonzeros_));
+  // reduceAll<int, GST> (* (A_->getComm ()), REDUCE_SUM, NumMyRows_tmp,
+  //                      outArg (NumGlobalRows_));
+
+  MaxNumEntries_ = A_->getLocalMaxNumRowEntries ();
+  if (MaxNumEntries_ < ExtMatrix_->getLocalMaxNumRowEntries ()) {
+    MaxNumEntries_ = ExtMatrix_->getLocalMaxNumRowEntries ();
+  }
+
+  // Create the graph (returned by getGraph()).
+  typedef Details::OverlappingRowGraph<row_graph_type> row_graph_impl_type;
+  RCP<row_graph_impl_type> graph =
+    rcp (new row_graph_impl_type (A_->getGraph (),
+                                  ExtMatrix_->getGraph (),
+                                  RowMap_,
+                                  ColMap_,
+                                  NumGlobalRows_,
+                                  NumGlobalRows_, // # global cols == # global rows
+                                  NumGlobalNonzeros_,
+                                  MaxNumEntries_,
+                                  Importer_,
+                                  ExtImporter_));
+  graph_ = Teuchos::rcp_const_cast<const row_graph_type>
+    (Teuchos::rcp_implicit_cast<row_graph_type> (graph));
+  // Resize temp arrays
+  Kokkos::resize(Indices_,MaxNumEntries_);
+  Kokkos::resize(Values_,MaxNumEntries_);
+}
+
 
 template<class MatrixType>
 Teuchos::RCP<const Teuchos::Comm<int> >

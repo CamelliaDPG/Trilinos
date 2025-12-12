@@ -72,6 +72,23 @@ public:
   /// \param overlapLevel [in] The number of levels of overlap.
   OverlappingRowMatrix (const Teuchos::RCP<const row_matrix_type>& A,
                         const int overlapLevel);
+      
+  /// Constructor for cases in which the desired overlap pattern (i.e. which rows
+  /// should be imported to the current process) is known by caller.  This can be used
+  /// for e.g., defining overlap in terms of geometry in a finite element mesh.
+  ///
+  /// \param A [in] The input matrix.  Currently this class requires
+  ///   that A be a Tpetra::CrsMatrix instance with the same first
+  ///   four template parameters as MatrixType, and with a default
+  ///   fifth template parameter.  Furthermore, A must have a
+  ///   nonoverlapping row Map and must be distributed over more than
+  ///   one MPI process.
+  ///
+  /// \param gidsThisRank [in] The global IDs for rows that should be included
+  ///   on the current MPI process, which are not currently included in A's row Map.
+  ///   (GIDs in this list that are already present in A's row map will be ignored.)
+  OverlappingRowMatrix (const Teuchos::RCP<const row_matrix_type>& A,
+                        const Teuchos::Array<global_ordinal_type>& gidsThisRank);
 
   //! Destructor
   ~OverlappingRowMatrix () = default;
