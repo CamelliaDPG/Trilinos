@@ -50,6 +50,8 @@
 #include "Teuchos_StandardParameterEntryValidators.hpp"
 #include <locale> // std::toupper
 
+#include "Teuchos_ReductionOp.hpp"
+
 #include <Tpetra_BlockMultiVector.hpp>
 
 
@@ -831,6 +833,7 @@ setParameterList (const Teuchos::RCP<Teuchos::ParameterList>& plist)
   }
 
   OverlapLevel_ = plist->get ("schwarz: overlap level", OverlapLevel_);
+  OverlapElements_ = plist->get("schwarz: overlap elements", OverlapElements_);
 
   // We set IsOverlapping_ in initialize(), once we know that Matrix_ is nonnull.
 
@@ -945,6 +948,8 @@ getValidParameters () const
 
     Tpetra::setCombineModeParameter (*plist, "schwarz: combine mode");
     plist->set ("schwarz: overlap level", overlapLevel);
+    Teuchos::Array<global_ordinal_type> overlapElements;
+    plist->set ("schwarz: overlap elements", overlapElements);
     plist->set ("schwarz: use reordering", useReordering);
     plist->set ("schwarz: reordering list", reorderingSublist);
     // mfh 24 Mar 2015: We accept this for backwards compatibility
@@ -1018,7 +1023,14 @@ void AdditiveSchwarz<MatrixType,LocalInverseType>::initialize ()
     if (comm->getSize () == 1) {
       OverlapLevel_ = 0;
       IsOverlapping_ = false;
-    } else if (OverlapLevel_ != 0) {
+    }
+    
+    size_t extElements = OverlapElements_.size();
+    size_t maxExtElements = 0;
+    Teuchos::reduceAll<int, size_t>(*comm, Teuchos::REDUCE_MAX, 1,
+                                    &extElements, &maxExtElements);
+        
+    if ((OverlapLevel_ != 0) || (maxExtElements > 0)) {
       IsOverlapping_ = true;
     }
 
@@ -1035,7 +1047,11 @@ void AdditiveSchwarz<MatrixType,LocalInverseType>::initialize ()
     // compute the overlapping matrix if necessary
     if (IsOverlapping_) {
       Teuchos::TimeMonitor t(*Teuchos::TimeMonitor::getNewTimer("OverlappingRowMatrix construction"));
-      OverlappingMatrix_ = rcp (new OverlappingRowMatrix<row_matrix_type> (Matrix_, OverlapLevel_));
+      if (maxExtElements == 0) {
+        OverlappingMatrix_ = rcp (new OverlappingRowMatrix<row_matrix_type> (Matrix_, OverlapLevel_));
+      } else {
+        OverlappingMatrix_ = rcp (new OverlappingRowMatrix<row_matrix_type> (Matrix_, OverlapElements_));
+      }
     }
 
     setup (); // This does a lot of the initialization work.

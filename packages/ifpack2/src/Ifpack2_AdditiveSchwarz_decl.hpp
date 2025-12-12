@@ -764,6 +764,8 @@ private:
   bool IsOverlapping_ = false;
   //! Level of overlap among the processors.
   int OverlapLevel_ = 0;
+  //! Elements on this processor owned by other processors in Matrix_->getRowMap().  If non-empty on any processor, will be used in construction of OverlappingRowMatrix, and OverlapLevel_ will be ignored.
+  Teuchos::Array<typename row_matrix_type::global_ordinal_type> OverlapElements_;
 
   /// \brief A (deep) copy of the list given to setParameters().
   ///
