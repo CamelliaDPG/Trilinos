@@ -265,7 +265,7 @@ setup(const Teuchos::RCP<const row_matrix_type>& A_unfiltered,
   TEUCHOS_TEST_FOR_EXCEPTION(
     ! mapPairsAreFitted (*A_unfiltered_), std::invalid_argument, "Ifpack2::LocalFilter: "
     "A's Map pairs are not fitted to each other on Process "
-    << A_->getRowMap ()->getComm ()->getRank () << " of the input matrix's "
+    << A_unfiltered_->getRowMap ()->getComm ()->getRank () << " of the input matrix's "
     "communicator.  "
     "This means that LocalFilter does not currently know how to work with A.  "
     "This will change soon.  Please see discussion of Bug 5992.");
