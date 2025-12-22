@@ -143,17 +143,17 @@ setParameters (Teuchos::ParameterList& List)
   if (NumLocalParts_ < 0) {
     NumLocalParts_ = Graph_->getLocalNumRows() / (-NumLocalParts_);
   }
+  TEUCHOS_TEST_FOR_EXCEPTION(
+    NumLocalParts_ < 0 ||
+    Teuchos::as<size_t> (NumLocalParts_) > Graph_->getLocalNumRows(),
+    std::runtime_error,
+    "Ifpack2::OverlappingPartitioner::setParameters: "
+    "Invalid NumLocalParts_ = " << NumLocalParts_ << ".");
   if (NumLocalParts_ == 0) {
     NumLocalParts_ = 1;
   }
   
   // Sanity checking
-  TEUCHOS_TEST_FOR_EXCEPTION(
-    NumLocalParts_ < 0 || 
-    Teuchos::as<size_t> (NumLocalParts_) > Graph_->getLocalNumRows(),
-    std::runtime_error, 
-    "Ifpack2::OverlappingPartitioner::setParameters: "
-    "Invalid NumLocalParts_ = " << NumLocalParts_ << ".");
   TEUCHOS_TEST_FOR_EXCEPTION(
     OverlappingLevel_ < 0, std::runtime_error,
     "Ifpack2::OverlappingPartitioner::setParameters: "
