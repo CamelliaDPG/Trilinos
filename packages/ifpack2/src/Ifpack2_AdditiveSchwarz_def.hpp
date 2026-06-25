@@ -1034,7 +1034,7 @@ void AdditiveSchwarz<MatrixType,LocalInverseType>::initialize ()
       IsOverlapping_ = true;
     }
 
-    if (OverlapLevel_ == 0) {
+    if (IsOverlapping_) {
       const global_ordinal_type indexBase = rowMap->getIndexBase ();
       RCP<const SerialComm<int> > localComm (new SerialComm<int> ());
       // FIXME (mfh 15 Apr 2014) What if indexBase isn't the least
