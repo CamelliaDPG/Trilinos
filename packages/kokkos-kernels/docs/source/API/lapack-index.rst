@@ -5,6 +5,11 @@ API: LAPACK
    :maxdepth: 2
    :hidden:
 
+   lapack/geqrf
+   lapack/gemqr
+   lapack/gegqr
+   lapack/potrf
+   lapack/potrs
    lapack/gesv
    lapack/gesvd
    lapack/trtri
@@ -69,26 +74,40 @@ Below are tables summarizing the currently supported function calls and third pa
      - 
      - 
    * - geqrf
-     - 
-     - 
-     - 
-     - 
-     - 
-     - 
-   * - ungqr
-     - 
-     - 
-     - 
-     - 
-     - 
-     - 
-   * - unmqr
-     - 
-     - 
-     - 
-     - 
-     - 
-     - 
+     - :doc:`geqrf <lapack/geqrf>`
+     - --
+     - X
+     - X
+     - X
+     - --
+   * - potrf
+     - :doc:`potrf <lapack/potrf>`
+     - --
+     - X
+     - X
+     - X
+     - --
+   * - potrs
+     - :doc:`potrs <lapack/potrs>`
+     - --
+     - X
+     - X
+     - X
+     - --
+   * - {or,un}gqr
+     - :doc:`gegqr <lapack/gegqr>`
+     - --
+     - X
+     - X
+     - X
+     - --
+   * - {or,un}mqr
+     - :doc:`gemqr <lapack/gemqr>`
+     - --
+     - X
+     - X
+     - X
+     - --
    * - gesvd
      - :doc:`gesvd <lapack/gesvd>`
      - --

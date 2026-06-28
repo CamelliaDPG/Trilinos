@@ -5,11 +5,21 @@ API: Batched Dense (DLA)
    :maxdepth: 2
    :hidden:
    
+   dense/batched_rotg
+   dense/batched_rot
+   dense/batched_rotmg
+   dense/batched_rotm
+   dense/batched_axpy
+   dense/batched_copy
+   dense/batched_dot
+   dense/batched_nrm
    dense/batched_iamax
    dense/batched_trsv
    dense/batched_tbsv
    dense/batched_ger
+   dense/batched_swap
    dense/batched_syr
+   dense/batched_syr2
    dense/batched_getrf
    dense/batched_getrs
    dense/batched_gbtrf
@@ -22,6 +32,7 @@ API: Batched Dense (DLA)
    dense/batched_laswp
    dense/batched_apply_householder
    dense/batched_householder
+   dense/batched_trsm
 
 Our implementation of batched dense linear algebra (DLA) allows user to compose various batched DLA operations.
 For example, consider a case where small element matrices are created via `gemm` and those matrices are triangular solved by `lu` and `trsv`.
@@ -99,61 +110,61 @@ BLAS 1
      - Team
      - TeamVector
    * - ROTG
-     - --
+     - :doc:`Rotg <dense/batched_rotg>`
      - --
      - --
    * - ROTMG
-     - --
+     - :doc:`Rotmg <dense/batched_rotmg>`
      - --
      - --
    * - ROT
-     - --
-     - --
-     - --
+     - :doc:`SerialRot <dense/batched_rot>`
+     - :doc:`TeamRot <dense/batched_rot>`
+     - :doc:`TeamVectorRot <dense/batched_rot>`
    * - ROTM
-     - --
-     - --
-     - --
+     - :doc:`SerialRotm <dense/batched_rotm>`
+     - :doc:`TeamRotm <dense/batched_rotm>`
+     - :doc:`TeamVectorRotm <dense/batched_rotm>`
    * - SWAP
-     - `kokkos_swap(a, b) <https://kokkos.org/kokkos-core-wiki/API/core/utilities/swap.html>`_
-     - --
-     - --
+     - :doc:`SerialSwap <dense/batched_swap>`
+     - :doc:`TeamSwap <dense/batched_swap>`
+     - :doc:`TeamVectorSwap <dense/batched_swap>`
    * - SCAL
      - `Blas::SerialScale`
      - `Blas::TeamScale`
      - `Blas::TeamVectorScale`
    * - COPY
-     - `SerialCopy`
-     - `TeamCopy`
-     - `TeamVectorCopy`
+     - :doc:`SerialCopy <dense/batched_copy>`
+     - :doc:`TeamCopy <dense/batched_copy>`
+     - :doc:`TeamVectorCopy <dense/batched_copy>`
    * - AXPY
-     - `SerialAxpy`
-     - `TeamAxpy`
-     - `TeamVectorAxpy`
-   * - DOT*
-     - `SerialDot`
-     - `TeamDot`
-     - `TeamVectorDot`
+     - :doc:`SerialAxpy <dense/batched_axpy>`
+     - :doc:`TeamAxpy <dense/batched_axpy>`
+     - :doc:`TeamVectorAxpy <dense/batched_axpy>`
+   * - DOT
+     - :doc:`SerialDot <dense/batched_dot>`
+     - :doc:`TeamDot <dense/batched_dot>`
+     - :doc:`TeamVectorDot <dense/batched_dot>`
    * - DOTU
-     - --
-     - --
-     - --
-   * - DOTC*
-     - --
-     - --
-     - --
+     - :doc:`SerialDot <dense/batched_dot>`
+     - :doc:`TeamDot <dense/batched_dot>`
+     - :doc:`TeamVectorDot <dense/batched_dot>`
+   * - DOTC
+     - :doc:`SerialDot <dense/batched_dot>`
+     - :doc:`TeamDot <dense/batched_dot>`
+     - :doc:`TeamVectorDot <dense/batched_dot>`
    * - NRM2
-     - --
-     - --
-     - --
+     - :doc:`SerialNrm <dense/batched_nrm>`
+     - :doc:`TeamNrm <dense/batched_nrm>`
+     - :doc:`TeamVectorNrm <dense/batched_nrm>`
    * - ASUM
-     - --
-     - --
-     - --
+     - :doc:`SerialNrm <dense/batched_nrm>`
+     - :doc:`TeamNrm <dense/batched_nrm>`
+     - :doc:`TeamVectorNrm <dense/batched_nrm>`
    * - IAMAX
      - :doc:`SerialIamax <dense/batched_iamax>`
-     - --
-     - --
+     - :doc:`TeamIamax <dense/batched_iamax>`
+     - :doc:`TeamVectorIamax <dense/batched_iamax>`
 
 BLAS 2
 ------
@@ -235,7 +246,11 @@ BLAS 2
      - --
      - --
    * - SYR2
+     - :doc:`SerialSyr2 <dense/batched_syr2>`
      - --
+     - --
+   * - HER2
+     - :doc:`SerialSyr2 <dense/batched_syr2>`
      - --
      - --
 
@@ -283,9 +298,9 @@ BLAS 3
      - `TeamTrmm`
      - `TeamVectorTrmm`
    * - TRSM
-     - `SerialTrsm`
-     - `TeamTrsm`
-     - `TeamVectorTrsm`
+     - :doc:`SerialTrsm <dense/batched_trsm>`
+     - :doc:`TeamTrsm <dense/batched_trsm>`
+     - :doc:`TeamVectorTrsm <dense/batched_trsm>`
 
 LAPACK support
 ==============

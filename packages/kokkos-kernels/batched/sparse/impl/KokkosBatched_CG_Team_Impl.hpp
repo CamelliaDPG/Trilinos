@@ -33,7 +33,7 @@ KOKKOS_INLINE_FUNCTION int TeamCG<MemberType>::invoke(const MemberType& member, 
   size_t maximum_iteration      = handle.get_max_iteration();
   const MagnitudeType tolerance = handle.get_tolerance();
 
-  using TeamCopy1D = TeamCopy<MemberType, Trans::NoTranspose, 1>;
+  using TeamCopy1D = TeamCopy<MemberType, Trans::NoTranspose>;
 
   const OrdinalType numMatrices = X.extent(0);
   const OrdinalType numRows     = X.extent(1);
@@ -66,7 +66,7 @@ KOKKOS_INLINE_FUNCTION int TeamCG<MemberType>::invoke(const MemberType& member, 
   // Deep copy of r_0 into p_0:
   TeamCopy<MemberType>::invoke(member, R, P);
 
-  TeamDot<MemberType>::invoke(member, R, R, sqr_norm_0);
+  TeamDot<MemberType, Trans::ConjTranspose, 1>::invoke(member, R, R, sqr_norm_0);
   member.team_barrier();
 
   Kokkos::parallel_for(Kokkos::TeamThreadRange(member, 0, numMatrices),
@@ -82,7 +82,7 @@ KOKKOS_INLINE_FUNCTION int TeamCG<MemberType>::invoke(const MemberType& member, 
     A.template apply<Trans::NoTranspose, Mode::Team>(member, P, Q);
     member.team_barrier();
 
-    TeamDot<MemberType>::invoke(member, P, Q, tmp);
+    TeamDot<MemberType, Trans::ConjTranspose, 1>::invoke(member, P, Q, tmp);
     member.team_barrier();
 
     Kokkos::parallel_for(Kokkos::TeamThreadRange(member, 0, numMatrices),
@@ -101,7 +101,7 @@ KOKKOS_INLINE_FUNCTION int TeamCG<MemberType>::invoke(const MemberType& member, 
     TeamAxpy<MemberType>::invoke(member, alpha, Q, R);
     member.team_barrier();
 
-    TeamDot<MemberType>::invoke(member, R, R, tmp);
+    TeamDot<MemberType, Trans::ConjTranspose, 1>::invoke(member, R, R, tmp);
     member.team_barrier();
 
     Kokkos::parallel_for(Kokkos::TeamThreadRange(member, 0, numMatrices),
