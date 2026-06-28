@@ -21,361 +21,13 @@
 namespace Kokkos {
 namespace Impl {
 
-// Temporary, for testing new loop macros
-#define KOKKOS_ENABLE_NEW_LOOP_MACROS 1
+// FIXME: Implement generation of nested for loops for parallel_reduce
+// using recursive templates (like it is done for parallel_for)
 
-#define KOKKOS_IMPL_LOOP_1L(type, tile) \
-  KOKKOS_ENABLE_IVDEP_MDRANGE           \
-  for (type i0 = 0; i0 < static_cast<type>(tile[0]); ++i0)
+// Loop Macros for parallel_reduce
 
-#define KOKKOS_IMPL_LOOP_2L(type, tile)                    \
-  for (type i1 = 0; i1 < static_cast<type>(tile[1]); ++i1) \
-  KOKKOS_IMPL_LOOP_1L(type, tile)
+// non-tagged
 
-#define KOKKOS_IMPL_LOOP_3L(type, tile)                    \
-  for (type i2 = 0; i2 < static_cast<type>(tile[2]); ++i2) \
-  KOKKOS_IMPL_LOOP_2L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_4L(type, tile)                    \
-  for (type i3 = 0; i3 < static_cast<type>(tile[3]); ++i3) \
-  KOKKOS_IMPL_LOOP_3L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_5L(type, tile)                    \
-  for (type i4 = 0; i4 < static_cast<type>(tile[4]); ++i4) \
-  KOKKOS_IMPL_LOOP_4L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_6L(type, tile)                    \
-  for (type i5 = 0; i5 < static_cast<type>(tile[5]); ++i5) \
-  KOKKOS_IMPL_LOOP_5L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_7L(type, tile)                    \
-  for (type i6 = 0; i6 < static_cast<type>(tile[6]); ++i6) \
-  KOKKOS_IMPL_LOOP_6L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_8L(type, tile)                    \
-  for (type i7 = 0; i7 < static_cast<type>(tile[7]); ++i7) \
-  KOKKOS_IMPL_LOOP_7L(type, tile)
-
-#define KOKKOS_IMPL_LOOP_1R(type, tile) \
-  KOKKOS_ENABLE_IVDEP_MDRANGE           \
-  for (type i0 = 0; i0 < static_cast<type>(tile[0]); ++i0)
-
-#define KOKKOS_IMPL_LOOP_2R(type, tile) \
-  KOKKOS_IMPL_LOOP_1R(type, tile)       \
-  for (type i1 = 0; i1 < static_cast<type>(tile[1]); ++i1)
-
-#define KOKKOS_IMPL_LOOP_3R(type, tile) \
-  KOKKOS_IMPL_LOOP_2R(type, tile)       \
-  for (type i2 = 0; i2 < static_cast<type>(tile[2]); ++i2)
-
-#define KOKKOS_IMPL_LOOP_4R(type, tile) \
-  KOKKOS_IMPL_LOOP_3R(type, tile)       \
-  for (type i3 = 0; i3 < static_cast<type>(tile[3]); ++i3)
-
-#define KOKKOS_IMPL_LOOP_5R(type, tile) \
-  KOKKOS_IMPL_LOOP_4R(type, tile)       \
-  for (type i4 = 0; i4 < static_cast<type>(tile[4]); ++i4)
-
-#define KOKKOS_IMPL_LOOP_6R(type, tile) \
-  KOKKOS_IMPL_LOOP_5R(type, tile)       \
-  for (type i5 = 0; i5 < static_cast<type>(tile[5]); ++i5)
-
-#define KOKKOS_IMPL_LOOP_7R(type, tile) \
-  KOKKOS_IMPL_LOOP_6R(type, tile)       \
-  for (type i6 = 0; i6 < static_cast<type>(tile[6]); ++i6)
-
-#define KOKKOS_IMPL_LOOP_8R(type, tile) \
-  KOKKOS_IMPL_LOOP_7R(type, tile)       \
-  for (type i7 = 0; i7 < static_cast<type>(tile[7]); ++i7)
-
-#define KOKKOS_IMPL_LOOP_ARGS_1 i0 + m_offset[0]
-#define KOKKOS_IMPL_LOOP_ARGS_2 KOKKOS_IMPL_LOOP_ARGS_1, i1 + m_offset[1]
-#define KOKKOS_IMPL_LOOP_ARGS_3 KOKKOS_IMPL_LOOP_ARGS_2, i2 + m_offset[2]
-#define KOKKOS_IMPL_LOOP_ARGS_4 KOKKOS_IMPL_LOOP_ARGS_3, i3 + m_offset[3]
-#define KOKKOS_IMPL_LOOP_ARGS_5 KOKKOS_IMPL_LOOP_ARGS_4, i4 + m_offset[4]
-#define KOKKOS_IMPL_LOOP_ARGS_6 KOKKOS_IMPL_LOOP_ARGS_5, i5 + m_offset[5]
-#define KOKKOS_IMPL_LOOP_ARGS_7 KOKKOS_IMPL_LOOP_ARGS_6, i6 + m_offset[6]
-#define KOKKOS_IMPL_LOOP_ARGS_8 KOKKOS_IMPL_LOOP_ARGS_7, i7 + m_offset[7]
-
-// New Loop Macros...
-// parallel_for, non-tagged
-#define KOKKOS_IMPL_APPLY(func, ...) func(__VA_ARGS__);
-
-// LayoutRight
-// d = 0 to start
-#define KOKKOS_IMPL_LOOP_R_1(func, type, m_offset, extent, d, ...)   \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                        \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[d]); ++i0) { \
-    KOKKOS_IMPL_APPLY(func, __VA_ARGS__, i0 + m_offset[d])           \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_2(func, type, m_offset, extent, d, ...)         \
-  for (type i1 = (type)0; i1 < static_cast<type>(extent[d]); ++i1) {       \
-    KOKKOS_IMPL_LOOP_R_1(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i1 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_3(func, type, m_offset, extent, d, ...)         \
-  for (type i2 = (type)0; i2 < static_cast<type>(extent[d]); ++i2) {       \
-    KOKKOS_IMPL_LOOP_R_2(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i2 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_4(func, type, m_offset, extent, d, ...)         \
-  for (type i3 = (type)0; i3 < static_cast<type>(extent[d]); ++i3) {       \
-    KOKKOS_IMPL_LOOP_R_3(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i3 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_5(func, type, m_offset, extent, d, ...)         \
-  for (type i4 = (type)0; i4 < static_cast<type>(extent[d]); ++i4) {       \
-    KOKKOS_IMPL_LOOP_R_4(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i4 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_6(func, type, m_offset, extent, d, ...)         \
-  for (type i5 = (type)0; i5 < static_cast<type>(extent[d]); ++i5) {       \
-    KOKKOS_IMPL_LOOP_R_5(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i5 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_7(func, type, m_offset, extent, d, ...)         \
-  for (type i6 = (type)0; i6 < static_cast<type>(extent[d]); ++i6) {       \
-    KOKKOS_IMPL_LOOP_R_6(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i6 + m_offset[d])                                 \
-  }
-
-#define KOKKOS_IMPL_LOOP_R_8(func, type, m_offset, extent, d, ...)         \
-  for (type i7 = (type)0; i7 < static_cast<type>(extent[d]); ++i7) {       \
-    KOKKOS_IMPL_LOOP_R_7(func, type, m_offset, extent, d + 1, __VA_ARGS__, \
-                         i7 + m_offset[d])                                 \
-  }
-
-// LayoutLeft
-// d = rank-1 to start
-#define KOKKOS_IMPL_LOOP_L_1(func, type, m_offset, extent, d, ...)   \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                        \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[d]); ++i0) { \
-    KOKKOS_IMPL_APPLY(func, i0 + m_offset[d], __VA_ARGS__)           \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_2(func, type, m_offset, extent, d, ...)   \
-  for (type i1 = (type)0; i1 < static_cast<type>(extent[d]); ++i1) { \
-    KOKKOS_IMPL_LOOP_L_1(func, type, m_offset, extent, d - 1,        \
-                         i1 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_3(func, type, m_offset, extent, d, ...)   \
-  for (type i2 = (type)0; i2 < static_cast<type>(extent[d]); ++i2) { \
-    KOKKOS_IMPL_LOOP_L_2(func, type, m_offset, extent, d - 1,        \
-                         i2 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_4(func, type, m_offset, extent, d, ...)   \
-  for (type i3 = (type)0; i3 < static_cast<type>(extent[d]); ++i3) { \
-    KOKKOS_IMPL_LOOP_L_3(func, type, m_offset, extent, d - 1,        \
-                         i3 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_5(func, type, m_offset, extent, d, ...)   \
-  for (type i4 = (type)0; i4 < static_cast<type>(extent[d]); ++i4) { \
-    KOKKOS_IMPL_LOOP_L_4(func, type, m_offset, extent, d - 1,        \
-                         i4 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_6(func, type, m_offset, extent, d, ...)   \
-  for (type i5 = (type)0; i5 < static_cast<type>(extent[d]); ++i5) { \
-    KOKKOS_IMPL_LOOP_L_5(func, type, m_offset, extent, d - 1,        \
-                         i5 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_7(func, type, m_offset, extent, d, ...)   \
-  for (type i6 = (type)0; i6 < static_cast<type>(extent[d]); ++i6) { \
-    KOKKOS_IMPL_LOOP_L_6(func, type, m_offset, extent, d - 1,        \
-                         i6 + m_offset[d], __VA_ARGS__)              \
-  }
-
-#define KOKKOS_IMPL_LOOP_L_8(func, type, m_offset, extent, d, ...)   \
-  for (type i7 = (type)0; i7 < static_cast<type>(extent[d]); ++i7) { \
-    KOKKOS_IMPL_LOOP_L_7(func, type, m_offset, extent, d - 1,        \
-                         i7 + m_offset[d], __VA_ARGS__)              \
-  }
-
-// Left vs Right
-// TODO: rank not necessary to pass through, can hardcode the values
-#define KOKKOS_IMPL_LOOP_LAYOUT_1(func, type, is_left, m_offset, extent, rank) \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                                  \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[0]); ++i0) {           \
-    KOKKOS_IMPL_APPLY(func, i0 + m_offset[0])                                  \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_2(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i1 = (type)0; i1 < static_cast<type>(extent[rank - 1]); ++i1) {  \
-      KOKKOS_IMPL_LOOP_L_1(func, type, m_offset, extent, rank - 2,             \
-                           i1 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i1 = (type)0; i1 < static_cast<type>(extent[0]); ++i1) {         \
-      KOKKOS_IMPL_LOOP_R_1(func, type, m_offset, extent, 1, i1 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_3(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i2 = (type)0; i2 < static_cast<type>(extent[rank - 1]); ++i2) {  \
-      KOKKOS_IMPL_LOOP_L_2(func, type, m_offset, extent, rank - 2,             \
-                           i2 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i2 = (type)0; i2 < static_cast<type>(extent[0]); ++i2) {         \
-      KOKKOS_IMPL_LOOP_R_2(func, type, m_offset, extent, 1, i2 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_4(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i3 = (type)0; i3 < static_cast<type>(extent[rank - 1]); ++i3) {  \
-      KOKKOS_IMPL_LOOP_L_3(func, type, m_offset, extent, rank - 2,             \
-                           i3 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i3 = (type)0; i3 < static_cast<type>(extent[0]); ++i3) {         \
-      KOKKOS_IMPL_LOOP_R_3(func, type, m_offset, extent, 1, i3 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_5(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i4 = (type)0; i4 < static_cast<type>(extent[rank - 1]); ++i4) {  \
-      KOKKOS_IMPL_LOOP_L_4(func, type, m_offset, extent, rank - 2,             \
-                           i4 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i4 = (type)0; i4 < static_cast<type>(extent[0]); ++i4) {         \
-      KOKKOS_IMPL_LOOP_R_4(func, type, m_offset, extent, 1, i4 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_6(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i5 = (type)0; i5 < static_cast<type>(extent[rank - 1]); ++i5) {  \
-      KOKKOS_IMPL_LOOP_L_5(func, type, m_offset, extent, rank - 2,             \
-                           i5 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i5 = (type)0; i5 < static_cast<type>(extent[0]); ++i5) {         \
-      KOKKOS_IMPL_LOOP_R_5(func, type, m_offset, extent, 1, i5 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_7(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i6 = (type)0; i6 < static_cast<type>(extent[rank - 1]); ++i6) {  \
-      KOKKOS_IMPL_LOOP_L_6(func, type, m_offset, extent, rank - 2,             \
-                           i6 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i6 = (type)0; i6 < static_cast<type>(extent[0]); ++i6) {         \
-      KOKKOS_IMPL_LOOP_R_6(func, type, m_offset, extent, 1, i6 + m_offset[0])  \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_LOOP_LAYOUT_8(func, type, is_left, m_offset, extent, rank) \
-  if (is_left) {                                                               \
-    for (type i7 = (type)0; i7 < static_cast<type>(extent[rank - 1]); ++i7) {  \
-      KOKKOS_IMPL_LOOP_L_7(func, type, m_offset, extent, rank - 2,             \
-                           i7 + m_offset[rank - 1])                            \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i7 = (type)0; i7 < static_cast<type>(extent[0]); ++i7) {         \
-      KOKKOS_IMPL_LOOP_R_7(func, type, m_offset, extent, 1, i7 + m_offset[0])  \
-    }                                                                          \
-  }
-
-// Partial vs Full Tile
-#define KOKKOS_IMPL_TILE_LOOP_1(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_1(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_1(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_2(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_2(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_2(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_3(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_3(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_3(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_4(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_4(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_4(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_5(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_5(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_5(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_6(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_6(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_6(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_7(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_7(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_7(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-#define KOKKOS_IMPL_TILE_LOOP_8(func, type, is_left, cond, m_offset,         \
-                                extent_full, extent_partial, rank)           \
-  if (cond) {                                                                \
-    KOKKOS_IMPL_LOOP_LAYOUT_8(func, type, is_left, m_offset, extent_full,    \
-                              rank)                                          \
-  } else {                                                                   \
-    KOKKOS_IMPL_LOOP_LAYOUT_8(func, type, is_left, m_offset, extent_partial, \
-                              rank)                                          \
-  }
-
-// parallel_reduce, non-tagged
-// Reduction version
 #define KOKKOS_IMPL_APPLY_REDUX(val, func, ...) func(__VA_ARGS__, val);
 
 // LayoutRight
@@ -672,309 +324,10 @@ namespace Impl {
     KOKKOS_IMPL_LOOP_LAYOUT_8_REDUX(val, func, type, is_left, m_offset,      \
                                     extent_partial, rank)                    \
   }
-// end New Loop Macros
+// end untagged macros
 
-// tagged macros
-#define KOKKOS_IMPL_TAGGED_APPLY(tag, func, ...) func(tag, __VA_ARGS__);
+// tagged
 
-// LayoutRight
-// d = 0 to start
-#define KOKKOS_IMPL_TAGGED_LOOP_R_1(tag, func, type, m_offset, extent, d, ...) \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                                  \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[d]); ++i0) {           \
-    KOKKOS_IMPL_TAGGED_APPLY(tag, func, __VA_ARGS__, i0 + m_offset[d])         \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_2(tag, func, type, m_offset, extent, d, ...) \
-  for (type i1 = (type)0; i1 < static_cast<type>(extent[d]); ++i1) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_1(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i1 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_3(tag, func, type, m_offset, extent, d, ...) \
-  for (type i2 = (type)0; i2 < static_cast<type>(extent[d]); ++i2) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_2(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i2 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_4(tag, func, type, m_offset, extent, d, ...) \
-  for (type i3 = (type)0; i3 < static_cast<type>(extent[d]); ++i3) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_3(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i3 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_5(tag, func, type, m_offset, extent, d, ...) \
-  for (type i4 = (type)0; i4 < static_cast<type>(extent[d]); ++i4) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_4(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i4 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_6(tag, func, type, m_offset, extent, d, ...) \
-  for (type i5 = (type)0; i5 < static_cast<type>(extent[d]); ++i5) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_5(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i5 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_7(tag, func, type, m_offset, extent, d, ...) \
-  for (type i6 = (type)0; i6 < static_cast<type>(extent[d]); ++i6) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_6(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i6 + m_offset[d])                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_R_8(tag, func, type, m_offset, extent, d, ...) \
-  for (type i7 = (type)0; i7 < static_cast<type>(extent[d]); ++i7) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_R_7(tag, func, type, m_offset, extent, d + 1,      \
-                                __VA_ARGS__, i7 + m_offset[d])                 \
-  }
-
-// LayoutLeft
-// d = rank-1 to start
-#define KOKKOS_IMPL_TAGGED_LOOP_L_1(tag, func, type, m_offset, extent, d, ...) \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                                  \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[d]); ++i0) {           \
-    KOKKOS_IMPL_TAGGED_APPLY(tag, func, i0 + m_offset[d], __VA_ARGS__)         \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_2(tag, func, type, m_offset, extent, d, ...) \
-  for (type i1 = (type)0; i1 < static_cast<type>(extent[d]); ++i1) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_1(tag, func, type, m_offset, extent, d - 1,      \
-                                i1 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_3(tag, func, type, m_offset, extent, d, ...) \
-  for (type i2 = (type)0; i2 < static_cast<type>(extent[d]); ++i2) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_2(tag, func, type, m_offset, extent, d - 1,      \
-                                i2 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_4(tag, func, type, m_offset, extent, d, ...) \
-  for (type i3 = (type)0; i3 < static_cast<type>(extent[d]); ++i3) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_3(tag, func, type, m_offset, extent, d - 1,      \
-                                i3 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_5(tag, func, type, m_offset, extent, d, ...) \
-  for (type i4 = (type)0; i4 < static_cast<type>(extent[d]); ++i4) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_4(tag, func, type, m_offset, extent, d - 1,      \
-                                i4 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_6(tag, func, type, m_offset, extent, d, ...) \
-  for (type i5 = (type)0; i5 < static_cast<type>(extent[d]); ++i5) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_5(tag, func, type, m_offset, extent, d - 1,      \
-                                i5 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_7(tag, func, type, m_offset, extent, d, ...) \
-  for (type i6 = (type)0; i6 < static_cast<type>(extent[d]); ++i6) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_6(tag, func, type, m_offset, extent, d - 1,      \
-                                i6 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_L_8(tag, func, type, m_offset, extent, d, ...) \
-  for (type i7 = (type)0; i7 < static_cast<type>(extent[d]); ++i7) {           \
-    KOKKOS_IMPL_TAGGED_LOOP_L_7(tag, func, type, m_offset, extent, d - 1,      \
-                                i7 + m_offset[d], __VA_ARGS__)                 \
-  }
-
-// Left vs Right
-// TODO: rank not necessary to pass through, can hardcode the values
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_1(tag, func, type, is_left, m_offset, \
-                                         extent, rank)                       \
-  KOKKOS_ENABLE_IVDEP_MDRANGE                                                \
-  for (type i0 = (type)0; i0 < static_cast<type>(extent[0]); ++i0) {         \
-    KOKKOS_IMPL_TAGGED_APPLY(tag, func, i0 + m_offset[0])                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_2(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i1 = (type)0; i1 < static_cast<type>(extent[rank - 1]); ++i1) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_1(tag, func, type, m_offset, extent, rank - 2, \
-                                  i1 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i1 = (type)0; i1 < static_cast<type>(extent[0]); ++i1) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_1(tag, func, type, m_offset, extent, 1,        \
-                                  i1 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_3(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i2 = (type)0; i2 < static_cast<type>(extent[rank - 1]); ++i2) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_2(tag, func, type, m_offset, extent, rank - 2, \
-                                  i2 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i2 = (type)0; i2 < static_cast<type>(extent[0]); ++i2) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_2(tag, func, type, m_offset, extent, 1,        \
-                                  i2 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_4(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i3 = (type)0; i3 < static_cast<type>(extent[rank - 1]); ++i3) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_3(tag, func, type, m_offset, extent, rank - 2, \
-                                  i3 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i3 = (type)0; i3 < static_cast<type>(extent[0]); ++i3) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_3(tag, func, type, m_offset, extent, 1,        \
-                                  i3 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_5(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i4 = (type)0; i4 < static_cast<type>(extent[rank - 1]); ++i4) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_4(tag, func, type, m_offset, extent, rank - 2, \
-                                  i4 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i4 = (type)0; i4 < static_cast<type>(extent[0]); ++i4) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_4(tag, func, type, m_offset, extent, 1,        \
-                                  i4 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_6(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i5 = (type)0; i5 < static_cast<type>(extent[rank - 1]); ++i5) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_5(tag, func, type, m_offset, extent, rank - 2, \
-                                  i5 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i5 = (type)0; i5 < static_cast<type>(extent[0]); ++i5) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_5(tag, func, type, m_offset, extent, 1,        \
-                                  i5 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_7(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i6 = (type)0; i6 < static_cast<type>(extent[rank - 1]); ++i6) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_6(tag, func, type, m_offset, extent, rank - 2, \
-                                  i6 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i6 = (type)0; i6 < static_cast<type>(extent[0]); ++i6) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_6(tag, func, type, m_offset, extent, 1,        \
-                                  i6 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-#define KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_8(tag, func, type, is_left, m_offset,   \
-                                         extent, rank)                         \
-  if (is_left) {                                                               \
-    for (type i7 = (type)0; i7 < static_cast<type>(extent[rank - 1]); ++i7) {  \
-      KOKKOS_IMPL_TAGGED_LOOP_L_7(tag, func, type, m_offset, extent, rank - 2, \
-                                  i7 + m_offset[rank - 1])                     \
-    }                                                                          \
-  } else {                                                                     \
-    for (type i7 = (type)0; i7 < static_cast<type>(extent[0]); ++i7) {         \
-      KOKKOS_IMPL_TAGGED_LOOP_R_7(tag, func, type, m_offset, extent, 1,        \
-                                  i7 + m_offset[0])                            \
-    }                                                                          \
-  }
-
-// Partial vs Full Tile
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_1(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_1(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_1(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_2(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_2(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_2(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_3(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_3(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_3(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_4(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_4(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_4(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_5(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_5(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_5(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_6(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_6(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_6(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_7(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_7(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_7(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-#define KOKKOS_IMPL_TAGGED_TILE_LOOP_8(tag, func, type, is_left, cond,        \
-                                       m_offset, extent_full, extent_partial, \
-                                       rank)                                  \
-  if (cond) {                                                                 \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_8(tag, func, type, is_left, m_offset,      \
-                                     extent_full, rank)                       \
-  } else {                                                                    \
-    KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_8(tag, func, type, is_left, m_offset,      \
-                                     extent_partial, rank)                    \
-  }
-
-// parallel_reduce, tagged
-// Reduction version
 #define KOKKOS_IMPL_TAGGED_APPLY_REDUX(val, tag, func, ...) \
   func(tag, __VA_ARGS__, val);
 
@@ -1300,19 +653,16 @@ namespace Impl {
 
 // end tagged macros
 
-// Structs for calling loops
+// Structs for calling loops to compute the reductions
+
 template <int Rank, bool IsLeft, typename IType, typename Tagged,
           typename Enable = void>
 struct Tile_Loop_Type;
 
+// non-tagged versions
+
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<1, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_1(func, IType, IsLeft, cond, offset, a, b, 1);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1324,12 +674,6 @@ struct Tile_Loop_Type<1, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<2, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_2(func, IType, IsLeft, cond, offset, a, b, 2);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1341,12 +685,6 @@ struct Tile_Loop_Type<2, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<3, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_3(func, IType, IsLeft, cond, offset, a, b, 3);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1358,12 +696,6 @@ struct Tile_Loop_Type<3, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<4, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_4(func, IType, IsLeft, cond, offset, a, b, 4);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1375,12 +707,6 @@ struct Tile_Loop_Type<4, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<5, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_5(func, IType, IsLeft, cond, offset, a, b, 5);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1392,12 +718,6 @@ struct Tile_Loop_Type<5, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<6, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_6(func, IType, IsLeft, cond, offset, a, b, 6);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1409,12 +729,6 @@ struct Tile_Loop_Type<6, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<7, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_7(func, IType, IsLeft, cond, offset, a, b, 7);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1426,12 +740,6 @@ struct Tile_Loop_Type<7, IsLeft, IType, void, void> {
 
 template <bool IsLeft, typename IType>
 struct Tile_Loop_Type<8, IsLeft, IType, void, void> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TILE_LOOP_8(func, IType, IsLeft, cond, offset, a, b, 8);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1446,13 +754,6 @@ struct Tile_Loop_Type<8, IsLeft, IType, void, void> {
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<1, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_1(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 1);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1465,13 +766,6 @@ struct Tile_Loop_Type<1, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<2, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_2(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 2);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1484,13 +778,6 @@ struct Tile_Loop_Type<2, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<3, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_3(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 3);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1503,13 +790,6 @@ struct Tile_Loop_Type<3, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<4, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_4(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 4);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1522,13 +802,6 @@ struct Tile_Loop_Type<4, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<5, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_5(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 5);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1541,13 +814,6 @@ struct Tile_Loop_Type<5, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<6, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_6(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 6);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1560,13 +826,6 @@ struct Tile_Loop_Type<6, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<7, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_7(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 7);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1579,13 +838,6 @@ struct Tile_Loop_Type<7, IsLeft, IType, Tagged,
 template <bool IsLeft, typename IType, typename Tagged>
 struct Tile_Loop_Type<8, IsLeft, IType, Tagged,
                       std::enable_if_t<!std::is_void_v<Tagged>>> {
-  template <typename Func, typename Offset, typename ExtentA, typename ExtentB>
-  static void apply(Func const& func, bool cond, Offset const& offset,
-                    ExtentA const& a, ExtentB const& b) {
-    KOKKOS_IMPL_TAGGED_TILE_LOOP_8(Tagged(), func, IType, IsLeft, cond, offset,
-                                   a, b, 8);
-  }
-
   template <typename ValType, typename Func, typename Offset, typename ExtentA,
             typename ExtentB>
   static void apply(ValType& value, Func const& func, bool cond,
@@ -1594,7 +846,8 @@ struct Tile_Loop_Type<8, IsLeft, IType, Tagged,
                                          cond, offset, a, b, 8);
   }
 };
-// end Structs for calling loops
+
+// end structs for calling loops for reduction
 
 template <typename RP, typename Functor, typename Tag = void,
           typename ValueType = void, typename Enable = void>
@@ -1612,26 +865,17 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
   inline HostIterateTile(RP const& rp, Functor const& func)
       : m_rp(rp), m_func(func) {}
 
-  inline bool check_iteration_bounds(point_type& partial_tile,
-                                     point_type& offset) const {
-    bool is_full_tile = true;
-
+  inline void check_iteration_bounds(point_type& actual_tile,
+                                     const point_type& offset) const {
     for (int i = 0; i < RP::rank; ++i) {
       if ((offset[i] + m_rp.m_tile[i]) <= m_rp.m_upper[i]) {
-        partial_tile[i] = m_rp.m_tile[i];
+        actual_tile[i] = m_rp.m_tile[i];
       } else {
-        is_full_tile = false;
-        partial_tile[i] =
-            (m_rp.m_upper[i] - 1 - offset[i]) == 0 ? 1
-            : (m_rp.m_upper[i] - m_rp.m_tile[i]) > 0
-                ? (m_rp.m_upper[i] - offset[i])
-                : (m_rp.m_upper[i] -
-                   m_rp.m_lower[i]);  // when single tile encloses range
+        actual_tile[i] =
+            m_rp.m_upper[i] - offset[i];  // remaining elements in dimension i
       }
     }
-
-    return is_full_tile;
-  }  // end check bounds
+  }  // end check_iteration_bounds
 
   template <int Rank>
   struct RankTag {
@@ -1639,362 +883,106 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
     enum { value = (int)Rank };
   };
 
-#if KOKKOS_ENABLE_NEW_LOOP_MACROS
+  // functor encapsulating the inner-most loop
+  template <typename TileOffset, typename TileDims, typename... Idxs>
+  void func_innermost_loop(TileOffset const& offset, TileDims const& tiledims,
+                           Idxs&&... idxs) const {
+    if constexpr (RP::inner_direction == Iterate::Left) {
+      KOKKOS_ENABLE_IVDEP_MDRANGE
+      for (index_type i = offset[0]; i < offset[0] + tiledims[0]; ++i) {
+        if constexpr (std::is_void_v<Tag>) {
+          m_func(i, (Idxs&&)idxs...);
+        } else {
+          m_func(Tag{}, i, (Idxs&&)idxs...);
+        }
+      }
+    } else {
+      KOKKOS_ENABLE_IVDEP_MDRANGE
+      for (index_type i = offset[RP::rank - 1];
+           i < offset[RP::rank - 1] + tiledims[RP::rank - 1]; ++i) {
+        if constexpr (std::is_void_v<Tag>) {
+          m_func((Idxs&&)idxs..., i);
+        } else {
+          m_func(Tag{}, (Idxs&&)idxs..., i);
+        }
+      }
+    }
+  }
+
+  // ----------------------------------------------------------------------- //
+  // \brief Nested loops with recursive template instantiation
+  //
+  // Nested for loop order depends on the iteration order:
+  //  Iterate::Left:
+  //    Outermost loop corresponds to right-most index.
+  //  Iterate::Right:
+  //    Outermost loop corresponds to left-most index.
+  // The fastest changing index is always in innermost loop.
+  //
+  // Indices accumulated in parameter pack Idxs...
+  //
+  // Loop indices passed according to iteration order:
+  //  Iterate::Left:
+  //    functor(i_{inner_most}, ..., i_{outer_most})
+  //  Iterate::Right:
+  //    functor(i_{outer_most}, ..., i_{inner_most})
+  //
+  //  \tparam IterLevel iteration level of the nested loops
+  //  \tparam Idxs... index pack
+  template <unsigned IterLevel, typename TileOffset, typename TileDims,
+            typename... Idxs>
+  inline void iterate(std::integral_constant<unsigned, IterLevel>,
+                      TileOffset const& offset, TileDims const& tiledims,
+                      Idxs... idxs) const {
+    const index_type start = (RP::inner_direction == Iterate::Left)
+                                 ? offset[RP::rank - 1 - IterLevel]
+                                 : offset[IterLevel];
+    const index_type end   = (RP::inner_direction == Iterate::Left)
+                                 ? offset[RP::rank - 1 - IterLevel] +
+                                     tiledims[RP::rank - 1 - IterLevel]
+                                 : offset[IterLevel] + tiledims[IterLevel];
+
+    for (index_type idx = start; idx < end; ++idx) {
+      if constexpr (RP::inner_direction == Iterate::Left) {
+        iterate(std::integral_constant<unsigned, IterLevel + 1>(), offset,
+                tiledims, idx, idxs...);
+      } else {
+        iterate(std::integral_constant<unsigned, IterLevel + 1>(), offset,
+                tiledims, idxs..., idx);
+      }
+    }
+  }
+
+  template <typename TileOffset, typename TileDims, typename... Idxs>
+  inline void iterate(std::integral_constant<unsigned, RP::rank - 1>,
+                      TileOffset const& offset, TileDims const& tiledims,
+                      Idxs... idxs) const {
+    func_innermost_loop(offset, tiledims, idxs...);
+  }
+
   template <typename IType>
   inline void operator()(IType tile_idx) const {
-    point_type m_offset;
-    point_type m_tiledims;
+    point_type offset;
+    point_type tiledims;
 
-    if (RP::outer_direction == Iterate::Left) {
+    if constexpr (RP::outer_direction == Iterate::Left) {
       for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
+        offset[i] =
             (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
         tile_idx /= m_rp.m_tile_end[i];
       }
     } else {
       for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
+        offset[i] =
             (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
         tile_idx /= m_rp.m_tile_end[i];
       }
     }
 
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
+    // Check if offset+tiledim in bounds - return actual tile dims in tiledims
+    check_iteration_bounds(tiledims, offset);
 
-    Tile_Loop_Type<RP::rank, (RP::inner_direction == Iterate::Left), index_type,
-                   Tag>::apply(m_func, full_tile, m_offset, m_rp.m_tile,
-                               m_tiledims);
-  }
-
-#else
-  template <typename IType>
-  inline void operator()(IType tile_idx) const {
-    operator_impl(tile_idx, RankTag<RP::rank>());
-  }
-  // added due to compiler error when using sfinae to choose operator based on
-  // rank w/ cuda+serial
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<2>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 2
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<3>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 3
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<4>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 4
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<5>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 5
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<6>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 6
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<7>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 7
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<8>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 8
-#endif
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && std::is_void_v<Tag>), void>
-  apply(Args&&... args) const {
-    m_func(args...);
-  }
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && !std::is_void_v<Tag>), void>
-  apply(Args&&... args) const {
-    m_func(m_tag, args...);
+    iterate(std::integral_constant<unsigned, 0u>(), offset, tiledims);
   }
 
   RP const m_rp;
@@ -2025,7 +1013,7 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
   }
 
   inline bool check_iteration_bounds(point_type& partial_tile,
-                                     point_type& offset) const {
+                                     const point_type& offset) const {
     bool is_full_tile = true;
 
     for (int i = 0; i < RP::rank; ++i) {
@@ -2034,11 +1022,7 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
       } else {
         is_full_tile = false;
         partial_tile[i] =
-            (m_rp.m_upper[i] - 1 - offset[i]) == 0 ? 1
-            : (m_rp.m_upper[i] - m_rp.m_tile[i]) > 0
-                ? (m_rp.m_upper[i] - offset[i])
-                : (m_rp.m_upper[i] -
-                   m_rp.m_lower[i]);  // when single tile encloses range
+            m_rp.m_upper[i] - offset[i];  // remaining elements in dimension i
       }
     }
 
@@ -2051,13 +1035,12 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
     enum { value = (int)Rank };
   };
 
-#if KOKKOS_ENABLE_NEW_LOOP_MACROS
   template <typename IType>
   inline void operator()(IType tile_idx, value_type& val) const {
     point_type m_offset;
     point_type m_tiledims;
 
-    if (RP::outer_direction == Iterate::Left) {
+    if constexpr (RP::outer_direction == Iterate::Left) {
       for (int i = 0; i < RP::rank; ++i) {
         m_offset[i] =
             (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
@@ -2079,337 +1062,6 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
                    Tag>::apply(val, m_func.get_functor(), full_tile, m_offset,
                                m_rp.m_tile, m_tiledims);
   }
-
-#else
-  template <typename IType>
-  inline void operator()(IType tile_idx) const {
-    operator_impl(tile_idx, RankTag<RP::rank>());
-  }
-  // added due to compiler error when using sfinae to choose operator based on
-  // rank
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<2>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 2
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<3>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 3
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<4>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 4
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<5>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 5
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<6>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 6
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<7>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 7
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<8>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 8
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && std::is_void<Tag>::value),
-                   void>
-  apply(Args&&... args) const {
-    m_func(args..., m_v);
-  }
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && !std::is_void<Tag>::value),
-                   void>
-  apply(Args&&... args) const {
-    m_func(m_tag, args..., m_v);
-  }
-#endif
 
   RP const m_rp;
   Functor const m_func;
@@ -2437,7 +1089,7 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
         m_func(func) {}
 
   inline bool check_iteration_bounds(point_type& partial_tile,
-                                     point_type& offset) const {
+                                     const point_type& offset) const {
     bool is_full_tile = true;
 
     for (int i = 0; i < RP::rank; ++i) {
@@ -2446,11 +1098,7 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
       } else {
         is_full_tile = false;
         partial_tile[i] =
-            (m_rp.m_upper[i] - 1 - offset[i]) == 0 ? 1
-            : (m_rp.m_upper[i] - m_rp.m_tile[i]) > 0
-                ? (m_rp.m_upper[i] - offset[i])
-                : (m_rp.m_upper[i] -
-                   m_rp.m_lower[i]);  // when single tile encloses range
+            m_rp.m_upper[i] - offset[i];  // remaining elements in dimension i
       }
     }
 
@@ -2463,13 +1111,12 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
     enum { value = (int)Rank };
   };
 
-#if KOKKOS_ENABLE_NEW_LOOP_MACROS
   template <typename IType>
   inline void operator()(IType tile_idx, value_type* val) const {
     point_type m_offset;
     point_type m_tiledims;
 
-    if (RP::outer_direction == Iterate::Left) {
+    if constexpr (RP::outer_direction == Iterate::Left) {
       for (int i = 0; i < RP::rank; ++i) {
         m_offset[i] =
             (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
@@ -2492,336 +1139,6 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
                                m_tiledims);
   }
 
-#else
-  template <typename IType>
-  inline void operator()(IType tile_idx) const {
-    operator_impl(tile_idx, RankTag<RP::rank>());
-  }
-  // added due to compiler error when using sfinae to choose operator based on
-  // rank
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<2>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2L(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_2R(index_type, m_tiledims) { apply(LOOP_ARGS_2); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 2
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<3>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3L(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_3R(index_type, m_tiledims) { apply(LOOP_ARGS_3); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 3
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<4>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4L(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_4R(index_type, m_tiledims) { apply(LOOP_ARGS_4); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 4
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<5>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5L(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_5R(index_type, m_tiledims) { apply(LOOP_ARGS_5); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 5
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<6>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6L(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_6R(index_type, m_tiledims) { apply(LOOP_ARGS_6); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 6
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<7>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7L(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_7R(index_type, m_tiledims) { apply(LOOP_ARGS_7); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 7
-
-  template <typename IType>
-  inline void operator_impl(IType tile_idx, const RankTag<8>) const {
-    point_type m_offset;
-    point_type m_tiledims;
-
-    if (RP::outer_direction == Iterate::Left) {
-      for (int i = 0; i < RP::rank; ++i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    } else {
-      for (int i = RP::rank - 1; i >= 0; --i) {
-        m_offset[i] =
-            (tile_idx % m_rp.m_tile_end[i]) * m_rp.m_tile[i] + m_rp.m_lower[i];
-        tile_idx /= m_rp.m_tile_end[i];
-      }
-    }
-
-    // Check if offset+tiledim in bounds - if not, replace tile dims with the
-    // partial tile dims
-    const bool full_tile = check_iteration_bounds(m_tiledims, m_offset);
-
-    if (RP::inner_direction == Iterate::Left) {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8L(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Left
-    else {
-      if (full_tile) {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      } else {
-        //      #pragma simd
-        KOKKOS_IMPL_LOOP_8R(index_type, m_tiledims) { apply(LOOP_ARGS_8); }
-      }
-    }  // end Iterate::Right
-
-  }  // end op() rank == 8
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && std::is_void<Tag>::value),
-                   void>
-  apply(Args&&... args) const {
-    m_func(args..., m_v);
-  }
-
-  template <typename... Args>
-  std::enable_if_t<(sizeof...(Args) == RP::rank && !std::is_void<Tag>::value),
-                   void>
-  apply(Args&&... args) const {
-    m_func(m_tag, args..., m_v);
-  }
-#endif
-
   RP const m_rp;
   Functor const m_func;
   std::conditional_t<std::is_void_v<Tag>, int, Tag> m_tag{};
@@ -2829,64 +1146,6 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
 
 // ------------------------------------------------------------------ //
 
-#undef KOKKOS_ENABLE_NEW_LOOP_MACROS
-#undef KOKKOS_IMPL_LOOP_1L
-#undef KOKKOS_IMPL_LOOP_2L
-#undef KOKKOS_IMPL_LOOP_3L
-#undef KOKKOS_IMPL_LOOP_4L
-#undef KOKKOS_IMPL_LOOP_5L
-#undef KOKKOS_IMPL_LOOP_6L
-#undef KOKKOS_IMPL_LOOP_7L
-#undef KOKKOS_IMPL_LOOP_8L
-#undef KOKKOS_IMPL_LOOP_1R
-#undef KOKKOS_IMPL_LOOP_2R
-#undef KOKKOS_IMPL_LOOP_3R
-#undef KOKKOS_IMPL_LOOP_4R
-#undef KOKKOS_IMPL_LOOP_5R
-#undef KOKKOS_IMPL_LOOP_6R
-#undef KOKKOS_IMPL_LOOP_7R
-#undef KOKKOS_IMPL_LOOP_8R
-#undef KOKKOS_IMPL_LOOP_ARGS_1
-#undef KOKKOS_IMPL_LOOP_ARGS_2
-#undef KOKKOS_IMPL_LOOP_ARGS_3
-#undef KOKKOS_IMPL_LOOP_ARGS_4
-#undef KOKKOS_IMPL_LOOP_ARGS_5
-#undef KOKKOS_IMPL_LOOP_ARGS_6
-#undef KOKKOS_IMPL_LOOP_ARGS_7
-#undef KOKKOS_IMPL_LOOP_ARGS_8
-#undef KOKKOS_IMPL_APPLY
-#undef KOKKOS_IMPL_LOOP_R_1
-#undef KOKKOS_IMPL_LOOP_R_2
-#undef KOKKOS_IMPL_LOOP_R_3
-#undef KOKKOS_IMPL_LOOP_R_4
-#undef KOKKOS_IMPL_LOOP_R_5
-#undef KOKKOS_IMPL_LOOP_R_6
-#undef KOKKOS_IMPL_LOOP_R_7
-#undef KOKKOS_IMPL_LOOP_R_8
-#undef KOKKOS_IMPL_LOOP_L_1
-#undef KOKKOS_IMPL_LOOP_L_2
-#undef KOKKOS_IMPL_LOOP_L_3
-#undef KOKKOS_IMPL_LOOP_L_4
-#undef KOKKOS_IMPL_LOOP_L_5
-#undef KOKKOS_IMPL_LOOP_L_6
-#undef KOKKOS_IMPL_LOOP_L_7
-#undef KOKKOS_IMPL_LOOP_L_8
-#undef KOKKOS_IMPL_LOOP_LAYOUT_1
-#undef KOKKOS_IMPL_LOOP_LAYOUT_2
-#undef KOKKOS_IMPL_LOOP_LAYOUT_3
-#undef KOKKOS_IMPL_LOOP_LAYOUT_4
-#undef KOKKOS_IMPL_LOOP_LAYOUT_5
-#undef KOKKOS_IMPL_LOOP_LAYOUT_6
-#undef KOKKOS_IMPL_LOOP_LAYOUT_7
-#undef KOKKOS_IMPL_LOOP_LAYOUT_8
-#undef KOKKOS_IMPL_TILE_LOOP_1
-#undef KOKKOS_IMPL_TILE_LOOP_2
-#undef KOKKOS_IMPL_TILE_LOOP_3
-#undef KOKKOS_IMPL_TILE_LOOP_4
-#undef KOKKOS_IMPL_TILE_LOOP_5
-#undef KOKKOS_IMPL_TILE_LOOP_6
-#undef KOKKOS_IMPL_TILE_LOOP_7
-#undef KOKKOS_IMPL_TILE_LOOP_8
 #undef KOKKOS_IMPL_APPLY_REDUX
 #undef KOKKOS_IMPL_LOOP_R_1_REDUX
 #undef KOKKOS_IMPL_LOOP_R_2_REDUX
@@ -2920,39 +1179,6 @@ struct HostIterateTile<RP, Functor, Tag, ValueType,
 #undef KOKKOS_IMPL_TILE_LOOP_6_REDUX
 #undef KOKKOS_IMPL_TILE_LOOP_7_REDUX
 #undef KOKKOS_IMPL_TILE_LOOP_8_REDUX
-#undef KOKKOS_IMPL_TAGGED_APPLY
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_1
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_2
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_3
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_4
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_5
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_6
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_7
-#undef KOKKOS_IMPL_TAGGED_LOOP_R_8
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_1
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_2
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_3
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_4
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_5
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_6
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_7
-#undef KOKKOS_IMPL_TAGGED_LOOP_L_8
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_1
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_2
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_3
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_4
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_5
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_6
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_7
-#undef KOKKOS_IMPL_TAGGED_LOOP_LAYOUT_8
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_1
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_2
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_3
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_4
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_5
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_6
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_7
-#undef KOKKOS_IMPL_TAGGED_TILE_LOOP_8
 #undef KOKKOS_IMPL_TAGGED_APPLY_REDUX
 #undef KOKKOS_IMPL_TAGGED_LOOP_R_1_REDUX
 #undef KOKKOS_IMPL_TAGGED_LOOP_R_2_REDUX

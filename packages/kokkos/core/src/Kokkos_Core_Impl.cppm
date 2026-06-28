@@ -45,7 +45,10 @@ export {
   using ::Kokkos::Impl::is_view_ctor_property;
   using ::Kokkos::Impl::is_view_label;
   using ::Kokkos::Impl::LabelTag;
+  using ::Kokkos::Impl::LayoutFromArrayLayout;
   using ::Kokkos::Impl::MDSpanViewTraits;
+  using ::Kokkos::Impl::MemoryTraitsFromAccessor;
+  using ::Kokkos::Impl::MirrorViewType;
   using ::Kokkos::Impl::ParseViewExtents;
   using ::Kokkos::Impl::rank_dynamic;
   using ::Kokkos::Impl::RankDataType;
@@ -74,9 +77,22 @@ export {
   using ::Kokkos::Impl::WithoutInitializing_t;
   }  // namespace Impl
 
+  // Kokkos view iterators
+  namespace Experimental {
+  namespace Impl {
+  using ::Kokkos::Experimental::Impl::are_iterators;
+  using ::Kokkos::Experimental::Impl::are_iterators_v;
+  using ::Kokkos::Experimental::Impl::are_random_access_iterators;
+  using ::Kokkos::Experimental::Impl::are_random_access_iterators_v;
+  using ::Kokkos::Experimental::Impl::is_iterable_view;
+  using ::Kokkos::Experimental::Impl::is_iterator;
+  using ::Kokkos::Experimental::Impl::is_iterator_v;
+  using ::Kokkos::Experimental::Impl::RandomAccessIterator;
+  }  // namespace Impl
+  }  // namespace Experimental
+
   // execution policies
   namespace Impl {
-  using ::Kokkos::Impl::get_tile_size_properties;
   using ::Kokkos::Impl::ParallelConstructName;
   using ::Kokkos::Impl::PolicyTraits;
   using ::Kokkos::Impl::PolicyUpdate;
@@ -86,6 +102,7 @@ export {
   // miscellaneous
   namespace Impl {
   using ::Kokkos::Impl::FunctorAnalysis;
+  using ::Kokkos::Impl::integral_constant;
   using ::Kokkos::Impl::python_view_type_impl_t;
   using ::Kokkos::Impl::throw_runtime_exception;
   }  // namespace Impl
