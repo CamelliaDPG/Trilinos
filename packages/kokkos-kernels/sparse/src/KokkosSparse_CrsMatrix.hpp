@@ -18,20 +18,19 @@
 #include "KokkosSparse_findRelOffset.hpp"
 #include "KokkosSparse_StaticCrsGraph.hpp"
 #include "KokkosKernels_default_types.hpp"
-#include "KokkosKernels_Macros.hpp"
 
 namespace KokkosSparse {
 //! String that tells sparse kernels to use the transpose of the matrix.
-static char KOKKOSKERNELS_UNUSED_ATTRIBUTE Transpose[] = "T";
+[[maybe_unused]] static char Transpose[] = "T";
 /// \brief String that tells sparse kernels to use the conjugate (NOT
 ///   transpose) of the matrix.
-static char KOKKOSKERNELS_UNUSED_ATTRIBUTE Conjugate[] = "C";
+[[maybe_unused]] static char Conjugate[] = "C";
 /// \brief String that tells sparse kernels to use the conjugate
 ///   transpose of the matrix.
-static char KOKKOSKERNELS_UNUSED_ATTRIBUTE ConjugateTranspose[] = "H";
+[[maybe_unused]] static char ConjugateTranspose[] = "H";
 /// \brief String that tells sparse kernels not to use the transpose
 ///   or conjugate of the matrix.
-static char KOKKOSKERNELS_UNUSED_ATTRIBUTE NoTranspose[] = "N";
+[[maybe_unused]] static char NoTranspose[] = "N";
 
 template <class DeviceType>
 inline int RowsPerThread(const int NNZPerRow) {
@@ -331,10 +330,12 @@ class CrsMatrix {
   //! Type of a host-memory mirror of the sparse matrix.
   typedef CrsMatrix<ScalarType, OrdinalType, host_mirror_space, MemoryTraits, SizeType> host_mirror_type;
   //! Type of the graph structure of the sparse matrix.
-  typedef StaticCrsGraph<ordinal_type, KokkosKernels::default_layout, device_type, memory_traits, size_type>
+  typedef KokkosSparse::StaticCrsGraph<ordinal_type, KokkosKernels::default_layout, device_type, memory_traits,
+                                       size_type>
       StaticCrsGraphType;
   //! Type of the graph structure of the sparse matrix - consistent with Kokkos.
-  typedef StaticCrsGraph<ordinal_type, KokkosKernels::default_layout, device_type, memory_traits, size_type>
+  typedef KokkosSparse::StaticCrsGraph<ordinal_type, KokkosKernels::default_layout, device_type, memory_traits,
+                                       size_type>
       staticcrsgraph_type;
   //! Type of column indices in the sparse matrix.
   typedef typename staticcrsgraph_type::entries_type index_type;

@@ -18,75 +18,80 @@ pipeline {
     }
 
     stages {
-        stage('Clang-Format') {
+        stage('Pre-Commit') {
             agent {
-                dockerfile {
-                    filename 'Dockerfile.clang'
-                    dir 'scripts/docker'
+                docker {
+                    image 'jfxs/pre-commit:4.4.0-002@sha256:40078d585cc17c502d8c2390b8d57e7ecb028d75dcc821f2f75ac8e9c485bf84'
                     label 'nvidia-docker || docker'
-                    args '-v /tmp/ccache.kokkos:/tmp/ccache --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
+                    registryCredentialsId 'dockerhub'
+                    args '--env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                 }
             }
             steps {
                 sh '''#!/bin/bash
                       exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                       echo "Hostname: ${NODE_NAME}" && \
-                      ./scripts/docker/check_format_cpp.sh'''
+                      pre-commit run --all-files'''
             }
         }
         stage('Build-1') {
             parallel {
-                stage('C++20-Modules-Clang-19') {
+                stage('C++20-Modules-GCC-16') {
                     agent {
-                        dockerfile {
-                            filename 'Dockerfile.modules'
-                            dir 'scripts/docker'
-                            label 'nvidia-docker || docker'
-                            args '--env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
-                        }
+                         dockerfile {
+                             filename 'Dockerfile.gcc-16'
+                             dir 'scripts/docker'
+                             label 'nvidia-docker || docker'
+                             registryCredentialsId 'dockerhub'
+                             args '--env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
+                         }
+                     }
+                    environment {
+                        OMP_NUM_THREADS = 8
+                        OMP_NESTED = 'true'
+                        OMP_MAX_ACTIVE_LEVELS = 3
+                        OMP_PROC_BIND = 'true'
                     }
                     steps {
                         sh '''#!/bin/bash
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && \
+                              set -x && \
                               cmake \
                                 -B build \
                                 -GNinja \
-                                -DCMAKE_CXX_COMPILER=clang++-19 \
-                                -DCMAKE_CXX_FLAGS="-Werror" \
-                                -DCMAKE_CXX_STANDARD=20 \
+                                -DCMAKE_CXX_COMPILER=g++-16 \
+                                -DCMAKE_CXX_FLAGS=-Werror \
+                                -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_EXPERIMENTAL_CXX20_MODULES=ON \
-                                -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
-                                -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
-                                -DKokkos_ENABLE_EXAMPLES=ON \
+                                -DKokkos_ENABLE_OPENMP=ON \
                                 -DKokkos_ENABLE_SERIAL=ON && \
-                              cmake --build build --target install -j 8 && \
-                              ctest --test-dir build --no-compress-output -T Test --verbose && \
+                              set +x && \
+                              cmake --build build --target kokkoscore &&
                               cd example/build_cmake_installed_modules && \
                               rm -rf build && \
+                              set -x && \
                               cmake \
                                 -B build \
                                 -GNinja \
-                                -DCMAKE_CXX_COMPILER=clang++-19 \
-                                -DCMAKE_CXX_FLAGS="-Werror" && \
-                              cmake --build build -j 8 && \
+                                -DCMAKE_CXX_COMPILER=g++-16 \
+                                -DCMAKE_CXX_FLAGS="-Werror" \
+                                -DKokkos_ROOT=../../build && \
+                              set +x && \
+                              cmake --build build && \
                               ctest --test-dir build --verbose'''
                     }
-                    post {
-                        always {
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
-                        }
-                    }
                 }
+
                 stage('GCC-10.5.0') {
                     agent {
                          dockerfile {
-                             filename 'Dockerfile.gcc'
+                             filename 'Dockerfile.gcc-10'
                              dir 'scripts/docker'
                              label 'nvidia-docker || docker'
+                             registryCredentialsId 'dockerhub'
                              args '--env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                          }
                      }
@@ -101,6 +106,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Release \
                                 -DCMAKE_CXX_STANDARD=20 \
@@ -108,13 +114,14 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_OPENMP=ON \
                                 -DKokkos_ENABLE_LIBDL=OFF \
                                 -DKokkos_ENABLE_LIBQUADMATH=ON \
                                 -DKokkos_ENABLE_SERIAL=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose && gcc -I$PWD/../core/src/ ../core/unit_test/tools/TestCInterface.c'''
                     }
                     post {
@@ -130,6 +137,7 @@ pipeline {
                             dir 'scripts/docker'
                             additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-22.04:6.2.4-complete@sha256:6604a97283a218fc62ab59e23c54ec34ad634be9201b001435844a59ba1b8eb5'
                             label 'rocm-docker'
+                            registryCredentialsId 'dockerhub'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                         }
                     }
@@ -139,6 +147,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DBUILD_SHARED_LIBS=ON \
                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -148,22 +157,26 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_HIP=ON \
+                                -DKokkos_ENABLE_ROCTHRUST=OFF \
                                 -DKokkos_ENABLE_MULTIPLE_CMAKE_LANGUAGES=ON \
                                 -DCMAKE_INSTALL_PREFIX=${PWD}/../install \
                               .. && \
+                              set +x && \
                               make -j16 install && ctest --no-compress-output -T Test --verbose && \
                               cd .. && \
                               export CMAKE_PREFIX_PATH=${PWD}/install && \
                               cd example/build_cmake_installed_multilanguage && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_CXX_COMPILER=hipcc \
                                 -DCMAKE_CXX_FLAGS=-Werror \
                                 -DCMAKE_CXX_STANDARD=20 \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --verbose'''
                     }
                     post {
@@ -173,6 +186,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('CUDA-12.2-NVCC-RDC') {
                     agent {
                         dockerfile {
@@ -184,6 +198,7 @@ pipeline {
                         }
                     }
                     environment {
+                        CTEST_OUTPUT_ON_FAILURE = 1
                         OMP_NUM_THREADS = 8
                         // Nested OpenMP does not work for this configuration,
                         // so disabling it
@@ -199,6 +214,7 @@ pipeline {
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf install && mkdir -p install && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Release \
                                 -DCMAKE_CXX_COMPILER=g++-11 \
@@ -208,18 +224,19 @@ pipeline {
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_OPENMP=OFF \
                                 -DKokkos_ENABLE_CUDA=ON \
-                                -DKokkos_ENABLE_CUDA_LAMBDA=OFF \
-                                -DKokkos_ENABLE_CUDA_UVM=ON \
                                 -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_MULTIPLE_CMAKE_LANGUAGES=ON \
                                 \
                                 -DCMAKE_INSTALL_PREFIX=${PWD}/../install \
                               .. && \
+                              set +x && \
                               make -j8 install && \
                               cd .. && \
                               rm -rf build-tests && mkdir -p build-tests && cd build-tests && \
                               export CMAKE_PREFIX_PATH=${PWD}/../install && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Release \
                                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -229,22 +246,27 @@ pipeline {
                                 -DCMAKE_CXX_STANDARD=20 \
                                 -DKokkos_INSTALL_TESTING=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose && \
                               cd ../example/build_cmake_installed && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_CXX_COMPILER=g++-11 \
                                 -DCMAKE_CXX_FLAGS=-Werror \
                                 -DCMAKE_CXX_STANDARD=20 \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --verbose && \
                               cd ../../build_cmake_installed_multilanguage && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_CXX_COMPILER=g++-11 \
                                 -DCMAKE_CXX_FLAGS=-Werror \
                                 -DCMAKE_CXX_STANDARD=20 \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --verbose && \
                               cd ../.. && \
                               cmake -B build_cmake_installed_different_compiler/build -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_CXX_STANDARD=20 build_cmake_installed_different_compiler && \
@@ -258,10 +280,62 @@ pipeline {
                         }
                     }
                 }
+
             }
         }
         stage('Build-2') {
             parallel {
+                stage('C++20-Modules-Clang-19') {
+                    agent {
+                        dockerfile {
+                            filename 'Dockerfile.modules'
+                            dir 'scripts/docker'
+                            label 'nvidia-docker || docker'
+                            registryCredentialsId 'dockerhub'
+                            args '--env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
+                        }
+                    }
+                    steps {
+                        sh '''#!/bin/bash
+                              exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
+                              echo "Hostname: ${NODE_NAME}" && \
+                              rm -rf build && \
+                              set -x && \
+                              cmake \
+                                -B build \
+                                -GNinja \
+                                -DCMAKE_CXX_COMPILER=clang++-19 \
+                                -DCMAKE_CXX_FLAGS="-Werror" \
+                                -DCMAKE_CXX_STANDARD=20 \
+                                -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
+                                -DKokkos_ENABLE_EXPERIMENTAL_CXX20_MODULES=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=OFF \
+                                -DKokkos_ENABLE_TESTS=ON \
+                                -DKokkos_ENABLE_EXAMPLES=ON \
+                                -DKokkos_ENABLE_SERIAL=ON && \
+                              set +x && \
+                              cmake --build build --target install -j 8 && \
+                              ctest --test-dir build --no-compress-output -T Test --verbose && \
+                              cd example/build_cmake_installed_modules && \
+                              rm -rf build && \
+                              set -x && \
+                              cmake \
+                                -B build \
+                                -GNinja \
+                                -DCMAKE_CXX_COMPILER=clang++-19 \
+                                -DCMAKE_CXX_FLAGS="-Werror" && \
+                              set +x && \
+                              cmake --build build -j 8 && \
+                              ctest --test-dir build --verbose'''
+                    }
+                    post {
+                        always {
+                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
+                        }
+                    }
+                }
+
                 stage('OPENACC-NVHPC-CUDA-12.2') {
                     agent {
                         dockerfile {
@@ -279,6 +353,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               /opt/cmake/bin/cmake \
                                 -DCMAKE_CXX_COMPILER=nvc++ \
                                 -DCMAKE_CXX_STANDARD=20 \
@@ -289,6 +364,7 @@ pipeline {
                                 -DKokkos_ENABLE_OPENACC=ON \
                                 -DKokkos_ARCH_VOLTA70=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -321,18 +397,21 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               /opt/cmake/bin/cmake \
                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                                 -DCMAKE_CXX_COMPILER=nvc++ \
                                 -DCMAKE_CXX_STANDARD=20 \
-                                -DCMAKE_CXX_FLAGS="-Werror --diag_suppress=implicit_return_from_non_void_function" \
+                                -DCMAKE_CXX_FLAGS="-Werror -Werror=all-warnings --diag_suppress=implicit_return_from_non_void_function" \
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=OFF \
                                 -DKokkos_ENABLE_TESTS=ON \
                                 -DKokkos_ENABLE_CUDA=ON \
                                 -DKokkos_ENABLE_OPENMP=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -357,6 +436,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Release \
                                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -366,15 +446,16 @@ pipeline {
                                 -DKokkos_ARCH_AMPERE80=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=OFF \
                                 -DKokkos_ENABLE_EXAMPLES=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
-                                -DoneDPL_ROOT=/opt/intel/oneapi/dpl/2022.7 \
+                                -DoneDPL_ROOT=/opt/intel/oneapi/dpl/2022.9 \
                                 -DKokkos_ENABLE_SYCL=ON \
                                 -DKokkos_ENABLE_SYCL_RELOCATABLE_DEVICE_CODE=ON \
                                 -DKokkos_ENABLE_UNSUPPORTED_ARCHS=ON \
                                 -DCMAKE_CXX_STANDARD=20 \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -390,7 +471,8 @@ pipeline {
                             filename 'Dockerfile.hipcc'
                             dir 'scripts/docker'
                             additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-24.04:6.3.4-complete@sha256:76e99e263ef6ce69ba5d32905623c801fff3f85a6108e931820f6eb1d13eac67'
-                            label 'rocm-docker '
+                            label 'rocm-docker'
+                            registryCredentialsId 'dockerhub'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                         }
                     }
@@ -407,6 +489,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=Debug \
                                 -DCMAKE_CXX_COMPILER=hipcc \
@@ -415,13 +498,14 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=OFF \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_HIP=ON \
                                 -DKokkos_ENABLE_OPENMP=ON \
                                 -DKokkos_ENABLE_IMPL_MDSPAN=OFF \
                                 -DKokkos_ENABLE_HIP_MULTIPLE_KERNEL_INSTANTIATIONS=ON \
                               .. && \
+                              set +x && \
                               make -j16 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -438,11 +522,12 @@ pipeline {
                             dir 'scripts/docker'
                             additionalBuildArgs '--build-arg BASE=rocm/dev-ubuntu-24.04:6.2-complete@sha256:c7049ac3ae8516c7b230deec6dc6dd678a0b3f7215d5a7f7fe2f2b71880b62f8 --build-arg ADDITIONAL_PACKAGES="clang-tidy"'
                             label 'rocm-docker'
+                            registryCredentialsId 'dockerhub'
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --device=/dev/kfd --device=/dev/dri --security-opt seccomp=unconfined --group-add video --env HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                         }
                     }
                     environment {
-                        // FIXME Test returns a wrong value
+                        // FIXME hip_hostpinned.view_allocation_large_rank test returns a wrong value
                         GTEST_FILTER = '-hip_hostpinned.view_allocation_large_rank'
                     }
                     steps {
@@ -451,6 +536,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DBUILD_SHARED_LIBS=ON \
                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -462,49 +548,12 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_HIP=ON \
                               .. && \
+                              set +x && \
                               make -j16 && ctest --no-compress-output -T Test --verbose'''
-                    }
-                    post {
-                        always {
-                            sh 'ccache --show-stats'
-                            xunit([CTest(deleteOutputFiles: true, failIfNotNew: true, pattern: 'build/Testing/**/Test.xml', skipNoTestFiles: false, stopProcessingIfError: true)])
-                        }
-                    }
-                }
-                stage('OPENMPTARGET-Clang') {
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.openmptarget'
-                            dir 'scripts/docker'
-                            label 'nvidia-docker && volta'
-                            args '-v /tmp/ccache.kokkos:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=$NVIDIA_VISIBLE_DEVICES --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
-                        }
-                    }
-                    steps {
-                        sh 'ccache --zero-stats'
-                        sh '''#!/bin/bash
-                              exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
-                              echo "Hostname: ${NODE_NAME}" && \
-                              rm -rf build && mkdir -p build && cd build && \
-                              cmake \
-                                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                                -DCMAKE_CXX_COMPILER=clang++ \
-                                -DCMAKE_CXX_FLAGS="-Wno-unknown-cuda-version -Werror -Wno-undefined-internal -Wno-pass-failed" \
-                                -DKokkos_ARCH_NATIVE=ON \
-                                -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
-                                -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
-                                -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
-                                -DKokkos_ENABLE_TUNING=ON \
-                                -DKokkos_ENABLE_OPENMPTARGET=ON \
-                                -DKokkos_ARCH_VOLTA70=ON \
-                                -DCMAKE_CXX_STANDARD=20 \
-                              .. && \
-                              make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
                         always {
@@ -529,6 +578,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -539,12 +589,13 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_CUDA=ON \
                                 -DKokkos_ENABLE_TUNING=ON \
                                 -DKokkos_ARCH_VOLTA70=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -570,6 +621,7 @@ pipeline {
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                                 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -580,13 +632,14 @@ pipeline {
                                 -DKokkos_ARCH_NATIVE=ON \
                                 -DKokkos_ENABLE_COMPILER_WARNINGS=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=ON \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=ON \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_CUDA=ON \
                                 -DKokkos_ENABLE_CUDA_RELOCATABLE_DEVICE_CODE=ON \
                                 -DKokkos_ENABLE_TUNING=ON \
                                 -DKokkos_ARCH_VOLTA70=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose'''
                     }
                     post {
@@ -606,12 +659,16 @@ pipeline {
                             args '-v /tmp/ccache.kokkos:/tmp/ccache --env NVIDIA_VISIBLE_DEVICES=$NVIDIA_VISIBLE_DEVICES --env NODE_NAME=${env.NODE_NAME} --env STAGE_NAME=${env.STAGE_NAME}'
                         }
                     }
+                    environment {
+                        KOKKOS_NUM_THREADS = 8
+                    }
                     steps {
                         sh 'ccache --zero-stats'
                         sh '''#!/bin/bash
                               exec > >(awk '{ print "[" ENVIRON["STAGE_NAME"] "]", $0 }') 2>&1 && \
                               echo "Hostname: ${NODE_NAME}" && \
                               rm -rf build && mkdir -p build && cd build && \
+                              set -x && \
                               cmake \
                                 -DBUILD_SHARED_LIBS=ON \
                                 -DCMAKE_BUILD_TYPE=Debug \
@@ -624,17 +681,18 @@ pipeline {
                                 -DKokkos_ENABLE_DEBUG=ON \
                                 -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=ON \
                                 -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF \
+                                -DKokkos_ENABLE_DEPRECATED_CODE_5=OFF \
                                 -DKokkos_ENABLE_TESTS=ON \
-                                -DKokkos_ENABLE_BENCHMARKS=ON \
                                 -DKokkos_ENABLE_CUDA=ON \
                                 -DKokkos_ENABLE_LIBDL=OFF \
-                                -DKokkos_ENABLE_OPENMP=ON \
+                                -DKokkos_ENABLE_THREADS=ON \
                                 -DKokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC=ON \
                               .. && \
+                              set +x && \
                               make -j8 && ctest --no-compress-output -T Test --verbose && \
                               cd ../example/build_cmake_in_tree && \
                               rm -rf build && mkdir -p build && cd build && \
-                              cmake -DCMAKE_CXX_STANDARD=20 .. && make -j8 && ctest --verbose'''
+                              set -x && cmake -DCMAKE_CXX_STANDARD=20 .. && set +x && make -j8 && ctest --verbose'''
                     }
                     post {
                         always {

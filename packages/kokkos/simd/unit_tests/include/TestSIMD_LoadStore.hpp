@@ -41,7 +41,44 @@ inline void host_test_simd_load(SimdType const& init, SimdType const& expected,
   }
 
   auto mask = (result == expected);
-  for (size_t i = 0; i < SimdType::size(); ++i) {
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
+    EXPECT_TRUE(mask[i]);
+  }
+}
+
+template <typename SimdType, typename... Args>
+inline void host_test_simd_unaligned_load(SimdType const& init,
+                                          SimdType const& expected,
+                                          Args... args) {
+  using data_type = typename SimdType::value_type;
+  using abi_type  = typename SimdType::abi_type;
+
+  constexpr size_t alignment =
+      SimdType::size() * sizeof(typename SimdType::value_type);
+
+  alignas(alignment)
+      typename SimdType::value_type arr[SimdType::size() + 1] = {0};
+  simd_unchecked_store(init, arr + 1, Kokkos::Experimental::simd_flag_default);
+
+  SimdType result;
+
+  if constexpr (sizeof...(args) > 1) {
+    result = simd_partial_load(arr + 1, args...);
+  } else {
+    if constexpr (std::is_same_v<Kokkos::Experimental::simd_abi::Impl::
+                                     host_fixed_native<data_type>,
+                                 abi_type>) {
+      result = Kokkos::Experimental::simd_unchecked_load(arr + 1, args...);
+    } else {
+      result =
+          Kokkos::Experimental::simd_unchecked_load<SimdType>(arr + 1, args...);
+    }
+  }
+
+  auto mask = (result == expected);
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
     EXPECT_TRUE(mask[i]);
   }
 }
@@ -60,8 +97,31 @@ inline void host_test_simd_store(SimdType const& init, SimdType const& expected,
     simd_unchecked_store(init, arr, args...);
   }
 
-  for (size_t i = 0; i < SimdType::size(); ++i) {
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
     EXPECT_EQ(arr[i], expected[i]);
+  }
+}
+
+template <typename SimdType, typename... Args>
+inline void host_test_simd_unaligned_store(SimdType const& init,
+                                           SimdType const& expected,
+                                           Args... args) {
+  constexpr size_t alignment =
+      SimdType::size() * sizeof(typename SimdType::value_type);
+
+  alignas(alignment)
+      typename SimdType::value_type arr[SimdType::size() + 1] = {0};
+
+  if constexpr (sizeof...(args) > 1) {
+    simd_partial_store(init, arr + 1, args...);
+  } else {
+    simd_unchecked_store(init, arr + 1, args...);
+  }
+
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
+    EXPECT_EQ(arr[i + 1], expected[i]);
   }
 }
 
@@ -78,19 +138,27 @@ inline void host_test_simd_loadstore() {
 
   host_test_simd_store(expected, expected,
                        Kokkos::Experimental::simd_flag_default);
+  host_test_simd_unaligned_store(expected, expected,
+                                 Kokkos::Experimental::simd_flag_default);
   host_test_simd_store(expected, expected,
                        Kokkos::Experimental::simd_flag_aligned);
   host_test_simd_store(expected, expected_masked, mask,
                        Kokkos::Experimental::simd_flag_default);
+  host_test_simd_unaligned_store(expected, expected_masked, mask,
+                                 Kokkos::Experimental::simd_flag_default);
   host_test_simd_store(expected, expected_masked, mask,
                        Kokkos::Experimental::simd_flag_aligned);
 
   host_test_simd_load(expected, expected,
                       Kokkos::Experimental::simd_flag_default);
+  host_test_simd_unaligned_load(expected, expected,
+                                Kokkos::Experimental::simd_flag_default);
   host_test_simd_load(expected, expected,
                       Kokkos::Experimental::simd_flag_aligned);
   host_test_simd_load(expected, expected_masked, mask,
                       Kokkos::Experimental::simd_flag_default);
+  host_test_simd_unaligned_load(expected, expected_masked, mask,
+                                Kokkos::Experimental::simd_flag_default);
   host_test_simd_load(expected, expected_masked, mask,
                       Kokkos::Experimental::simd_flag_aligned);
 }
@@ -147,6 +215,37 @@ KOKKOS_INLINE_FUNCTION void device_test_simd_load(SimdType const& init,
 }
 
 template <typename SimdType, typename... Args>
+KOKKOS_INLINE_FUNCTION void device_test_simd_unaligned_load(
+    SimdType const& init, SimdType const& expected, Args... args) {
+  using data_type = typename SimdType::value_type;
+  using abi_type  = typename SimdType::abi_type;
+
+  constexpr size_t alignment =
+      SimdType::size() * sizeof(typename SimdType::value_type);
+
+  alignas(alignment)
+      typename SimdType::value_type arr[SimdType::size() + 1] = {0};
+  simd_unchecked_store(init, arr + 1, Kokkos::Experimental::simd_flag_default);
+
+  SimdType result;
+
+  if constexpr (sizeof...(args) > 1) {
+    result = simd_partial_load(arr + 1, args...);
+  } else {
+    if constexpr (std::is_same_v<Kokkos::Experimental::simd_abi::Impl::
+                                     host_fixed_native<data_type>,
+                                 abi_type>) {
+      result = Kokkos::Experimental::simd_unchecked_load(arr + 1, args...);
+    } else {
+      result =
+          Kokkos::Experimental::simd_unchecked_load<SimdType>(arr + 1, args...);
+    }
+  }
+
+  device_check_equality(result, expected, SimdType::size());
+}
+
+template <typename SimdType, typename... Args>
 KOKKOS_INLINE_FUNCTION void device_test_simd_store(SimdType const& init,
                                                    SimdType const& expected,
                                                    Args... args) {
@@ -162,8 +261,31 @@ KOKKOS_INLINE_FUNCTION void device_test_simd_store(SimdType const& init,
   }
 
   kokkos_checker checker;
-  for (size_t i = 0; i < SimdType::size(); ++i) {
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
     checker.equality(arr[i], expected[i]);
+  }
+}
+
+template <typename SimdType, typename... Args>
+KOKKOS_INLINE_FUNCTION void device_test_simd_unaligned_store(
+    SimdType const& init, SimdType const& expected, Args... args) {
+  constexpr size_t alignment =
+      SimdType::size() * sizeof(typename SimdType::value_type);
+
+  alignas(alignment)
+      typename SimdType::value_type arr[SimdType::size() + 1] = {0};
+
+  if constexpr (sizeof...(args) > 1) {
+    simd_partial_store(init, arr + 1, args...);
+  } else {
+    simd_unchecked_store(init, arr + 1, args...);
+  }
+
+  kokkos_checker checker;
+  for (Kokkos::Experimental::Impl::simd_size_t i = 0; i < SimdType::size();
+       ++i) {
+    checker.equality(arr[i + 1], expected[i]);
   }
 }
 
@@ -179,19 +301,27 @@ KOKKOS_INLINE_FUNCTION void device_test_simd_loadstore() {
 
   device_test_simd_store(expected, expected,
                          Kokkos::Experimental::simd_flag_default);
+  device_test_simd_unaligned_store(expected, expected,
+                                   Kokkos::Experimental::simd_flag_default);
   device_test_simd_store(expected, expected,
                          Kokkos::Experimental::simd_flag_aligned);
   device_test_simd_store(expected, expected_masked, mask,
                          Kokkos::Experimental::simd_flag_default);
+  device_test_simd_unaligned_store(expected, expected_masked, mask,
+                                   Kokkos::Experimental::simd_flag_default);
   device_test_simd_store(expected, expected_masked, mask,
                          Kokkos::Experimental::simd_flag_aligned);
 
   device_test_simd_load(expected, expected,
                         Kokkos::Experimental::simd_flag_default);
+  device_test_simd_unaligned_load(expected, expected,
+                                  Kokkos::Experimental::simd_flag_default);
   device_test_simd_load(expected, expected,
                         Kokkos::Experimental::simd_flag_aligned);
   device_test_simd_load(expected, expected_masked, mask,
                         Kokkos::Experimental::simd_flag_default);
+  device_test_simd_unaligned_load(expected, expected_masked, mask,
+                                  Kokkos::Experimental::simd_flag_default);
   device_test_simd_load(expected, expected_masked, mask,
                         Kokkos::Experimental::simd_flag_aligned);
 }
@@ -229,8 +359,8 @@ TEST(simd, host_loadstore) {
 }
 
 TEST(simd, device_loadstore) {
-  Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::IndexType<int>>(0, 1),
-                       simd_device_loadstore_functor());
+  Kokkos::parallel_for(1, simd_device_loadstore_functor());
+  Kokkos::fence();
 }
 
 #endif

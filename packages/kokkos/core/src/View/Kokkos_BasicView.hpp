@@ -66,12 +66,10 @@ struct KokkosSliceToMDSpanSliceImpl {
 };
 
 template <>
-struct KokkosSliceToMDSpanSliceImpl<Kokkos::ALL_t> {
+struct KokkosSliceToMDSpanSliceImpl<ALL_t> {
   using type = full_extent_t;
   KOKKOS_FUNCTION
-  static constexpr decltype(auto) transform(Kokkos::ALL_t) {
-    return full_extent;
-  }
+  static constexpr decltype(auto) transform(ALL_t) { return full_extent; }
 };
 
 template <class T>
@@ -136,15 +134,13 @@ class BasicView {
  public:
   using mdspan_type =
       mdspan<ElementType, Extents, LayoutPolicy, AccessorPolicy>;
-  using extents_type  = typename mdspan_type::extents_type;
-  using layout_type   = typename mdspan_type::layout_type;
-  using accessor_type = typename mdspan_type::accessor_type;
-  using mapping_type  = typename mdspan_type::mapping_type;
-  using element_type  = typename mdspan_type::element_type;
-  using value_type    = typename mdspan_type::value_type;
-  // FIXME: backwards compatibility, should be changed to the same as mdspan
-  // index_type
-  using index_type       = typename mdspan_type::size_type;
+  using extents_type     = typename mdspan_type::extents_type;
+  using layout_type      = typename mdspan_type::layout_type;
+  using accessor_type    = typename mdspan_type::accessor_type;
+  using mapping_type     = typename mdspan_type::mapping_type;
+  using element_type     = typename mdspan_type::element_type;
+  using value_type       = typename mdspan_type::value_type;
+  using index_type       = typename mdspan_type::index_type;
   using size_type        = typename mdspan_type::size_type;
   using rank_type        = typename mdspan_type::rank_type;
   using data_handle_type = typename mdspan_type::data_handle_type;
@@ -159,9 +155,19 @@ class BasicView {
     return extents_type::rank_dynamic();
   }
   KOKKOS_FUNCTION static constexpr size_t static_extent(rank_type r) noexcept {
+#ifndef KOKKOS_ENABLE_DEPRECATED_CODE_5
+    // Need to cast in order to avoid warning for rank zero about pointless
+    // comparison to zero
+    KOKKOS_ASSERT(static_cast<int>(r) < static_cast<int>(rank()));
+#endif
     return extents_type::static_extent(r);
   }
   KOKKOS_FUNCTION constexpr index_type extent(rank_type r) const noexcept {
+#ifndef KOKKOS_ENABLE_DEPRECATED_CODE_5
+    // Need to cast in order to avoid warning for rank zero about pointless
+    // comparison to zero
+    KOKKOS_ASSERT(static_cast<int>(r) < static_cast<int>(rank()));
+#endif
     return m_map.extents().extent(r);
   }
 
@@ -575,16 +581,33 @@ class BasicView {
 #endif
 
  protected:
+  // Optimized subview constructor that calls submdspan_mapping directly
+  // and initializes members in the constructor body
   template <class OtherElementType, class OtherExtents, class OtherLayoutPolicy,
             class OtherAccessorPolicy, class... SliceSpecifiers>
   KOKKOS_INLINE_FUNCTION BasicView(
       Impl::SubViewCtorTag,
       const BasicView<OtherElementType, OtherExtents, OtherLayoutPolicy,
                       OtherAccessorPolicy> &src_view,
-      SliceSpecifiers... slices)
-      : BasicView(submdspan(
-            src_view.to_mdspan(),
-            Impl::transform_kokkos_slice_to_mdspan_slice(slices)...)) {
+      SliceSpecifiers... slices) {
+    // Avoid calling submdspan to not create temporary mdspan objects.
+    // Instead do what submdspan does: calling submdspan_mapping.
+    const auto sub_mapping_result = submdspan_mapping(
+        src_view.m_map,
+        Impl::transform_kokkos_slice_to_mdspan_slice(slices)...);
+
+    // Kokkos View precondition should happen in release build,
+    // and before any checks happen inside mdspan mapping ctor itself.
+    check_basic_view_constructibility(sub_mapping_result.mapping);
+
+    // Explicit cast is needed because submdspan_mapping may return a different
+    // layout type.
+    using sub_accessor_t = typename OtherAccessorPolicy::offset_policy;
+    m_ptr                = static_cast<data_handle_type>(
+        src_view.m_acc.offset(src_view.m_ptr, sub_mapping_result.offset));
+    m_map = mapping_type(sub_mapping_result.mapping);
+    m_acc = sub_accessor_t(src_view.m_acc);
+
 #ifdef KOKKOS_ENABLE_DEBUG_BOUNDS_CHECK
     bool valid = subview_extents_valid(
         src_view, std::make_index_sequence<sizeof...(SliceSpecifiers)>{},
@@ -765,6 +788,9 @@ class BasicView {
     return m_map.is_strided();
   }
   KOKKOS_FUNCTION constexpr index_type stride(rank_type r) const {
+    // Need to cast in order to avoid warning for rank zero about pointless
+    // comparison to zero
+    KOKKOS_ASSERT(static_cast<int>(r) < static_cast<int>(rank()));
     return m_map.stride(r);
   }
 

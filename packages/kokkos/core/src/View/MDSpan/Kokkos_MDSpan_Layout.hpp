@@ -57,6 +57,36 @@ struct LayoutFromArrayLayout<LayoutStride> {
   using type = layout_stride;
 };
 
+template <class Layout>
+struct ArrayLayoutFromLayout;
+
+template <>
+struct ArrayLayoutFromLayout<layout_left> {
+  using type = LayoutLeft;
+};
+
+template <size_t Padding>
+struct ArrayLayoutFromLayout<
+    Kokkos::Experimental::layout_left_padded<Padding>> {
+  using type = LayoutLeft;
+};
+
+template <>
+struct ArrayLayoutFromLayout<layout_right> {
+  using type = LayoutRight;
+};
+
+template <size_t Padding>
+struct ArrayLayoutFromLayout<
+    Kokkos::Experimental::layout_right_padded<Padding>> {
+  using type = LayoutRight;
+};
+
+template <>
+struct ArrayLayoutFromLayout<layout_stride> {
+  using type = LayoutStride;
+};
+
 template <class ArrayLayout, class MDSpanType>
 KOKKOS_INLINE_FUNCTION auto array_layout_from_mapping(
     const typename MDSpanType::mapping_type &mapping) {
@@ -107,6 +137,10 @@ KOKKOS_INLINE_FUNCTION auto array_layout_from_mapping(
     if constexpr (std::is_same_v<typename mapping_type::layout_type,
                                  Kokkos::Experimental::layout_right_padded<
                                      dynamic_extent>>) {
+// Legacy LayoutRight actually padded the left most dimension, not like
+// layout_right_padded the right most dimension. Thus if the stride wasn't
+// matching the appropriate extent this conversion doesn't work.
+#ifdef KOKKOS_ENABLE_IMPL_VIEW_LEGACY
       if constexpr (rank == 2) {
         layout.stride = mapping.stride(0);
       }
@@ -115,6 +149,14 @@ KOKKOS_INLINE_FUNCTION auto array_layout_from_mapping(
           Kokkos::abort(
               "Invalid conversion from layout_right_padded to LayoutRight");
       }
+#else
+      if constexpr (rank > 1) {
+        layout.stride = mapping.stride(rank - 2);
+      } else {
+        // Just setting the stride to 1 for rank 0/1
+        layout.stride = 1;
+      }
+#endif
     }
     return layout;
   }
@@ -210,7 +252,7 @@ KOKKOS_INLINE_FUNCTION auto mapping_from_view_mapping(const VM &view_mapping) {
   // std::span is not available in C++17 (our current requirements),
   // so we need to use the std::array constructor for layout mappings.
   // FIXME When C++20 is available, we can use std::span here instead
-  std::size_t strides[VM::Rank];
+  std::size_t strides[VM::Rank == 0 ? 1 : VM::Rank];
   view_mapping.stride_fill(&strides[0]);
   if constexpr (std::is_same_v<typename mapping_type::layout_type,
                                Kokkos::layout_stride>) {
