@@ -210,6 +210,11 @@ namespace Intrepid2 {
     */
     void assemble(Data<Scalar,DeviceType> &integrals) const;
     
+    /** \brief   Fully assembles the matrix by repeated matrix-free application to blocked unit columns.
+        \param   integrals          [out] - Output matrix, with logical shape (C,F,F).  See allocateMatrixStorage().
+    */
+    void assemble2(Data<Scalar,DeviceType> &integrals) const;
+    
     /** \brief   Extracts the <b>j</b>th column of the matrix, placing it in <b>column</b>.
         \param   row          [out] - Output container with logical shape (C,F1).  See allocateColumnStorage().
     */

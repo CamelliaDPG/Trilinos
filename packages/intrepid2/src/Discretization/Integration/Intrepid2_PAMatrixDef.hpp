@@ -1126,6 +1126,16 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage() con
   const int numCells       = _basisValuesLeft.numCells();
   const int numFieldsLeft  = _basisValuesLeft.numFields();
   const int numFieldsRight = _basisValuesRight.numFields();
+
+  if (_orientations.size() > 0)
+  {
+    // Orientation application is cell-dependent even when geometry and weights
+    // are otherwise constant across cells.  Keep oriented assembled matrices in
+    // explicit (C,F1,F2) storage so OrientationTools never receives a rank-2
+    // constant-cell view for a logically rank-3 matrix.
+    cellVariationType = GENERAL;
+    cellDataExtent = numCells;
+  }
   
   Kokkos::Array<int,3> extents {numCells, numFieldsLeft, numFieldsRight};
   Kokkos::Array<DataVariationType,3> variationTypes {cellVariationType,GENERAL,GENERAL};
