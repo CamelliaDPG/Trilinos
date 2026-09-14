@@ -938,6 +938,7 @@ using HostBasisPtr = BasisPtr<typename Kokkos::HostSpace::device_type, OutputTyp
     /** \brief DoF tag to ordinal data structure */
     const OrdinalTypeArray3DHost
     getAllDofOrdinal() const {
+      requireTags();
       return tagToOrdinal_;
     }
 

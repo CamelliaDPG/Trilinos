@@ -867,6 +867,10 @@ struct OperatorTensorDecomposition
     virtual ordinal_type getDofCount( const ordinal_type subcDim,
                                       const ordinal_type subcOrd ) const override
     {
+      if (useShardsCellTopologyAndTags_)
+      {
+        return BasisBase::getDofCount(subcDim, subcOrd);
+      }
       for (ordinal_type tensorFieldOrdinal=0; tensorFieldOrdinal<this->basisCardinality_; tensorFieldOrdinal++)
       {
         auto tag = this->getDofTag(tensorFieldOrdinal);
@@ -879,6 +883,10 @@ struct OperatorTensorDecomposition
                                         const ordinal_type subcOrd,
                                         const ordinal_type subcDofOrd ) const override
     {
+      if (useShardsCellTopologyAndTags_)
+      {
+        return BasisBase::getDofOrdinal(subcDim, subcOrd, subcDofOrd);
+      }
       for (ordinal_type tensorFieldOrdinal=0; tensorFieldOrdinal<this->basisCardinality_; tensorFieldOrdinal++)
       {
         auto tag = this->getDofTag(tensorFieldOrdinal);
@@ -893,6 +901,10 @@ struct OperatorTensorDecomposition
     
     virtual const OrdinalTypeArrayStride1DHost getDofTag( const ordinal_type dofOrd ) const override
     {
+      if (useShardsCellTopologyAndTags_)
+      {
+        return BasisBase::getDofTag(dofOrd);
+      }
 #ifdef HAVE_INTREPID2_DEBUG
       INTREPID2_TEST_FOR_EXCEPTION( dofOrd < 0 || dofOrd >= this->basisCardinality_, std::out_of_range,
                                     ">>> ERROR (Basis_TensorBasis::getDofTag): dofOrd is out of range");
@@ -913,6 +925,7 @@ struct OperatorTensorDecomposition
     
     void setShardsTopologyAndTags()
     {
+      useShardsCellTopologyAndTags_ = true;
       setShardsTopology();
       shards::CellTopology cellTopo1 = basis1_->getBaseCellTopology();
       shards::CellTopology cellTopo2 = basis2_->getBaseCellTopology();
