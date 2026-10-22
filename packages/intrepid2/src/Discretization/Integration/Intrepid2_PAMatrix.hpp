@@ -87,6 +87,7 @@ namespace Intrepid2 {
     
     using ComponentSequence = std::tuple<std::vector<OpSpec>, PointDataSpec, std::vector<OpSpec>, int, int, int, int>; // left, pointData, right, left offset, left output span, right offset, right input span
     std::vector<ComponentSequence> componentIntegralsToSum_;
+    std::vector<std::pair<int,int>> componentIntegralGroups_; // for each entry in componentIntegralsToSum_: (left group, right group), where a group is a (family, component) pair; used by assemble2()
     
     bool _separable = false; // separable means that we can perform integrals in reference space, and separately in each tensorial component dimension. (currently unused)
     

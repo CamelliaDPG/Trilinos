@@ -1039,6 +1039,11 @@ void PAMatrix<DeviceType,Scalar>::init(const TransformedBasisValues<Scalar,Devic
             }
             _pointDataCache[pointDataSpec] = pointDataView;
           }
+          {
+            const int leftGroup  = leftFamilyOrdinal  * leftComponentCount  + leftComponentOrdinal;
+            const int rightGroup = rightFamilyOrdinal * rightComponentCount + rightComponentOrdinal;
+            componentIntegralGroups_.push_back({leftGroup, rightGroup});
+          }
           componentIntegralsToSum_.push_back({leftOperators,pointDataSpec,rightOperators,
                                               leftFieldOrdinalOffset,leftFieldSpan,rightFieldOrdinalOffset,rightFieldSpan});
           
@@ -1209,7 +1214,22 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateDiagonalStorage() c
 template<typename DeviceType,class Scalar>
 bool pamatrixAssemble2UsesUnitColumnPath(const PAMatrix<DeviceType,Scalar> &matrix)
 {
-  bool useUnitColumnPath = (matrix._orientations.size() == 0);
+  bool useUnitColumnPath = (matrix._orientations.size() == 0) && (matrix.componentIntegralsToSum_.size() > 0)
+                        && (matrix.componentIntegralGroups_.size() == matrix.componentIntegralsToSum_.size());
+  if (!useUnitColumnPath) return false;
+  // the grouped unit-column path shares point buffers across passes, so all passes must have the same point count,
+  // number of tensor components, and cell count
+  const int numPoints           = std::get<1>(matrix.componentIntegralsToSum_[0]).P;
+  const int numTensorComponents = int(std::get<2>(matrix.componentIntegralsToSum_[0]).size());
+  const int numCells            = matrix._basisValuesLeft.numCells();
+  for (const auto &integralTuple : matrix.componentIntegralsToSum_)
+  {
+    if ((std::get<1>(integralTuple).P != numPoints) || (int(std::get<2>(integralTuple).size()) != numTensorComponents) ||
+        (std::get<1>(integralTuple).C != numCells))
+    {
+      return false;
+    }
+  }
   for (const auto &integralTuple : matrix.componentIntegralsToSum_)
   {
     const auto &leftOps       = std::get<0>(integralTuple);
@@ -1283,50 +1303,60 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
     {
       Kokkos::deep_copy(outputColumns, Scalar(0));
 
+      // Passes are grouped by their left and right (family, component).  Passes with the same right group share their
+      // right operators, so the unit columns' point values are computed once per right group; passes with the same left
+      // group share their left operators, so their weighted point values are summed before a single left contraction.
+      // This replaces (#left groups) x (#right groups) fill/contraction sequences with #right fills and #left
+      // contractions (e.g., 4 + 4 instead of 16 for a full D x D gradient weight in 4D).
       const int numIntegrationPasses = int(componentIntegralsToSum_.size());
+      const int numTensorComponents  = int(std::get<2>(componentIntegralsToSum_[0]).size());
+      const int numPoints            = std::get<1>(componentIntegralsToSum_[0]).P;
+      int numLeftGroups = 0, numRightGroups = 0;
+      for (const auto &groups : componentIntegralGroups_)
+      {
+        numLeftGroups  = std::max(numLeftGroups,  groups.first  + 1);
+        numRightGroups = std::max(numRightGroups, groups.second + 1);
+      }
+
+      // point values of this block's unit columns, one buffer per right group, each with layout (P,N,C) as consumed by
+      // pointDataMultiply()
+      const int pointBufferSize = numPoints * blockSize * numCells;
+      Kokkos::View<Scalar*,DeviceType> rightFills("PAMatrix assemble2 unit-column point values", pointBufferSize * numRightGroups);
+      std::vector<bool> rightGroupFilled(numRightGroups, false);
       for (int integrationPass=0; integrationPass<numIntegrationPasses; integrationPass++)
       {
+        const int rightGroup = componentIntegralGroups_[integrationPass].second;
+        if (rightGroupFilled[rightGroup]) continue;
+        rightGroupFilled[rightGroup] = true;
+
         const auto &integralTuple = componentIntegralsToSum_[integrationPass];
-        const auto &leftOps       = std::get<0>(integralTuple);
-        const PointDataSpec &pointDataSpec = std::get<1>(integralTuple);
         const auto &rightOps      = std::get<2>(integralTuple);
-        const int leftOrdinalOffset  = std::get<3>(integralTuple);
-        const int leftOutputSpan     = std::get<4>(integralTuple);
         const int rightOrdinalOffset = std::get<5>(integralTuple);
         const int rightInputSpan     = std::get<6>(integralTuple);
-        const int numTensorComponents = int(rightOps.size());
 
         Kokkos::Array<typename PAMatrix<DeviceType,Scalar>::OpSpec,8> rightOpsArray;
-        Kokkos::Array<typename PAMatrix<DeviceType,Scalar>::OpSpec,8> leftOpsArray;
         Kokkos::Array<int,8> rightFieldExtents;
         Kokkos::Array<int,8> pointExtents;
         for (int r=0; r<numTensorComponents; r++)
         {
           rightOpsArray[r] = rightOps[r];
-          leftOpsArray[r]  = leftOps[r];
           rightFieldExtents[r] = rightOps[r].N;
           pointExtents[r]      = rightOps[r].M;
         }
-
-        const int workspace1Size = maxIntermediateSize_ * numCells * blockSize;
-        const int workspace2Size = maxIntermediateSize_ * numCells * blockSize;
-        ScratchView workspace1(workspace.data(), workspace1Size);
-        ScratchView workspace2(workspace.data() + workspace1Size, workspace2Size);
-        ScratchView pointDataIn  = (numTensorComponents % 2 == 0) ? workspace1 : workspace2;
-        ScratchView pointDataOut = (numTensorComponents % 2 == 0) ? workspace2 : workspace1;
+        Scalar * const fill = rightFills.data() + rightGroup * pointBufferSize;
 
         // Point values of the unit trial columns: for column (f_0,...,f_{R-1}) and point (p_0,...,p_{R-1}), the value is
         // prod_r op_r(p_r, f_r).  Component 0 varies fastest in both column and point ordinals, so each thread handles one
         // (cell, column, p_1..p_{R-1}) and writes the contiguous run over p_0, after computing the product of the other
         // components once.  (The 1D operators do not depend on the cell.)
         const int numPoints0     = pointExtents[0];
-        const int numPointsOuter = pointDataSpec.P / numPoints0;
+        const int numPointsOuter = numPoints / numPoints0;
         auto unitColumnPolicy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,blockSize,numPointsOuter});
         Kokkos::parallel_for("PAMatrix::assemble2(): unit trial columns to points", unitColumnPolicy,
         KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &blockColumn, const ordinal_type &pointOuter)
         {
           const int globalColumn = columnStart + blockColumn;
-          Scalar * const dest = pointDataIn.data() + numPoints0 * pointOuter + (blockColumn + cell * blockSize) * pointDataSpec.P;
+          Scalar * const dest = fill + numPoints0 * pointOuter + (blockColumn + cell * blockSize) * numPoints;
           if ((globalColumn < rightOrdinalOffset) || (globalColumn >= rightOrdinalOffset + rightInputSpan))
           {
             for (int p0=0; p0<numPoints0; p0++) dest[p0] = Scalar(0);
@@ -1350,11 +1380,52 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
           const Scalar * const op0Column = op0.opView.data() + field0 * op0.M;
           for (int p0=0; p0<numPoints0; p0++) dest[p0] = outerProduct * op0Column[p0];
         });
-        ExecutionSpace().fence();
+      }
+      ExecutionSpace().fence();
 
-        auto pointData = _pointDataCache.find(pointDataSpec)->second;
-        Impl::pointDataMultiply<DeviceType,Scalar>(pointDataSpec.C, pointDataSpec.P, pointDataSpec.aSpan, pointDataSpec.bSpan,
-                                                   pointData.data(), pointDataIn.data(), pointDataOut.data(), blockSize);
+      const int workspace1Size = maxIntermediateSize_ * numCells * blockSize;
+      const int workspace2Size = maxIntermediateSize_ * numCells * blockSize;
+      ScratchView workspace1(workspace.data(), workspace1Size);
+      ScratchView workspace2(workspace.data() + workspace1Size, workspace2Size);
+      // the left contraction starts from pointDataOut; keep the parity used by apply() so the GEMM chain alternates the same way
+      ScratchView pointDataOut = (numTensorComponents % 2 == 0) ? workspace2 : workspace1;
+
+      for (int leftGroup=0; leftGroup<numLeftGroups; leftGroup++)
+      {
+        // sum, over this left group's passes, of (point weights) * (unit-column point values), in layout (N,C,P)
+        int representativePass = -1;
+        Kokkos::deep_copy(Kokkos::subview(pointDataOut, Kokkos::make_pair(0, pointBufferSize)), Scalar(0));
+        for (int integrationPass=0; integrationPass<numIntegrationPasses; integrationPass++)
+        {
+          if (componentIntegralGroups_[integrationPass].first != leftGroup) continue;
+          representativePass = integrationPass;
+          const PointDataSpec &pointDataSpec = std::get<1>(componentIntegralsToSum_[integrationPass]);
+          const int rightGroup = componentIntegralGroups_[integrationPass].second;
+          const Scalar * const fill = rightFills.data() + rightGroup * pointBufferSize;
+          const Scalar * const weights = _pointDataCache.find(pointDataSpec)->second.data();
+          Scalar * const accumulated = pointDataOut.data();
+          const int C = pointDataSpec.C;
+          const int P = pointDataSpec.P;
+          const int N = blockSize;
+          // accumulated(n,cell,point) += weights(cell,point) * fill(point,n,cell); n fastest to match the output layout
+          auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{P,C,N});
+          Kokkos::parallel_for("PAMatrix::assemble2(): accumulate weighted unit-column point values", policy,
+          KOKKOS_LAMBDA(const ordinal_type &point, const ordinal_type &cell, const ordinal_type &n)
+          {
+            accumulated[n + (cell + point * C) * N] += weights[cell + point * C] * fill[point + (n + cell * N) * P];
+          });
+          ExecutionSpace().fence();
+        }
+        if (representativePass < 0) continue;
+
+        const auto &integralTuple = componentIntegralsToSum_[representativePass];
+        const auto &leftOps       = std::get<0>(integralTuple);
+        const PointDataSpec &pointDataSpec = std::get<1>(integralTuple);
+        const int leftOrdinalOffset  = std::get<3>(integralTuple);
+        const int leftOutputSpan     = std::get<4>(integralTuple);
+
+        Kokkos::Array<typename PAMatrix<DeviceType,Scalar>::OpSpec,8> leftOpsArray;
+        for (int r=0; r<int(leftOps.size()); r++) leftOpsArray[r] = leftOps[r];
 
         int Nr = pointDataSpec.P * numCells * blockSize * pointDataSpec.aSpan;
         const int numLeftIntegrals = int(leftOps.size());
