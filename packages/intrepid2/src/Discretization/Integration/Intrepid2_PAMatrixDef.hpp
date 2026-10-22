@@ -53,10 +53,12 @@ void pointDataMultiply(const ordinal_type numCells, const ordinal_type numPoints
   INTREPID2_TEST_FOR_EXCEPTION(aSpan != 1, std::invalid_argument, "aSpan != 1 is not yet supported");
   
   using ExecutionSpace = typename DeviceType::execution_space;
-  auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<4>>({0,0,0,0},{N,numCells,numPoints,aSpan});
+  // Iterate in the output's memory order (n fastest, then cell, then point, then a), so that writes to C are contiguous;
+  // MDRangePolicy's default iteration makes the last index fastest on host.
+  auto policy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<4>>({0,0,0,0},{aSpan,numPoints,numCells,N});
   
   Kokkos::parallel_for("pointDataMultiply", policy,
-                       KOKKOS_LAMBDA(const ordinal_type &n, const ordinal_type &cell, const ordinal_type &point, const ordinal_type &a)
+                       KOKKOS_LAMBDA(const ordinal_type &a, const ordinal_type &point, const ordinal_type &cell, const ordinal_type &n)
   {
     Scalar value = 0;
     // assume layout left for A,B,C
@@ -1313,28 +1315,40 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
         ScratchView pointDataIn  = (numTensorComponents % 2 == 0) ? workspace1 : workspace2;
         ScratchView pointDataOut = (numTensorComponents % 2 == 0) ? workspace2 : workspace1;
 
-        auto unitColumnPolicy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,pointDataSpec.P,blockSize});
+        // Point values of the unit trial columns: for column (f_0,...,f_{R-1}) and point (p_0,...,p_{R-1}), the value is
+        // prod_r op_r(p_r, f_r).  Component 0 varies fastest in both column and point ordinals, so each thread handles one
+        // (cell, column, p_1..p_{R-1}) and writes the contiguous run over p_0, after computing the product of the other
+        // components once.  (The 1D operators do not depend on the cell.)
+        const int numPoints0     = pointExtents[0];
+        const int numPointsOuter = pointDataSpec.P / numPoints0;
+        auto unitColumnPolicy = Kokkos::MDRangePolicy<ExecutionSpace,Kokkos::Rank<3>>({0,0,0},{numCells,blockSize,numPointsOuter});
         Kokkos::parallel_for("PAMatrix::assemble2(): unit trial columns to points", unitColumnPolicy,
-        KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &pointOrdinal, const ordinal_type &blockColumn)
+        KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &blockColumn, const ordinal_type &pointOuter)
         {
           const int globalColumn = columnStart + blockColumn;
-          Scalar value = 0;
-          if ((globalColumn >= rightOrdinalOffset) && (globalColumn < rightOrdinalOffset + rightInputSpan))
+          Scalar * const dest = pointDataIn.data() + numPoints0 * pointOuter + (blockColumn + cell * blockSize) * pointDataSpec.P;
+          if ((globalColumn < rightOrdinalOffset) || (globalColumn >= rightOrdinalOffset + rightInputSpan))
           {
-            int columnRemainder = globalColumn - rightOrdinalOffset;
-            int pointRemainder = pointOrdinal;
-            value = Scalar(1);
-            for (int r=0; r<numTensorComponents; r++)
-            {
-              const int field = columnRemainder % rightFieldExtents[r];
-              const int point = pointRemainder % pointExtents[r];
-              columnRemainder /= rightFieldExtents[r];
-              pointRemainder  /= pointExtents[r];
-              const auto op = rightOpsArray[r];
-              value *= op.opView(point + field * op.M);
-            }
+            for (int p0=0; p0<numPoints0; p0++) dest[p0] = Scalar(0);
+            return;
           }
-          pointDataIn(pointOrdinal + (blockColumn + cell * blockSize) * pointDataSpec.P) = value;
+          int columnRemainder = globalColumn - rightOrdinalOffset;
+          const int field0 = columnRemainder % rightFieldExtents[0];
+          columnRemainder /= rightFieldExtents[0];
+          int pointRemainder = pointOuter;
+          Scalar outerProduct = Scalar(1);
+          for (int r=1; r<numTensorComponents; r++)
+          {
+            const int field = columnRemainder % rightFieldExtents[r];
+            const int point = pointRemainder % pointExtents[r];
+            columnRemainder /= rightFieldExtents[r];
+            pointRemainder  /= pointExtents[r];
+            const auto op = rightOpsArray[r];
+            outerProduct *= op.opView(point + field * op.M);
+          }
+          const auto op0 = rightOpsArray[0];
+          const Scalar * const op0Column = op0.opView.data() + field0 * op0.M;
+          for (int p0=0; p0<numPoints0; p0++) dest[p0] = outerProduct * op0Column[p0];
         });
         ExecutionSpace().fence();
 
