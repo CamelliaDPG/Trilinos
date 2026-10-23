@@ -85,6 +85,13 @@ void testStandardVersusPAMatrix(const int &meshWidth, const int &worksetSize,
   
   out << "Comparing general standard assembly to PAMatrix full-assembly path…\n";
   testFloatingEquality3(standardIntegrals, fullMatrix, relTol, absTol, out, success, "standard integral", "PAMatrix full assembly");
+  
+  // assemble2() uses PAMatrix's sum-factorized (unit-column or apply()-based) algorithm, rather than IntegrationTools
+  auto sumFactorizedMatrix = paMatrix.allocateMatrixStorage();
+  paMatrix.assemble2(sumFactorizedMatrix);
+  
+  out << "Comparing general standard assembly to PAMatrix assemble2() path…\n";
+  testFloatingEquality3(standardIntegrals, sumFactorizedMatrix, relTol, absTol, out, success, "standard integral", "PAMatrix assemble2");
 }
 
 template<class Scalar, class BasisFamily, class PointScalar, int spaceDim, typename DeviceType>
