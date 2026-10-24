@@ -56,7 +56,7 @@ IF (TARGET Intrepid2_DataTests)
 ENDIF()
 
 # PAMatrixTests
-TRIBITS_ADD_EXECUTABLE( PAMatrixTests NOEXESUFFIX SOURCES PAMatrixTests_Apply.cpp  PAMatrix_Impl_Tests.cpp PAMatrixTests_PAMatrixVersusStandardIntegration.cpp UnitTestMain.cpp )
+TRIBITS_ADD_EXECUTABLE( PAMatrixTests NOEXESUFFIX SOURCES PAMatrixTests_Apply.cpp  PAMatrix_Impl_Tests.cpp PAMatrixTests_PAMatrixVersusStandardIntegration.cpp PAMatrixTests_Serendipity.cpp UnitTestMain.cpp )
 IF (TARGET Intrepid2_PAMatrixTests)
   SET_TARGET_PROPERTIES( Intrepid2_PAMatrixTests PROPERTIES EXCLUDE_FROM_ALL TRUE)
 ENDIF()

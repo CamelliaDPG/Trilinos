@@ -539,17 +539,32 @@ _orientations(orientations)
 } // PAMatrix()
 
 template<typename DeviceType,class Scalar>
-void PAMatrix<DeviceType,Scalar>::init(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeft,
+void PAMatrix<DeviceType,Scalar>::init(const TransformedBasisValues<Scalar,DeviceType> basisValuesLeftInput,
                                   const TensorData<Scalar,DeviceType> cellMeasures,
-                                  const TransformedBasisValues<Scalar,DeviceType> basisValuesRight,
+                                  const TransformedBasisValues<Scalar,DeviceType> basisValuesRightInput,
                                   const ScalarView<Orientation,DeviceType> orientations) {
   using ExecutionSpace = typename DeviceType::execution_space;
 
   const bool layoutLeft = layoutLeft_;
   
-  const bool  leftHasOrdinalFilter =  basisValuesLeft.basisValues().ordinalFilter().extent_int(0) > 0;
-  const bool rightHasOrdinalFilter = basisValuesRight.basisValues().ordinalFilter().extent_int(0) > 0;
-  TEUCHOS_TEST_FOR_EXCEPTION(leftHasOrdinalFilter || rightHasOrdinalFilter, std::invalid_argument, "Ordinal filters for BasisValues are not yet supported by PAMatrix");
+  // Ordinal filters (used for Serendipity bases) select a subset of the fields of an underlying tensor basis.  The
+  // component integrals below are set up for the unfiltered (full tensor) bases; the filters are applied when results are
+  // written (see assemble2()).
+  leftOrdinalFilter_  = basisValuesLeftInput .basisValues().ordinalFilter();
+  rightOrdinalFilter_ = basisValuesRightInput.basisValues().ordinalFilter();
+  auto unfiltered = [](const TransformedBasisValues<Scalar,DeviceType> &values) {
+    if (values.basisValues().ordinalFilter().extent_int(0) == 0) return values;
+    BasisValues<Scalar,DeviceType> unfilteredValues = values.basisValues();
+    unfilteredValues.setOrdinalFilter(Kokkos::View<ordinal_type*,DeviceType>());
+    return values.transform().isValid() ? TransformedBasisValues<Scalar,DeviceType>(values.transform(), unfilteredValues)
+                                        : TransformedBasisValues<Scalar,DeviceType>(values.numCells(), unfilteredValues);
+  };
+  const TransformedBasisValues<Scalar,DeviceType> basisValuesLeft  = unfiltered(basisValuesLeftInput);
+  const TransformedBasisValues<Scalar,DeviceType> basisValuesRight = unfiltered(basisValuesRightInput);
+  numUnfilteredFieldsLeft_  = basisValuesLeft .numFields();
+  numUnfilteredFieldsRight_ = basisValuesRight.numFields();
+  INTREPID2_TEST_FOR_EXCEPTION(hasOrdinalFilter() && (orientations.size() > 0), std::invalid_argument,
+                               "PAMatrix does not support ordinal filters together with orientations");
   
   const int spaceDim = basisValuesLeft.spaceDim();
   
@@ -1104,11 +1119,8 @@ Data<Scalar,DeviceType> PAMatrix<DeviceType,Scalar>::allocateMatrixStorage() con
 {
   // Allocates a (C,F,F) container for storing integral data
   
-  // Ordinal filter is used for Serendipity basis; we don't yet support Serendipity for PAMatrix.
-  // (When we do, the strategy will likely be to apply the right filter at the "middle" of the operator sequence, and the left filter at the end.  This does mean that the intermediate containers for the right operators will be sized for the unfiltered basis; the intermediate containers for the left operators will be sized like unfiltered left x filtered right.)
-  const bool  leftHasOrdinalFilter =  _basisValuesLeft.basisValues().ordinalFilter().extent_int(0) > 0;
-  const bool rightHasOrdinalFilter = _basisValuesRight.basisValues().ordinalFilter().extent_int(0) > 0;
-  TEUCHOS_TEST_FOR_EXCEPTION(leftHasOrdinalFilter || rightHasOrdinalFilter, std::invalid_argument, "Ordinal filters for BasisValues are not yet supported by PAMatrix");
+  // With ordinal filters (e.g., Serendipity), the stored basis values report the filtered field counts, which is the
+  // size of the matrix that assemble2() produces.
   
   // determine cellDataExtent and variation type.  We currently support CONSTANT, MODULAR, and GENERAL as possible output variation types, depending on the inputs.
   // If cellMeasures has non-trivial tensor structure, the rank-1 cell Data object is the first component.
@@ -1288,6 +1300,16 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
       "PAMatrix::assemble2() output container has incompatible extents");
 
   const bool useUnitColumnPath = pamatrixAssemble2UsesUnitColumnPath(*this);
+  INTREPID2_TEST_FOR_EXCEPTION(hasOrdinalFilter() && !useUnitColumnPath, std::invalid_argument,
+      "PAMatrix::assemble2() supports ordinal filters only for structures handled by its unit-column path");
+
+  // with ordinal filters, block column j is full right ordinal rightOrdinalFilter_(columnStart+j), and the left
+  // contraction produces all numUnfilteredFieldsLeft_ rows, of which rows leftOrdinalFilter_(i) are kept
+  const bool hasLeftFilter  = leftOrdinalFilter_ .extent_int(0) > 0;
+  const bool hasRightFilter = rightOrdinalFilter_.extent_int(0) > 0;
+  const auto leftOrdinalFilter  = leftOrdinalFilter_;
+  const auto rightOrdinalFilter = rightOrdinalFilter_;
+  const ordinal_type numLeftRowsComputed = hasLeftFilter ? numUnfilteredFieldsLeft_ : numFieldsLeft;
 
   const ordinal_type maxColumnBlockSize = 64;
   const ordinal_type columnBlockSize = std::min(numFieldsRight, maxColumnBlockSize);
@@ -1295,7 +1317,7 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
   for (ordinal_type columnStart=0; columnStart<numFieldsRight; columnStart+=columnBlockSize)
   {
     const ordinal_type blockSize = std::min(columnBlockSize, numFieldsRight - columnStart);
-    MultiVector outputColumns("PAMatrix assemble2 output columns", numCells, numFieldsLeft, blockSize);
+    MultiVector outputColumns("PAMatrix assemble2 output columns", numCells, numLeftRowsComputed, blockSize);
 
     auto workspace = this->allocateWorkspace(numCells, blockSize);
 
@@ -1355,7 +1377,7 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
         Kokkos::parallel_for("PAMatrix::assemble2(): unit trial columns to points", unitColumnPolicy,
         KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &blockColumn, const ordinal_type &pointOuter)
         {
-          const int globalColumn = columnStart + blockColumn;
+          const int globalColumn = hasRightFilter ? rightOrdinalFilter(columnStart + blockColumn) : columnStart + blockColumn;
           Scalar * const dest = fill + numPoints0 * pointOuter + (blockColumn + cell * blockSize) * numPoints;
           if ((globalColumn < rightOrdinalOffset) || (globalColumn >= rightOrdinalOffset + rightInputSpan))
           {
@@ -1477,7 +1499,8 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
       Kokkos::parallel_for("PAMatrix::assemble2(): copy general columns", copyPolicy,
       KOKKOS_LAMBDA(const ordinal_type &cell, const ordinal_type &row, const ordinal_type &blockColumn)
       {
-        matrix(cell,row,columnStart + blockColumn) = outputColumns(cell,row,blockColumn);
+        const ordinal_type computedRow = hasLeftFilter ? leftOrdinalFilter(row) : row;
+        matrix(cell,row,columnStart + blockColumn) = outputColumns(cell,computedRow,blockColumn);
       });
     }
     else if (integrals.getUnderlyingViewRank() == 2)
@@ -1487,7 +1510,8 @@ void PAMatrix<DeviceType,Scalar>::assemble2(Data<Scalar,DeviceType> &integrals) 
       Kokkos::parallel_for("PAMatrix::assemble2(): copy constant-cell columns", copyPolicy,
       KOKKOS_LAMBDA(const ordinal_type &row, const ordinal_type &blockColumn)
       {
-        matrix(row,columnStart + blockColumn) = outputColumns(0,row,blockColumn);
+        const ordinal_type computedRow = hasLeftFilter ? leftOrdinalFilter(row) : row;
+        matrix(row,columnStart + blockColumn) = outputColumns(0,computedRow,blockColumn);
       });
     }
     else
@@ -1503,6 +1527,7 @@ template<typename DeviceType,class Scalar>
 void PAMatrix<DeviceType,Scalar>::extractDiagonal(const Data<Scalar,DeviceType> &diagonal) const
 {
   using ExecutionSpace = typename DeviceType::execution_space;
+  INTREPID2_TEST_FOR_EXCEPTION(hasOrdinalFilter(), std::invalid_argument, "PAMatrix::extractDiagonal() does not yet support ordinal filters");
 
   const ordinal_type numCells       = _basisValuesLeft.numCells();
   const ordinal_type numFieldsLeft  = _basisValuesLeft.numFields();
@@ -1812,6 +1837,7 @@ void PAMatrix<DeviceType,Scalar>::apply(const OutputViewType &outputVector,
                                         const int worksetSizeIn) const
 {
   // TODO: revise to take a single workspace argument.  We should manage subdivision internally.
+  INTREPID2_TEST_FOR_EXCEPTION(hasOrdinalFilter(), std::invalid_argument, "PAMatrix::apply() does not yet support ordinal filters");
   
   using ExecutionSpace = typename DeviceType::execution_space;
   using View1D = Kokkos::View<Scalar*,DeviceType>;

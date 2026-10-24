@@ -106,7 +106,8 @@ namespace {
 template<class Scalar, class BasisFamily, class PointScalar, int spaceDim, typename DeviceType, unsigned long spaceDim2>  // spaceDim and spaceDim2 should agree in value (differ in type)
 Intrepid2::PAMatrix<DeviceType,Scalar> constructPAMatrix(Intrepid2::CellGeometry<PointScalar, spaceDim, DeviceType> &geometry,
                                                          const int &polyOrder1, const Intrepid2::EFunctionSpace &fs1, const Intrepid2::EOperator &op1, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim2> > vectorWeight1,
-                                                         const int &polyOrder2, const Intrepid2::EFunctionSpace &fs2, const Intrepid2::EOperator &op2, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim2> > vectorWeight2)
+                                                         const int &polyOrder2, const Intrepid2::EFunctionSpace &fs2, const Intrepid2::EOperator &op2, Teuchos::RCP< Kokkos::Array<PointScalar,spaceDim2> > vectorWeight2,
+                                                         const bool applyOrientations = true)
 {
   using namespace Intrepid2;
   
@@ -124,8 +125,12 @@ Intrepid2::PAMatrix<DeviceType,Scalar> constructPAMatrix(Intrepid2::CellGeometry
   using IntegrationTools   = IntegrationTools<DeviceType>;
   // dimensions of the returned view are (C,F,F)
   
-  Intrepid2::ScalarView<Intrepid2::Orientation,DeviceType> orientations("orientations", geometry.numCells() );
-  geometry.orientations(orientations, 0, -1);
+  Intrepid2::ScalarView<Intrepid2::Orientation,DeviceType> orientations;
+  if (applyOrientations)
+  {
+    orientations = Intrepid2::ScalarView<Intrepid2::Orientation,DeviceType>("orientations", geometry.numCells() );
+    geometry.orientations(orientations, 0, -1);
+  }
   
   shards::CellTopology cellTopo = geometry.cellTopology();
   
