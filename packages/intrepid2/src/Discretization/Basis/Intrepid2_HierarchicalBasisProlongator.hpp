@@ -12,8 +12,8 @@
     \author Created by N. V. Roberts.
  */
 
-#ifndef __INTREPID2_BASIS_PROLONGATOR_HPP__
-#define __INTREPID2_BASIS_PROLONGATOR_HPP__
+#ifndef Intrepid2_HierarchicalBasisProlongator_h
+#define Intrepid2_HierarchicalBasisProlongator_h
 
 #include "Intrepid2_ConfigDefs.hpp"
 #include "Intrepid2_Types.hpp"
@@ -23,6 +23,16 @@
 
 namespace Intrepid2 {
 
+/** \class Intrepid2::HierarchicalBasisProlongator
+    \brief Prolongation (and its transpose) from a coarse to a fine hierarchical basis of the same family.
+
+    For hierarchical bases, the coarse basis is a subset of the fine basis, so prolongation is an injection:
+    each coarse coefficient is copied into the fine coefficient for the matching basis function, and all other
+    fine coefficients are zero.  The transpose gathers the corresponding fine coefficients.  Both operations are
+    O(coarse cardinality) per cell.
+
+    Coefficient containers may have shape (F), (C,F), or (C0,C1,F); the final dimension indexes basis functions.
+ */
 template<typename DeviceType,
          typename OutputScalar = double,
          typename PointScalar  = double>
@@ -118,10 +128,22 @@ public:
     {
       fineDofOrdinalsHost(i) = lowerOrderFieldOrdinals[i];
     }
+    Kokkos::deep_copy(_fineDofOrdinals, fineDofOrdinalsHost);
+  }
+
+  //! Returns the fine-basis field ordinal corresponding to each coarse-basis field ordinal.
+  Kokkos::View<ordinal_type*,DeviceType> getFineDofOrdinals() const
+  {
+    return _fineDofOrdinals;
   }
   
+  /** \brief Prolongate: fineBasisView = P * coarseBasisView (or += if sumInto is true).
+      \param [out] fineBasisView   - coefficients in the fine basis; shape (F), (C,F), or (C0,C1,F)
+      \param [in]  coarseBasisView - coefficients in the coarse basis; same rank and cell extents as fineBasisView
+      \param [in]  sumInto         - if true, add into fineBasisView rather than overwriting it
+   */
   template<class OutViewType, class InViewType>
-  void apply(OutViewType &fineBasisView, const InViewType &coarseBasisView, const bool sumInto = false)
+  void apply(const OutViewType &fineBasisView, const InViewType &coarseBasisView, const bool sumInto = false) const
   {
     auto fineDofOrdinals = _fineDofOrdinals; // avoid implicit reference to this in Kokkos::parallel_for's below.
     
@@ -245,8 +267,13 @@ public:
     }
   }
   
+  /** \brief Apply the transpose of prolongation: coarseBasisView = P^T * fineBasisView (or += if sumInto is true).
+      \param [out] coarseBasisView - coefficients in the coarse basis; shape (F), (C,F), or (C0,C1,F)
+      \param [in]  fineBasisView   - coefficients in the fine basis; same rank and cell extents as coarseBasisView
+      \param [in]  sumInto         - if true, add into coarseBasisView rather than overwriting it
+   */
   template<class OutViewType, class InViewType>
-  void applyTranspose(OutViewType &coarseBasisView, const InViewType &fineBasisView, const bool sumInto = false)
+  void applyTranspose(const OutViewType &coarseBasisView, const InViewType &fineBasisView, const bool sumInto = false) const
   {
     auto fineDofOrdinals = _fineDofOrdinals; // avoid implicit reference to this in Kokkos::parallel_for's below.
     
@@ -275,7 +302,7 @@ public:
         
         if (sumInto)
         {
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (F) (sumInto)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (F) (sumInto)", policy,
           KOKKOS_LAMBDA(const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -285,7 +312,7 @@ public:
         else
         {
           Kokkos::deep_copy(coarseBasisView, 0.0);
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (F)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (F)", policy,
           KOKKOS_LAMBDA(const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -308,7 +335,7 @@ public:
         
         if (sumInto)
         {
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (C,F)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (C,F)", policy,
           KOKKOS_LAMBDA(const int &cellOrdinal, const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -318,7 +345,7 @@ public:
         else
         {
           Kokkos::deep_copy(coarseBasisView, 0.0);
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (C,F)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (C,F)", policy,
           KOKKOS_LAMBDA(const int &cellOrdinal, const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -344,7 +371,7 @@ public:
         
         if (sumInto)
         {
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (C0,C1,F)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (C0,C1,F)", policy,
           KOKKOS_LAMBDA(const int &c0, const int &c1, const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -354,7 +381,7 @@ public:
         else
         {
           Kokkos::deep_copy(coarseBasisView, 0.0);
-          Kokkos::parallel_for("apply HierarchicalBasisProlongator (C0,C1,F)", policy,
+          Kokkos::parallel_for("applyTranspose HierarchicalBasisProlongator (C0,C1,F)", policy,
           KOKKOS_LAMBDA(const int &c0, const int &c1, const int &coarseOrdinal)
           {
             const ordinal_type & fineOrdinal = fineDofOrdinals(coarseOrdinal);
@@ -373,4 +400,4 @@ public:
 
 }// namespace Intrepid2
 
-#endif
+#endif /* Intrepid2_HierarchicalBasisProlongator_h */

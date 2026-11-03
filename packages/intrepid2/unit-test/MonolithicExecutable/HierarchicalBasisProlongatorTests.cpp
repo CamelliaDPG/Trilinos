@@ -7,7 +7,7 @@
 // *****************************************************************************
 // @HEADER
 
-/** \file   Intrepid2_HierarchicalBasisProlongatorTests.cpp
+/** \file   HierarchicalBasisProlongatorTests.cpp
     \brief  Tests against Intrepid2::HierarchicalBasisProlongator
     \author Created by N.V. Roberts.
  */
@@ -20,6 +20,7 @@
 
 #include <Intrepid2_CellTopology.hpp>
 #include <Intrepid2_DerivedBasisFamily.hpp>
+#include <Intrepid2_HierarchicalBasisFamily.hpp>
 
 using namespace Intrepid2;
 
