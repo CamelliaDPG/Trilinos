@@ -77,11 +77,13 @@ SET( TestGroups
   CubatureTensor
   Data
   DirectSumBasis
+  HierarchicalBasisProlongator
   HostCopyTests.cpp
   IntegratedJacobi
   IntegratedLegendre
   Jacobi
   Legendre
+  NodalBasisProlongator
   RealSpaceTools
   StructuredIntegration
   SubBasisInclusion

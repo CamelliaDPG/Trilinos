@@ -52,6 +52,18 @@ namespace Intrepid2
     
     std::string name_;
   public:
+    //! Returns the first summand; its members occupy field ordinals [0, basis1->getCardinality()) in the direct sum.
+    BasisPtr getBasis1() const
+    {
+      return basis1_;
+    }
+
+    //! Returns the second summand; its members follow those of the first summand in the direct sum.
+    BasisPtr getBasis2() const
+    {
+      return basis2_;
+    }
+
     /** \brief  Constructor.
         \param [in] basis1 - the instance of Basis1
         \param [in] basis2 - the instance of Basis2
